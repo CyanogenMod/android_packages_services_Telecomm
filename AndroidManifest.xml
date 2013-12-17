@@ -17,6 +17,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:androidprv="http://schemas.android.com/apk/prv/res/android"
         package="com.android.telecomm">
+
     <!-- Prevents the activity manager from delaying any activity-start
          requests by this package, including requests immediately after
          the user presses "home". -->
@@ -143,5 +144,10 @@
             </intent-filter>
         </activity-alias>
 
+        <receiver android:name="TelecommReceiver" android:exported="true">
+            <intent-filter>
+                <action android:name="com.android.telecomm.CONNECT_CALL_SERVICE" />
+            </intent-filter>
+        </receiver>
     </application>
 </manifest>
