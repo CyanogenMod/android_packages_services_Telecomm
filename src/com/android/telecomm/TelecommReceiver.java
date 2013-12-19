@@ -71,7 +71,7 @@ public class TelecommReceiver extends BroadcastReceiver {
         String callServiceId = intent.getStringExtra(EXTRA_CALL_SERVICE_ID);
         if (TextUtils.isEmpty(packageName) || TextUtils.isEmpty(callServiceId)) {
             Log.w(TAG, "Rejecting request to connect to call service due to lack of data."
-                    + " packageName: [" + packageName + "]" +
+                    + " packageName: [" + packageName + "]"
                     + ", callServiceId: [" + callServiceId + "]");
             return;
         }
