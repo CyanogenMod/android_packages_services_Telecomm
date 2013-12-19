@@ -24,8 +24,7 @@
     <!-- TODO(gilad): Better understand/document this use case. -->
     <uses-permission android:name="android.permission.STOP_APP_SWITCHES" />
 
-    <application android:name="TelecommApp"
-            android:persistent="false"
+    <application android:persistent="false"
             android:label="@string/telecommAppLabel"
             android:icon="@mipmap/ic_launcher_phone"
             android:supportsRtl="true">

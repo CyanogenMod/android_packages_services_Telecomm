@@ -17,6 +17,7 @@
 package com.android.telecomm;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.content.res.Configuration;
 import android.os.Bundle;
@@ -95,12 +96,17 @@ public class CallActivity extends Activity {
         String handle = intent.getDataString();
         ContactInfo contactInfo = null;
         try {
-          mCallsManager.processOutgoingCallIntent(handle, contactInfo);
+            // we use the application context because the lifetime of the call services bound on
+            // this context extends beyond the life of this activity.
+            Context context = getApplicationContext();
+
+            mCallsManager.processOutgoingCallIntent(handle, contactInfo, context);
         } catch (RestrictedCallException e) {
-          // TODO(gilad): Handle or explicitly state to be ignored.
+            // TODO(gilad): Handle or explicitly state to be ignored.
         } catch (CallServiceUnavailableException e) {
-          // TODO(gilad): Handle or explicitly state to be ignored. If both should be ignored, consider
-          // extending from the same base class and simplify the handling code to a single catch clause.
+            // TODO(gilad): Handle or explicitly state to be ignored. If both should be ignored,
+            // consider extending from the same base class and simplify the handling code to a
+            // single catch clause.
         }
     }
 }
