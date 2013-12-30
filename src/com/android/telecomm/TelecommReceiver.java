@@ -26,6 +26,8 @@ import android.util.Log;
  * Receiver for public intents relating to Telecomm.
  */
 public class TelecommReceiver extends BroadcastReceiver {
+
+    /** Used to identify log entries by this class. */
     private static final String TAG = TelecommReceiver.class.getSimpleName();
 
     /**
@@ -42,14 +44,16 @@ public class TelecommReceiver extends BroadcastReceiver {
     /**
      * The package name of the {@link ICallServiceProvider} used to get the {@link CallService}.
      */
-    /* package */ static final String EXTRA_PACKAGE_NAME = "com.android.telecomm.PACKAGE_NAME";
+    static final String EXTRA_PACKAGE_NAME = "com.android.telecomm.PACKAGE_NAME";
 
     /**
      * The CallService ID used to identify the {@link CallService} via {@link ICallServiceProvider}.
      * IDs are only required to be unique within the scope of an {@link ICallServiceProvider}.
      */
-    /* package */ static final String EXTRA_CALL_SERVICE_ID =
+    static final String EXTRA_CALL_SERVICE_ID =
             "com.android.telecomm.CALL_SERVICE_ID";
+
+    private CallsManager mCallsManager = CallsManager.getInstance();
 
     /** {@inheritDoc} */
     @Override
@@ -62,9 +66,9 @@ public class TelecommReceiver extends BroadcastReceiver {
 
     /**
      * Tells CallsManager to connect to the {@link #CallService} identified by the package name
-     * and call service ID in the extras of the intent parameter.
+     * and call-service ID in the extras of the intent parameter.
      *
-     * @param intent The intent containing the package name and call service ID as extras.
+     * @param intent The intent containing the package name and call-service ID as extras.
      */
     private void connectToCallService(Intent intent) {
         String packageName = intent.getStringExtra(EXTRA_PACKAGE_NAME);

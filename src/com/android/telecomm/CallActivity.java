@@ -23,14 +23,22 @@ import android.os.Bundle;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.android.telecomm.exceptions.CallServiceUnavailableException;
+import com.android.telecomm.exceptions.RestrictedCallException;
+
 /**
  * Activity that handles system CALL actions and forwards them to {@link CallsManager}.
  * Handles all three CALL action types: CALL, CALL_PRIVILEGED, and CALL_EMERGENCY.
  * TODO(santoscordon): Connect with CallsManager.
  */
 public class CallActivity extends Activity {
+    /** Used to identify log entries by this class. */
     private static final String TAG = CallActivity.class.getSimpleName();
+
+    /** Indicates whether or not debug-level entries should be logged. */
     private static boolean DEBUG = Log.isLoggable(TAG, Log.DEBUG);
+
+    private CallsManager mCallsManager = CallsManager.getInstance();
 
     /**
      * {@inheritDoc}
@@ -60,7 +68,7 @@ public class CallActivity extends Activity {
         // TODO(santoscordon): Figure out if there is something to restore from bundle.
         // See OutgoingCallBroadcaster in services/Telephony for more.
 
-        processIntent(intent);
+        processOutgoingCallIntent(intent);
 
         // TODO(santoscordon): Remove this finish() once this app does more than just show a toast.
         finish();
@@ -75,10 +83,24 @@ public class CallActivity extends Activity {
      *
      * @param intent Call intent containing data about the handle to call.
      */
-    private void processIntent(Intent intent) {
-        // TODO(santoscordon): Pass intent data through to CallsManager. At the moment, we just
-        // display a toast of the data.
+    private void processOutgoingCallIntent(Intent intent) {
+        // TODO(santoscordon): Remove the toast.
         String toastContent = "[" + intent.getAction() + "] " + intent.getDataString();
         Toast.makeText(this, toastContent, Toast.LENGTH_LONG).show();
+
+        // TODO(gilad): Pull the scheme etc. from the data string as well as any relevant extras
+        // from the intent into structured data and invoke the corresponding CallsManager APIs
+        // based on that.  May want to add a static utility to perform that in case the logic is
+        // non-trivial/voluminous.
+        String handle = intent.getDataString();
+        ContactInfo contactInfo = null;
+        try {
+          mCallsManager.processOutgoingCallIntent(handle, contactInfo);
+        } catch (RestrictedCallException e) {
+          // TODO(gilad): Handle or explicitly state to be ignored.
+        } catch (CallServiceUnavailableException e) {
+          // TODO(gilad): Handle or explicitly state to be ignored. If both should be ignored, consider
+          // extending from the same base class and simplify the handling code to a single catch clause.
+        }
     }
 }
