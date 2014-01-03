@@ -16,7 +16,7 @@
 
 package com.android.telecomm;
 
-import com.google.android.collect.Lists;
+import com.google.common.collect.Lists;
 
 import android.content.Context;
 import android.os.RemoteException;
