@@ -17,7 +17,7 @@
 package com.android.telecomm.testcallservice;
 
 import android.telecomm.CallServiceProvider;
-import android.telecomm.ICallServiceProviderAdapter;
+import android.telecomm.ICallServiceLookupResponse;
 import android.util.Log;
 
 /**
@@ -29,8 +29,7 @@ public class TestCallServiceProvider extends CallServiceProvider {
 
     /** {@inheritDoc} */
     @Override
-    public void setCallServiceProviderAdapter(
-            ICallServiceProviderAdapter callServiceProviderAdapter) {
-        Log.i(TAG, "setCallServiceProviderAdapter(" + callServiceProviderAdapter + ")");
+    public void lookupCallServices(ICallServiceLookupResponse response) {
+        Log.i(TAG, "lookupCallServices()");
     }
 }
