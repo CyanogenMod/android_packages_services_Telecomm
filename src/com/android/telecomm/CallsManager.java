@@ -22,7 +22,6 @@ import com.android.telecomm.exceptions.CallServiceUnavailableException;
 import com.android.telecomm.exceptions.RestrictedCallException;
 import com.google.common.collect.Lists;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
