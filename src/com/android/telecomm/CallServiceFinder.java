@@ -159,6 +159,8 @@ final class CallServiceFinder {
      */
     static final String CALL_SERVICE_PROVIDER_CLASS_NAME = ICallServiceProvider.class.getName();
 
+    private final Switchboard mSwitchboard;
+
     /**
      * Determines whether or not a lookup cycle is already running.
      */
@@ -194,12 +196,21 @@ final class CallServiceFinder {
     private Timer mTimer;
 
     /**
+     * Persists the specified parameters.
+     *
+     * @param switchboard The switchboard for this finer to work against.
+     */
+    CallServiceFinder(Switchboard switchboard) {
+        mSwitchboard = switchboard;
+    }
+
+    /**
      * Initiates a lookup cycle for call-service providers.
      * TODO(gilad): Expand this comment to describe the lookup flow in more detail.
      *
      * @param context The relevant application context.
      */
-    public synchronized void initiateLookup(Context context) {
+    synchronized void initiateLookup(Context context) {
         if (mIsLookupInProgress) {
             // At most one active lookup is allowed at any given time, bail out.
             return;
@@ -320,6 +331,7 @@ final class CallServiceFinder {
     private void updateSwitchboard() {
         synchronized (mProviderRegistry) {
             // TODO(gilad): More here.
+            mSwitchboard.setCallServices(null);
         }
     }
 }
