@@ -18,6 +18,11 @@ package com.android.telecomm;
 
 import java.util.Date;
 
+/**
+ *  Encapsulates all aspects of a given phone call throughout its lifecycle, starting
+ *  from the time the call intent was received by Telecomm (vs. the time the call was
+ *  connected etc).
+ */
 final class Call {
 
     /** The handle with which to establish this call. */

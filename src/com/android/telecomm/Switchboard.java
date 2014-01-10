@@ -39,6 +39,7 @@ import java.util.Set;
  *     that may need to be terminated, see mPendingOutgoingCalls.
  */
 final class Switchboard {
+
     /** Used to identify log entries by this class */
     private static final String TAG = Switchboard.class.getSimpleName();
 
