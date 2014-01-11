@@ -23,8 +23,9 @@ import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.content.pm.ServiceInfo;
+import android.os.Handler;
 import android.os.IBinder;
-import android.os.Bundle;
+import android.os.Looper;
 import android.os.RemoteException;
 import android.telecomm.ICallService;
 import android.telecomm.ICallServiceLookupResponse;
@@ -37,8 +38,6 @@ import com.google.common.collect.Sets;
 
 import java.util.List;
 import java.util.Set;
-import java.util.Timer;
-import java.util.TimerTask;
 
 /**
  * Finds {@link ICallService} and {@link ICallServiceProvider} implementations on the device.
@@ -111,49 +110,40 @@ final class CallServiceFinder {
          * @param registrar The registrar with which to register and unregister this provider.
          */
         ProviderWrapper(Context context, final ProviderRegistrar registrar) {
-          ComponentName name = registrar.getProviderName();
-          Preconditions.checkNotNull(name);
-          Preconditions.checkNotNull(context);
+            ComponentName name = registrar.getProviderName();
+            Preconditions.checkNotNull(name);
+            Preconditions.checkNotNull(context);
 
-          Intent serviceIntent = new Intent(CALL_SERVICE_PROVIDER_CLASS_NAME).setComponent(name);
-          Log.i(TAG, "Binding to ICallServiceProvider through " + serviceIntent);
+            Intent serviceIntent = new Intent(CALL_SERVICE_PROVIDER_CLASS_NAME).setComponent(name);
+            Log.i(TAG, "Binding to ICallServiceProvider through " + serviceIntent);
 
-          // Connection object for the service binding.
-          ServiceConnection connection = new ServiceConnection() {
-              @Override
-              public void onServiceConnected(ComponentName className, IBinder service) {
-                  registrar.register(ICallServiceProvider.Stub.asInterface(service));
-              }
+            // Connection object for the service binding.
+            ServiceConnection connection = new ServiceConnection() {
+                @Override
+                public void onServiceConnected(ComponentName className, IBinder service) {
+                    registrar.register(ICallServiceProvider.Stub.asInterface(service));
+                }
 
-              @Override
-              public void onServiceDisconnected(ComponentName className) {
-                  registrar.unregister();
-              }
-          };
+                @Override
+                public void onServiceDisconnected(ComponentName className) {
+                    registrar.unregister();
+                }
+            };
 
-          if (!context.bindService(serviceIntent, connection, Context.BIND_AUTO_CREATE)) {
-              // TODO(santoscordon): Handle error.
-          }
-        }
-    }
-
-    /**
-     * A timer task to ensure each lookup cycle is time-bound, see LOOKUP_TIMEOUT.
-     */
-    private class LookupTerminator extends TimerTask {
-        @Override
-        public void run() {
-          terminateLookup();
+            if (!context.bindService(serviceIntent, connection, Context.BIND_AUTO_CREATE)) {
+                // TODO(santoscordon): Handle error.
+            }
         }
     }
 
     private static final String TAG = CallServiceFinder.class.getSimpleName();
 
     /**
-     * The longest period in milliseconds each lookup cycle is allowed to span over, see mTimer.
+     * The longest period in milliseconds each lookup cycle is allowed to span over, see
+     * {@link #mLookupTerminator}.
      * TODO(gilad): Likely requires tuning.
      */
-    private static final int LOOKUP_TIMEOUT = 100;
+    private static final int LOOKUP_TIMEOUT_MS = 100;
 
     /**
      * Used to retrieve all known ICallServiceProvider implementations from the framework.
@@ -195,7 +185,15 @@ final class CallServiceFinder {
      * Used to interrupt lookup cycles that didn't terminate naturally within the allowed
      * period, see LOOKUP_TIMEOUT.
      */
-    private Timer mTimer;
+    private final Runnable mLookupTerminator = new Runnable() {
+        @Override
+        public void run() {
+            terminateLookup();
+        }
+    };
+
+    /** Used to run code (e.g. messages, Runnables) on the main (UI) thread. */
+    private final Handler mHandler = new Handler(Looper.getMainLooper());
 
     /**
      * Persists the specified parameters.
@@ -207,12 +205,13 @@ final class CallServiceFinder {
     }
 
     /**
-     * Initiates a lookup cycle for call-service providers.
+     * Initiates a lookup cycle for call-service providers. Must be called from the UI thread.
      * TODO(gilad): Expand this comment to describe the lookup flow in more detail.
      *
      * @param context The relevant application context.
      */
-    synchronized void initiateLookup(Context context) {
+    void initiateLookup(Context context) {
+        ThreadUtil.checkOnMainThread();
         if (mIsLookupInProgress) {
             // At most one active lookup is allowed at any given time, bail out.
             return;
@@ -250,14 +249,9 @@ final class CallServiceFinder {
             // back to the switchboard.
             updateSwitchboard();
         } else {
-            // Start the timeout for this lookup cycle.
-            // TODO(gilad): Consider reusing the same timer instead of creating new ones.
-            if (mTimer != null) {
-                // Shouldn't be running but better safe than sorry.
-                mTimer.cancel();
-            }
-            mTimer = new Timer();
-            mTimer.schedule(new LookupTerminator(), LOOKUP_TIMEOUT);
+            // Schedule a lookup terminator to run after LOOKUP_TIMEOUT_MS milliseconds.
+            mHandler.removeCallbacks(mLookupTerminator);
+            mHandler.postDelayed(mLookupTerminator, LOOKUP_TIMEOUT_MS);
         }
     }
 
@@ -361,9 +355,7 @@ final class CallServiceFinder {
      * Timeouts the current lookup cycle, see LookupTerminator.
      */
     private void terminateLookup() {
-        if (mTimer != null) {
-            mTimer.cancel();  // Terminate the timer thread.
-        }
+        mHandler.removeCallbacks(mLookupTerminator);
 
         updateSwitchboard();
         mIsLookupInProgress = false;
@@ -374,9 +366,8 @@ final class CallServiceFinder {
      * to call-service providers).
      */
     private void updateSwitchboard() {
-        synchronized (mProviderRegistry) {
-            // TODO(gilad): More here.
-            mSwitchboard.setCallServices(null);
-        }
+        ThreadUtil.checkOnMainThread();
+        // TODO(gilad): More here.
+        mSwitchboard.setCallServices(null);
     }
 }

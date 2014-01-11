@@ -24,6 +24,10 @@
     <!-- TODO(gilad): Better understand/document this use case. -->
     <uses-permission android:name="android.permission.STOP_APP_SWITCHES" />
 
+    <!-- Declare which SDK level this application was built against. This is needed so that IDEs
+         can check for incompatible APIs. -->
+    <uses-sdk android:minSdkVersion="19" />
+
     <application android:persistent="false"
             android:label="@string/telecommAppLabel"
             android:icon="@mipmap/ic_launcher_phone"

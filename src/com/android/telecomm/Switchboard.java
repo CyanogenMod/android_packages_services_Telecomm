@@ -56,9 +56,8 @@ final class Switchboard {
      * @param context The application context.
      */
     void placeOutgoingCall(String handle, ContactInfo contactInfo, Context context) {
-        synchronized (mPendingOutgoingCalls) {
-            mPendingOutgoingCalls.add(new Call(handle, contactInfo));
-        }
+        ThreadUtil.checkOnMainThread();
+        mPendingOutgoingCalls.add(new Call(handle, contactInfo));
         callServiceFinder.initiateLookup(context);
     }
 
@@ -73,23 +72,22 @@ final class Switchboard {
      *     call-services, it should be at liberty to use these just as well.
      */
     void setCallServices(List<ICallService> callServices) {
-        synchronized (mPendingOutgoingCalls) {
-            for (Call pendingCall : mPendingOutgoingCalls) {
-                // TODO(gilad): Iterate through the prioritized list of switchboard policies passing
-                // to each policy the call object as well as all known call services.  Break out of
-                // the inner/policy loop as soon as the first matching policy for the call is found.
-                // Calls for which no matching policy can be found will be killed by cleanup/monitor
-                // thread, see the "monitor" to-do at the top of the file.
+        ThreadUtil.checkOnMainThread();
+        for (Call pendingCall : mPendingOutgoingCalls) {
+            // TODO(gilad): Iterate through the prioritized list of switchboard policies passing
+            // to each policy the call object as well as all known call services.  Break out of
+            // the inner/policy loop as soon as the first matching policy for the call is found.
+            // Calls for which no matching policy can be found will be killed by cleanup/monitor
+            // thread, see the "monitor" to-do at the top of the file.
 
-                // Psuedo code (assuming connect to be a future switchboard method):
-                //
-                //   FOR policy IN prioritizedPolicies:
-                //     IF policy.is_applicable_to(pendingCall, callServices):
-                //       TRY
-                //         connect(pendingCall, callServices, policy)
-                //         mPendingOutgoingCalls.remove(pendingCall)
-                //         BREAK
-            }
+            // Psuedo code (assuming connect to be a future switchboard method):
+            //
+            //   FOR policy IN prioritizedPolicies:
+            //     IF policy.is_applicable_to(pendingCall, callServices):
+            //       TRY
+            //         connect(pendingCall, callServices, policy)
+            //         mPendingOutgoingCalls.remove(pendingCall)
+            //         BREAK
         }
     }
 
