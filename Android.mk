@@ -13,6 +13,8 @@ LOCAL_PACKAGE_NAME := Telecomm
 LOCAL_CERTIFICATE := platform
 LOCAL_PRIVILEGED_MODULE := true
 
+LOCAL_PROGUARD_ENABLED := optimization
+
 include $(BUILD_PACKAGE)
 
 # Build the test package.
