@@ -24,7 +24,10 @@ import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.content.pm.ServiceInfo;
 import android.os.IBinder;
+import android.os.Bundle;
+import android.os.RemoteException;
 import android.telecomm.ICallService;
+import android.telecomm.ICallServiceLookupResponse;
 import android.telecomm.ICallServiceProvider;
 import android.util.Log;
 
@@ -285,22 +288,65 @@ final class CallServiceFinder {
     }
 
     /**
-     * Registers the specified provider and performs the necessary bookkeeping to potentially
-     * return control to the switchboard before the timeout for the current lookup cycle.
+     * Queries the supplied provider asynchronously for its CallServices and passes the list through
+     * to {@link #registerCallServices} which will relinquish control back to switchboard.
      *
      * @param lookupId The lookup-cycle ID.
      * @param providerName The component name of the relevant provider.
      * @param provider The provider object to register.
      */
     private void registerProvider(
-            int lookupId, ComponentName providerName, ICallServiceProvider provider) {
+            final int lookupId,
+            final ComponentName providerName,
+            final ICallServiceProvider provider) {
 
-      if (mUnregisteredProviders.remove(providerName)) {
-          mProviderRegistry.add(provider);
-          if (mUnregisteredProviders.size() < 1) {
-              terminateLookup();  // No other providers to wait for.
-          }
-      }
+        // Query the provider for {@link ICallService} implementations.
+        try {
+            provider.lookupCallServices(new ICallServiceLookupResponse.Stub() {
+                @Override
+                public void onResult(List<IBinder> binderList) {
+                    List<ICallService> callServices = Lists.newArrayList();
+                    for (IBinder binder : binderList) {
+                        callServices.add(ICallService.Stub.asInterface(binder));
+                    }
+                    registerCallServices(lookupId, providerName, provider, callServices);
+                }
+            });
+        } catch (RemoteException e) {
+            Log.e(TAG, "Could not retrieve call services from: " + providerName);
+        }
+    }
+
+    /**
+     * Registers the {@link CallService}s for the specified provider and performs the necessary
+     * bookkeeping to potentially return control to the switchboard before the timeout for the
+     * current lookup cycle.
+     * TODO(santoscordon): Consider replacing this method's use of synchronized with a Handler
+     * queue.
+     *
+     * @param lookupId The lookup-cycle ID.
+     * @param providerName The component name of the relevant provider.
+     * @param provider The provider associated with callServices.
+     * @param callServices The {@link CallService}s to register.
+     */
+    synchronized private void registerCallServices(
+            int lookupId,
+            ComponentName providerName,
+            ICallServiceProvider provider,
+            List<ICallService> callServices) {
+
+        // TODO(santoscordon): When saving the call services into this class, also add code to
+        // unregister (remove) the call services upon disconnect. Potenially use RemoteCallbackList.
+
+        if (mUnregisteredProviders.remove(providerName)) {
+            mProviderRegistry.add(provider);
+            if (mUnregisteredProviders.size() < 1) {
+                terminateLookup();  // No other providers to wait for.
+            }
+        } else {
+            Log.i(TAG, "Received multiple lists of call services in lookup " + lookupId +
+                    " from " + providerName);
+        }
     }
 
     /**
