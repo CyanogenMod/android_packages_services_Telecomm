@@ -40,7 +40,6 @@ import java.util.Set;
  */
 final class Switchboard {
 
-    /** Used to identify log entries by this class */
     private static final String TAG = Switchboard.class.getSimpleName();
 
     private CallServiceFinder callServiceFinder = new CallServiceFinder(this);

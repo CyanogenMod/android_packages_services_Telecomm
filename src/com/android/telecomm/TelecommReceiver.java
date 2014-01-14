@@ -27,7 +27,6 @@ import android.util.Log;
  */
 public class TelecommReceiver extends BroadcastReceiver {
 
-    /** Used to identify log entries by this class. */
     private static final String TAG = TelecommReceiver.class.getSimpleName();
 
     /**

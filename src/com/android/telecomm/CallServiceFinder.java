@@ -147,7 +147,6 @@ final class CallServiceFinder {
         }
     }
 
-    /** Used to identify log entries by this class */
     private static final String TAG = CallServiceFinder.class.getSimpleName();
 
     /**

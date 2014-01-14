@@ -33,7 +33,7 @@ import com.android.telecomm.exceptions.RestrictedCallException;
  * TODO(santoscordon): Connect with CallsManager.
  */
 public class CallActivity extends Activity {
-    /** Used to identify log entries by this class. */
+
     private static final String TAG = CallActivity.class.getSimpleName();
 
     /** Indicates whether or not debug-level entries should be logged. */
