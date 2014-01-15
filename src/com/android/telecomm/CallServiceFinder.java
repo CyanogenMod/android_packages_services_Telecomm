@@ -47,95 +47,6 @@ import java.util.Set;
  */
 final class CallServiceFinder {
 
-    /**
-     * Helper class to register/unregister call-service providers.
-     */
-    private class ProviderRegistrar {
-
-        /**
-         * The name of the call-service provider that is expected to register with this finder.
-         */
-        private ComponentName mProviderName;
-
-        /**
-         * A unique identifier for a given lookup cycle, see nextLookupId.
-         * TODO(gilad): Potentially unnecessary, consider removing.
-         */
-        int mLookupId;
-
-        /**
-         * Persists the specified parameters.
-         *
-         * @param providerName The component name of the relevant provider.
-         * @param lookupId The lookup-cycle ID.
-         */
-        ProviderRegistrar(ComponentName providerName, int lookupId) {
-            this.mProviderName = providerName;
-            this.mLookupId = lookupId;
-        }
-
-        ComponentName getProviderName() {
-            return mProviderName;
-        }
-
-        /**
-         * Registers the specified call-service provider.
-         *
-         * @param provider The provider object to register.
-         */
-        void register(ICallServiceProvider provider) {
-            registerProvider(mLookupId, mProviderName, provider);
-        }
-
-        /** Unregisters this provider. */
-        void unregister() {
-            unregisterProvider(mProviderName);
-        }
-    }
-
-    /**
-     * Wrapper around ICallServiceProvider, mostly used for binding etc.
-     *
-     * TODO(gilad): Consider making this wrapper unnecessary.
-     */
-    private class ProviderWrapper {
-
-        /**
-         * Persists the specified parameters and attempts to bind the specified provider.
-         *
-         * TODO(gilad): Consider embedding ProviderRegistrar into this class and do away
-         * with the former, or vice versa.
-         *
-         * @param context The relevant application context.
-         * @param registrar The registrar with which to register and unregister this provider.
-         */
-        ProviderWrapper(Context context, final ProviderRegistrar registrar) {
-            ComponentName name = registrar.getProviderName();
-            Preconditions.checkNotNull(name);
-            Preconditions.checkNotNull(context);
-
-            Intent serviceIntent = new Intent(CALL_SERVICE_PROVIDER_CLASS_NAME).setComponent(name);
-            Log.i(TAG, "Binding to ICallServiceProvider through " + serviceIntent);
-
-            // Connection object for the service binding.
-            ServiceConnection connection = new ServiceConnection() {
-                @Override
-                public void onServiceConnected(ComponentName className, IBinder service) {
-                    registrar.register(ICallServiceProvider.Stub.asInterface(service));
-                }
-
-                @Override
-                public void onServiceDisconnected(ComponentName className) {
-                    registrar.unregister();
-                }
-            };
-
-            if (!context.bindService(serviceIntent, connection, Context.BIND_AUTO_CREATE)) {
-                // TODO(santoscordon): Handle error.
-            }
-        }
-    }
-
     private static final String TAG = CallServiceFinder.class.getSimpleName();
 
     /**
@@ -232,8 +143,7 @@ final class CallServiceFinder {
             if (!mProviderRegistry.contains(name)) {
                 // The provider is either not yet registered or has been unregistered
                 // due to unbinding etc.
-                ProviderRegistrar registrar = new ProviderRegistrar(name, lookupId);
-                new ProviderWrapper(context, registrar);
+                bindProvider(name, lookupId, context);
                 mUnregisteredProviders.add(name);
             }
         }
@@ -278,6 +188,43 @@ final class CallServiceFinder {
         }
 
         return providerNames;
+    }
+
+    /**
+     * Attempts to bind the specified provider and have it register upon successful binding.  Also
+     * performs the necessary wiring to unregister the provider upon un-binding.
+     *
+     * @param providerName The component name of the relevant provider.
+     * @param lookupId The lookup-cycle ID.
+     * @param context The relevant application context.
+     */
+    void bindProvider(
+            final ComponentName providerName, final int lookupId, Context context) {
+
+        Preconditions.checkNotNull(providerName);
+        Preconditions.checkNotNull(context);
+
+        Intent serviceIntent =
+                new Intent(CALL_SERVICE_PROVIDER_CLASS_NAME).setComponent(providerName);
+        Log.i(TAG, "Binding to ICallServiceProvider through " + serviceIntent);
+
+        // Connection object for the service binding.
+        ServiceConnection connection = new ServiceConnection() {
+            @Override
+            public void onServiceConnected(ComponentName className, IBinder service) {
+                ICallServiceProvider provider = ICallServiceProvider.Stub.asInterface(service);
+                registerProvider(lookupId, providerName, provider);
+            }
+
+            @Override
+            public void onServiceDisconnected(ComponentName className) {
+                unregisterProvider(providerName);
+            }
+        };
+
+        if (!context.bindService(serviceIntent, connection, Context.BIND_AUTO_CREATE)) {
+            // TODO(santoscordon): Handle error.
+        }
     }
 
     /**
