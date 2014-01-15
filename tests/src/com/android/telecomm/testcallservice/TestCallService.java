@@ -17,39 +17,91 @@
 package com.android.telecomm.testcallservice;
 
 import com.google.android.collect.Lists;
+import com.google.common.base.Preconditions;
 
+import java.util.Date;
+
+import android.os.RemoteException;
+import android.telecomm.CallInfo;
 import android.telecomm.CallService;
 import android.telecomm.ICallServiceAdapter;
+import android.text.TextUtils;
 import android.util.Log;
 
 /**
  * Service which provides fake calls to test the ICallService interface.
  */
 public class TestCallService extends CallService {
-    /** Unique identifying tag used for logging. */
     private static final String TAG = TestCallService.class.getSimpleName();
+
+    /**
+     * Adapter to call back into CallsManager.
+     */
+    private ICallServiceAdapter mCallsManagerAdapter;
 
     /** {@inheritDoc} */
     @Override
     public void setCallServiceAdapter(ICallServiceAdapter callServiceAdapter) {
         Log.i(TAG, "setCallServiceAdapter()");
+
+        mCallsManagerAdapter = callServiceAdapter;
     }
 
-    /** {@inheritDoc} */
+    /**
+     * Responds as compatible for all calls except those starting with the number 7 (arbitrarily
+     * chosen for testing purposes).
+     *
+     * {@inheritDoc}
+     */
     @Override
-    public void isCompatibleWith(String handle) {
-        Log.i(TAG, "isCompatibleWith(" + handle + ")");
+    public void isCompatibleWith(String handle, String callId) {
+        Log.i(TAG, "isCompatibleWith(" + handle + ", " + callId + ")");
+        Preconditions.checkNotNull(handle);
+
+        // Is compatible if the handle doesn't start with 7.
+        boolean isCompatible = (handle.charAt(0) != '7');
+
+        try {
+            // Tell CallsManager whether this call service can place the call (is compatible).
+            // Returning positively on setCompatibleWith() doesn't guarantee that we will be chosen
+            // to place the call. If we *are* chosen then CallsManager will execute the call()
+            // method below.
+            mCallsManagerAdapter.setCompatibleWith(handle, callId, isCompatible);
+        } catch (RemoteException e) {
+            Log.e(TAG, "Failed to setCompatibleWith().", e);
+        }
     }
 
-    /** {@inheritDoc} */
+    /**
+     * Starts a call by calling into the adapter. For testing purposes this methods acts as if a
+     * call was successfully connected every time.
+     *
+     * {@inheritDoc}
+     */
     @Override
-    public void call(String handle) {
-        Log.i(TAG, "call(" + handle + ")");
+    public void call(String handle, String callId) {
+        Log.i(TAG, "call(" + handle + ", " + callId + ")");
+
+        try {
+            // This creates a call within CallsManager starting at the DIALING state.
+            // TODO(santoscordon): When we define the call states, consider renaming newOutgoingCall
+            // to newDialingCall to match the states exactly and as an indication of the starting
+            // state for this new call. This depends on what the states are ultimately defined as.
+            mCallsManagerAdapter.newOutgoingCall(callId);
+        } catch (RemoteException e) {
+            Log.e(TAG, "Failed to create a newOutgoingCall().", e);
+        }
     }
 
     /** {@inheritDoc} */
     @Override
     public void disconnect(String callId) {
         Log.i(TAG, "disconnect(" + callId + ")");
+
+        try {
+            mCallsManagerAdapter.setDisconnected(callId);
+        } catch (RemoteException e) {
+            Log.e(TAG, "Failed to setDisconnected().", e);
+        }
     }
 }

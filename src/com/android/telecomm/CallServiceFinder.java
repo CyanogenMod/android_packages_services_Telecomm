@@ -244,7 +244,7 @@ final class CallServiceFinder {
         try {
             provider.lookupCallServices(new ICallServiceLookupResponse.Stub() {
                 @Override
-                public void onResult(List<IBinder> binderList) {
+                public void setCallServices(List<IBinder> binderList) {
                     List<ICallService> callServices = Lists.newArrayList();
                     for (IBinder binder : binderList) {
                         callServices.add(ICallService.Stub.asInterface(binder));
