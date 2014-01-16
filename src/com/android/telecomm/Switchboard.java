@@ -22,11 +22,13 @@ import com.google.common.collect.Sets;
 import android.content.Context;
 import android.os.RemoteException;
 import android.telecomm.ICallService;
+import android.telecomm.ICallServiceSelector;
 import android.util.Log;
 
 import com.android.telecomm.exceptions.CallServiceUnavailableException;
 import com.android.telecomm.exceptions.OutgoingCallException;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
@@ -42,7 +44,17 @@ final class Switchboard {
 
     private static final String TAG = Switchboard.class.getSimpleName();
 
-    private CallServiceFinder callServiceFinder = new CallServiceFinder(this);
+    private CallServiceFinder mCallServiceFinder = new CallServiceFinder(this);
+
+    private CallServiceSelectorFinder mSelectorFinder = new CallServiceSelectorFinder(this);
+
+    /** TODO(gilad): Add comment, may also want to use a set instead. */
+    /** TODO(gilad): Null out once the active-call count goes to zero. */
+    private List<ICallService> mCallServices;
+
+    /** TODO(gilad): Add comment, may also want to use a set instead. */
+    /** TODO(gilad): Null out once the active-call count goes to zero. */
+    private List<ICallServiceSelector> mSelectors;
 
     private Set<Call> mPendingOutgoingCalls = Sets.newHashSet();
 
@@ -50,6 +62,7 @@ final class Switchboard {
      * Places an outgoing call to the handle passed in. Method asynchronously collects
      * {@link ICallService} implementations and passes them along with the handle and contactInfo
      * to {@link #placeOutgoingCallInternal} to actually place the call.
+     * TODO(gilad): Update.
      *
      * @param handle The handle to dial.
      * @param contactInfo Information about the entity being called.
@@ -57,38 +70,106 @@ final class Switchboard {
      */
     void placeOutgoingCall(String handle, ContactInfo contactInfo, Context context) {
         ThreadUtil.checkOnMainThread();
-        mPendingOutgoingCalls.add(new Call(handle, contactInfo));
-        callServiceFinder.initiateLookup(context);
+
+        // TODO(gilad): Consider creating the call object even earlier, e.g. in CallsManager.
+        Call call = new Call(handle, contactInfo);
+        boolean bailout = false;
+        if (isNullOrEmpty(mCallServices)) {
+            mCallServiceFinder.initiateLookup(context);
+            bailout = true;
+        }
+        if (isNullOrEmpty(mSelectors)) {
+            mSelectorFinder.initiateLookup(context);
+            bailout = true;
+        }
+
+        if (bailout) {
+            // Unable to process the call without either call service, selectors, or both.
+            // Store the call for deferred processing and bail out.
+            mPendingOutgoingCalls.add(call);
+            return;
+        }
+
+        placeOutgoingCall(call);
     }
 
     /**
      * Persists the specified list of call services and attempts to connect any pending outgoing
-     * calls still waiting for a matching call-service to be initiated.
+     * calls still waiting for a matching call-service to be initiated. Intended to be called by
+     * {@link CallServiceFinder} exclusively.
      *
-     * @param callServices The potentially-partial list of call services the switchboard should
-     *     feel free to make use of.  Partial since the lookup procedure is time-boxed such that
-     *     some providers/call-services may be too slow to respond and hence effectively omitted
-     *     from the specified list.  If the switchboard has previous/reliable knowledge of other
-     *     call-services, it should be at liberty to use these just as well.
+     * @param callServices The potentially-partial list of call services.  Partial since the
+     *     lookup procedure is time-boxed, such that some providers/call-services may be slow
+     *     to respond and hence effectively omitted from the specified list.
      */
     void setCallServices(List<ICallService> callServices) {
         ThreadUtil.checkOnMainThread();
-        for (Call pendingCall : mPendingOutgoingCalls) {
-            // TODO(gilad): Iterate through the prioritized list of switchboard policies passing
-            // to each policy the call object as well as all known call services.  Break out of
-            // the inner/policy loop as soon as the first matching policy for the call is found.
-            // Calls for which no matching policy can be found will be killed by cleanup/monitor
-            // thread, see the "monitor" to-do at the top of the file.
 
-            // Psuedo code (assuming connect to be a future switchboard method):
-            //
-            //   FOR policy IN prioritizedPolicies:
-            //     IF policy.is_applicable_to(pendingCall, callServices):
-            //       TRY
-            //         connect(pendingCall, callServices, policy)
-            //         mPendingOutgoingCalls.remove(pendingCall)
-            //         BREAK
+        mCallServices = callServices;
+        processPendingOutgoingCalls();
+    }
+
+    /**
+     * Persists the specified list of selectors and attempts to connect any pending outgoing
+     * calls.  Intended to be called by {@link CallServiceSelectorFinder} exclusively.
+     *
+     * @param selectors The potentially-partial list of selectors.  Partial since the lookup
+     *     procedure is time-boxed, such that some selectors may be slow to respond and hence
+     *     effectively omitted from the specified list.
+     */
+    void setSelectors(List<ICallServiceSelector> selectors) {
+        ThreadUtil.checkOnMainThread();
+
+        mSelectors = selectors;
+        processPendingOutgoingCalls();
+    }
+
+    /**
+     * Attempts to process any pending outgoing calls that have not yet been expired.
+     */
+    void processPendingOutgoingCalls() {
+        for (Call call : mPendingOutgoingCalls) {
+            placeOutgoingCall(call);
         }
+    }
+
+    /**
+     * Attempts to place the specified call.
+     *
+     * @param call The call to put through.
+     */
+    private void placeOutgoingCall(Call call) {
+        if (isNullOrEmpty(mCallServices) || isNullOrEmpty(mSelectors)) {
+            // At least one call service and one selector are required to process outgoing calls.
+            return;
+        }
+
+        // TODO(gilad): Iterate through the prioritized list of selectors passing to each selector
+        // (read-only versions of) the call object and all available call services.  Break out once
+        // a matching selector is found. Calls with no matching selectors will eventually be killed
+        // by the cleanup/monitor thread, see the "monitor" to-do at the top of the file.
+
+        // Psuedo code (assuming connect to be a future switchboard method):
+        //
+        //   FOR selector IN prioritizedSelectors:
+        //     prioritizedCallServices = selector.select(mCallServices, call)
+        //     IF notEmpty(prioritizedCallServices):
+        //       FOR callService IN prioritizedCallServices:
+        //         TRY
+        //           connect(call, callService, selector)
+        //           mPendingOutgoingCalls.remove(call)
+        //           BREAK
+    }
+
+    /**
+     * Determines whether or not the specified collection is either null or empty.
+     *
+     * @param collection Either null or the collection object to be evaluated.
+     * @return True if the collection is null or empty.
+     */
+    @SuppressWarnings("rawtypes")
+    private boolean isNullOrEmpty(Collection collection) {
+        return collection == null || collection.isEmpty();
     }
 
     /**
@@ -156,16 +237,4 @@ final class Switchboard {
 //            // RemoteExceptions also be converted to OutgoingCallExceptions thrown by call()?
 //        }
 //    }
-
-    /**
-     * Sorts a list of {@link ICallService} ordered by the preferred service for dialing the call.
-     *
-     * @param callServices The list to order.
-     */
-    private List<ICallService> sort(List<ICallService> callServices) {
-        // TODO(android-contacts): Sort by reliability, cost, and ultimately
-        // the desirability to issue a given call over each of the specified
-        // call services.
-        return callServices;
-    }
 }

@@ -71,6 +71,8 @@ final class CallServiceFinder {
 
     /**
      * Used to generate unique lookup-cycle identifiers. Incremented upon initiateLookup calls.
+     * TODO(gilad): If at all useful, consider porting the cycle ID concept to switchboard and
+     * have it centralized/shared between the two finders.
      */
     private int mNextLookupId = 0;
 
@@ -87,8 +89,8 @@ final class CallServiceFinder {
      * timeout occurs, the complete set of (available) call services is passed to the switchboard
      * for further processing of outgoing calls etc.  When the timeout occurs before all responds
      * are received, the partial (potentially empty) set gets passed (to the switchboard) instead.
-     * Note that cached providers do not require finding and hence are excluded from this count.
-     * Also noteworthy is that providers are dynamically removed from this set as they register.
+     * Cached providers do not require finding and hence are excluded from this set.  Entries are
+     * removed from this set as providers register.
      */
     private Set<ComponentName> mUnregisteredProviders;
 
@@ -151,7 +153,7 @@ final class CallServiceFinder {
         int providerCount = providerNames.size();
         int unregisteredProviderCount = mUnregisteredProviders.size();
 
-        Log.i(TAG, "Found " + providerCount + " implementations for ICallServiceProvider, "
+        Log.i(TAG, "Found " + providerCount + " implementations of ICallServiceProvider, "
                 + unregisteredProviderCount + " of which are not currently registered.");
 
         if (unregisteredProviderCount == 0) {
@@ -198,7 +200,7 @@ final class CallServiceFinder {
      * @param lookupId The lookup-cycle ID.
      * @param context The relevant application context.
      */
-    void bindProvider(
+    private void bindProvider(
             final ComponentName providerName, final int lookupId, Context context) {
 
         Preconditions.checkNotNull(providerName);
@@ -263,6 +265,8 @@ final class CallServiceFinder {
      * current lookup cycle.
      * TODO(santoscordon): Consider replacing this method's use of synchronized with a Handler
      * queue.
+     * TODO(gilad): Santos has some POC code to make synchronized (below) unnecessary, either
+     * move to use that or remove this to-do.
      *
      * @param lookupId The lookup-cycle ID.
      * @param providerName The component name of the relevant provider.
@@ -276,7 +280,7 @@ final class CallServiceFinder {
             List<ICallService> callServices) {
 
         // TODO(santoscordon): When saving the call services into this class, also add code to
-        // unregister (remove) the call services upon disconnect. Potenially use RemoteCallbackList.
+        // unregister (remove) the call services upon disconnect. Potentially use RemoteCallbackList.
 
         if (mUnregisteredProviders.remove(providerName)) {
             mProviderRegistry.add(provider);
@@ -314,6 +318,7 @@ final class CallServiceFinder {
      */
     private void updateSwitchboard() {
         ThreadUtil.checkOnMainThread();
+
         // TODO(gilad): More here.
         mSwitchboard.setCallServices(null);
     }
