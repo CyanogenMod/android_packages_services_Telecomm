@@ -16,20 +16,33 @@
 
 package com.android.telecomm.testcallservice;
 
+import android.os.IBinder;
+import android.os.RemoteException;
 import android.telecomm.CallServiceProvider;
 import android.telecomm.ICallServiceLookupResponse;
 import android.util.Log;
+
+import com.google.common.collect.Lists;
+
+import java.util.List;
 
 /**
  * Service which provides fake calls to test the ICallService interface.
  */
 public class TestCallServiceProvider extends CallServiceProvider {
-    /** Unique identifying tag used for logging. */
     private static final String TAG = TestCallServiceProvider.class.getSimpleName();
 
     /** {@inheritDoc} */
     @Override
     public void lookupCallServices(ICallServiceLookupResponse response) {
         Log.i(TAG, "lookupCallServices()");
+
+        try {
+            TestCallService callService = new TestCallService();
+            List<IBinder> callServiceList = Lists.newArrayList(callService.getBinder());
+            response.setCallServices(callServiceList);
+        } catch (RemoteException e) {
+            Log.e(TAG, "Failed to setCallServices().", e);
+        }
     }
 }
