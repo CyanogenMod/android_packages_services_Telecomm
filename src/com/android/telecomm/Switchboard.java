@@ -48,13 +48,18 @@ final class Switchboard {
 
     private CallServiceSelectorFinder mSelectorFinder = new CallServiceSelectorFinder(this);
 
-    /** TODO(gilad): Add comment, may also want to use a set instead. */
-    /** TODO(gilad): Null out once the active-call count goes to zero. */
-    private List<ICallService> mCallServices;
+    /**
+     * The set of currently available call-service implementations, see {@link CallServiceFinder}.
+     * TODO(gilad): Null out once the active-call count goes to zero.
+     */
+    private Set<ICallService> mCallServices;
 
-    /** TODO(gilad): Add comment, may also want to use a set instead. */
-    /** TODO(gilad): Null out once the active-call count goes to zero. */
-    private List<ICallServiceSelector> mSelectors;
+    /**
+     * The set of currently available call-service-selector implementations,
+     * see {@link CallServiceSelectorFinder}.
+     * TODO(gilad): Null out once the active-call count goes to zero.
+     */
+    private Set<ICallServiceSelector> mSelectors;
 
     private Set<Call> mPendingOutgoingCalls = Sets.newHashSet();
 
@@ -94,15 +99,15 @@ final class Switchboard {
     }
 
     /**
-     * Persists the specified list of call services and attempts to connect any pending outgoing
-     * calls still waiting for a matching call-service to be initiated. Intended to be called by
-     * {@link CallServiceFinder} exclusively.
+     * Persists the specified set of call services and attempts to connect any pending outgoing
+     * calls (still waiting for a matching call-service to be initiated). Intended to be called
+     * by {@link CallServiceFinder} exclusively.
      *
-     * @param callServices The potentially-partial list of call services.  Partial since the
-     *     lookup procedure is time-boxed, such that some providers/call-services may be slow
-     *     to respond and hence effectively omitted from the specified list.
+     * @param callServices The potentially-partial set of call services.  Partial since the lookup
+     *     process is time-boxed, such that some providers/call-services may be slow to respond and
+     *     hence effectively omitted from the specified list.
      */
-    void setCallServices(List<ICallService> callServices) {
+    void setCallServices(Set<ICallService> callServices) {
         ThreadUtil.checkOnMainThread();
 
         mCallServices = callServices;
@@ -113,11 +118,11 @@ final class Switchboard {
      * Persists the specified list of selectors and attempts to connect any pending outgoing
      * calls.  Intended to be called by {@link CallServiceSelectorFinder} exclusively.
      *
-     * @param selectors The potentially-partial list of selectors.  Partial since the lookup
-     *     procedure is time-boxed, such that some selectors may be slow to respond and hence
-     *     effectively omitted from the specified list.
+     * @param selectors The potentially-partial set of selectors.  Partial since the lookup
+     *     procedure is time-boxed such that some selectors may be slow to respond and hence
+     *     effectively omitted from the specified set.
      */
-    void setSelectors(List<ICallServiceSelector> selectors) {
+    void setSelectors(Set<ICallServiceSelector> selectors) {
         ThreadUtil.checkOnMainThread();
 
         mSelectors = selectors;

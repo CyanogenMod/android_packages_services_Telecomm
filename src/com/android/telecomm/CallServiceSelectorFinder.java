@@ -258,9 +258,7 @@ final class CallServiceSelectorFinder {
      */
     private void terminateLookup() {
         mHandler.removeCallbacks(mLookupTerminator);
-
         updateSwitchboard();
-        mIsLookupInProgress = false;
     }
 
     /**
@@ -269,7 +267,7 @@ final class CallServiceSelectorFinder {
     private void updateSwitchboard() {
         ThreadUtil.checkOnMainThread();
 
-        // TODO(gilad): More here.
-        mSwitchboard.setSelectors(null);
+        mSwitchboard.setSelectors(mSelectorRegistry);
+        mIsLookupInProgress = false;
     }
 }
