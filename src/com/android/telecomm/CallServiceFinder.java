@@ -77,6 +77,13 @@ final class CallServiceFinder {
     private int mNextLookupId = 0;
 
     /**
+     * The set of bound call-services. Only populated via initiateLookup scenarios. Entries should
+     * only be removed upon unbinding.
+     * TODO(gilad): Add the necessary logic to keep this set up to date.
+     */
+    private Set<ICallService> mCallServiceRegistry = Sets.newHashSet();
+
+    /**
      * The set of bound call-service providers.  Only populated via initiateLookup scenarios.
      * Providers should only be removed upon unbinding.
      */
@@ -267,6 +274,7 @@ final class CallServiceFinder {
      * queue.
      * TODO(gilad): Santos has some POC code to make synchronized (below) unnecessary, either
      * move to use that or remove this to-do.
+     * TODO(gilad): callServices should probably be a set, consider refactoring.
      *
      * @param lookupId The lookup-cycle ID.
      * @param providerName The component name of the relevant provider.
@@ -284,6 +292,12 @@ final class CallServiceFinder {
 
         if (mUnregisteredProviders.remove(providerName)) {
             mProviderRegistry.add(provider);
+            mCallServiceRegistry.addAll(callServices);
+
+            // TODO(gilad): Introduce a map to retain the association between call services
+            // and the corresponding provider such that mCallServiceRegistry can be updated
+            // upon unregisterProvider calls.
+
             if (mUnregisteredProviders.size() < 1) {
                 terminateLookup();  // No other providers to wait for.
             }
@@ -318,8 +332,6 @@ final class CallServiceFinder {
      */
     private void updateSwitchboard() {
         ThreadUtil.checkOnMainThread();
-
-        // TODO(gilad): More here.
-        mSwitchboard.setCallServices(null);
+        mSwitchboard.setCallServices(mCallServiceRegistry);
     }
 }
