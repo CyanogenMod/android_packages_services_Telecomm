@@ -125,6 +125,10 @@ final class Switchboard {
     void setSelectors(Set<ICallServiceSelector> selectors) {
         ThreadUtil.checkOnMainThread();
 
+        // TODO(gilad): Add logic to include the built-in selectors (e.g. for dealing with
+        // emergency calls) and order the entire set prior to the assignment below. If the
+        // built-in selectors can be implemented in a manner that does not require binding,
+        // that's probably preferred.  May want to use a LinkedHashSet for the sorted set.
         mSelectors = selectors;
         processPendingOutgoingCalls();
     }
