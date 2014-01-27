@@ -16,11 +16,18 @@
 
 package com.android.telecomm.testcallservice;
 
-import com.google.android.collect.Lists;
+import com.android.telecomm.tests.R;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
+import com.google.common.collect.Sets;
 
+import java.io.IOException;
 import java.util.Date;
+import java.util.Set;
 
+import android.content.Intent;
+import android.media.AudioManager;
+import android.media.MediaPlayer;
 import android.os.RemoteException;
 import android.telecomm.CallInfo;
 import android.telecomm.CallService;
@@ -35,9 +42,20 @@ public class TestCallService extends CallService {
     private static final String TAG = TestCallService.class.getSimpleName();
 
     /**
+     * Set of call IDs for live (active, ringing, dialing) calls.
+     * TODO(santoscordon): Reference CallState javadoc when available for the different call states.
+     */
+    private Set<String> mLiveCallIds;
+
+    /**
      * Adapter to call back into CallsManager.
      */
     private ICallServiceAdapter mCallsManagerAdapter;
+
+    /**
+     * Used to play an audio tone during a call.
+     */
+    private MediaPlayer mMediaPlayer;
 
     /** {@inheritDoc} */
     @Override
@@ -45,6 +63,12 @@ public class TestCallService extends CallService {
         Log.i(TAG, "setCallServiceAdapter()");
 
         mCallsManagerAdapter = callServiceAdapter;
+        mLiveCallIds = Sets.newHashSet();
+
+        // Prepare the media player to play a tone when there is a call.
+        mMediaPlayer = MediaPlayer.create(null, R.raw.beep_boop);
+        mMediaPlayer.setLooping(true);
+        mMediaPlayer.setAudioStreamType(AudioManager.STREAM_VOICE_CALL);
     }
 
     /**
@@ -83,6 +107,8 @@ public class TestCallService extends CallService {
         Log.i(TAG, "call(" + handle + ", " + callId + ")");
 
         try {
+            createCall(callId);
+
             // This creates a call within CallsManager starting at the DIALING state.
             // TODO(santoscordon): When we define the call states, consider renaming newOutgoingCall
             // to newDialingCall to match the states exactly and as an indication of the starting
@@ -99,9 +125,55 @@ public class TestCallService extends CallService {
         Log.i(TAG, "disconnect(" + callId + ")");
 
         try {
+            destroyCall(callId);
             mCallsManagerAdapter.setDisconnected(callId);
         } catch (RemoteException e) {
             Log.e(TAG, "Failed to setDisconnected().", e);
+        }
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public boolean onUnbind(Intent intent) {
+        mMediaPlayer = null;
+
+        return super.onUnbind(intent);
+    }
+
+    /**
+     * Adds the specified call ID to the set of live call IDs and starts playing audio on the
+     * voice-call stream.
+     *
+     * @param callId The identifier of the call to create.
+     */
+    private void createCall(String callId) {
+        Preconditions.checkState(!Strings.isNullOrEmpty(callId));
+        mLiveCallIds.add(callId);
+
+        // Starts audio if not already started.
+        if (!mMediaPlayer.isPlaying()) {
+            try {
+                mMediaPlayer.prepare();
+                mMediaPlayer.start();
+            } catch (IOException e) {
+                Log.e(TAG, "Error playing audio", e);
+            }
+        }
+    }
+
+    /**
+     * Removes the specified call ID from the set of live call IDs and stops playing audio if
+     * there exist no more live calls.
+     *
+     * @param callId The identifier of the call to destroy.
+     */
+    private void destroyCall(String callId) {
+        Preconditions.checkState(!Strings.isNullOrEmpty(callId));
+        mLiveCallIds.remove(callId);
+
+        // Stops audio if there are no more calls.
+        if (mLiveCallIds.isEmpty() && mMediaPlayer.isPlaying()) {
+            mMediaPlayer.stop();
         }
     }
 }
