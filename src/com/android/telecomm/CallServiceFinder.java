@@ -253,12 +253,16 @@ final class CallServiceFinder {
         try {
             provider.lookupCallServices(new ICallServiceLookupResponse.Stub() {
                 @Override
-                public void setCallServices(List<IBinder> binderList) {
-                    List<ICallService> callServices = Lists.newArrayList();
-                    for (IBinder binder : binderList) {
-                        callServices.add(ICallService.Stub.asInterface(binder));
-                    }
-                    registerCallServices(lookupId, providerName, provider, callServices);
+                public void setCallServices(final List<IBinder> binderList) {
+                    mHandler.post(new Runnable() {
+                        @Override public void run() {
+                            Set<ICallService> callServices = Sets.newHashSet();
+                            for (IBinder binder : binderList) {
+                                callServices.add(ICallService.Stub.asInterface(binder));
+                            }
+                            registerCallServices(lookupId, providerName, provider, callServices);
+                        }
+                    });
                 }
             });
         } catch (RemoteException e) {
@@ -270,22 +274,18 @@ final class CallServiceFinder {
      * Registers the {@link CallService}s for the specified provider and performs the necessary
      * bookkeeping to potentially return control to the switchboard before the timeout for the
      * current lookup cycle.
-     * TODO(santoscordon): Consider replacing this method's use of synchronized with a Handler
-     * queue.
-     * TODO(gilad): Santos has some POC code to make synchronized (below) unnecessary, either
-     * move to use that or remove this to-do.
-     * TODO(gilad): callServices should probably be a set, consider refactoring.
      *
      * @param lookupId The lookup-cycle ID.
      * @param providerName The component name of the relevant provider.
      * @param provider The provider associated with callServices.
      * @param callServices The {@link CallService}s to register.
      */
-    synchronized private void registerCallServices(
+    private void registerCallServices(
             int lookupId,
             ComponentName providerName,
             ICallServiceProvider provider,
-            List<ICallService> callServices) {
+            Set<ICallService> callServices) {
+        ThreadUtil.checkOnMainThread();
 
         // TODO(santoscordon): When saving the call services into this class, also add code to
         // unregister (remove) the call services upon disconnect. Potentially use RemoteCallbackList.
@@ -313,6 +313,7 @@ final class CallServiceFinder {
      * @param providerName The component name of the relevant provider.
      */
     private void unregisterProvider(ComponentName providerName) {
+        ThreadUtil.checkOnMainThread();
         mProviderRegistry.remove(providerName);
     }
 
