@@ -10,7 +10,7 @@
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
+ Ca* See the License for the specific language governing permissions and
  * limitations under the License.
  */
 
@@ -54,19 +54,19 @@ public class TestCallService extends CallService {
      * {@inheritDoc}
      */
     @Override
-    public void isCompatibleWith(String handle, String callId) {
-        Log.i(TAG, "isCompatibleWith(" + handle + ", " + callId + ")");
-        Preconditions.checkNotNull(handle);
+    public void isCompatibleWith(CallInfo callInfo) {
+        Log.i(TAG, "isCompatibleWith(" + callInfo + ")");
+        Preconditions.checkNotNull(callInfo.getHandle());
 
         // Is compatible if the handle doesn't start with 7.
-        boolean isCompatible = (handle.charAt(0) != '7');
+        boolean isCompatible = !callInfo.getHandle().startsWith("7");
 
         try {
             // Tell CallsManager whether this call service can place the call (is compatible).
             // Returning positively on setCompatibleWith() doesn't guarantee that we will be chosen
             // to place the call. If we *are* chosen then CallsManager will execute the call()
             // method below.
-            mCallsManagerAdapter.setCompatibleWith(handle, callId, isCompatible);
+            mCallsManagerAdapter.setCompatibleWith(callInfo.getId(), isCompatible);
         } catch (RemoteException e) {
             Log.e(TAG, "Failed to setCompatibleWith().", e);
         }
@@ -79,15 +79,15 @@ public class TestCallService extends CallService {
      * {@inheritDoc}
      */
     @Override
-    public void call(String handle, String callId) {
-        Log.i(TAG, "call(" + handle + ", " + callId + ")");
+    public void call(CallInfo callInfo) {
+        Log.i(TAG, "call(" + callInfo + ")");
 
         try {
             // This creates a call within CallsManager starting at the DIALING state.
             // TODO(santoscordon): When we define the call states, consider renaming newOutgoingCall
             // to newDialingCall to match the states exactly and as an indication of the starting
             // state for this new call. This depends on what the states are ultimately defined as.
-            mCallsManagerAdapter.newOutgoingCall(callId);
+            mCallsManagerAdapter.newOutgoingCall(callInfo.getId());
         } catch (RemoteException e) {
             Log.e(TAG, "Failed to create a newOutgoingCall().", e);
         }
