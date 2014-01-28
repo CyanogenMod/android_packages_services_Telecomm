@@ -107,7 +107,7 @@ public class TestCallService extends CallService {
         Log.i(TAG, "call(" + callInfo + ")");
 
         try {
-            createCall(callId);
+            createCall(callInfo.getId());
 
             // This creates a call within CallsManager starting at the DIALING state.
             // TODO(santoscordon): When we define the call states, consider renaming newOutgoingCall
