@@ -25,11 +25,16 @@ import java.util.Date;
  */
 final class Call {
 
+    /**
+     * Unique identifier for the call as a UUID string.
+     */
+    private final String mId;
+
     /** The handle with which to establish this call. */
-    private String mHandle;
+    private final String mHandle;
 
     /** Additional contact information beyond handle above, optional. */
-    private ContactInfo mContactInfo;
+    private final ContactInfo mContactInfo;
 
     /**
      * The time this call was created, typically also the time this call was added to the set
@@ -45,18 +50,33 @@ final class Call {
      * @param handle The handle to dial.
      * @param contactInfo Information about the entity being called.
      */
-    public Call(String handle, ContactInfo contactInfo) {
+    Call(String handle, ContactInfo contactInfo) {
+        // TODO(gilad): Pass this in etc.
+        mId = "dummy";
+
         mHandle = handle;
         mContactInfo = contactInfo;
 
         mCreationTime = new Date();
     }
 
+    String getId() {
+        return mId;
+    }
+
+    String getHandle() {
+        return mHandle;
+    }
+
+    ContactInfo getContactInfo() {
+        return mContactInfo;
+    }
+
     /**
      * @return The "age" of this call object in milliseconds, which typically also represents the
      *     period since this call was added to the set pending outgoing calls, see mCreationTime.
      */
-    public long getAgeInMilliseconds() {
+    long getAgeInMilliseconds() {
         return new Date().getTime() - mCreationTime.getTime();
     }
 }
