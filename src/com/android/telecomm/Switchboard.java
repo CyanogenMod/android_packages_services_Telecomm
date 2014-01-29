@@ -16,7 +16,9 @@
 
 package com.android.telecomm;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import android.content.Context;
@@ -28,8 +30,10 @@ import android.util.Log;
 import com.android.telecomm.exceptions.CallServiceUnavailableException;
 import com.android.telecomm.exceptions.OutgoingCallException;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -38,7 +42,7 @@ import java.util.Set;
  * considered a different transport type).
  * TODO(santoscordon): Need to add comments on the switchboard optimizer once that it is place.
  * TODO(gilad): Add a monitor thread to wake up periodically and check for stale pending calls
- *     that may need to be terminated, see mPendingOutgoingCalls.
+ *     that may need to be terminated, see mNewOutgoingCalls and mPendingOutgoingCalls.
  */
 final class Switchboard {
 
@@ -61,7 +65,11 @@ final class Switchboard {
      */
     private Set<ICallServiceSelector> mSelectors;
 
-    private Set<Call> mPendingOutgoingCalls = Sets.newHashSet();
+    private Set<Call> mNewOutgoingCalls = Sets.newLinkedHashSet();
+
+    private Set<Call> mPendingOutgoingCalls = Sets.newLinkedHashSet();
+
+    private Map<Call, OutgoingCallProcessor> outgoingCallProcessors = Maps.newHashMap();
 
     /**
      * Places an outgoing call to the handle passed in. Method asynchronously collects
@@ -91,17 +99,16 @@ final class Switchboard {
         if (bailout) {
             // Unable to process the call without either call service, selectors, or both.
             // Store the call for deferred processing and bail out.
-            mPendingOutgoingCalls.add(call);
+            mNewOutgoingCalls.add(call);
             return;
         }
 
-        placeOutgoingCall(call);
+        processNewOutgoingCall(call);
     }
 
     /**
-     * Persists the specified set of call services and attempts to connect any pending outgoing
-     * calls (still waiting for a matching call-service to be initiated). Intended to be called
-     * by {@link CallServiceFinder} exclusively.
+     * Persists the specified set of call services and attempts to place any pending outgoing
+     * calls.  Intended to be invoked by {@link CallServiceFinder} exclusively.
      *
      * @param callServices The potentially-partial set of call services.  Partial since the lookup
      *     process is time-boxed, such that some providers/call-services may be slow to respond and
@@ -111,12 +118,12 @@ final class Switchboard {
         ThreadUtil.checkOnMainThread();
 
         mCallServices = callServices;
-        processPendingOutgoingCalls();
+        processNewOutgoingCalls();
     }
 
     /**
      * Persists the specified list of selectors and attempts to connect any pending outgoing
-     * calls.  Intended to be called by {@link CallServiceSelectorFinder} exclusively.
+     * calls.  Intended to be invoked by {@link CallServiceSelectorFinder} exclusively.
      *
      * @param selectors The potentially-partial set of selectors.  Partial since the lookup
      *     procedure is time-boxed such that some selectors may be slow to respond and hence
@@ -130,44 +137,74 @@ final class Switchboard {
         // built-in selectors can be implemented in a manner that does not require binding,
         // that's probably preferred.  May want to use a LinkedHashSet for the sorted set.
         mSelectors = selectors;
-        processPendingOutgoingCalls();
+        processNewOutgoingCalls();
     }
 
     /**
-     * Attempts to process any pending outgoing calls that have not yet been expired.
+     * Handles the case where an outgoing call has been successfully placed,
+     * see {@link OutgoingCallProcessor}.
      */
-    void processPendingOutgoingCalls() {
-        for (Call call : mPendingOutgoingCalls) {
-            placeOutgoingCall(call);
+    void handleSuccessfulOutgoingCall(Call call) {
+        // TODO(gilad): More here.
+
+        // Process additional (new) calls, if any.
+        processNewOutgoingCalls();
+    }
+
+    /**
+     * Handles the case where an outgoing call could not be proceed by any of the
+     * selector/call-service implementations, see {@link OutgoingCallProcessor}.
+     */
+    void handleFailedOutgoingCall(Call call) {
+        // TODO(gilad): More here.
+
+        // Process additional (new) calls, if any.
+        processNewOutgoingCalls();
+    }
+
+    /**
+     * Attempts to process the next new outgoing calls that have not yet been expired.
+     */
+    private void processNewOutgoingCalls() {
+        if (isNullOrEmpty(mCallServices) || isNullOrEmpty(mSelectors)) {
+            // At least one call service and one selector are required to process outgoing calls.
+            return;
+        }
+
+        if (!mNewOutgoingCalls.isEmpty()) {
+            Call call = mNewOutgoingCalls.iterator().next();
+            mNewOutgoingCalls.remove(call);
+            mPendingOutgoingCalls.add(call);
+
+            // Specifically only attempt to place one call at a time such that call services
+            // can be freed from needing to deal with concurrent requests.
+            processNewOutgoingCall(call);
         }
     }
 
     /**
      * Attempts to place the specified call.
      *
-     * @param call The call to put through.
+     * @param call The call to place.
      */
-    private void placeOutgoingCall(Call call) {
-        if (isNullOrEmpty(mCallServices) || isNullOrEmpty(mSelectors)) {
-            // At least one call service and one selector are required to process outgoing calls.
-            return;
-        }
+    private void processNewOutgoingCall(Call call) {
 
-        // TODO(gilad): Iterate through the prioritized list of selectors passing to each selector
-        // (read-only versions of) the call object and all available call services.  Break out once
-        // a matching selector is found. Calls with no matching selectors will eventually be killed
-        // by the cleanup/monitor thread, see the "monitor" to-do at the top of the file.
+        Preconditions.checkNotNull(mCallServices);
+        Preconditions.checkNotNull(mSelectors);
 
-        // Psuedo code (assuming connect to be a future switchboard method):
-        //
-        //   FOR selector IN prioritizedSelectors:
-        //     prioritizedCallServices = selector.select(mCallServices, call)
-        //     IF notEmpty(prioritizedCallServices):
-        //       FOR callService IN prioritizedCallServices:
-        //         TRY
-        //           connect(call, callService, selector)
-        //           mPendingOutgoingCalls.remove(call)
-        //           BREAK
+        // Convert to (duplicate-free) list to aid index-based iteration, see the comment under
+        // setSelectors regarding using LinkedHashSet instead.
+        List<ICallServiceSelector> selectors = Lists.newArrayList();
+        selectors.addAll(mSelectors);
+
+        // Create the processor for this (outgoing) call and store it in a map such that call
+        // attempts can be aborted etc.
+        // TODO(gilad): Consider passing mSelector as an immutable set.
+        OutgoingCallProcessor processor =
+                new OutgoingCallProcessor(call, mCallServices, selectors, this);
+
+        outgoingCallProcessors.put(call, processor);
+        processor.process();
     }
 
     /**
