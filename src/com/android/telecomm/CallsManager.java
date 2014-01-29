@@ -35,6 +35,11 @@ public final class CallsManager {
 
     private static final CallsManager INSTANCE = new CallsManager();
 
+    private final Switchboard mSwitchboard;
+
+    /** Used to control the in-call app. */
+    private final InCallController mInCallController;
+
     /**
      * May be unnecessary per off-line discussions (between santoscordon and gilad) since the set
      * of CallsManager APIs that need to be exposed to the dialer (or any application firing call
@@ -43,8 +48,6 @@ public final class CallsManager {
     private DialerAdapter mDialerAdapter;
 
     private InCallAdapter mInCallAdapter;
-
-    private Switchboard mSwitchboard;
 
     private CallLogManager mCallLogManager;
 
@@ -63,6 +66,7 @@ public final class CallsManager {
      */
     private CallsManager() {
         mSwitchboard = new Switchboard();
+        mInCallController = new InCallController(this);
     }
 
     /**
@@ -84,5 +88,38 @@ public final class CallsManager {
 
         // No objection to issue the call, proceed with trying to put it through.
         mSwitchboard.placeOutgoingCall(handle, contactInfo, context);
+    }
+
+    /**
+     * Instructs Telecomm to answer the specified call. Intended to be invoked by the in-call
+     * app through {@link InCallAdapter} after Telecomm notifies it of an incoming call followed by
+     * the user opting to answer said call.
+     *
+     * @param callId The ID of the call.
+     */
+    void answerCall(String callId) {
+        // TODO(santoscordon): fill in and check that it is in the ringing state.
+    }
+
+    /**
+     * Instructs Telecomm to reject the specified call. Intended to be invoked by the in-call
+     * app through {@link InCallAdapter} after Telecomm notifies it of an incoming call followed by
+     * the user opting to reject said call.
+     *
+     * @param callId The ID of the call.
+     */
+    void rejectCall(String callId) {
+        // TODO(santoscordon): fill in and check that it is in the ringing state.
+    }
+
+    /**
+     * Instructs Telecomm to disconnect the specified call. Intended to be invoked by the
+     * in-call app through {@link InCallAdapter} for an ongoing call. This is usually triggered by
+     * the user hitting the end-call button.
+     *
+     * @param callId The ID of the call.
+     */
+    void disconnectCall(String callId) {
+        // TODO(santoscordon): fill in and check that the call is in the active state.
     }
 }
