@@ -106,14 +106,10 @@ public class TestCallService extends CallService {
     public void call(CallInfo callInfo) {
         Log.i(TAG, "call(" + callInfo + ")");
 
-        try {
-            createCall(callInfo.getId());
+        createCall(callInfo.getId());
 
-            // This creates a call within CallsManager starting at the DIALING state.
-            // TODO(santoscordon): When we define the call states, consider renaming newOutgoingCall
-            // to newDialingCall to match the states exactly and as an indication of the starting
-            // state for this new call. This depends on what the states are ultimately defined as.
-            mCallsManagerAdapter.newOutgoingCall(callInfo.getId());
+        try {
+            mCallsManagerAdapter.handleSuccessfulOutgoingCall(callInfo.getId());
         } catch (RemoteException e) {
             Log.e(TAG, "Failed to create a newOutgoingCall().", e);
         }

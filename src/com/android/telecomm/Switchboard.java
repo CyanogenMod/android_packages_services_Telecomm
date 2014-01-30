@@ -45,9 +45,14 @@ final class Switchboard {
      */
     private final static int TICK_FREQUENCY = 250;
 
-    private final CallServiceFinder mCallServiceFinder = new CallServiceFinder(this);
+    private final CallsManager mCallsManager;
 
-    private final CallServiceSelectorFinder mSelectorFinder = new CallServiceSelectorFinder(this);
+    /** Used to place outgoing calls. */
+    private final OutgoingCallsManager mOutgoingCallsManager;
+
+    private CallServiceFinder mCallServiceFinder;
+
+    private CallServiceSelectorFinder mSelectorFinder;
 
     /** Used to schedule tasks on the main (UI) thread. */
     private final Handler mHandler = new Handler(Looper.getMainLooper());
@@ -84,7 +89,15 @@ final class Switchboard {
      */
     private Set<ICallServiceSelector> mSelectors;
 
-    private Map<Call, OutgoingCallProcessor> outgoingCallProcessors = Maps.newHashMap();
+    /**
+     * Persists the specified parameters and initializes Switchboard.
+     */
+    Switchboard() {
+        mCallsManager = CallsManager.getInstance();
+        mOutgoingCallsManager = new OutgoingCallsManager(this);
+        mCallServiceFinder = new CallServiceFinder(this, mOutgoingCallsManager);
+        mSelectorFinder = new CallServiceSelectorFinder(this);
+    }
 
     /**
      * Attempts to place an outgoing call to the specified handle.
@@ -157,7 +170,7 @@ final class Switchboard {
      * see {@link OutgoingCallProcessor}.
      */
     void handleSuccessfulOutgoingCall(Call call) {
-        // TODO(gilad): More here.
+        mCallsManager.handleSuccessfulOutgoingCall(call);
 
         // Process additional (new) calls, if any.
         processNewOutgoingCalls();
@@ -236,14 +249,7 @@ final class Switchboard {
         List<ICallServiceSelector> selectors = Lists.newArrayList();
         selectors.addAll(mSelectors);
 
-        // Create the processor for this (outgoing) call and store it in a map such that call
-        // attempts can be aborted etc.
-        // TODO(gilad): Consider passing mSelector as an immutable set.
-        OutgoingCallProcessor processor =
-                new OutgoingCallProcessor(call, mCallServices, selectors, this);
-
-        outgoingCallProcessors.put(call, processor);
-        processor.process();
+        mOutgoingCallsManager.placeCall(call, mCallServices, selectors);
     }
 
     /**

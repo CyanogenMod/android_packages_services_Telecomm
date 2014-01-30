@@ -17,11 +17,18 @@
 package com.android.telecomm;
 
 import android.content.Context;
+import android.telecomm.CallState;
+import android.text.TextUtils;
+import android.util.Log;
 
 import com.android.telecomm.exceptions.RestrictedCallException;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Singleton.
@@ -31,6 +38,7 @@ import java.util.List;
  * beyond the com.android.telecomm package boundary.
  */
 public final class CallsManager {
+    private static final String TAG = CallsManager.class.getSimpleName();
 
     private static final CallsManager INSTANCE = new CallsManager();
 
@@ -38,6 +46,14 @@ public final class CallsManager {
 
     /** Used to control the in-call app. */
     private final InCallController mInCallController;
+
+    /**
+     * The main call repository. Keeps an instance of all live calls keyed by call ID. New incoming
+     * and outgoing calls are added to the map and removed when the calls move to the disconnected
+     * state.
+     * TODO(santoscordon): Add new CallId class and use it in place of String.
+     */
+    private final Map<String, Call> mCalls = Maps.newHashMap();
 
     /**
      * May be unnecessary per off-line discussions (between santoscordon and gilad) since the set
@@ -65,7 +81,7 @@ public final class CallsManager {
      */
     private CallsManager() {
         mSwitchboard = new Switchboard();
-        mInCallController = new InCallController(this);
+        mInCallController = new InCallController();
     }
 
     /**
@@ -87,6 +103,21 @@ public final class CallsManager {
 
         // No objection to issue the call, proceed with trying to put it through.
         mSwitchboard.placeOutgoingCall(handle, contactInfo, context);
+    }
+
+    /**
+     * Adds a new outgoing call to the list of live calls and notifies the in-call app.
+     *
+     * @param call The new outgoing call.
+     */
+    void handleSuccessfulOutgoingCall(Call call) {
+        // OutgoingCallProcessor sets the call state to DIALING when it receives confirmation of the
+        // placed call from the call service so there is no need to set it here. Instead, check that
+        // the state is appropriate.
+        Preconditions.checkState(call.getState() == CallState.DIALING);
+
+        addCall(call);
+        // TODO(santoscordon): Notify in-call UI.
     }
 
     /**
@@ -120,5 +151,58 @@ public final class CallsManager {
      */
     void disconnectCall(String callId) {
         // TODO(santoscordon): fill in and check that the call is in the active state.
+    }
+
+    void markCallAsRinging(String callId) {
+        setCallState(callId, CallState.RINGING);
+    }
+
+    void markCallAsDialing(String callId) {
+        setCallState(callId, CallState.DIALING);
+    }
+
+    void markCallAsActive(String callId) {
+        setCallState(callId, CallState.ACTIVE);
+    }
+
+    void markCallAsDisconnected(String callId) {
+        setCallState(callId, CallState.DISCONNECTED);
+        mCalls.remove(callId);
+    }
+
+    /**
+     * Sets the specified state on the specified call.
+     *
+     * @param callId The ID of the call to update.
+     * @param state The new state of the call.
+     */
+    private void setCallState(String callId, CallState state) {
+        Preconditions.checkState(!Strings.isNullOrEmpty(callId));
+        Preconditions.checkNotNull(state);
+
+        Call call = mCalls.get(callId);
+        if (call == null) {
+            Log.e(TAG, "Call " + callId + " was not found while attempting to upda the state to " +
+                    state + ".");
+        } else {
+            // Unfortunately, in the telephony world, the radio is king. So if the call notifies us
+            // that the call is in a particular state, we allow it even if it doesn't make sense
+            // (e.g., ACTIVE -> RINGING).
+            // TODO(santoscordon): Consider putting a stop to the above and turning CallState into
+            // a well-defined state machine.
+            // TODO(santoscordon): Define expected state transitions here, and log when an
+            // unexpected transition occurs.
+            call.setState(state);
+            // TODO(santoscordon): Notify the in-call app whenever a call changes state.
+        }
+    }
+
+    /**
+     * Adds the specified call to the main list of live calls.
+     *
+     * @param call The call to add.
+     */
+    private void addCall(Call call) {
+        mCalls.put(call.getId(), call);
     }
 }

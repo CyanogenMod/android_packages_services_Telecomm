@@ -76,11 +76,9 @@ public final class InCallController {
 
     /**
      * Persists the specified parameters.
-     *
-     * @param callsManager The singleton calls manager instance.
      */
-    InCallController(CallsManager callsManager) {
-        mCallsManager = callsManager;
+    InCallController() {
+        mCallsManager = CallsManager.getInstance();
     }
 
     // TODO(santoscordon): May be better to expose the IInCallService methods directly from this

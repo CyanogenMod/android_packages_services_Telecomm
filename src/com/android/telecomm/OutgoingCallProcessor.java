@@ -24,9 +24,11 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.RemoteException;
 import android.telecomm.CallInfo;
+import android.telecomm.CallState;
 import android.telecomm.ICallService;
 import android.telecomm.ICallServiceSelectionResponse;
 import android.telecomm.ICallServiceSelector;
+import android.util.Log;
 
 import java.util.Iterator;
 import java.util.List;
@@ -40,18 +42,14 @@ import java.util.Set;
  * call services is then attempted until either the outgoing call is placed, the attempted call
  * is aborted (by the switchboard), or the list is exhausted -- whichever occurs first.
  *
- * Except for the abort case, all other scenarios should terminate with the switchboard notified.
+ * Except for the abort case, all other scenarios should terminate with the switchboard notified
+ * of the result.
  *
  * NOTE(gilad): Currently operating under the assumption that we'll have one timeout per (outgoing)
  * call attempt.  If we (also) like to timeout individual selectors and/or call services, the code
  * here will need to be re-factored (quite a bit) to support that.
  */
 final class OutgoingCallProcessor {
-
-    /**
-     * The (singleton) Telecomm switchboard instance.
-     */
-    private final Switchboard mSwitchboard;
 
     /**
      * The outgoing call this processor is tasked with placing.
@@ -76,12 +74,23 @@ final class OutgoingCallProcessor {
     /** Used to run code (e.g. messages, Runnables) on the main (UI) thread. */
     private final Handler mHandler = new Handler(Looper.getMainLooper());
 
+    /** Manages all outgoing call processors. */
+    private final OutgoingCallsManager mOutgoingCallsManager;
+
+    private final Switchboard mSwitchboard;
+
     /**
      * The iterator over the currently-selected ordered list of call-service IDs.
      */
     private Iterator<String> mCallServiceIdIterator;
 
     private Iterator<ICallServiceSelector> mSelectorIterator;
+
+    /**
+     * The last call service which we asked to place the call. If null, it indicates that there
+     * exists no call service that we expect to place this call.
+     */
+    private ICallService mCallService;
 
     private boolean mIsAborted = false;
 
@@ -90,17 +99,19 @@ final class OutgoingCallProcessor {
      * passing to each selector (read-only versions of) the call object and all available call-
      * service IDs.  Stops once a matching selector is found.  Calls with no matching selectors
      * will eventually be killed by the cleanup/monitor switchboard handler, which will in turn
-     * call the abort method of this processor.
+     * call the abort method of this processor via {@link OutgoingCallsManager}.
      *
      * @param call The call to place.
      * @param callServices The available call-service implementations.
      * @param selectors The available call-service selector implementations.
-     * @param switchboard The switchboard for this processor to work against.
+     * @param outgoingCallsManager Manager of all outgoing call processors.
+     * @param switchboard The switchboard.
      */
     OutgoingCallProcessor(
             Call call,
             Set<ICallService> callServices,
             List<ICallServiceSelector> selectors,
+            OutgoingCallsManager outgoingCallsManager,
             Switchboard switchboard) {
 
         ThreadUtil.checkOnMainThread();
@@ -110,6 +121,7 @@ final class OutgoingCallProcessor {
 
         mCall = call;
         mSelectors = selectors;
+        mOutgoingCallsManager = outgoingCallsManager;
         mSwitchboard = switchboard;
 
         // Populate the list and map of call-service IDs.  The list is needed since
@@ -131,7 +143,7 @@ final class OutgoingCallProcessor {
         if (mSelectors.isEmpty() || mCallServiceIds.isEmpty()) {
             // TODO(gilad): Consider adding a failure message/type to differentiate the various
             // cases, or potentially throw an exception in this case.
-            mSwitchboard.handleFailedOutgoingCall(mCall);
+            mOutgoingCallsManager.handleFailedOutgoingCall(mCall);
         } else if (mSelectorIterator == null) {
             mSelectorIterator = mSelectors.iterator();
             attemptNextSelector();
@@ -140,11 +152,36 @@ final class OutgoingCallProcessor {
 
     /**
      * Aborts the attempt to place the relevant call.  Intended to be invoked by
-     * switchboard.
+     * switchboard through the outgoing-calls manager.
      */
     void abort() {
         ThreadUtil.checkOnMainThread();
+        resetCallService();
         mIsAborted = true;
+    }
+
+    /**
+     * Completes the outgoing call sequence by setting the call service on the call object. This is
+     * invoked when the call service adapter receives positive confirmation that the call service
+     * placed the call.
+     */
+    void handleSuccessfulCallAttempt() {
+        abort();  // Technically not needed but playing it safe.
+        mCall.setCallService(mCallService);
+        mCall.setState(CallState.DIALING);
+        resetCallService();
+
+        mSwitchboard.handleSuccessfulOutgoingCall(mCall);
+    }
+
+    /**
+     * Attempts the next call service if the specified call service is the one currently being
+     * attempted.
+     *
+     * @param reason The call-service supplied reason for the failed call attempt.
+     */
+    void handleFailedCallAttempt(String reason) {
+        attemptNextCallService();
     }
 
     /**
@@ -166,7 +203,7 @@ final class OutgoingCallProcessor {
             }
 
         } else {
-            mSwitchboard.handleFailedOutgoingCall(mCall);
+            mOutgoingCallsManager.handleFailedOutgoingCall(mCall);
         }
     }
 
@@ -206,7 +243,9 @@ final class OutgoingCallProcessor {
     }
 
     /**
-     * TODO(gilad): Add comment.
+     * Attempts to place the call using the call service specified by the next call-service ID of
+     * mCallServiceIdIterator. If there are no more call services to attempt, the process continues
+     * to the next call-service selector via {@link #attemptNextSelector}.
      */
     private void attemptNextCallService() {
         if (mIsAborted) {
@@ -215,10 +254,12 @@ final class OutgoingCallProcessor {
 
         if (mCallServiceIdIterator.hasNext()) {
             String id = mCallServiceIdIterator.next();
-            ICallService callService = mCallServicesById.get(id);
-            if (callService != null) {
+            mCallService = mCallServicesById.get(id);
+            if (mCallService == null) {
+                attemptNextCallService();
+            } else {
                 try {
-                    callService.call(mCall.toCallInfo());
+                    mCallService.call(mCall.toCallInfo());
                 } catch (RemoteException e) {
                     // TODO(gilad): Log etc.
                     attemptNextCallService();
@@ -226,25 +267,16 @@ final class OutgoingCallProcessor {
             }
         } else {
             mCallServiceIdIterator = null;
+            resetCallService();
             attemptNextSelector();
         }
     }
 
     /**
-     * Handles the successful outgoing-call case.
+     * Nulls out the reference to the current call service. Invoked when the call service is no longer
+     * expected to place the outgoing call.
      */
-    private void handleSuccessfulOutgoingCall() {
-        // TODO(gilad): More here?
-
-        abort();  // Shouldn't be necessary but better safe than sorry.
-        mSwitchboard.handleSuccessfulOutgoingCall(mCall);
-    }
-
-    /**
-     * Handles the failed outgoing-call case.
-     */
-    private void handleFailedOutgoingCall() {
-        // TODO(gilad): Implement.
-        attemptNextCallService();
+    private void resetCallService() {
+        mCallService = null;
     }
 }

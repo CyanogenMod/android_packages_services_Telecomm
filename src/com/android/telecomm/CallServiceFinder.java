@@ -64,6 +64,8 @@ final class CallServiceFinder {
 
     private final Switchboard mSwitchboard;
 
+    private final OutgoingCallsManager mOutgoingCallsManager;
+
     /**
      * Determines whether or not a lookup cycle is already running.
      */
@@ -118,10 +120,12 @@ final class CallServiceFinder {
     /**
      * Persists the specified parameters.
      *
-     * @param switchboard The switchboard for this finer to work against.
+     * @param switchboard The switchboard for this finder to work against.
+     * @param outgoingCallsManager Manager in charge of placing outgoing calls.
      */
-    CallServiceFinder(Switchboard switchboard) {
+    CallServiceFinder(Switchboard switchboard, OutgoingCallsManager outgoingCallsManager) {
         mSwitchboard = switchboard;
+        mOutgoingCallsManager = outgoingCallsManager;
     }
 
     /**
@@ -288,11 +292,20 @@ final class CallServiceFinder {
         ThreadUtil.checkOnMainThread();
 
         // TODO(santoscordon): When saving the call services into this class, also add code to
-        // unregister (remove) the call services upon disconnect. Potentially use RemoteCallbackList.
+        // unregister (remove) the call services upon disconnect. Potentially use
+        // RemoteCallbackList.
 
         if (mUnregisteredProviders.remove(providerName)) {
             mProviderRegistry.add(provider);
-            mCallServiceRegistry.addAll(callServices);
+            for (ICallService callService : callServices) {
+                try {
+                    CallServiceAdapter adapter = new CallServiceAdapter(mOutgoingCallsManager);
+                    callService.setCallServiceAdapter(adapter);
+                    mCallServiceRegistry.add(callService);
+                } catch (RemoteException e) {
+                    Log.e(TAG, "Failed to set call-service adapter.");
+                }
+            }
 
             // TODO(gilad): Introduce a map to retain the association between call services
             // and the corresponding provider such that mCallServiceRegistry can be updated

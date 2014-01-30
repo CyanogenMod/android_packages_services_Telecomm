@@ -18,6 +18,7 @@ package com.android.telecomm;
 
 import android.telecomm.CallInfo;
 import android.telecomm.CallState;
+import android.telecomm.ICallService;
 
 import java.util.Date;
 
@@ -51,6 +52,12 @@ final class Call {
      * certain call attempts as failed attempts.
      */
     private final Date mCreationTime;
+
+    /**
+     * The call service which is currently connecting this call, null as long as the call is not
+     * connected.
+     */
+    private ICallService mCallService;
 
     /**
      * Read-only and parcelable version of this call.
@@ -105,6 +112,21 @@ final class Call {
      */
     long getAgeInMilliseconds() {
         return new Date().getTime() - mCreationTime.getTime();
+    }
+
+    ICallService getCallService() {
+        return mCallService;
+    }
+
+    void setCallService(ICallService callService) {
+        mCallService = callService;
+    }
+
+    /**
+     * Clears the associated call service.
+     */
+    void clearCallService() {
+        setCallService(null);
     }
 
     /**
