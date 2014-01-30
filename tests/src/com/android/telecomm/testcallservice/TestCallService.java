@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.util.Date;
 import java.util.Set;
 
+import android.content.Context;
 import android.content.Intent;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
@@ -37,6 +38,7 @@ import android.util.Log;
 
 /**
  * Service which provides fake calls to test the ICallService interface.
+ * TODO(santoscordon): Rename all classes in the directory to Dummy* (e.g., DummyCallService).
  */
 public class TestCallService extends CallService {
     private static final String TAG = TestCallService.class.getSimpleName();
@@ -57,6 +59,17 @@ public class TestCallService extends CallService {
      */
     private MediaPlayer mMediaPlayer;
 
+    /**
+     * The application context.
+     */
+    private final Context mContext;
+
+
+    /** Persists the specified parameters. */
+    public TestCallService(Context context) {
+        mContext = context;
+    }
+
     /** {@inheritDoc} */
     @Override
     public void setCallServiceAdapter(ICallServiceAdapter callServiceAdapter) {
@@ -66,9 +79,11 @@ public class TestCallService extends CallService {
         mLiveCallIds = Sets.newHashSet();
 
         // Prepare the media player to play a tone when there is a call.
-        mMediaPlayer = MediaPlayer.create(null, R.raw.beep_boop);
+        mMediaPlayer = MediaPlayer.create(mContext, R.raw.beep_boop);
         mMediaPlayer.setLooping(true);
-        mMediaPlayer.setAudioStreamType(AudioManager.STREAM_VOICE_CALL);
+
+        // TODO(santoscordon): Re-enable audio through voice-call stream.
+        //mMediaPlayer.setAudioStreamType(AudioManager.STREAM_VOICE_CALL);
     }
 
     /**
@@ -148,12 +163,7 @@ public class TestCallService extends CallService {
 
         // Starts audio if not already started.
         if (!mMediaPlayer.isPlaying()) {
-            try {
-                mMediaPlayer.prepare();
-                mMediaPlayer.start();
-            } catch (IOException e) {
-                Log.e(TAG, "Error playing audio", e);
-            }
+            mMediaPlayer.start();
         }
     }
 

@@ -38,7 +38,7 @@ public class TestCallServiceProvider extends CallServiceProvider {
         Log.i(TAG, "lookupCallServices()");
 
         try {
-            TestCallService callService = new TestCallService();
+            TestCallService callService = new TestCallService(this);
             List<IBinder> callServiceList = Lists.newArrayList(callService.getBinder());
             response.setCallServices(callServiceList);
         } catch (RemoteException e) {
