@@ -59,12 +59,6 @@ final class OutgoingCallProcessor {
     private final Call mCall;
 
     /**
-     * The (read-only) object derived from mCall above to pass through outside of the Telecomm
-     * package.
-     */
-    private final CallInfo mCallInfo;
-
-    /**
      * The duplicate-free list of currently-available call-service IDs.
      */
     private final List<String> mCallServiceIds = Lists.newArrayList();
@@ -115,7 +109,6 @@ final class OutgoingCallProcessor {
         Preconditions.checkNotNull(selectors);
 
         mCall = call;
-        mCallInfo = new CallInfo(call.getId(), call.getHandle());
         mSelectors = selectors;
         mSwitchboard = switchboard;
 
@@ -167,7 +160,7 @@ final class OutgoingCallProcessor {
             ICallServiceSelector selector = mSelectorIterator.next();
             ICallServiceSelectionResponse.Stub response = createSelectionResponse();
             try {
-                selector.select(mCallInfo, mCallServiceIds, response);
+                selector.select(mCall.toCallInfo(), mCallServiceIds, response);
             } catch (RemoteException e) {
                 attemptNextSelector();
             }
@@ -225,8 +218,7 @@ final class OutgoingCallProcessor {
             ICallService callService = mCallServicesById.get(id);
             if (callService != null) {
                 try {
-                    // TODO(gilad): Refactor to pass a CallInfo object instead.
-                    callService.call(mCallInfo);
+                    callService.call(mCall.toCallInfo());
                 } catch (RemoteException e) {
                     // TODO(gilad): Log etc.
                     attemptNextCallService();

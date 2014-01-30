@@ -16,6 +16,9 @@
 
 package com.android.telecomm;
 
+import android.telecomm.CallInfo;
+import android.telecomm.CallState;
+
 import java.util.Date;
 
 /**
@@ -29,6 +32,11 @@ final class Call {
      * Unique identifier for the call as a UUID string.
      */
     private final String mId;
+
+    /**
+     * The state of the call.
+     */
+    private CallState mState;
 
     /** The handle with which to establish this call. */
     private final String mHandle;
@@ -45,6 +53,11 @@ final class Call {
     private final Date mCreationTime;
 
     /**
+     * Read-only and parcelable version of this call.
+     */
+    private CallInfo mCallInfo;
+
+    /**
      * Persists the specified parameters and initializes the new instance.
      *
      * @param handle The handle to dial.
@@ -53,15 +66,29 @@ final class Call {
     Call(String handle, ContactInfo contactInfo) {
         // TODO(gilad): Pass this in etc.
         mId = "dummy";
-
+        mState = CallState.NEW;
         mHandle = handle;
         mContactInfo = contactInfo;
-
         mCreationTime = new Date();
     }
 
     String getId() {
         return mId;
+    }
+
+    CallState getState() {
+        return mState;
+    }
+
+    /**
+     * Sets the call state. Although there exists the notion of appropriate state transitions
+     * (see {@link CallState}), in practice those expectations break down when cellular systems
+     * misbehave and they do this very often. The result is that we do not enforce state transitions
+     * and instead keep the code resilient to unexpected state changes.
+     */
+    void setState(CallState state) {
+        mState = state;
+        clearCallInfo();
     }
 
     String getHandle() {
@@ -78,5 +105,22 @@ final class Call {
      */
     long getAgeInMilliseconds() {
         return new Date().getTime() - mCreationTime.getTime();
+    }
+
+    /**
+     * @return An object containing read-only information about this call.
+     */
+    CallInfo toCallInfo() {
+        if (mCallInfo == null) {
+            mCallInfo = new CallInfo(mId, mState, mHandle);
+        }
+        return mCallInfo;
+    }
+
+    /**
+     * Resets the cached read-only version of this call.
+     */
+    private void clearCallInfo() {
+        mCallInfo = null;
     }
 }
