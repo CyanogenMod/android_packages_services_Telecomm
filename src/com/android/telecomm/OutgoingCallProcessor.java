@@ -18,11 +18,14 @@ package com.android.telecomm;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
+import com.google.common.collect.Lists;
 
+import android.os.Handler;
+import android.os.Looper;
 import android.os.RemoteException;
 import android.telecomm.CallInfo;
 import android.telecomm.ICallService;
+import android.telecomm.ICallServiceSelectionResponse;
 import android.telecomm.ICallServiceSelector;
 
 import java.util.Iterator;
@@ -38,6 +41,10 @@ import java.util.Set;
  * is aborted (by the switchboard), or the list is exhausted -- whichever occurs first.
  *
  * Except for the abort case, all other scenarios should terminate with the switchboard notified.
+ *
+ * NOTE(gilad): Currently operating under the assumption that we'll have one timeout per (outgoing)
+ * call attempt.  If we (also) like to timeout individual selectors and/or call services, the code
+ * here will need to be re-factored (quite a bit) to support that.
  */
 final class OutgoingCallProcessor {
 
@@ -58,9 +65,9 @@ final class OutgoingCallProcessor {
     private final CallInfo mCallInfo;
 
     /**
-     * The set of currently-available call-service IDs.
+     * The duplicate-free list of currently-available call-service IDs.
      */
-    private final Set<String> mCallServiceIds = Sets.newHashSet();
+    private final List<String> mCallServiceIds = Lists.newArrayList();
 
     /**
      * The map of currently-available call-service implementations keyed by call-service ID.
@@ -71,6 +78,9 @@ final class OutgoingCallProcessor {
      * The set of currently-available call-service selector implementations.
      */
     private final List<ICallServiceSelector> mSelectors;
+
+    /** Used to run code (e.g. messages, Runnables) on the main (UI) thread. */
+    private final Handler mHandler = new Handler(Looper.getMainLooper());
 
     /**
      * The iterator over the currently-selected ordered list of call-service IDs.
@@ -99,6 +109,8 @@ final class OutgoingCallProcessor {
             List<ICallServiceSelector> selectors,
             Switchboard switchboard) {
 
+        ThreadUtil.checkOnMainThread();
+
         Preconditions.checkNotNull(callServices);
         Preconditions.checkNotNull(selectors);
 
@@ -121,6 +133,8 @@ final class OutgoingCallProcessor {
      * Initiates the attempt to place the call.  No-op beyond the first invocation.
      */
     void process() {
+        ThreadUtil.checkOnMainThread();
+
         if (mSelectors.isEmpty() || mCallServiceIds.isEmpty()) {
             // TODO(gilad): Consider adding a failure message/type to differentiate the various
             // cases, or potentially throw an exception in this case.
@@ -136,6 +150,7 @@ final class OutgoingCallProcessor {
      * switchboard.
      */
     void abort() {
+        ThreadUtil.checkOnMainThread();
         mIsAborted = true;
     }
 
@@ -150,19 +165,12 @@ final class OutgoingCallProcessor {
 
         if (mSelectorIterator.hasNext()) {
             ICallServiceSelector selector = mSelectorIterator.next();
-
-            // TODO(gilad): Refactor to pass (CallInfo, List<String>, response) passing
-            // mCallInfo as the 1st and mCallServiceIds (or an immutable version thereof)
-            // as the 2nd parameter.
-            // selector.select(handle, callServiceBinders, response);
-
-            // TODO(gilad): Get the list of call-service IDs (asynchronically), store it
-            // (in setSelectedCallServiceIds), and then invoke attemptNextCallService.
-
-            // NOTE(gilad): Currently operating under the assumption that we'll have one timeout
-            // per (outgoing) call attempt.  If we (also) like to timeout individual selectors
-            // and/or call services, the code here will need to be refactored (quite a bit) to
-            // support that.
+            ICallServiceSelectionResponse.Stub response = createSelectionResponse();
+            try {
+                selector.select(mCallInfo, mCallServiceIds, response);
+            } catch (RemoteException e) {
+                attemptNextSelector();
+            }
 
         } else {
             mSwitchboard.handleFailedOutgoingCall(mCall);
@@ -170,14 +178,32 @@ final class OutgoingCallProcessor {
     }
 
     /**
+     * @return A new selection-response object that's wired to run on the main (UI) thread.
+     */
+    private ICallServiceSelectionResponse.Stub createSelectionResponse() {
+        return new ICallServiceSelectionResponse.Stub() {
+            @Override public void setSelectedCallServiceIds(
+                    final List<String> selectedCallServiceIds) {
+
+                Runnable runnable = new Runnable() {
+                    @Override public void run() {
+                        processSelectedCallServiceIds(selectedCallServiceIds);
+                    }
+                };
+
+                mHandler.post(runnable);
+            }
+        };
+    }
+
+    /**
      * Persists the ordered-list of call service IDs as selected by the current selector and
      * starts iterating through the corresponding call services in the continuing attempt to
      * place the call.
-     * TODO(gilad): Get this to be invoked upon selector.select responses.
      *
      * @selectedCallServiceIds The (ordered) list of call service IDs.
      */
-    private void setSelectedCallServiceIds(List<String> selectedCallServiceIds) {
+    private void processSelectedCallServiceIds(List<String> selectedCallServiceIds) {
         if (selectedCallServiceIds == null || selectedCallServiceIds.isEmpty()) {
             attemptNextSelector();
         } else if (mCallServiceIdIterator == null) {
