@@ -22,15 +22,9 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import android.content.Context;
-import android.os.RemoteException;
 import android.telecomm.ICallService;
 import android.telecomm.ICallServiceSelector;
-import android.util.Log;
 
-import com.android.telecomm.exceptions.CallServiceUnavailableException;
-import com.android.telecomm.exceptions.OutgoingCallException;
-
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -45,8 +39,6 @@ import java.util.Set;
  *     that may need to be terminated, see mNewOutgoingCalls and mPendingOutgoingCalls.
  */
 final class Switchboard {
-
-    private static final String TAG = Switchboard.class.getSimpleName();
 
     private CallServiceFinder mCallServiceFinder = new CallServiceFinder(this);
 
@@ -72,10 +64,7 @@ final class Switchboard {
     private Map<Call, OutgoingCallProcessor> outgoingCallProcessors = Maps.newHashMap();
 
     /**
-     * Places an outgoing call to the handle passed in. Method asynchronously collects
-     * {@link ICallService} implementations and passes them along with the handle and contactInfo
-     * to {@link #placeOutgoingCallInternal} to actually place the call.
-     * TODO(gilad): Update.
+     * Attempts to place an outgoing call to the specified handle.
      *
      * @param handle The handle to dial.
      * @param contactInfo Information about the entity being called.

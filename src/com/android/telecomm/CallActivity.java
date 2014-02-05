@@ -24,7 +24,6 @@ import android.os.Bundle;
 import android.util.Log;
 import android.widget.Toast;
 
-import com.android.telecomm.exceptions.CallServiceUnavailableException;
 import com.android.telecomm.exceptions.RestrictedCallException;
 
 /**
@@ -103,10 +102,6 @@ public class CallActivity extends Activity {
             mCallsManager.processOutgoingCallIntent(handle, contactInfo, context);
         } catch (RestrictedCallException e) {
             // TODO(gilad): Handle or explicitly state to be ignored.
-        } catch (CallServiceUnavailableException e) {
-            // TODO(gilad): Handle or explicitly state to be ignored. If both should be ignored,
-            // consider extending from the same base class and simplify the handling code to a
-            // single catch clause.
         }
     }
 }

@@ -18,7 +18,6 @@ package com.android.telecomm;
 
 import android.content.Context;
 
-import com.android.telecomm.exceptions.CallServiceUnavailableException;
 import com.android.telecomm.exceptions.RestrictedCallException;
 import com.google.common.collect.Lists;
 
@@ -53,16 +52,16 @@ public final class CallsManager {
 
     private VoicemailManager mVoicemailManager;
 
-    private List<OutgoingCallFilter> mOutgoingCallFilters = Lists.newArrayList();
+    private List<OutgoingCallValidator> mOutgoingCallValidators = Lists.newArrayList();
 
-    private List<IncomingCallFilter> mIncomingCallFilters = Lists.newArrayList();
+    private List<IncomingCallValidator> mIncomingCallValidators = Lists.newArrayList();
 
     static CallsManager getInstance() {
         return INSTANCE;
     }
 
     /**
-     * Private constructor initializes main components of telecomm.
+     * Initializes the required Telecomm components.
      */
     private CallsManager() {
         mSwitchboard = new Switchboard();
@@ -80,10 +79,10 @@ public final class CallsManager {
      * @param context The application context.
      */
     void processOutgoingCallIntent(String handle, ContactInfo contactInfo, Context context)
-            throws RestrictedCallException, CallServiceUnavailableException {
+            throws RestrictedCallException {
 
-        for (OutgoingCallFilter policy : mOutgoingCallFilters) {
-            policy.validate(handle, contactInfo);
+        for (OutgoingCallValidator validator : mOutgoingCallValidators) {
+            validator.validate(handle, contactInfo);
         }
 
         // No objection to issue the call, proceed with trying to put it through.

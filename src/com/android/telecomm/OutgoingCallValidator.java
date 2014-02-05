@@ -9,7 +9,7 @@ import com.android.telecomm.exceptions.RestrictedCallException;
 // invoked before a particular call service is selected.
 // See http://en.wikipedia.org/wiki/Fixed_Dialing_Number and IncomingCallFilter
 // regarding incoming calls.
-public interface OutgoingCallFilter {
+public interface OutgoingCallValidator {
   public boolean validate(String userInput, ContactInfo contactInfo)
       throws RestrictedCallException;
 }
