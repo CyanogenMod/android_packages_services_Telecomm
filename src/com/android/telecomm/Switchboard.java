@@ -22,6 +22,8 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import android.content.Context;
+import android.os.Handler;
+import android.os.Looper;
 import android.telecomm.ICallService;
 import android.telecomm.ICallServiceSelector;
 
@@ -34,15 +36,40 @@ import java.util.Set;
  * Switchboard is responsible for (1) selecting the {@link ICallService} through which to make
  * outgoing calls and (2) switching active calls between transports (each ICallService is
  * considered a different transport type).
- * TODO(santoscordon): Need to add comments on the switchboard optimizer once that it is place.
- * TODO(gilad): Add a monitor thread to wake up periodically and check for stale pending calls
- *     that may need to be terminated, see mNewOutgoingCalls and mPendingOutgoingCalls.
  */
 final class Switchboard {
 
-    private CallServiceFinder mCallServiceFinder = new CallServiceFinder(this);
+    /**
+     * The frequency of invoking tick in milliseconds.
+     * TODO(gilad): May require tuning.
+     */
+    private final static int TICK_FREQUENCY = 250;
 
-    private CallServiceSelectorFinder mSelectorFinder = new CallServiceSelectorFinder(this);
+    private final CallServiceFinder mCallServiceFinder = new CallServiceFinder(this);
+
+    private final CallServiceSelectorFinder mSelectorFinder = new CallServiceSelectorFinder(this);
+
+    /** Used to schedule tasks on the main (UI) thread. */
+    private final Handler mHandler = new Handler(Looper.getMainLooper());
+
+    /**
+     * Executes a single tick task and potentially schedules the next such that polling continues
+     * as long as necessary.
+     * NOTE(gilad): by design no two tick invocations should ever overlap.
+     */
+    private final Runnable mTicker = new Runnable() {
+        @Override
+        public void run() {
+            tick();
+            if (isTicking()) {
+                scheduleNextTick();
+            }
+        }
+    };
+
+    private final Set<Call> mNewOutgoingCalls = Sets.newLinkedHashSet();
+
+    private final Set<Call> mPendingOutgoingCalls = Sets.newLinkedHashSet();
 
     /**
      * The set of currently available call-service implementations, see {@link CallServiceFinder}.
@@ -56,10 +83,6 @@ final class Switchboard {
      * TODO(gilad): Null out once the active-call count goes to zero.
      */
     private Set<ICallServiceSelector> mSelectors;
-
-    private Set<Call> mNewOutgoingCalls = Sets.newLinkedHashSet();
-
-    private Set<Call> mPendingOutgoingCalls = Sets.newLinkedHashSet();
 
     private Map<Call, OutgoingCallProcessor> outgoingCallProcessors = Maps.newHashMap();
 
@@ -149,6 +172,33 @@ final class Switchboard {
 
         // Process additional (new) calls, if any.
         processNewOutgoingCalls();
+    }
+
+    /**
+     * @return True if ticking should continue (or be resumed) and false otherwise.
+     */
+    private boolean isTicking() {
+        // TODO(gilad): return true every time at least one outgoing call is pending (i.e. waiting
+        // to be connected by a call service) and also when at least one active call is switch-able
+        // between call services, see {@link ICallServiceSelector#isSwitchable}.
+        return false;
+    }
+
+    /**
+     * Schedules the next tick invocation.
+     */
+    private void scheduleNextTick() {
+         mHandler.postDelayed(mTicker, TICK_FREQUENCY);
+    }
+
+    /**
+     * Performs the set of tasks that needs to be executed on polling basis.
+     * TODO(gilad): Check for stale pending calls that may need to be terminated etc, see
+     * mNewOutgoingCalls and mPendingOutgoingCalls.
+     * TODO(gilad): Also intended to trigger the call switching/hand-off logic when applicable.
+     */
+    private void tick() {
+        // TODO(gilad): More here.
     }
 
     /**
