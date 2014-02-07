@@ -22,6 +22,7 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.IBinder;
 import android.os.RemoteException;
+import android.telecomm.CallInfo;
 import android.telecomm.IInCallService;
 import android.util.Log;
 
@@ -64,7 +65,7 @@ public final class InCallController {
     /**
      * Class name of the component within in-call app which implements {@link IInCallService}.
      */
-    private static final String IN_CALL_SERVICE_CLASS_NAME = "com.android.incall.InCallService";
+    private static final String IN_CALL_SERVICE_CLASS_NAME = "com.android.incallui.InCallService";
 
     /** Maintains a binding connection to the in-call app. */
     private final InCallServiceConnection mConnection = new InCallServiceConnection();
@@ -88,38 +89,91 @@ public final class InCallController {
     }
 
     /**
-     * Binds to the in-call app if not already connected by binding directly to the saved
-     * component name of the {@link IInCallService} implementation.
+     * Indicates to the in-call app that a new call has been created and an appropriate
+     * user-interface should be built and shown to notify the user.  Information about the call
+     * including its current state is passed in through the callInfo object.
      *
-     * @param context The application context.
+     * @param callInfo Details about the new call.
      */
-    void connect(Context context) {
-        ThreadUtil.checkOnMainThread();
-        if (mInCallService == null) {
-            ComponentName component =
-                    new ComponentName(IN_CALL_PACKAGE_NAME, IN_CALL_SERVICE_CLASS_NAME);
-
-            Intent serviceIntent = new Intent(IInCallService.class.getName());
-            serviceIntent.setComponent(component);
-
-            if (!context.bindService(serviceIntent, mConnection, Context.BIND_AUTO_CREATE)) {
-                Log.e(TAG, "Could not connect to the in-call app (" + component + ")");
-
-                // TODO(santoscordon): Implement retry or fall-back-to-default logic.
+    void addCall(CallInfo callInfo) {
+        try {
+            if (mInCallService == null) {
+                bind();
+            } else {
+                // TODO(santoscordon): Protect against logging phone number.
+                Log.i(TAG, "Adding call: " + callInfo);
+                mInCallService.addCall(callInfo);
             }
+        } catch (RemoteException e) {
+            Log.e(TAG, "Exception attempting to addCall.", e);
+        }
+    }
+
+    /**
+     * Indicates to the in-call app that a call has moved to the active state.
+     *
+     * @param callId The identifier of the call that became active.
+     */
+    void markCallAsActive(String callId) {
+        try {
+            if (mInCallService != null) {
+                Log.i(TAG, "Mark call as ACTIVE: " + callId);
+                mInCallService.setActive(callId);
+            }
+        } catch (RemoteException e) {
+            Log.e(TAG, "Exception attempting to markCallAsActive.", e);
+        }
+    }
+
+    /**
+     * Indicates to the in-call app that a call has been disconnected and the user should be
+     * notified.
+     *
+     * @param callId The identifier of the call that was disconnected.
+     */
+    void markCallAsDisconnected(String callId) {
+        try {
+            if (mInCallService != null) {
+                Log.i(TAG, "Mark call as DISCONNECTED: " + callId);
+                mInCallService.setDisconnected(callId);
+            }
+        } catch (RemoteException e) {
+            Log.e(TAG, "Exception attempting to markCallAsDisconnected.", e);
         }
     }
 
     /**
      * Unbinds an existing bound connection to the in-call app.
-     *
-     * @param context The application context.
      */
-    void disconnect(Context context) {
+    void unbind() {
         ThreadUtil.checkOnMainThread();
         if (mInCallService != null) {
-            context.unbindService(mConnection);
+            Log.i(TAG, "Unbinding from InCallService");
+            TelecommApp.getInstance().unbindService(mConnection);
             mInCallService = null;
+        }
+    }
+
+    /**
+     * Binds to the in-call app if not already connected by binding directly to the saved
+     * component name of the {@link IInCallService} implementation.
+     */
+    private void bind() {
+        ThreadUtil.checkOnMainThread();
+        if (mInCallService == null) {
+            ComponentName component =
+                    new ComponentName(IN_CALL_PACKAGE_NAME, IN_CALL_SERVICE_CLASS_NAME);
+            Log.i(TAG, "Attempting to bind to InCallService: " + component);
+
+            Intent serviceIntent = new Intent(IInCallService.class.getName());
+            serviceIntent.setComponent(component);
+
+            Context context = TelecommApp.getInstance();
+            if (!context.bindService(serviceIntent, mConnection, Context.BIND_AUTO_CREATE)) {
+                Log.e(TAG, "Could not connect to the in-call app (" + component + ")");
+
+                // TODO(santoscordon): Implement retry or fall-back-to-default logic.
+            }
         }
     }
 
@@ -141,7 +195,11 @@ public final class InCallController {
             mInCallService = null;
         }
 
-        update();
+        // Upon successful connection, send the state of the world to the in-call app.
+        if (mInCallService != null) {
+            mCallsManager.updateInCall();
+        }
+
     }
 
     /**
@@ -150,12 +208,5 @@ public final class InCallController {
     private void onDisconnected() {
         ThreadUtil.checkOnMainThread();
         mInCallService = null;
-    }
-
-    /**
-     * Gathers the list of current calls from CallsManager and sends them to the in-call app.
-     */
-    private void update() {
-        // TODO(santoscordon): mInCallService.sendCalls(CallsManager.getCallList());
     }
 }

@@ -28,7 +28,8 @@
          can check for incompatible APIs. -->
     <uses-sdk android:minSdkVersion="19" />
 
-    <application android:persistent="false"
+    <application android:name="TelecommApp"
+            android:persistent="false"
             android:label="@string/telecommAppLabel"
             android:icon="@mipmap/ic_launcher_phone"
             android:supportsRtl="true">

@@ -117,7 +117,23 @@ public final class CallsManager {
         Preconditions.checkState(call.getState() == CallState.DIALING);
 
         addCall(call);
-        // TODO(santoscordon): Notify in-call UI.
+
+        mInCallController.addCall(call.toCallInfo());
+    }
+
+    /*
+     * Sends all the live calls to the in-call app if any exist. If there are no live calls, then
+     * tells the in-call controller to unbind since it is not needed.
+     */
+    void updateInCall() {
+        if (mCalls.isEmpty()) {
+            mInCallController.unbind();
+            return;
+        }
+
+        for (Call call : mCalls.values()) {
+            mInCallController.addCall(call.toCallInfo());
+        }
     }
 
     /**
@@ -150,7 +166,13 @@ public final class CallsManager {
      * @param callId The ID of the call.
      */
     void disconnectCall(String callId) {
-        // TODO(santoscordon): fill in and check that the call is in the active state.
+        Call call = mCalls.get(callId);
+        if (call == null) {
+            Log.e(TAG, "Unknown call (" + callId + ") asked to disconnect");
+        } else {
+            call.disconnect();
+        }
+
     }
 
     void markCallAsRinging(String callId) {
@@ -165,9 +187,21 @@ public final class CallsManager {
         setCallState(callId, CallState.ACTIVE);
     }
 
+    /**
+     * Marks the specified call as DISCONNECTED and notifies the in-call app. If this was the last
+     * live call, then also disconnect from the in-call controller.
+     *
+     * @param callId The ID of the call.
+     */
     void markCallAsDisconnected(String callId) {
         setCallState(callId, CallState.DISCONNECTED);
         mCalls.remove(callId);
+
+        // Notify the in-call UI
+        mInCallController.markCallAsDisconnected(callId);
+        if (mCalls.isEmpty()) {
+            mInCallController.unbind();
+        }
     }
 
     /**

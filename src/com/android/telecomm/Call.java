@@ -16,9 +16,11 @@
 
 package com.android.telecomm;
 
+import android.os.RemoteException;
 import android.telecomm.CallInfo;
 import android.telecomm.CallState;
 import android.telecomm.ICallService;
+import android.util.Log;
 
 import java.util.Date;
 
@@ -28,6 +30,7 @@ import java.util.Date;
  *  connected etc).
  */
 final class Call {
+    private static final String TAG = Call.class.getSimpleName();
 
     /**
      * Unique identifier for the call as a UUID string.
@@ -127,6 +130,22 @@ final class Call {
      */
     void clearCallService() {
         setCallService(null);
+    }
+
+    /*
+     * Attempts to disconnect the call through the call service.
+     */
+    void disconnect() {
+        if (mCallService == null) {
+            Log.w(TAG, "disconnect() request on a call without a call service.");
+        } else {
+            try {
+                Log.i(TAG, "Send disconnect to call service for call with id " + mId);
+                mCallService.disconnect(mId);
+            } catch (RemoteException e) {
+                Log.e(TAG, "Disconnect attempt failed.", e);
+            }
+        }
     }
 
     /**
