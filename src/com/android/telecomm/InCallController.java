@@ -78,8 +78,8 @@ public final class InCallController {
     /**
      * Persists the specified parameters.
      */
-    InCallController() {
-        mCallsManager = CallsManager.getInstance();
+    InCallController(CallsManager callsManager) {
+        mCallsManager = callsManager;
     }
 
     // TODO(santoscordon): May be better to expose the IInCallService methods directly from this

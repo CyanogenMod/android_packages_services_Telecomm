@@ -92,8 +92,8 @@ final class Switchboard {
     /**
      * Persists the specified parameters and initializes Switchboard.
      */
-    Switchboard() {
-        mCallsManager = CallsManager.getInstance();
+    Switchboard(CallsManager callsManager) {
+        mCallsManager = callsManager;
         mOutgoingCallsManager = new OutgoingCallsManager(this);
         mCallServiceFinder = new CallServiceFinder(this, mOutgoingCallsManager);
         mSelectorFinder = new CallServiceSelectorFinder(this);

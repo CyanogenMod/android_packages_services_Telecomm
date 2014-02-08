@@ -80,8 +80,8 @@ public final class CallsManager {
      * Initializes the required Telecomm components.
      */
     private CallsManager() {
-        mSwitchboard = new Switchboard();
-        mInCallController = new InCallController();
+        mSwitchboard = new Switchboard(this);
+        mInCallController = new InCallController(this);
     }
 
     /**

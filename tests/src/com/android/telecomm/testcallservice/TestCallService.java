@@ -21,7 +21,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.Sets;
 
-import java.io.IOException;
 import java.util.Date;
 import java.util.Set;
 
@@ -44,6 +43,11 @@ public class TestCallService extends CallService {
     private static final String TAG = TestCallService.class.getSimpleName();
 
     /**
+     * The application context.
+     */
+    private final Context mContext;
+
+    /**
      * Set of call IDs for live (active, ringing, dialing) calls.
      * TODO(santoscordon): Reference CallState javadoc when available for the different call states.
      */
@@ -58,12 +62,6 @@ public class TestCallService extends CallService {
      * Used to play an audio tone during a call.
      */
     private MediaPlayer mMediaPlayer;
-
-    /**
-     * The application context.
-     */
-    private final Context mContext;
-
 
     /** Persists the specified parameters. */
     public TestCallService(Context context) {
