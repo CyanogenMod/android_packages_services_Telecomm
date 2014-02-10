@@ -31,6 +31,7 @@ import com.google.common.base.Strings;
  * check that the invocation is expected from that call service.
  * TODO(santoscordon): Move away from Runnable objects and into messages so that we create fewer
  * objects per IPC method call.
+ * TODO(santoscordon): Do we need Binder.clear/restoreCallingIdentity() in the service methods?
  */
 public final class CallServiceAdapter extends ICallServiceAdapter.Stub {
 

@@ -18,7 +18,6 @@ package com.android.telecomm;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import android.content.Context;
@@ -29,7 +28,6 @@ import android.telecomm.ICallServiceSelector;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 /**
@@ -113,7 +111,7 @@ final class Switchboard {
         Call call = new Call(handle, contactInfo);
         boolean bailout = false;
         if (isNullOrEmpty(mCallServices)) {
-            mCallServiceFinder.initiateLookup(context);
+            mCallServiceFinder.initiateLookup();
             bailout = true;
         }
         if (isNullOrEmpty(mSelectors)) {
