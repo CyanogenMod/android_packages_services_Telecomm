@@ -56,8 +56,8 @@ public final class InCallController {
 
     /**
      * Package name of the in-call app. Although in-call code in kept in its own namespace, it is
-     * ultimately compiled into the dialer apk, hence the difference in namespaces between this and
-     * {@link IN_CALL_SERVICE_CLASS_NAME}.
+     * ultimately compiled into the dialer APK, hence the difference in namespaces between this and
+     * {@link #IN_CALL_SERVICE_CLASS_NAME}.
      * TODO(santoscordon): Change this into config.xml resource entry.
      */
     private static final String IN_CALL_PACKAGE_NAME = "com.google.android.dialer";

@@ -16,13 +16,10 @@
 
 package com.android.telecomm;
 
-import android.os.RemoteException;
 import android.telecomm.ICallService;
 import android.telecomm.ICallServiceSelector;
 import android.util.Log;
 
-import com.google.common.base.Preconditions;
-import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
 
 import java.util.List;
@@ -54,8 +51,8 @@ final class OutgoingCallsManager {
     /**
      * Starts the process of placing a call by constructing an outgoing call processor and asking
      * it to place the call. Upon success, execution will continue (via {@link CallServiceAdapter})
-     * to {@link #handleSuccessfulCall}. Upon failure, execution will return to
-     * {@link #handleFailedCall}.
+     * to {@link #handleSuccessfulCallAttempt}. Upon failure, execution will return to
+     * {@link #handleFailedCallAttempt}.
      *
      * @param call The call to place.
      * @param callServices The set of call services which can potentially place the call.
