@@ -22,6 +22,7 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import com.android.telecomm.exceptions.RestrictedCallException;
+
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
@@ -102,7 +103,8 @@ public final class CallsManager {
         }
 
         // No objection to issue the call, proceed with trying to put it through.
-        mSwitchboard.placeOutgoingCall(handle, contactInfo, context);
+        Call call = new Call(handle, contactInfo);
+        mSwitchboard.placeOutgoingCall(call, context);
     }
 
     /**

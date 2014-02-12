@@ -60,10 +60,9 @@ public final class CallServiceAdapter extends ICallServiceAdapter.Stub {
     }
 
     /**
-     * TODO(santoscordon): Rename to handleIncomingCall.
      * {@inheritDoc}
      */
-    @Override public void newIncomingCall(CallInfo callInfo) {
+    @Override public void handleIncomingCall(CallInfo callInfo) {
         // TODO(santoscordon): fill in.
     }
 

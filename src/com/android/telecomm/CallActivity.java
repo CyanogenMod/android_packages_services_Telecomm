@@ -29,7 +29,6 @@ import com.android.telecomm.exceptions.RestrictedCallException;
 /**
  * Activity that handles system CALL actions and forwards them to {@link CallsManager}.
  * Handles all three CALL action types: CALL, CALL_PRIVILEGED, and CALL_EMERGENCY.
- * TODO(santoscordon): Connect with CallsManager.
  */
 public class CallActivity extends Activity {
 

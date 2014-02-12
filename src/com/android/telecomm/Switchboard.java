@@ -102,15 +102,12 @@ final class Switchboard {
     /**
      * Attempts to place an outgoing call to the specified handle.
      *
-     * @param handle The handle to dial.
-     * @param contactInfo Information about the entity being called.
+     * @param call The yet-to-be-connected outgoing-call object.
      * @param context The application context.
      */
-    void placeOutgoingCall(String handle, ContactInfo contactInfo, Context context) {
+    void placeOutgoingCall(Call call, Context context) {
         ThreadUtil.checkOnMainThread();
 
-        // TODO(gilad): Consider creating the call object even earlier, e.g. in CallsManager.
-        Call call = new Call(handle, contactInfo);
         boolean bailout = false;
         if (isNullOrEmpty(mCallServices)) {
             mCallServiceFinder.initiateLookup(context);
@@ -262,70 +259,4 @@ final class Switchboard {
     private boolean isNullOrEmpty(Collection collection) {
         return collection == null || collection.isEmpty();
     }
-
-    /**
-     * Places an outgoing call to the handle passed in. Given a list of {@link ICallServices},
-     * select one and place a call to the handle.
-     * TODO(santoscordon): How does the CallService selection process work?
-     * TODO(gilad): Wire this logic from CallServiceFinder.updateSwitchboard.
-     *
-     * @param handle The handle to dial.
-     * @param contactInfo Information about the entity being called.
-     * @param callServices The list of available {@link ICallService}s.
-     */
-//    private void placeOutgoingCallInternal(
-//            String handle,
-//            ContactInfo contactInfo,
-//            List<ICallService> callServices) throws CallServiceUnavailableException {
-//
-//        Log.i(TAG, "Placing and outgoing call.");
-//
-//        if (callServices.isEmpty()) {
-//            // No call services, bail out.
-//            // TODO(contacts-team): Add logging?
-//            // TODO(santoscordon): Does this actually go anywhere considering this method is now
-//            // asynchronous?
-//            throw new CallServiceUnavailableException("No CallService found.");
-//        }
-//
-//        List<ICallService> compatibleCallServices = Lists.newArrayList();
-//        for (ICallService service : callServices) {
-//            // TODO(santoscordon): This code needs to be updated to an asynchronous response
-//            // callback from isCompatibleWith().
-//            /* if (service.isCompatibleWith(handle)) {
-//                // NOTE(android-contacts): If we end up taking the liberty to issue
-//                // calls not using the explicit user input (in case one is provided)
-//                // and instead pull an alternative method of communication from the
-//                // specified user-info object, it may be desirable to give precedence
-//                // to services that can in fact respect the user's intent.
-//                compatibleCallServices.add(service);
-//            }
-//            */
-//        }
-//
-//        if (compatibleCallServices.isEmpty()) {
-//            // None of the available call services is suitable for making this call.
-//            // TODO(contacts-team): Same here re logging.
-//            throw new CallServiceUnavailableException("No compatible CallService found.");
-//        }
-//
-//        // NOTE(android-team): At this point we can also prompt the user for
-//        // preference, i.e. instead of the logic just below.
-//        if (compatibleCallServices.size() > 1) {
-//            compatibleCallServices = sort(compatibleCallServices);
-//        }
-//        for (ICallService service : compatibleCallServices) {
-//            try {
-//                service.call(handle);
-//                return;
-//            } catch (RemoteException e) {
-//                // TODO(santoscordon): Need some proxy for ICallService so that we don't have to
-//                // avoid RemoteExceptionHandling everywhere. Take a look at how InputMethodService
-//                // handles this.
-//            }
-//            // catch (OutgoingCallException ignored) {
-//            // TODO(santoscordon): Figure out how OutgoingCallException falls into this. Should
-//            // RemoteExceptions also be converted to OutgoingCallExceptions thrown by call()?
-//        }
-//    }
 }
