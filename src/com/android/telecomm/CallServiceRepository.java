@@ -25,6 +25,7 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 import android.os.RemoteException;
+import android.telecomm.CallServiceInfo;
 import android.telecomm.ICallService;
 import android.telecomm.ICallServiceLookupResponse;
 import android.telecomm.ICallServiceProvider;
@@ -40,14 +41,16 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Finds {@link ICallService} and {@link ICallServiceProvider} implementations on the device.
- * Uses binder APIs to find ICallServiceProviders and calls method on ICallServiceProvider to
- * find ICallService implementations.
+ * Uses package manager to find all implementations of {@link ICallServiceProvider} and uses them to
+ * get a list of bindable {@link ICallServices}. Ultimately returns a list of call services as
+ * {@link CallServiceWrapper}s. The resulting call services may or may not be bound at the end of the
+ * lookup.
  * TODO(santoscordon): Add performance timing to async calls.
+ * TODO(santoscordon): Need to unbind/remove unused call services stored in the cache.
  */
-final class CallServiceFinder {
+final class CallServiceRepository {
 
-    private static final String TAG = CallServiceFinder.class.getSimpleName();
+    private static final String TAG = CallServiceRepository.class.getSimpleName();
 
     /**
      * The longest period in milliseconds each lookup cycle is allowed to span over, see
@@ -66,43 +69,37 @@ final class CallServiceFinder {
     private boolean mIsLookupInProgress = false;
 
     /**
-     * The current lookup-cycle ID. Incremented upon initiateLookup calls.
-     * TODO(gilad): If at all useful, consider porting the cycle ID concept to switchboard and
-     * have it centralized/shared between the two finders.
+     * The current lookup-cycle ID, unique per invocation of {@link #initiateLookup}.
      */
     private int mLookupId = 0;
 
     /**
-     * The set of bound call-services. Only populated via initiateLookup scenarios. Entries should
-     * only be removed upon unbinding.
-     * TODO(gilad): Add the necessary logic to keep this set up to date.
-     */
-    private Set<ICallService> mCallServiceRegistry = Sets.newHashSet();
-
-    /**
-     * The set of bound call-service providers.  Only populated via initiateLookup scenarios.
-     * Providers should only be removed upon unbinding.
-     * TODO(santoscordon): This can be removed once this class starts using CallServiceWrapper
-     * since we'll be able to unbind the providers within registerProvider().
-     */
-    private Set<CallServiceProviderWrapper> mProviderRegistry = Sets.newHashSet();
-
-    /**
-     * Map of {@link CallServiceProviderWrapper}s keyed by their ComponentName. Used as a long-lived
-     * cache in order to simplify management of service-wrapper construction/destruction.
+     * Map of {@link CallServiceProviderWrapper}s keyed by their ComponentName. Used as a cache for
+     * call services. Entries are added to the cache as part of the lookup sequence. Every call
+     * service found will have an entry in the cache. The cache is cleaned up periodically to
+     * remove any call services (bound or unbound) which are no longer needed because they have no
+     * associated calls. After a cleanup, the only entries in the cache should be call services
+     * with existing calls. During the lookup, we will always use a cached version of a call service
+     * if one exists.
      */
     private Map<ComponentName, CallServiceProviderWrapper> mProviderCache = Maps.newHashMap();
 
     /**
-     * Stores the names of the providers to bind to in one lookup cycle.  The set size represents
-     * the number of call-service providers this finder expects to hear back from upon initiating
-     * call-service lookups, see initiateLookup. Whenever all providers respond before the lookup
-     * timeout occurs, the complete set of (available) call services is passed to the switchboard
-     * for further processing of outgoing calls etc.  When the timeout occurs before all responses
-     * are received, the partial (potentially empty) set gets passed (to the switchboard) instead.
-     * Entries are removed from this set as providers register.
+     * Map of {@link CallServiceWrapper}s keyed by their ComponentName. Used as a long-lived cache
+     * in order to simplify management of service-wrapper construction/destruction.
      */
-    private Set<ComponentName> mUnregisteredProviders;
+    private Map<ComponentName, CallServiceWrapper> mCallServiceCache = Maps.newHashMap();
+
+    /**
+     * Stores the names of the providers to bind to in one lookup cycle.  The set size represents
+     * the number of call-service providers this repository expects to hear back from upon
+     * initiating call-service lookups, see initiateLookup. Whenever all providers respond before
+     * the lookup timeout occurs, the complete set of (available) call services is passed to the
+     * switchboard for further processing of outgoing calls etc.  When the timeout occurs before all
+     * responses are received, the partial (potentially empty) set gets passed (to the switchboard)
+     * instead. Entries are removed from this set as providers are processed.
+     */
+    private Set<ComponentName> mOutstandingProviders;
 
     /**
      * Used to interrupt lookup cycles that didn't terminate naturally within the allowed
@@ -121,10 +118,10 @@ final class CallServiceFinder {
     /**
      * Persists the specified parameters.
      *
-     * @param switchboard The switchboard for this finder to work against.
+     * @param switchboard The switchboard.
      * @param outgoingCallsManager Manager in charge of placing outgoing calls.
      */
-    CallServiceFinder(Switchboard switchboard, OutgoingCallsManager outgoingCallsManager) {
+    CallServiceRepository(Switchboard switchboard, OutgoingCallsManager outgoingCallsManager) {
         mSwitchboard = switchboard;
         mOutgoingCallsManager = outgoingCallsManager;
     }
@@ -132,8 +129,10 @@ final class CallServiceFinder {
     /**
      * Initiates a lookup cycle for call-service providers. Must be called from the UI thread.
      * TODO(gilad): Expand this comment to describe the lookup flow in more detail.
+     *
+     * @param lookupId The switchboard-supplied lookup ID.
      */
-    void initiateLookup() {
+    void initiateLookup(int lookupId) {
         ThreadUtil.checkOnMainThread();
         if (mIsLookupInProgress) {
             // At most one active lookup is allowed at any given time, bail out.
@@ -147,26 +146,26 @@ final class CallServiceFinder {
             return;
         }
 
-        mLookupId++;
+        mLookupId = lookupId;
         mIsLookupInProgress = true;
-        mUnregisteredProviders = Sets.newHashSet();
+        mOutstandingProviders = Sets.newHashSet();
 
         for (ComponentName name : providerNames) {
             // Bind to each of the providers that were found. Some of the providers may already be
-            // bound, and in those cases the provider wrapper will still invoke registerProvider()
+            // bound, and in those cases the provider wrapper will still invoke processProvider()
             // allowing us to treat bound and unbound providers the same.
             getProvider(name).bind();
-            mUnregisteredProviders.add(name);
+            mOutstandingProviders.add(name);
         }
 
         int providerCount = providerNames.size();
-        int unregisteredProviderCount = mUnregisteredProviders.size();
+        int outstandingProviderCount = mOutstandingProviders.size();
 
         Log.i(TAG, "Found " + providerCount + " implementations of ICallServiceProvider, "
-                + unregisteredProviderCount + " of which are not currently registered.");
+                + outstandingProviderCount + " of which are not currently processed.");
 
-        if (unregisteredProviderCount == 0) {
-            // All known (provider) implementations are already registered, pass control
+        if (outstandingProviderCount == 0) {
+            // All known (provider) implementations are already processed, pass control
             // back to the switchboard.
             updateSwitchboard();
         } else {
@@ -202,26 +201,27 @@ final class CallServiceFinder {
 
     /**
      * Queries the supplied provider asynchronously for its CallServices and passes the list through
-     * to {@link #registerCallServices} which will relinquish control back to switchboard.
+     * to {@link #processCallServices} which will relinquish control back to switchboard.
      *
      * @param providerName The component name of the relevant provider.
-     * @param provider The provider object to register.
+     * @param provider The provider object to process.
      */
-    void registerProvider(
+    void processProvider(
             final ComponentName providerName, final CallServiceProviderWrapper provider) {
+        Preconditions.checkNotNull(providerName);
+        Preconditions.checkNotNull(provider);
 
         // Query the provider for {@link ICallService} implementations.
         provider.lookupCallServices(new ICallServiceLookupResponse.Stub() {
+            // TODO(santoscordon): Rename CallServiceInfo to CallServiceDescriptor and update
+            // this method name to setCallServiceDescriptors.
             @Override
-            public void setCallServices(final List<IBinder> binderList) {
+            public void setCallServices(final List<CallServiceInfo> callServiceInfos) {
                 // TODO(santoscordon): Do we need Binder.clear/restoreCallingIdentity()?
                 mHandler.post(new Runnable() {
                     @Override public void run() {
-                        Set<ICallService> callServices = Sets.newHashSet();
-                        for (IBinder binder : binderList) {
-                            callServices.add(ICallService.Stub.asInterface(binder));
-                        }
-                        registerCallServices(providerName, provider, callServices);
+                        processCallServices(
+                                providerName, provider, Sets.newHashSet(callServiceInfos));
                     }
                 });
             }
@@ -229,37 +229,44 @@ final class CallServiceFinder {
     }
 
     /**
-     * Registers the {@link CallService}s for the specified provider and performs the necessary
+     * Skips the processing of a provider. Called in cases where the provider was not found or
+     * not connected.
+     *
+     * @param providerName The component name of the relevant provider.
+     */
+    void abortProvider(ComponentName providerName) {
+        Preconditions.checkNotNull(providerName);
+        removeOutstandingProvider(providerName);
+    }
+
+    /**
+     * Processes the {@link CallServiceInfo}s for the specified provider and performs the necessary
      * bookkeeping to potentially return control to the switchboard before the timeout for the
      * current lookup cycle.
      *
      * @param providerName The component name of the relevant provider.
      * @param provider The provider associated with callServices.
-     * @param callServices The {@link CallService}s to register.
+     * @param callServiceInfos The set of call service infos to process.
      */
-    private void registerCallServices(
+    private void processCallServices(
             ComponentName providerName,
             CallServiceProviderWrapper provider,
-            Set<ICallService> callServices) {
+            Set<CallServiceInfo> callServiceInfos) {
+
+        Preconditions.checkNotNull(provider);
+        Preconditions.checkNotNull(callServiceInfos);
         ThreadUtil.checkOnMainThread();
 
-        if (mUnregisteredProviders.remove(providerName)) {
-            mProviderRegistry.add(provider);
+        // We only need the provider for retrieving the call-service info set, so unbind here.
+        provider.unbind();
 
-            // Add all the call services from this provider to the call-service registry.
-            for (ICallService callService : callServices) {
-                try {
-                    CallServiceAdapter adapter = new CallServiceAdapter(mOutgoingCallsManager);
-                    callService.setCallServiceAdapter(adapter);
-                    mCallServiceRegistry.add(callService);
-                } catch (RemoteException e) {
-                    Log.e(TAG, "Failed to set call-service adapter.");
-                }
+        if (mOutstandingProviders.contains(providerName)) {
+            // Add all the call services from this provider to the call-service cache.
+            for (CallServiceInfo info : callServiceInfos) {
+                getCallService(info);
             }
 
-            if (mUnregisteredProviders.size() < 1) {
-                terminateLookup();  // No other providers to wait for.
-            }
+            removeOutstandingProvider(providerName);
         } else {
             Log.i(TAG, "Unexpected list of call services in lookup " + mLookupId + " from " +
                     providerName);
@@ -267,13 +274,18 @@ final class CallServiceFinder {
     }
 
     /**
-     * Unregisters the specified provider.
+     * Removes an entry from the set of outstanding providers. When the final outstanding
+     * provider is removed, terminates the lookup.
      *
      * @param providerName The component name of the relevant provider.
      */
-    void unregisterProvider(ComponentName providerName) {
+    private void removeOutstandingProvider(ComponentName providerName) {
         ThreadUtil.checkOnMainThread();
-        mProviderRegistry.remove(providerName);
+
+        mOutstandingProviders.remove(providerName);
+        if (mOutstandingProviders.size() < 1) {
+            terminateLookup();  // No other providers to wait for.
+        }
     }
 
     /**
@@ -281,26 +293,27 @@ final class CallServiceFinder {
      */
     private void terminateLookup() {
         mHandler.removeCallbacks(mLookupTerminator);
-        mUnregisteredProviders.clear();
+        mOutstandingProviders.clear();
 
         updateSwitchboard();
         mIsLookupInProgress = false;
     }
 
     /**
-     * Updates the switchboard passing the relevant call services (as opposed
-     * to call-service providers).
+     * Updates the switchboard with the call services from the latest lookup.
      */
     private void updateSwitchboard() {
         ThreadUtil.checkOnMainThread();
-        mSwitchboard.setCallServices(mCallServiceRegistry);
+
+        Set<CallServiceWrapper> callServices = Sets.newHashSet(mCallServiceCache.values());
+        mSwitchboard.setCallServices(callServices);
     }
 
     /**
      * Returns the call-service provider wrapper for the specified componentName. Creates a new one
      * if none is found in the cache.
      *
-     * @param ComponentName The component name of the provider.
+     * @param componentName The component name of the provider.
      */
     private CallServiceProviderWrapper getProvider(ComponentName componentName) {
         Preconditions.checkNotNull(componentName);
@@ -312,5 +325,30 @@ final class CallServiceFinder {
         }
 
         return provider;
+    }
+
+    /**
+     * Creates and returns the call service for the specified call-service info object. Inserts
+     * newly created entries into the cache, see {@link #mCallServiceCache}, or if a cached
+     * version already exists, returns that instead. All newly created instances will not yet
+     * be bound, however cached versions may or may not be bound.
+     *
+     * @param info The call service descriptor.
+     * @return The call service.
+     */
+    private CallServiceWrapper getCallService(CallServiceInfo info) {
+        Preconditions.checkNotNull(info);
+
+        // TODO(santoscordon): Rename getServiceComponent to getComponentName.
+        ComponentName componentName = info.getServiceComponent();
+
+        CallServiceWrapper callService = mCallServiceCache.get(componentName);
+        if (callService == null) {
+            CallServiceAdapter adapter = new CallServiceAdapter(mOutgoingCallsManager);
+            callService = new CallServiceWrapper(info, adapter);
+            mCallServiceCache.put(componentName, callService);
+        }
+
+        return callService;
     }
 }

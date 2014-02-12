@@ -19,7 +19,6 @@ package com.android.telecomm;
 import android.os.RemoteException;
 import android.telecomm.CallInfo;
 import android.telecomm.CallState;
-import android.telecomm.ICallService;
 import android.util.Log;
 
 import java.util.Date;
@@ -60,7 +59,7 @@ final class Call {
      * The call service which is currently connecting this call, null as long as the call is not
      * connected.
      */
-    private ICallService mCallService;
+    private CallServiceWrapper mCallService;
 
     /**
      * Read-only and parcelable version of this call.
@@ -117,11 +116,11 @@ final class Call {
         return new Date().getTime() - mCreationTime.getTime();
     }
 
-    ICallService getCallService() {
+    CallServiceWrapper getCallService() {
         return mCallService;
     }
 
-    void setCallService(ICallService callService) {
+    void setCallService(CallServiceWrapper callService) {
         mCallService = callService;
     }
 
@@ -132,19 +131,18 @@ final class Call {
         setCallService(null);
     }
 
-    /*
+    /**
      * Attempts to disconnect the call through the call service.
      */
     void disconnect() {
         if (mCallService == null) {
             Log.w(TAG, "disconnect() request on a call without a call service.");
         } else {
-            try {
-                Log.i(TAG, "Send disconnect to call service for call with id " + mId);
-                mCallService.disconnect(mId);
-            } catch (RemoteException e) {
-                Log.e(TAG, "Disconnect attempt failed.", e);
-            }
+            Log.i(TAG, "Send disconnect to call service for call with id " + mId);
+            // The call isn't officially disconnected until the call service confirms that the call
+            // was actually disconnected. Only then is the association between call and call service
+            // severed, see {@link CallsManager#markCallAsDisconnected}.
+            mCallService.disconnect(mId);
         }
     }
 

@@ -45,28 +45,30 @@ public class CallServiceProviderWrapper extends ServiceBinder<ICallServiceProvid
     private ICallServiceProvider mServiceInterface;
 
     /**
-     * The class to notify when the binding succeeds or fails.
+     * The class to notify when binding succeeds or fails.
      */
-    private final CallServiceFinder mFinder;
+    private final CallServiceRepository mRepository;
 
     /**
      * Creates a call-service provider for the specified component.
+     *
+     * @param componentName The component name of the service to bind to.
+     * @param repository The call-service repository.
      */
-    public CallServiceProviderWrapper(ComponentName componentName, CallServiceFinder finder) {
+    public CallServiceProviderWrapper(ComponentName componentName, CallServiceRepository repository) {
         super(CALL_SERVICE_PROVIDER_ACTION, componentName);
-        mFinder = finder;
+        mRepository = repository;
     }
 
     /** {@inheritDoc} */
     @Override public void handleSuccessfulConnection(IBinder binder) {
         mServiceInterface = ICallServiceProvider.Stub.asInterface(binder);
-        mFinder.registerProvider(getComponentName(), this);
+        mRepository.processProvider(getComponentName(), this);
     }
 
     /** {@inheritDoc} */
     @Override public void handleFailedConnection() {
-        mFinder.unregisterProvider(getComponentName());
-        // TODO(santoscordon): Notify CallServiceFinder.
+        mRepository.abortProvider(getComponentName());
     }
 
     /** {@inheritDoc} */
@@ -75,7 +77,9 @@ public class CallServiceProviderWrapper extends ServiceBinder<ICallServiceProvid
         // TODO(santoscordon): fill in.
     }
 
-    /** See {@link ICallServiceProvider#lookupCallServices}. */
+    /**
+     * See {@link ICallServiceProvider#lookupCallServices}.
+     */
     public void lookupCallServices(ICallServiceLookupResponse response) {
         try {
             if (mServiceInterface == null) {

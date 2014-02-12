@@ -104,7 +104,7 @@ public final class CallsManager {
 
         // No objection to issue the call, proceed with trying to put it through.
         Call call = new Call(handle, contactInfo);
-        mSwitchboard.placeOutgoingCall(call, context);
+        mSwitchboard.placeOutgoingCall(call);
     }
 
     /**
@@ -197,7 +197,11 @@ public final class CallsManager {
      */
     void markCallAsDisconnected(String callId) {
         setCallState(callId, CallState.DISCONNECTED);
-        mCalls.remove(callId);
+
+        Call call = mCalls.remove(callId);
+        // At this point the call service has confirmed that the call is disconnected to it is
+        // safe to disassociate the call from its call service.
+        call.clearCallService();
 
         // Notify the in-call UI
         mInCallController.markCallAsDisconnected(callId);

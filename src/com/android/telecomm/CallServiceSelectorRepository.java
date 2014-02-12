@@ -41,9 +41,9 @@ import java.util.Set;
  * asynchronously bind to them.  Each lookup cycle is time-boxed, hence selectors too slow
  * to bind are effectively omitted from the set that is passed back to {@link Switchboard}.
  */
-final class CallServiceSelectorFinder {
+final class CallServiceSelectorRepository {
 
-    private static final String TAG = CallServiceSelectorFinder.class.getSimpleName();
+    private static final String TAG = CallServiceSelectorRepository.class.getSimpleName();
 
     /**
      * The longest period in milliseconds each lookup cycle is allowed to span over, see
@@ -74,17 +74,18 @@ final class CallServiceSelectorFinder {
 
     private final Switchboard mSwitchboard;
 
+    /** The application context. */
+    private final Context mContext;
+
     /**
      * Determines whether or not a lookup cycle is already running.
      */
     private boolean mIsLookupInProgress = false;
 
     /**
-     * Used to generate unique lookup-cycle identifiers. Incremented upon initiateLookup calls.
-     * TODO(gilad): If at all useful, consider porting the cycle ID concept to switchboard and
-     * have it centralized/shared between the two finders.
+     * The current lookup-cycle ID, unique per invocation of {@link #initiateLookup}.
      */
-    private int mNextLookupId = 0;
+    private int mLookupId = 0;
 
     /**
      * The set of bound call-service selectors.  Only populated via initiateLookup scenarios.
@@ -94,54 +95,55 @@ final class CallServiceSelectorFinder {
 
     /**
      * Stores the names of the selectors to bind to in one lookup cycle.  The set size represents
-     * the number of call-service selectors this finder expects to hear back from upon initiating
-     * lookups, see initiateLookup. Whenever all selectors respond before the timeout occurs, the
-     * complete set of available selectors is passed to the switchboard for further processing of
-     * outgoing calls etc.  When the timeout occurs before all responds are received, the partial
-     * (potentially empty) set gets passed to the switchboard instead. Note that cached selectors
-     * do not require finding and hence are excluded from this set.  Also note that selectors are
-     * removed from this set as they register.
+     * the number of call-service selectors this repositories expects to hear back from upon
+     * initiating lookups, see initiateLookup. Whenever all selectors respond before the timeout
+     * occurs, the complete set of available selectors is passed to the switchboard for further
+     * processing of outgoing calls etc.  When the timeout occurs before all responds are received,
+     * the partial (potentially empty) set gets passed to the switchboard instead. Note that cached
+     * selectors do not require finding and hence are excluded from this set.  Also note that
+     * selectors are removed from this set as they register.
      */
     private Set<ComponentName> mUnregisteredSelectors;
 
     /**
-     * Persists the specified parameters.
+     * Persists the specified parameters and initializes the new instance.
      *
      * @param switchboard The switchboard for this finer to work against.
      */
-    CallServiceSelectorFinder(Switchboard switchboard) {
+    CallServiceSelectorRepository(Switchboard switchboard) {
         mSwitchboard = switchboard;
+        mContext = TelecommApp.getInstance();
     }
 
     /**
      * Initiates a lookup cycle for call-service selectors. Must be called from the UI thread.
      *
-     * @param context The relevant application context.
+     * @param lookupId The switchboard-supplied lookup ID.
      */
-    void initiateLookup(Context context) {
+    void initiateLookup(int lookupId) {
         ThreadUtil.checkOnMainThread();
         if (mIsLookupInProgress) {
             // At most one active lookup is allowed at any given time, bail out.
             return;
         }
 
-        List<ComponentName> selectorNames = getSelectorNames(context);
+        List<ComponentName> selectorNames = getSelectorNames();
         if (selectorNames.isEmpty()) {
             Log.i(TAG, "No ICallServiceSelector implementations found.");
             updateSwitchboard();
             return;
         }
 
+        mLookupId = lookupId;
         mIsLookupInProgress = true;
         mUnregisteredSelectors = Sets.newHashSet();
 
-        int lookupId = mNextLookupId++;
         for (ComponentName name : selectorNames) {
             if (!mSelectorRegistry.contains(name)) {
                 // The selector is either not yet registered or has been unregistered
                 // due to unbinding etc.
                 mUnregisteredSelectors.add(name);
-                bindSelector(name, lookupId, context);
+                bindSelector(name, lookupId);
             }
         }
 
@@ -163,17 +165,14 @@ final class CallServiceSelectorFinder {
     }
 
     /**
-     * Returns the all-inclusive list of call-service selector names.
-     *
-     * @param context The relevant/application context to query against.
      * @return The list containing the (component) names of all known ICallServiceSelector
      *     implementations or the empty list upon no available selectors.
      */
-    private List<ComponentName> getSelectorNames(Context context) {
+    private List<ComponentName> getSelectorNames() {
         // The list of selector names to return to the caller, may be populated below.
         List<ComponentName> selectorNames = Lists.newArrayList();
 
-        PackageManager packageManager = context.getPackageManager();
+        PackageManager packageManager = mContext.getPackageManager();
         Intent intent = new Intent(CALL_SERVICE_SELECTOR_CLASS_NAME);
         for (ResolveInfo entry : packageManager.queryIntentServices(intent, 0)) {
             ServiceInfo serviceInfo = entry.serviceInfo;
@@ -193,13 +192,11 @@ final class CallServiceSelectorFinder {
      *
      * @param selectorName The component name of the relevant selector.
      * @param lookupId The lookup-cycle ID.
-     * @param context The relevant application context.
      */
     private void bindSelector(
-            final ComponentName selectorName, final int lookupId, Context context) {
+            final ComponentName selectorName, final int lookupId) {
 
         Preconditions.checkNotNull(selectorName);
-        Preconditions.checkNotNull(context);
 
         Intent serviceIntent =
                 new Intent(CALL_SERVICE_SELECTOR_CLASS_NAME).setComponent(selectorName);
@@ -219,7 +216,7 @@ final class CallServiceSelectorFinder {
             }
         };
 
-        if (!context.bindService(serviceIntent, connection, Context.BIND_AUTO_CREATE)) {
+        if (!mContext.bindService(serviceIntent, connection, Context.BIND_AUTO_CREATE)) {
             // TODO(gilad): Handle error.
         }
     }

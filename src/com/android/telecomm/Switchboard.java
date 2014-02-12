@@ -23,7 +23,6 @@ import com.google.common.collect.Sets;
 import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
-import android.telecomm.ICallService;
 import android.telecomm.ICallServiceSelector;
 
 import java.util.Collection;
@@ -31,9 +30,9 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Switchboard is responsible for (1) selecting the {@link ICallService} through which to make
- * outgoing calls and (2) switching active calls between transports (each ICallService is
- * considered a different transport type).
+ * Switchboard is responsible for (1) gathering the {@link CallServiceWrapper}s and
+ * {@link ICallServiceSelector}s through which to place outgoing calls, (2) starting outgoing calls
+ * (via {@link OutgoingCallsManager} and (3) switching active calls between call services.
  */
 final class Switchboard {
 
@@ -48,9 +47,9 @@ final class Switchboard {
     /** Used to place outgoing calls. */
     private final OutgoingCallsManager mOutgoingCallsManager;
 
-    private CallServiceFinder mCallServiceFinder;
+    private final CallServiceRepository mCallServiceRepository;
 
-    private CallServiceSelectorFinder mSelectorFinder;
+    private final CallServiceSelectorRepository mSelectorRepository;
 
     /** Used to schedule tasks on the main (UI) thread. */
     private final Handler mHandler = new Handler(Looper.getMainLooper());
@@ -75,17 +74,25 @@ final class Switchboard {
     private final Set<Call> mPendingOutgoingCalls = Sets.newLinkedHashSet();
 
     /**
-     * The set of currently available call-service implementations, see {@link CallServiceFinder}.
-     * TODO(gilad): Null out once the active-call count goes to zero.
+     * The set of currently available call service implementations, see
+     * {@link CallServiceRepository}. Populated after a lookup for call services as part of
+     * {@link #placeCall}. It is cleared periodically when there are no more new or pending outgoing
+     * calls.
      */
-    private Set<ICallService> mCallServices;
+    private Set<CallServiceWrapper> mCallServices;
 
     /**
      * The set of currently available call-service-selector implementations,
-     * see {@link CallServiceSelectorFinder}.
+     * see {@link CallServiceSelectorRepository}.
      * TODO(gilad): Null out once the active-call count goes to zero.
      */
     private Set<ICallServiceSelector> mSelectors;
+
+    /**
+     * The current lookup-cycle ID used with the repositories. Incremented with each invocation
+     * of {@link #placeCall} and passed to the repositories via initiateLookup().
+     */
+    private int mLookupId = 0;
 
     /**
      * Persists the specified parameters and initializes Switchboard.
@@ -93,48 +100,37 @@ final class Switchboard {
     Switchboard(CallsManager callsManager) {
         mCallsManager = callsManager;
         mOutgoingCallsManager = new OutgoingCallsManager(this);
-        mCallServiceFinder = new CallServiceFinder(this, mOutgoingCallsManager);
-        mSelectorFinder = new CallServiceSelectorFinder(this);
+        mCallServiceRepository = new CallServiceRepository(this, mOutgoingCallsManager);
+        mSelectorRepository = new CallServiceSelectorRepository(this);
     }
 
     /**
-     * Attempts to place an outgoing call to the specified handle.
+     * Starts the process of placing an outgoing call by searching for available call services
+     * through which the call can be placed. After a lookup for those services completes, execution
+     * returns to {@link #setCallServices} where the process of placing the call continues.
      *
      * @param call The yet-to-be-connected outgoing-call object.
-     * @param context The application context.
      */
-    void placeOutgoingCall(Call call, Context context) {
+    void placeOutgoingCall(Call call) {
         ThreadUtil.checkOnMainThread();
 
-        boolean bailout = false;
-        if (isNullOrEmpty(mCallServices)) {
-            mCallServiceFinder.initiateLookup();
-            bailout = true;
-        }
-        if (isNullOrEmpty(mSelectors)) {
-            mSelectorFinder.initiateLookup(context);
-            bailout = true;
-        }
+        mLookupId++;
 
-        if (bailout) {
-            // Unable to process the call without either call service, selectors, or both.
-            // Store the call for deferred processing and bail out.
-            mNewOutgoingCalls.add(call);
-            return;
-        }
-
-        processNewOutgoingCall(call);
+        // We initialize a lookup every time because between calls the set of available call
+        // services can change between calls.
+        mCallServiceRepository.initiateLookup(mLookupId);
+        mSelectorRepository.initiateLookup(mLookupId);
     }
 
     /**
      * Persists the specified set of call services and attempts to place any pending outgoing
-     * calls.  Intended to be invoked by {@link CallServiceFinder} exclusively.
+     * calls.  Intended to be invoked by {@link CallServiceRepository} exclusively.
      *
      * @param callServices The potentially-partial set of call services.  Partial since the lookup
      *     process is time-boxed, such that some providers/call-services may be slow to respond and
      *     hence effectively omitted from the specified list.
      */
-    void setCallServices(Set<ICallService> callServices) {
+    void setCallServices(Set<CallServiceWrapper> callServices) {
         ThreadUtil.checkOnMainThread();
 
         mCallServices = callServices;
@@ -143,13 +139,15 @@ final class Switchboard {
 
     /**
      * Persists the specified list of selectors and attempts to connect any pending outgoing
-     * calls.  Intended to be invoked by {@link CallServiceSelectorFinder} exclusively.
+     * calls.  Intended to be invoked by {@link CallServiceSelectorRepository} exclusively.
      *
      * @param selectors The potentially-partial set of selectors.  Partial since the lookup
      *     procedure is time-boxed such that some selectors may be slow to respond and hence
      *     effectively omitted from the specified set.
      */
     void setSelectors(Set<ICallServiceSelector> selectors) {
+        // TODO(santoscordon): This should take in CallServiceSelectorWrapper instead of the direct
+        // ICallServiceSelector implementation. Copy what we have for CallServiceWrapper.
         ThreadUtil.checkOnMainThread();
 
         // TODO(gilad): Add logic to include the built-in selectors (e.g. for dealing with
@@ -207,6 +205,8 @@ final class Switchboard {
      */
     private void tick() {
         // TODO(gilad): More here.
+        // TODO(santoscordon): Clear mCallServices if there exist no more new or pending outgoing
+        // calls.
     }
 
     /**
@@ -235,7 +235,6 @@ final class Switchboard {
      * @param call The call to place.
      */
     private void processNewOutgoingCall(Call call) {
-
         Preconditions.checkNotNull(mCallServices);
         Preconditions.checkNotNull(mSelectors);
 

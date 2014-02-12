@@ -20,6 +20,7 @@ import android.content.ComponentName;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.telecomm.CallInfo;
+import android.telecomm.CallServiceInfo;
 import android.telecomm.ICallService;
 import android.telecomm.ICallServiceAdapter;
 import android.util.Log;
@@ -32,10 +33,6 @@ import android.util.Log;
  * TODO(santoscordon): Look into combining with android.telecomm.CallService.
  */
 public class CallServiceWrapper extends ServiceBinder<ICallService> {
-    private static final String TAG = CallServiceWrapper.class.getSimpleName();
-
-    /** The actual service implementation. */
-    private ICallService mServiceInterface;
 
     /**
      * The service action used to bind to ICallService implementations.
@@ -43,28 +40,54 @@ public class CallServiceWrapper extends ServiceBinder<ICallService> {
      */
     static final String CALL_SERVICE_ACTION = ICallService.class.getName();
 
+    private static final String TAG = CallServiceWrapper.class.getSimpleName();
+
+    /** The descriptor of this call service as supplied by the call-service provider. */
+    private final CallServiceInfo mCallServiceInfo;
+
+    /**
+     * The adapter used by the underlying call-service implementation to communicate with Telecomm.
+     */
+    private final CallServiceAdapter mAdapter;
+
+    /** The actual service implementation. */
+    private ICallService mServiceInterface;
+
     /**
      * Creates a call-service provider for the specified component.
+     *
+     * @param info The call-service descriptor from {@link ICallServiceProvider#lookupCallServices}.
+     * @param adapter The call-service adapter.
      */
-    public CallServiceWrapper(ComponentName componentName) {
-        super(CALL_SERVICE_ACTION, componentName);
+    public CallServiceWrapper(CallServiceInfo info, CallServiceAdapter adapter) {
+        super(CALL_SERVICE_ACTION, info.getServiceComponent());
+        mCallServiceInfo = info;
+        mAdapter = adapter;
     }
 
-    /** {@inheritDoc} */
+    /**
+     * Initializes the underlying call-service implementation upon successful binding.
+     *
+     * {@inheritDoc}
+     */
     @Override public void handleSuccessfulConnection(IBinder binder) {
         mServiceInterface = ICallService.Stub.asInterface(binder);
-        // TODO(santoscordon): Notify CallServiceFinder.
+        setCallServiceAdapter(mAdapter);
     }
 
     /** {@inheritDoc} */
     @Override public void handleFailedConnection() {
-        // TODO(santoscordon): Notify CallServiceFinder.
+        // TODO(santoscordon): fill in
     }
 
     /** {@inheritDoc} */
     @Override public void handleServiceDisconnected() {
         mServiceInterface = null;
         // TODO(santoscordon): fill in.
+    }
+
+    public CallServiceInfo getInfo() {
+        return mCallServiceInfo;
     }
 
     /** See {@link ICallService#setCallServiceAdapter}. */
