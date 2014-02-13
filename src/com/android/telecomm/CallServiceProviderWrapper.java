@@ -55,26 +55,16 @@ public class CallServiceProviderWrapper extends ServiceBinder<ICallServiceProvid
      * @param componentName The component name of the service to bind to.
      * @param repository The call-service repository.
      */
-    public CallServiceProviderWrapper(ComponentName componentName, CallServiceRepository repository) {
+    public CallServiceProviderWrapper(
+            ComponentName componentName, CallServiceRepository repository) {
+
         super(CALL_SERVICE_PROVIDER_ACTION, componentName);
         mRepository = repository;
     }
 
     /** {@inheritDoc} */
-    @Override public void handleSuccessfulConnection(IBinder binder) {
+    @Override protected void setServiceInterface(IBinder binder) {
         mServiceInterface = ICallServiceProvider.Stub.asInterface(binder);
-        mRepository.processProvider(getComponentName(), this);
-    }
-
-    /** {@inheritDoc} */
-    @Override public void handleFailedConnection() {
-        mRepository.abortProvider(getComponentName());
-    }
-
-    /** {@inheritDoc} */
-    @Override public void handleServiceDisconnected() {
-        mServiceInterface = null;
-        // TODO(santoscordon): fill in.
     }
 
     /**

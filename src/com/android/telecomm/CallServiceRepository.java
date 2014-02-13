@@ -31,6 +31,7 @@ import android.telecomm.ICallServiceLookupResponse;
 import android.telecomm.ICallServiceProvider;
 import android.util.Log;
 
+import com.android.telecomm.ServiceBinder.BindCallback;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -151,11 +152,8 @@ final class CallServiceRepository {
         mOutstandingProviders = Sets.newHashSet();
 
         for (ComponentName name : providerNames) {
-            // Bind to each of the providers that were found. Some of the providers may already be
-            // bound, and in those cases the provider wrapper will still invoke processProvider()
-            // allowing us to treat bound and unbound providers the same.
-            getProvider(name).bind();
             mOutstandingProviders.add(name);
+            bindProvider(name);
         }
 
         int providerCount = providerNames.size();
@@ -173,6 +171,29 @@ final class CallServiceRepository {
             mHandler.removeCallbacks(mLookupTerminator);
             mHandler.postDelayed(mLookupTerminator, LOOKUP_TIMEOUT_MS);
         }
+    }
+
+    /**
+     * Attempts to bind to the specified provider before continuing to {@link #processProvider}.
+     *
+     * @param componentName The component name of the relevant provider.
+     */
+    private void bindProvider(final ComponentName componentName) {
+        final CallServiceProviderWrapper provider = getProvider(componentName);
+
+        BindCallback callback = new BindCallback() {
+            @Override public void onSuccess() {
+                processProvider(componentName, provider);
+            }
+            @Override public void onFailure() {
+                abortProvider(componentName);
+            }
+        };
+
+        // Some of the providers may already be bound, and in those cases the provider wrapper will
+        // still invoke BindCallback.onSuccess() allowing us to treat bound and unbound providers
+        // the same way.
+        provider.bind(callback);
     }
 
     /**
@@ -206,7 +227,7 @@ final class CallServiceRepository {
      * @param providerName The component name of the relevant provider.
      * @param provider The provider object to process.
      */
-    void processProvider(
+    private void processProvider(
             final ComponentName providerName, final CallServiceProviderWrapper provider) {
         Preconditions.checkNotNull(providerName);
         Preconditions.checkNotNull(provider);
@@ -234,7 +255,7 @@ final class CallServiceRepository {
      *
      * @param providerName The component name of the relevant provider.
      */
-    void abortProvider(ComponentName providerName) {
+    private void abortProvider(ComponentName providerName) {
         Preconditions.checkNotNull(providerName);
         removeOutstandingProvider(providerName);
     }

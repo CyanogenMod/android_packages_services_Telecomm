@@ -25,6 +25,9 @@ import android.os.IInterface;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import com.google.common.collect.Sets;
+
+import java.util.Set;
 
 /**
  * Abstract class to perform the work of binding and unbinding to the specified service interface.
@@ -32,6 +35,14 @@ import com.google.common.base.Strings;
  * methods when the class is bound, unbound, or upon failure.
  */
 abstract class ServiceBinder<ServiceInterface extends IInterface> {
+
+    /**
+     * Callback to notify after a binding succeeds or fails.
+     */
+    interface BindCallback {
+        public void onSuccess();
+        public void onFailure();
+    }
 
     private final class ServiceBinderConnection implements ServiceConnection {
         @Override
@@ -42,6 +53,7 @@ abstract class ServiceBinder<ServiceInterface extends IInterface> {
             if (mIsBindingAborted) {
                 clearAbort();
                 mContext.unbindService(this);
+                handleFailedConnection();
                 return;
             }
 
@@ -67,6 +79,9 @@ abstract class ServiceBinder<ServiceInterface extends IInterface> {
 
     /** The component name of the service to bind to. */
     private final ComponentName mComponentName;
+
+    /** The set of callbacks waiting for notification of the binding's success or failure. */
+    private final Set<BindCallback> mCallbacks = Sets.newHashSet();
 
     /** Used to bind and unbind from the service. */
     private ServiceConnection mServiceConnection;
@@ -98,15 +113,24 @@ abstract class ServiceBinder<ServiceInterface extends IInterface> {
     /**
      * Performs an asynchronous bind to the service if not already bound.
      *
+     * @param callback The callback to notify of the binding's success or failure.
      * @return The result of {#link Context#bindService} or true if already bound.
      */
-    final boolean bind() {
+    final boolean bind(BindCallback callback) {
         ThreadUtil.checkOnMainThread();
 
         // Reset any abort request if we're asked to bind again.
         clearAbort();
 
+        // If we are already waiting on a binding request, simply append to the list of waiting
+        // callbacks.
+        if (!mCallbacks.isEmpty()) {
+            mCallbacks.add(callback);
+            return true;
+        }
+
         if (mServiceConnection == null) {
+            mCallbacks.add(callback);
             Intent serviceIntent = new Intent(mServiceAction).setComponent(mComponentName);
             ServiceConnection connection = new ServiceBinderConnection();
 
@@ -143,23 +167,46 @@ abstract class ServiceBinder<ServiceInterface extends IInterface> {
     }
 
     /**
-     * Handles a successful attempt to bind to service. See {@link Context#bindService}.
+     * Notifies all the outstanding callbacks that the service is successfully bound. The list of
+     * outstanding callbacks is cleared afterwards.
      *
-     * @param service The actual bound service implementation.
+     * @param binder The actual bound service implementation.
      */
-    protected abstract void handleSuccessfulConnection(IBinder binder);
+    private void handleSuccessfulConnection(IBinder binder) {
+        setServiceInterface(binder);
+
+        for (BindCallback callback : mCallbacks) {
+            callback.onSuccess();
+        }
+        mCallbacks.clear();
+    }
 
     /**
-     * Handles a failed attempt to bind to service. See {@link Context#bindService}.
+     * Notifies all the outstanding callbacks that the service failed to bind. The list of
+     * outstanding callbacks is cleared afterwards.
      */
-    protected abstract void handleFailedConnection();
+    private void handleFailedConnection() {
+        for (BindCallback callback : mCallbacks) {
+            callback.onFailure();
+        }
+        mCallbacks.clear();
+    }
 
     /**
      * Handles a service disconnection.
      */
-    protected abstract void handleServiceDisconnected();
+    private void handleServiceDisconnected() {
+        setServiceInterface(null);
+    }
 
     private void clearAbort() {
         mIsBindingAborted = false;
     }
+
+    /**
+     * Sets the service interface after the service is bound or unbound.
+     *
+     * @param binder The actual bound service implementation.
+     */
+    protected abstract void setServiceInterface(IBinder binder);
 }

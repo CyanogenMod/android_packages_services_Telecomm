@@ -65,27 +65,6 @@ public class CallServiceWrapper extends ServiceBinder<ICallService> {
         mAdapter = adapter;
     }
 
-    /**
-     * Initializes the underlying call-service implementation upon successful binding.
-     *
-     * {@inheritDoc}
-     */
-    @Override public void handleSuccessfulConnection(IBinder binder) {
-        mServiceInterface = ICallService.Stub.asInterface(binder);
-        setCallServiceAdapter(mAdapter);
-    }
-
-    /** {@inheritDoc} */
-    @Override public void handleFailedConnection() {
-        // TODO(santoscordon): fill in
-    }
-
-    /** {@inheritDoc} */
-    @Override public void handleServiceDisconnected() {
-        mServiceInterface = null;
-        // TODO(santoscordon): fill in.
-    }
-
     public CallServiceInfo getInfo() {
         return mCallServiceInfo;
     }
@@ -140,5 +119,11 @@ public class CallServiceWrapper extends ServiceBinder<ICallService> {
         } catch (RemoteException e) {
             Log.e(TAG, "Failed to disconnect call " + callId + ".", e);
         }
+    }
+
+    /** {@inheritDoc} */
+    @Override protected void setServiceInterface(IBinder binder) {
+        mServiceInterface = ICallService.Stub.asInterface(binder);
+        setCallServiceAdapter(mAdapter);
     }
 }
