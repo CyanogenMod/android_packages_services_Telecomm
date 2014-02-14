@@ -21,9 +21,16 @@
 
         <!-- Miscellaneous telecomm app-related test activities. -->
 
+        <!-- TODO(santoscordon): STOPSHIP Services in this manifest need permission protection. -->
         <service android:name="com.android.telecomm.testcallservice.TestCallServiceProvider">
             <intent-filter>
                 <action android:name="android.telecomm.ICallServiceProvider" />
+            </intent-filter>
+        </service>
+
+        <service android:name="com.android.telecomm.testcallservice.TestCallService">
+            <intent-filter>
+                <action android:name="android.telecomm.ICallService" />
             </intent-filter>
         </service>
 
