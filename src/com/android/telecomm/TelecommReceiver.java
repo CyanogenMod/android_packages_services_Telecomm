@@ -19,8 +19,11 @@ package com.android.telecomm;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.telecomm.CallServiceInfo;
 import android.text.TextUtils;
 import android.util.Log;
+
+import com.google.common.base.Strings;
 
 /**
  * Receiver for public intents relating to Telecomm.
@@ -30,27 +33,30 @@ public class TelecommReceiver extends BroadcastReceiver {
     private static final String TAG = TelecommReceiver.class.getSimpleName();
 
     /**
-     * Action used as a request for CallsManager to connect with the CallService described in the
-     * extras of this intent.
-     * Extras used: {@link #EXTRA_PACKAGE_NAME}, {@link #EXTRA_CALL_SERVICE_ID}
-     * TODO(santoscordon): As this gets finalized, it should eventually move to a public location.
-     * This would normally go into TelephonyManager.java but we are avoiding more additions to that
-     * file so this may require a new container or it could go into framework's Intent.java.
+     * Action used by call services to notify Telecomm that there is an incoming call. This intent
+     * starts the incoming call sequence which will ultimately connect to the call service described
+     * in the intent extras. A new call object along with the token (also provided in the intent
+     * extras) will ultimately be sent to the call service indicating that Telecomm has received its
+     * incoming call.
+     * Extras used: {@link #EXTRA_CALL_SERVICE_INFO}, {@link #EXTRA_INCOMING_CALL_TOKEN}
+     * TODO(santoscordon): As this gets finalized, this should eventually move to TelecommConstants.
+     * TODO(santoscordon): Expose a new service like TelephonyManager for Telecomm and expose
+     * a method for incoming calls instead of forcing the call service to build and send an Intent.
      */
-    public static final String ACTION_CONNECT_CALL_SERVICE =
-            "com.android.telecomm.CONNECT_CALL_SERVICE";
+    public static final String ACTION_INCOMING_CALL = "com.android.telecomm.INCOMING_CALL";
 
     /**
-     * The package name of the {@link ICallServiceProvider} used to get the {@link CallService}.
+     * The {@link CallServiceInfo} describing the call service for an incoming call.
      */
-    static final String EXTRA_PACKAGE_NAME = "com.android.telecomm.PACKAGE_NAME";
+    static final String EXTRA_CALL_SERVICE_INFO = "com.android.telecomm.CALL_SERVICE_INFO";
 
     /**
-     * The CallService ID used to identify the {@link CallService} via {@link ICallServiceProvider}.
-     * IDs are only required to be unique within the scope of an {@link ICallServiceProvider}.
+     * A String-based token used to identify the incoming call. Telecomm will use this token when
+     * providing a call object to the call service so that the call service can map the call object
+     * with the appropriate incoming call. Telecomm does not use or manipulate this token in any
+     * way; it simply passes it through to the call service. Cannot be empty or null.
      */
-    static final String EXTRA_CALL_SERVICE_ID =
-            "com.android.telecomm.CALL_SERVICE_ID";
+    static final String EXTRA_INCOMING_CALL_TOKEN = "com.android.telecomm.INCOMING_CALL_TOKEN";
 
     private CallsManager mCallsManager = CallsManager.getInstance();
 
@@ -58,27 +64,27 @@ public class TelecommReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
         String action = intent.getAction();
-        if (ACTION_CONNECT_CALL_SERVICE.equals(action)) {
-            connectToCallService(intent);
+        if (ACTION_INCOMING_CALL.equals(action)) {
+            handleIncomingCall(intent);
         }
     }
 
     /**
-     * Tells CallsManager to connect to the {@link #CallService} identified by the package name
-     * and call-service ID in the extras of the intent parameter.
+     * Notifies CallsManager that a call service has an incoming call and it should start the
+     * incoming call sequence.
      *
-     * @param intent The intent containing the package name and call-service ID as extras.
+     * @param intent The incoming call intent.
      */
-    private void connectToCallService(Intent intent) {
-        String packageName = intent.getStringExtra(EXTRA_PACKAGE_NAME);
-        String callServiceId = intent.getStringExtra(EXTRA_CALL_SERVICE_ID);
-        if (TextUtils.isEmpty(packageName) || TextUtils.isEmpty(callServiceId)) {
-            Log.w(TAG, "Rejecting request to connect to call service due to lack of data."
-                    + " packageName: [" + packageName + "]"
-                    + ", callServiceId: [" + callServiceId + "]");
+    private void handleIncomingCall(Intent intent) {
+        CallServiceInfo info = intent.getParcelableExtra(EXTRA_CALL_SERVICE_INFO);
+        String callToken = Strings.emptyToNull(intent.getStringExtra(EXTRA_INCOMING_CALL_TOKEN));
+
+        if (callToken == null || info == null) {
+            Log.w(TAG, "Rejecting incoming call due to lack of data. callServiceInfo: [" + info +
+                    "], callToken: [" + callToken + "]");
             return;
         }
 
-        // TODO(santoscordon): Use packageName and callServiceId to connect with the CallService.
+        // TODO(santoscordon): Notify CallsManager.
     }
 }
