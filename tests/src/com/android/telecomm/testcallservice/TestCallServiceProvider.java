@@ -16,8 +16,10 @@
 
 package com.android.telecomm.testcallservice;
 
+import android.content.ComponentName;
 import android.os.IBinder;
 import android.os.RemoteException;
+import android.telecomm.CallServiceInfo;
 import android.telecomm.CallServiceProvider;
 import android.telecomm.ICallServiceLookupResponse;
 import android.util.Log;
@@ -38,9 +40,11 @@ public class TestCallServiceProvider extends CallServiceProvider {
         Log.i(TAG, "lookupCallServices()");
 
         try {
-            TestCallService callService = new TestCallService(this);
-            List<IBinder> callServiceList = Lists.newArrayList(callService.getBinder());
-            response.setCallServices(callServiceList);
+            CallServiceInfo.Builder builder = CallServiceInfo.newBuilder(this);
+            builder.setCallService(TestCallService.class);
+            builder.setNetworkType(CallServiceInfo.FLAG_WIFI);
+
+            response.setCallServices(Lists.newArrayList(builder.build()));
         } catch (RemoteException e) {
             Log.e(TAG, "Failed to setCallServices().", e);
         }

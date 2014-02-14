@@ -21,6 +21,7 @@ import android.content.Intent;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.telecomm.CallInfo;
+import android.telecomm.CallServiceInfo;
 import android.telecomm.ICallServiceSelector;
 import android.telecomm.ICallServiceSelectionResponse;
 import android.telecomm.ICallSwitchabilityResponse;
@@ -44,10 +45,10 @@ public class DummyCallServiceSelector extends Service {
          */
         @Override public void select(
                 CallInfo callInfo,
-                List<String> callServiceIds,
+                List<CallServiceInfo> callServiceInfos,
                 ICallServiceSelectionResponse response) throws RemoteException {
 
-            response.setSelectedCallServiceIds(callServiceIds);
+            response.setSelectedCallServiceInfos(callServiceInfos);
         }
 
         /** {@inheritDoc} */
