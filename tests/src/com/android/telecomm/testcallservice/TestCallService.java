@@ -31,6 +31,7 @@ import android.media.MediaPlayer;
 import android.os.RemoteException;
 import android.telecomm.CallInfo;
 import android.telecomm.CallService;
+import android.telecomm.CallState;
 import android.telecomm.ICallServiceAdapter;
 import android.text.TextUtils;
 import android.util.Log;
@@ -138,6 +139,22 @@ public class TestCallService extends CallService {
             mCallsManagerAdapter.setDisconnected(callId);
         } catch (RemoteException e) {
             Log.e(TAG, "Failed to setDisconnected().", e);
+        }
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void confirmIncomingCall(String callId, String callToken) {
+        Log.i(TAG, "confirmIncomingCall(" + callId + ", " + callToken + ")");
+
+        // Use dummy number for testing incoming calls.
+        String handle = "5551234";
+
+        CallInfo callInfo = new CallInfo(callId, CallState.RINGING, handle);
+        try {
+            mCallsManagerAdapter.handleConfirmedIncomingCall(callInfo);
+        } catch (RemoteException e) {
+            Log.e(TAG, "Failed to handleConfirmedIncomingCall().", e);
         }
     }
 
