@@ -59,7 +59,8 @@ abstract class ServiceBinder<ServiceInterface extends IInterface> {
 
             mServiceConnection = this;
             mBinder = binder;
-            handleSuccessfulConnection(binder);
+            setServiceInterface(binder);
+            handleSuccessfulConnection();
         }
 
         @Override
@@ -140,7 +141,7 @@ abstract class ServiceBinder<ServiceInterface extends IInterface> {
             }
         } else {
             Preconditions.checkNotNull(mBinder);
-            handleSuccessfulConnection(mBinder);
+            handleSuccessfulConnection();
         }
 
         return true;
@@ -169,12 +170,8 @@ abstract class ServiceBinder<ServiceInterface extends IInterface> {
     /**
      * Notifies all the outstanding callbacks that the service is successfully bound. The list of
      * outstanding callbacks is cleared afterwards.
-     *
-     * @param binder The actual bound service implementation.
      */
-    private void handleSuccessfulConnection(IBinder binder) {
-        setServiceInterface(binder);
-
+    private void handleSuccessfulConnection() {
         for (BindCallback callback : mCallbacks) {
             callback.onSuccess();
         }

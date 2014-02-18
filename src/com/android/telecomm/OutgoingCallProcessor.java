@@ -23,12 +23,12 @@ import com.google.common.collect.Lists;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.RemoteException;
-import android.telecomm.CallInfo;
 import android.telecomm.CallState;
 import android.telecomm.CallServiceInfo;
 import android.telecomm.ICallServiceSelectionResponse;
 import android.telecomm.ICallServiceSelector;
-import android.util.Log;
+
+import com.android.telecomm.ServiceBinder.BindCallback;
 
 import java.util.Iterator;
 import java.util.List;
@@ -62,9 +62,9 @@ final class OutgoingCallProcessor {
     private final List<CallServiceInfo> mCallServiceInfos = Lists.newArrayList();
 
     /**
-     * The map of currently-available call-service implementations keyed by call-service infos.
+     * The map of currently-available call-service implementations keyed by call-service ID.
      */
-    private final Map<CallServiceInfo, CallServiceWrapper> mCallServicesByInfo = Maps.newHashMap();
+    private final Map<String, CallServiceWrapper> mCallServicesById = Maps.newHashMap();
 
     /**
      * The set of currently-available call-service selector implementations.
@@ -129,7 +129,7 @@ final class OutgoingCallProcessor {
         for (CallServiceWrapper callService : callServices) {
             CallServiceInfo info = callService.getInfo();
             mCallServiceInfos.add(info);
-            mCallServicesByInfo.put(info, callService);
+            mCallServicesById.put(info.getCallServiceId(), callService);
         }
     }
 
@@ -253,11 +253,19 @@ final class OutgoingCallProcessor {
 
         if (mCallServiceInfoIterator.hasNext()) {
             CallServiceInfo info = mCallServiceInfoIterator.next();
-            mCallService = mCallServicesByInfo.get(info);
+            mCallService = mCallServicesById.get(info.getCallServiceId());
             if (mCallService == null) {
                 attemptNextCallService();
             } else {
-                mCallService.call(mCall.toCallInfo());
+                BindCallback callback = new BindCallback() {
+                    @Override public void onSuccess() {
+                        mCallService.call(mCall.toCallInfo());
+                    }
+                    @Override public void onFailure() {
+                        attemptNextSelector();
+                    }
+                };
+                mCallService.bind(callback);
             }
         } else {
             mCallServiceInfoIterator = null;

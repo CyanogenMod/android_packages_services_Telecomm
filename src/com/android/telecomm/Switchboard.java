@@ -114,10 +114,11 @@ final class Switchboard {
     void placeOutgoingCall(Call call) {
         ThreadUtil.checkOnMainThread();
 
-        mLookupId++;
+        mNewOutgoingCalls.add(call);
 
         // We initialize a lookup every time because between calls the set of available call
         // services can change between calls.
+        mLookupId++;
         mCallServiceRepository.initiateLookup(mLookupId);
         mSelectorRepository.initiateLookup(mLookupId);
     }
