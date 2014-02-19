@@ -17,7 +17,7 @@
 package com.android.telecomm.testcallservice;
 
 import android.telecomm.CallInfo;
-import android.telecomm.CallServiceInfo;
+import android.telecomm.CallServiceDescriptor;
 import android.telecomm.CallServiceSelector;
 
 import java.util.List;
@@ -33,8 +33,9 @@ public class DummyCallServiceSelector extends CallServiceSelector {
     }
 
     @Override
-    protected List<CallServiceInfo> select(
-            CallInfo callInfo, List<CallServiceInfo> callServiceInfos) {
-        return callServiceInfos;
+    protected List<CallServiceDescriptor> select(
+            CallInfo callInfo, List<CallServiceDescriptor> callServiceDescriptors) {
+
+        return callServiceDescriptors;
     }
 }

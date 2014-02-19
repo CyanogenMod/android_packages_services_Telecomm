@@ -19,7 +19,7 @@ package com.android.telecomm.testcallservice;
 import android.content.ComponentName;
 import android.os.IBinder;
 import android.os.RemoteException;
-import android.telecomm.CallServiceInfo;
+import android.telecomm.CallServiceDescriptor;
 import android.telecomm.CallServiceProvider;
 import android.telecomm.ICallServiceLookupResponse;
 import android.util.Log;
@@ -30,7 +30,7 @@ import java.util.List;
 
 /**
  * Service which provides fake calls to test the ICallService interface.
- * TODO(santoscordon): Build more dummy providers for more CallServiceInfo.FLAG_* types.
+ * TODO(santoscordon): Build more dummy providers for more CallServiceDescriptor.FLAG_* types.
  */
 public class TestCallServiceProvider extends CallServiceProvider {
     private static final String TAG = TestCallServiceProvider.class.getSimpleName();
@@ -41,11 +41,11 @@ public class TestCallServiceProvider extends CallServiceProvider {
         Log.i(TAG, "lookupCallServices()");
 
         try {
-            CallServiceInfo.Builder builder = CallServiceInfo.newBuilder(this);
+            CallServiceDescriptor.Builder builder = CallServiceDescriptor.newBuilder(this);
             builder.setCallService(TestCallService.class);
-            builder.setNetworkType(CallServiceInfo.FLAG_WIFI);
+            builder.setNetworkType(CallServiceDescriptor.FLAG_WIFI);
 
-            response.setCallServices(Lists.newArrayList(builder.build()));
+            response.setCallServiceDescriptors(Lists.newArrayList(builder.build()));
         } catch (RemoteException e) {
             Log.e(TAG, "Failed to setCallServices().", e);
         }

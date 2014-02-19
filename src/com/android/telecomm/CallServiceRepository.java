@@ -22,11 +22,8 @@ import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.content.pm.ServiceInfo;
 import android.os.Handler;
-import android.os.IBinder;
 import android.os.Looper;
-import android.os.RemoteException;
-import android.telecomm.CallServiceInfo;
-import android.telecomm.ICallService;
+import android.telecomm.CallServiceDescriptor;
 import android.telecomm.ICallServiceLookupResponse;
 import android.telecomm.ICallServiceProvider;
 import android.util.Log;
@@ -43,9 +40,9 @@ import java.util.Set;
 
 /**
  * Uses package manager to find all implementations of {@link ICallServiceProvider} and uses them to
- * get a list of bindable {@link ICallServices}. Ultimately returns a list of call services as
- * {@link CallServiceWrapper}s. The resulting call services may or may not be bound at the end of the
- * lookup.
+ * get the corresponding list of call-service descriptor. Ultimately returns a list of call services
+ * as {@link CallServiceWrapper}s. The resulting call services may or may not be bound at the end of
+ * the lookup.
  * TODO(santoscordon): Add performance timing to async calls.
  * TODO(santoscordon): Need to unbind/remove unused call services stored in the cache.
  */
@@ -174,24 +171,24 @@ final class CallServiceRepository {
     }
 
     /**
-     * Creates and returns the call service for the specified {@link CallServiceInfo}. Inserts newly
-     * created entries into the cache, see {@link #mCallServiceCache}, or if a cached version
-     * already exists, returns that instead. All newly created instances will not yet be bound,
-     * however cached versions may or may not be bound.
+     * Creates and returns the call service for the specified call-service descriptor. Inserts
+     * newly created entries into the cache, see {@link #mCallServiceCache}, or if a cached
+     * version already exists, returns that instead. All newly created instances will not yet
+     * be bound, however cached versions may or may not be bound.
      *
-     * @param info The call service descriptor.
+     * @param descriptor The call service descriptor.
      * @return The call service.
      */
-    CallServiceWrapper getCallService(CallServiceInfo info) {
-        Preconditions.checkNotNull(info);
+    CallServiceWrapper getCallService(CallServiceDescriptor descriptor) {
+        Preconditions.checkNotNull(descriptor);
 
         // TODO(santoscordon): Rename getServiceComponent to getComponentName.
-        ComponentName componentName = info.getServiceComponent();
+        ComponentName componentName = descriptor.getServiceComponent();
 
         CallServiceWrapper callService = mCallServiceCache.get(componentName);
         if (callService == null) {
             CallServiceAdapter adapter = new CallServiceAdapter(mOutgoingCallsManager);
-            callService = new CallServiceWrapper(info, adapter);
+            callService = new CallServiceWrapper(descriptor, adapter);
             mCallServiceCache.put(componentName, callService);
         }
 
@@ -259,15 +256,14 @@ final class CallServiceRepository {
 
         // Query the provider for {@link ICallService} implementations.
         provider.lookupCallServices(new ICallServiceLookupResponse.Stub() {
-            // TODO(santoscordon): Rename CallServiceInfo to CallServiceDescriptor and update
-            // this method name to setCallServiceDescriptors.
             @Override
-            public void setCallServices(final List<CallServiceInfo> callServiceInfos) {
+            public void setCallServiceDescriptors(
+                    final List<CallServiceDescriptor> callServiceDescriptors) {
                 // TODO(santoscordon): Do we need Binder.clear/restoreCallingIdentity()?
                 mHandler.post(new Runnable() {
                     @Override public void run() {
                         processCallServices(
-                                providerName, provider, Sets.newHashSet(callServiceInfos));
+                                providerName, provider, Sets.newHashSet(callServiceDescriptors));
                     }
                 });
             }
@@ -286,30 +282,30 @@ final class CallServiceRepository {
     }
 
     /**
-     * Processes the {@link CallServiceInfo}s for the specified provider and performs the necessary
-     * bookkeeping to potentially return control to the switchboard before the timeout for the
-     * current lookup cycle.
+     * Processes the {@link CallServiceDescriptor}s for the specified provider, and performs the
+     * necessary bookkeeping to potentially return control to the switchboard before the timeout
+     * for the current lookup cycle.
      *
      * @param providerName The component name of the relevant provider.
      * @param provider The provider associated with callServices.
-     * @param callServiceInfos The set of call service infos to process.
+     * @param callServiceDescriptors The set of call service descriptors to process.
      */
     private void processCallServices(
             ComponentName providerName,
             CallServiceProviderWrapper provider,
-            Set<CallServiceInfo> callServiceInfos) {
+            Set<CallServiceDescriptor> callServiceDescriptors) {
 
         Preconditions.checkNotNull(provider);
-        Preconditions.checkNotNull(callServiceInfos);
+        Preconditions.checkNotNull(callServiceDescriptors);
         ThreadUtil.checkOnMainThread();
 
-        // We only need the provider for retrieving the call-service info set, so unbind here.
+        // The set of call-service descriptors is available, unbind the provider.
         provider.unbind();
 
         if (mOutstandingProviders.contains(providerName)) {
             // Add all the call services from this provider to the call-service cache.
-            for (CallServiceInfo info : callServiceInfos) {
-                getCallService(info);
+            for (CallServiceDescriptor descriptor : callServiceDescriptors) {
+                getCallService(descriptor);
             }
 
             removeOutstandingProvider(providerName);

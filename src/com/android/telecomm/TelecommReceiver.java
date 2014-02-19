@@ -19,8 +19,7 @@ package com.android.telecomm;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.telecomm.CallServiceInfo;
-import android.text.TextUtils;
+import android.telecomm.CallServiceDescriptor;
 import android.util.Log;
 
 import com.google.common.base.Strings;
@@ -38,7 +37,7 @@ public class TelecommReceiver extends BroadcastReceiver {
      * in the intent extras. A new call object along with the token (also provided in the intent
      * extras) will ultimately be sent to the call service indicating that Telecomm has received its
      * incoming call.
-     * Extras used: {@link #EXTRA_CALL_SERVICE_INFO}, {@link #EXTRA_INCOMING_CALL_TOKEN}
+     * Extras used: {@link #EXTRA_CALL_SERVICE_DESCRIPTOR}, {@link #EXTRA_INCOMING_CALL_TOKEN}
      * TODO(santoscordon): As this gets finalized, this should eventually move to TelecommConstants.
      * TODO(santoscordon): Expose a new service like TelephonyManager for Telecomm and expose
      * a method for incoming calls instead of forcing the call service to build and send an Intent.
@@ -46,9 +45,9 @@ public class TelecommReceiver extends BroadcastReceiver {
     public static final String ACTION_INCOMING_CALL = "com.android.telecomm.INCOMING_CALL";
 
     /**
-     * The {@link CallServiceInfo} describing the call service for an incoming call.
+     * The {@link CallServiceDescriptor} describing the call service for an incoming call.
      */
-    static final String EXTRA_CALL_SERVICE_INFO = "com.android.telecomm.CALL_SERVICE_INFO";
+    static final String EXTRA_CALL_SERVICE_DESCRIPTOR = "com.android.telecomm.CALL_SERVICE_DESCRIPTOR";
 
     /**
      * A String-based token used to identify the incoming call. Telecomm will use this token when
@@ -76,13 +75,15 @@ public class TelecommReceiver extends BroadcastReceiver {
      * @param intent The incoming call intent.
      */
     private void handleIncomingCall(Intent intent) {
-        CallServiceInfo info = intent.getParcelableExtra(EXTRA_CALL_SERVICE_INFO);
-        String callToken = Strings.emptyToNull(intent.getStringExtra(EXTRA_INCOMING_CALL_TOKEN));
-
-        if (callToken == null || info == null) {
-            Log.w(TAG, "Rejecting incoming call due to lack of data. callServiceInfo: [" + info +
-                    "], callToken: [" + callToken + "]");
+        CallServiceDescriptor descriptor = intent.getParcelableExtra(EXTRA_CALL_SERVICE_DESCRIPTOR);
+        if (descriptor == null) {
+            Log.w(TAG, "Rejecting incoming call due to null descriptor");
             return;
+        }
+
+        String token = Strings.emptyToNull(intent.getStringExtra(EXTRA_INCOMING_CALL_TOKEN));
+        if (token == null) {
+            Log.w(TAG, "Rejecting incoming call due to null token");
         }
 
         // TODO(santoscordon): Notify CallsManager.

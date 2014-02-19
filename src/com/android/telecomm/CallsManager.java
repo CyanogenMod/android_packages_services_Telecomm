@@ -17,9 +17,8 @@
 package com.android.telecomm;
 
 import android.content.Context;
-import android.telecomm.CallServiceInfo;
+import android.telecomm.CallServiceDescriptor;
 import android.telecomm.CallState;
-import android.text.TextUtils;
 import android.util.Log;
 
 import com.android.telecomm.exceptions.RestrictedCallException;
@@ -91,16 +90,16 @@ public final class CallsManager {
      * service that an incoming call actually exists for the specified call token. Upon success,
      * execution returns to {@link #handleSuccessfulIncomingCall} to start the in-call UI.
      *
-     * @param callServiceInfo The details of the call service to use for this incoming call.
+     * @param descriptor The descriptor of the call service to use for this incoming call.
      * @param callToken The token used by the call service to identify the incoming call.
      */
-    void processIncomingCallIntent(CallServiceInfo callServiceInfo, String callToken) {
+    void processIncomingCallIntent(CallServiceDescriptor descriptor, String callToken) {
         // Create a call with no handle. Eventually, switchboard will update the call with
         // additional information from the call service, but for now we just need one to pass around
         // with a unique call ID.
         Call call = new Call(null, null);
 
-        mSwitchboard.confirmIncomingCall(call, callServiceInfo, callToken);
+        mSwitchboard.confirmIncomingCall(call, descriptor, callToken);
     }
 
     /**

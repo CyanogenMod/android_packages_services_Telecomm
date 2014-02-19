@@ -22,7 +22,7 @@ import com.google.common.collect.Sets;
 
 import android.os.Handler;
 import android.os.Looper;
-import android.telecomm.CallServiceInfo;
+import android.telecomm.CallServiceDescriptor;
 import android.telecomm.ICallServiceSelector;
 
 import java.util.Collection;
@@ -134,11 +134,11 @@ final class Switchboard {
      * on the result.
      *
      * @param call The call object.
-     * @param callServiceInfo The details of the call service.
+     * @param descriptor The relevant call-service descriptor.
      * @param callToken The token used by the call service to identify the incoming call.
      */
-    void confirmIncomingCall(Call call, CallServiceInfo callServiceInfo, String callToken) {
-        CallServiceWrapper callService = mCallServiceRepository.getCallService(callServiceInfo);
+    void confirmIncomingCall(Call call, CallServiceDescriptor descriptor, String callToken) {
+        CallServiceWrapper callService = mCallServiceRepository.getCallService(descriptor);
         mIncomingCallsManager.confirmIncomingCall(call, callService, callToken);
     }
 

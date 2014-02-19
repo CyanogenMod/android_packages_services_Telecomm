@@ -16,11 +16,10 @@
 
 package com.android.telecomm;
 
-import android.content.ComponentName;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.telecomm.CallInfo;
-import android.telecomm.CallServiceInfo;
+import android.telecomm.CallServiceDescriptor;
 import android.telecomm.ICallService;
 import android.telecomm.ICallServiceAdapter;
 import android.util.Log;
@@ -43,7 +42,7 @@ public class CallServiceWrapper extends ServiceBinder<ICallService> {
     private static final String TAG = CallServiceWrapper.class.getSimpleName();
 
     /** The descriptor of this call service as supplied by the call-service provider. */
-    private final CallServiceInfo mCallServiceInfo;
+    private final CallServiceDescriptor mDescriptor;
 
     /**
      * The adapter used by the underlying call-service implementation to communicate with Telecomm.
@@ -56,17 +55,17 @@ public class CallServiceWrapper extends ServiceBinder<ICallService> {
     /**
      * Creates a call-service provider for the specified component.
      *
-     * @param info The call-service descriptor from {@link ICallServiceProvider#lookupCallServices}.
+     * @param descriptor The call-service descriptor from {@link ICallServiceProvider#lookupCallServices}.
      * @param adapter The call-service adapter.
      */
-    public CallServiceWrapper(CallServiceInfo info, CallServiceAdapter adapter) {
-        super(CALL_SERVICE_ACTION, info.getServiceComponent());
-        mCallServiceInfo = info;
+    public CallServiceWrapper(CallServiceDescriptor descriptor, CallServiceAdapter adapter) {
+        super(CALL_SERVICE_ACTION, descriptor.getServiceComponent());
+        mDescriptor = descriptor;
         mAdapter = adapter;
     }
 
-    public CallServiceInfo getInfo() {
-        return mCallServiceInfo;
+    public CallServiceDescriptor getDescriptor() {
+        return mDescriptor;
     }
 
     /** See {@link ICallService#setCallServiceAdapter}. */

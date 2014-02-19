@@ -24,7 +24,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.RemoteException;
 import android.telecomm.CallState;
-import android.telecomm.CallServiceInfo;
+import android.telecomm.CallServiceDescriptor;
 import android.telecomm.ICallServiceSelectionResponse;
 import android.telecomm.ICallServiceSelector;
 
@@ -37,10 +37,11 @@ import java.util.Set;
 
 /**
  * Utility class to place a call using the specified set of call-services and ordered selectors.
- * Iterates through the selectors and gets a sorted list of supported call service infos for each
- * selector. Upon receiving each sorted list (one list per selector), each of the corresponding
- * call services is then attempted until either the outgoing call is placed, the attempted call
- * is aborted (by the switchboard), or the list is exhausted -- whichever occurs first.
+ * Iterates through the selectors and gets a sorted list of supported call-service descriptors
+ * for each selector. Upon receiving each sorted list (one list per selector), each of the
+ * corresponding call services is then attempted until either the outgoing call is placed, the
+ * attempted call is aborted (by the switchboard), or the list is exhausted -- whichever occurs
+ * first.
  *
  * Except for the abort case, all other scenarios should terminate with the switchboard notified
  * of the result.
@@ -57,9 +58,9 @@ final class OutgoingCallProcessor {
     private final Call mCall;
 
     /**
-     * The duplicate-free list of currently-available call-service infos.
+     * The duplicate-free list of currently-available call-service descriptors.
      */
-    private final List<CallServiceInfo> mCallServiceInfos = Lists.newArrayList();
+    private final List<CallServiceDescriptor> mCallServiceDescriptors = Lists.newArrayList();
 
     /**
      * The map of currently-available call-service implementations keyed by call-service ID.
@@ -80,9 +81,9 @@ final class OutgoingCallProcessor {
     private final Switchboard mSwitchboard;
 
     /**
-     * The iterator over the currently-selected ordered list of call-service infos.
+     * The iterator over the currently-selected ordered list of call-service descriptors.
      */
-    private Iterator<CallServiceInfo> mCallServiceInfoIterator;
+    private Iterator<CallServiceDescriptor> mCallServiceDescriptorIterator;
 
     private Iterator<ICallServiceSelector> mSelectorIterator;
 
@@ -97,9 +98,9 @@ final class OutgoingCallProcessor {
     /**
      * Persists the specified parameters and iterates through the prioritized list of selectors
      * passing to each selector (read-only versions of) the call object and all available call-
-     * service infos.  Stops once a matching selector is found.  Calls with no matching selectors
-     * will eventually be killed by the cleanup/monitor switchboard handler, which will in turn
-     * call the abort method of this processor via {@link OutgoingCallsManager}.
+     * service descriptors.  Stops once a matching selector is found.  Calls with no matching
+     * selectors will eventually be killed by the cleanup/monitor switchboard handler, which will
+     * in turn call the abort method of this processor via {@link OutgoingCallsManager}.
      *
      * @param call The call to place.
      * @param callServices The available call-service implementations.
@@ -124,12 +125,12 @@ final class OutgoingCallProcessor {
         mOutgoingCallsManager = outgoingCallsManager;
         mSwitchboard = switchboard;
 
-        // Populate the list and map of call-service infos.  The list is needed since
+        // Populate the list and map of call-service descriptors.  The list is needed since
         // it's being passed down to selectors.
         for (CallServiceWrapper callService : callServices) {
-            CallServiceInfo info = callService.getInfo();
-            mCallServiceInfos.add(info);
-            mCallServicesById.put(info.getCallServiceId(), callService);
+            CallServiceDescriptor descriptor = callService.getDescriptor();
+            mCallServiceDescriptors.add(descriptor);
+            mCallServicesById.put(descriptor.getCallServiceId(), callService);
         }
     }
 
@@ -139,7 +140,7 @@ final class OutgoingCallProcessor {
     void process() {
         ThreadUtil.checkOnMainThread();
 
-        if (mSelectors.isEmpty() || mCallServiceInfos.isEmpty()) {
+        if (mSelectors.isEmpty() || mCallServiceDescriptors.isEmpty()) {
             // TODO(gilad): Consider adding a failure message/type to differentiate the various
             // cases, or potentially throw an exception in this case.
             mOutgoingCallsManager.handleFailedOutgoingCall(mCall);
@@ -196,7 +197,7 @@ final class OutgoingCallProcessor {
             ICallServiceSelector selector = mSelectorIterator.next();
             ICallServiceSelectionResponse.Stub response = createSelectionResponse();
             try {
-                selector.select(mCall.toCallInfo(), mCallServiceInfos, response);
+                selector.select(mCall.toCallInfo(), mCallServiceDescriptors, response);
             } catch (RemoteException e) {
                 attemptNextSelector();
             }
@@ -211,12 +212,12 @@ final class OutgoingCallProcessor {
      */
     private ICallServiceSelectionResponse.Stub createSelectionResponse() {
         return new ICallServiceSelectionResponse.Stub() {
-            @Override public void setSelectedCallServiceInfos(
-                    final List<CallServiceInfo> selectedCallServiceInfos) {
+            @Override public void setSelectedCallServiceDescriptors(
+                    final List<CallServiceDescriptor> selectedCallServiceDescriptors) {
 
                 Runnable runnable = new Runnable() {
                     @Override public void run() {
-                        processSelectedCallServiceInfos(selectedCallServiceInfos);
+                        processSelectedCallServiceDescriptors(selectedCallServiceDescriptors);
                     }
                 };
 
@@ -226,34 +227,37 @@ final class OutgoingCallProcessor {
     }
 
     /**
-     * Persists the ordered-list of call-service infos as selected by the current selector and
-     * starts iterating through the corresponding call services in the continuing attempt to
-     * place the call.
+     * Persists the ordered-list of call-service descriptor as selected by the current selector and
+     * starts iterating through the corresponding call services continuing the attempt to place the
+     * call.
      *
-     * @selectedCallServiceInfos The (ordered) list of call service infos.
+     * @selectedCallServiceDescriptors The (ordered) list of call-service descriptor.
      */
-    private void processSelectedCallServiceInfos(List<CallServiceInfo> selectedCallServiceInfos) {
-        if (selectedCallServiceInfos == null || selectedCallServiceInfos.isEmpty()) {
+    private void processSelectedCallServiceDescriptors(
+            List<CallServiceDescriptor> selectedCallServiceDescriptors) {
+
+        if (selectedCallServiceDescriptors == null || selectedCallServiceDescriptors.isEmpty()) {
             attemptNextSelector();
-        } else if (mCallServiceInfoIterator == null) {
-            mCallServiceInfoIterator = selectedCallServiceInfos.iterator();
+        } else if (mCallServiceDescriptorIterator == null) {
+            mCallServiceDescriptorIterator = selectedCallServiceDescriptors.iterator();
             attemptNextCallService();
         }
     }
 
     /**
-     * Attempts to place the call using the call service specified by the next call-service info of
-     * mCallServiceInfoIterator. If there are no more call services to attempt, the process continues
-     * to the next call-service selector via {@link #attemptNextSelector}.
+     * Attempts to place the call using the call service specified by the next call-service
+     * descriptor of mCallServiceDescriptorIterator.  If there are no more call services to
+     * attempt, the process continues to the next call-service selector via
+     * {@link #attemptNextSelector}.
      */
     private void attemptNextCallService() {
         if (mIsAborted) {
             return;
         }
 
-        if (mCallServiceInfoIterator.hasNext()) {
-            CallServiceInfo info = mCallServiceInfoIterator.next();
-            mCallService = mCallServicesById.get(info.getCallServiceId());
+        if (mCallServiceDescriptorIterator.hasNext()) {
+            CallServiceDescriptor descriptor = mCallServiceDescriptorIterator.next();
+            mCallService = mCallServicesById.get(descriptor.getCallServiceId());
             if (mCallService == null) {
                 attemptNextCallService();
             } else {
@@ -268,7 +272,7 @@ final class OutgoingCallProcessor {
                 mCallService.bind(callback);
             }
         } else {
-            mCallServiceInfoIterator = null;
+            mCallServiceDescriptorIterator = null;
             resetCallService();
             attemptNextSelector();
         }
