@@ -47,13 +47,11 @@ public final class CallServiceAdapter extends ICallServiceAdapter.Stub {
     /** Used to run code (e.g. messages, Runnables) on the main (UI) thread. */
     private final Handler mHandler = new Handler(Looper.getMainLooper());
 
-    /** The list of unconfirmed incoming call IDs. Contains only IDs for incoming calls which are
-     * pending confirmation from the call service. Entries are added by the call service when a
-     * confirmation request is sent and removed when the confirmation is received or it times out.
-     * See {@link IncomingCallsManager} for more information about the incoming sequence and its
-     * timeouts.
+    /** The set of pending incoming call IDs. Contains the call IDs for which we are expecting
+     * details via {@link #handleIncomingCall}. If {@link #handleIncomingCall} is invoked for a call
+     * ID that is not in this set, it will be ignored.
      */
-    private final Set<String> mUnconfirmedIncomingCallIds = Sets.newHashSet();
+    private final Set<String> mPendingIncomingCallIds = Sets.newHashSet();
 
     /**
      * Persists the specified parameters.
@@ -69,15 +67,15 @@ public final class CallServiceAdapter extends ICallServiceAdapter.Stub {
     }
 
     /** {@inheritDoc} */
-    @Override public void handleConfirmedIncomingCall(final CallInfo callInfo) {
+    @Override public void handleIncomingCall(final CallInfo callInfo) {
         checkValidCallId(callInfo.getId());
         mHandler.post(new Runnable() {
             @Override public void run() {
-                if (mUnconfirmedIncomingCallIds.remove(callInfo.getId())) {
+                if (mPendingIncomingCallIds.remove(callInfo.getId())) {
                     // TODO(santoscordon): Uncomment when ready.
                     // mIncomingCallsManager.handleSuccessfulIncomingCall(callInfo);
                 } else {
-                    Log.wtf(TAG, "Call service confirming unknown incoming call " + callInfo);
+                    Log.wtf(TAG, "Received details for an unknown incoming call " + callInfo);
                 }
             }
         });
@@ -144,22 +142,22 @@ public final class CallServiceAdapter extends ICallServiceAdapter.Stub {
     }
 
     /**
-     * Adds a call ID to the list of unconfirmed incoming call IDs. Only calls with call IDs in the
-     * list will be handled by {@link #handleConfirmedIncomingCall}.
+     * Adds a call ID to the list of pending incoming call IDs. Only calls with call IDs in the
+     * list will be handled by {@link #handleIncomingCall}.
      *
      * @param callId The ID of the call.
      */
-    void addUnconfirmedIncomingCallId(String callId) {
-        mUnconfirmedIncomingCallIds.add(callId);
+    void addPendingIncomingCallId(String callId) {
+        mPendingIncomingCallIds.add(callId);
     }
 
     /**
-     * Removed a call ID from the list of unconfirmed incoming call IDs.
+     * Removed a call ID from the list of pending incoming call IDs.
      *
      * @param callId The ID of the call.
      */
-    void removeUnconfirmedIncomingCallId(String callId) {
-        mUnconfirmedIncomingCallIds.remove(callId);
+    void removePendingIncomingCallId(String callId) {
+        mPendingIncomingCallIds.remove(callId);
     }
 
     /**

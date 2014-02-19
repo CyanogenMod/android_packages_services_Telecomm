@@ -21,7 +21,10 @@ import android.telecomm.CallInfo;
 import android.telecomm.CallState;
 import android.util.Log;
 
+import com.google.common.base.Preconditions;
+
 import java.util.Date;
+import java.util.UUID;
 
 /**
  *  Encapsulates all aspects of a given phone call throughout its lifecycle, starting
@@ -31,18 +34,8 @@ import java.util.Date;
 final class Call {
     private static final String TAG = Call.class.getSimpleName();
 
-    /**
-     * Unique identifier for the call as a UUID string.
-     */
+    /** Unique identifier for the call as a UUID string. */
     private final String mId;
-
-    /**
-     * The state of the call.
-     */
-    private CallState mState;
-
-    /** The handle with which to establish this call. */
-    private final String mHandle;
 
     /** Additional contact information beyond handle above, optional. */
     private final ContactInfo mContactInfo;
@@ -55,15 +48,19 @@ final class Call {
      */
     private final Date mCreationTime;
 
+    /** The state of the call. */
+    private CallState mState;
+
+    /** The handle with which to establish this call. */
+    private String mHandle;
+
     /**
      * The call service which is currently connecting this call, null as long as the call is not
      * connected.
      */
     private CallServiceWrapper mCallService;
 
-    /**
-     * Read-only and parcelable version of this call.
-     */
+    /** Read-only and parcelable version of this call. */
     private CallInfo mCallInfo;
 
     /**
@@ -73,12 +70,16 @@ final class Call {
      * @param contactInfo Information about the entity being called.
      */
     Call(String handle, ContactInfo contactInfo) {
-        // TODO(gilad): Pass this in etc.
-        mId = "dummy";
+        mId = UUID.randomUUID().toString();  // UUIDs should provide sufficient uniqueness.
         mState = CallState.NEW;
         mHandle = handle;
         mContactInfo = contactInfo;
         mCreationTime = new Date();
+    }
+
+    /** {@inheritDoc} */
+    @Override public String toString() {
+        return "[" + mId + ", " + mState + ", " + mCallService.getComponentName() + "]";
     }
 
     String getId() {
@@ -102,6 +103,10 @@ final class Call {
 
     String getHandle() {
         return mHandle;
+    }
+
+    void setHandle(String handle) {
+        mHandle = handle;
     }
 
     ContactInfo getContactInfo() {
@@ -147,6 +152,36 @@ final class Call {
     }
 
     /**
+     * Answers the call if it is ringing.
+     */
+    void answer() {
+        Preconditions.checkNotNull(mCallService);
+
+        // Check to verify that the call is still in the ringing state. A call can change states
+        // between the time the user hits 'answer' and Telecomm receives the command.
+        if (isRinging("answer")) {
+            // At this point, we are asking the call service to answer but we don't assume that
+            // it will work. Instead, we wait until confirmation from the call service that the
+            // call is in a non-RINGING state before changing the UI. See
+            // {@link CallServiceAdapter#setActive} and other set* methods.
+            mCallService.answer(mId);
+        }
+    }
+
+    /**
+     * Rejects the call if it is ringing.
+     */
+    void reject() {
+        Preconditions.checkNotNull(mCallService);
+
+        // Check to verify that the call is still in the ringing state. A call can change states
+        // between the time the user hits 'reject' and Telecomm receives the command.
+        if (isRinging("reject")) {
+            mCallService.reject(mId);
+        }
+    }
+
+    /**
      * @return An object containing read-only information about this call.
      */
     CallInfo toCallInfo() {
@@ -154,6 +189,18 @@ final class Call {
             mCallInfo = new CallInfo(mId, mState, mHandle);
         }
         return mCallInfo;
+    }
+
+    /**
+     * @return True if the call is ringing, else logs the action name.
+     */
+    private boolean isRinging(String actionName) {
+        if (mState == CallState.RINGING) {
+            return true;
+        }
+
+        Log.i(TAG, "Request to " + actionName + " a non-ringing call " + this);
+        return false;
     }
 
     /**

@@ -94,6 +94,7 @@ public final class CallsManager {
      * @param callToken The token used by the call service to identify the incoming call.
      */
     void processIncomingCallIntent(CallServiceDescriptor descriptor, String callToken) {
+        Log.d(TAG, "processIncomingCallIntent");
         // Create a call with no handle. Eventually, switchboard will update the call with
         // additional information from the call service, but for now we just need one to pass around
         // with a unique call ID.
@@ -146,6 +147,7 @@ public final class CallsManager {
      * @param call The new incoming call.
      */
     void handleSuccessfulIncomingCall(Call call) {
+        Log.d(TAG, "handleSuccessfulIncomingCall");
         Preconditions.checkState(call.getState() == CallState.RINGING);
         addCall(call);
         mInCallController.addCall(call.toCallInfo());
@@ -174,7 +176,16 @@ public final class CallsManager {
      * @param callId The ID of the call.
      */
     void answerCall(String callId) {
-        // TODO(santoscordon): fill in and check that it is in the ringing state.
+        Call call = mCalls.get(callId);
+        if (call == null) {
+            Log.i(TAG, "Request to answer a non-existent call " + callId);
+        } else {
+            // We do not update the UI until we get confirmation of the answer() through
+            // {@link #markCallAsActive}. However, if we ever change that to look more responsive,
+            // then we need to make sure we add a timeout for the answer() in case the call never
+            // comes out of RINGING.
+            call.answer();
+        }
     }
 
     /**
@@ -185,7 +196,12 @@ public final class CallsManager {
      * @param callId The ID of the call.
      */
     void rejectCall(String callId) {
-        // TODO(santoscordon): fill in and check that it is in the ringing state.
+        Call call = mCalls.get(callId);
+        if (call == null) {
+            Log.i(TAG, "Request to reject a non-existent call " + callId);
+        } else {
+            call.reject();
+        }
     }
 
     /**

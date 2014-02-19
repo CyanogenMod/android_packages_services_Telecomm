@@ -55,7 +55,8 @@ public class CallServiceWrapper extends ServiceBinder<ICallService> {
     /**
      * Creates a call-service provider for the specified component.
      *
-     * @param descriptor The call-service descriptor from {@link ICallServiceProvider#lookupCallServices}.
+     * @param descriptor The call-service descriptor from
+     *         {@link ICallServiceProvider#lookupCallServices}.
      * @param adapter The call-service adapter.
      */
     public CallServiceWrapper(CallServiceDescriptor descriptor, CallServiceAdapter adapter) {
@@ -70,85 +71,106 @@ public class CallServiceWrapper extends ServiceBinder<ICallService> {
 
     /** See {@link ICallService#setCallServiceAdapter}. */
     public void setCallServiceAdapter(ICallServiceAdapter callServiceAdapter) {
-        try {
-            if (mServiceInterface == null) {
-                Log.wtf(TAG, "setCallServiceAdapter() invoked while the service is unbound.");
-            } else {
+        if (isServiceValid("setCallServiceAdapter")) {
+            try {
                 mServiceInterface.setCallServiceAdapter(callServiceAdapter);
+            } catch (RemoteException e) {
+                Log.e(TAG, "Failed to setCallServiceAdapter.", e);
             }
-        } catch (RemoteException e) {
-            Log.e(TAG, "Failed to setCallServiceAdapter.", e);
         }
     }
 
     /** See {@link ICallService#isCompatibleWith}. */
     public void isCompatibleWith(CallInfo callInfo) {
-        try {
-            if (mServiceInterface == null) {
-                Log.wtf(TAG, "isCompatibleWith() invoked while the service is unbound.");
-            } else {
+        if (isServiceValid("isCompatibleWith")) {
+            try {
                 mServiceInterface.isCompatibleWith(callInfo);
+            } catch (RemoteException e) {
+                Log.e(TAG, "Failed checking isCompatibleWith.", e);
             }
-        } catch (RemoteException e) {
-            Log.e(TAG, "Failed checking isCompatibleWith.", e);
         }
     }
 
     /** See {@link ICallService#call}. */
     public void call(CallInfo callInfo) {
-        try {
-            if (mServiceInterface == null) {
-                Log.wtf(TAG, "call() invoked while the service is unbound.");
-            } else {
+        if (isServiceValid("call")) {
+            try {
                 mServiceInterface.call(callInfo);
+            } catch (RemoteException e) {
+                Log.e(TAG, "Failed to place call " + callInfo.getId() + ".", e);
             }
-        } catch (RemoteException e) {
-            Log.e(TAG, "Failed to place call " + callInfo.getId() + ".", e);
+        }
+    }
+
+    /** See {@link ICallService#setIncomingCallId}. */
+    public void setIncomingCallId(String callId) {
+        if (isServiceValid("setIncomingCallId")) {
+            mAdapter.addPendingIncomingCallId(callId);
+            try {
+                mServiceInterface.setIncomingCallId(callId);
+            } catch (RemoteException e) {
+                Log.e(TAG, "Failed to setIncomingCallId for call " + callId, e);
+                mAdapter.removePendingIncomingCallId(callId);
+            }
         }
     }
 
     /** See {@link ICallService#disconnect}. */
     public void disconnect(String callId) {
-        try {
-            if (mServiceInterface == null) {
-                Log.wtf(TAG, "disconnect() invoked while the service is unbound.");
-            } else {
+        if (isServiceValid("disconnect")) {
+            try {
                 mServiceInterface.disconnect(callId);
+            } catch (RemoteException e) {
+                Log.e(TAG, "Failed to disconnect call " + callId + ".", e);
             }
-        } catch (RemoteException e) {
-            Log.e(TAG, "Failed to disconnect call " + callId + ".", e);
         }
     }
 
-    /** See {@link ICallService#confirmIncomingCall}. */
-    public void confirmIncomingCall(String callId, String callToken) {
-        try {
-            if (mServiceInterface == null) {
-                Log.wtf(TAG, "confirmIncomingCall() invoked while service in unbound.");
-            } else {
-                mAdapter.addUnconfirmedIncomingCallId(callId);
-                mServiceInterface.confirmIncomingCall(callId, callToken);
+    /** See {@link ICallService#answer}. */
+    public void answer(String callId) {
+        if (isServiceValid("answer")) {
+            try {
+                mServiceInterface.answer(callId);
+            } catch (RemoteException e) {
+                Log.e(TAG, "Failed to answer call " + callId, e);
             }
-        } catch (RemoteException e) {
-            Log.e(TAG, "Failed to confirmIncomingCall for call " + callId, e);
-            mAdapter.removeUnconfirmedIncomingCallId(callId);
+        }
+    }
+
+    /** See {@link ICallService#reject}. */
+    public void reject(String callId) {
+        if (isServiceValid("reject")) {
+            try {
+                mServiceInterface.reject(callId);
+            } catch (RemoteException e) {
+                Log.e(TAG, "Failed to reject call " + callId, e);
+            }
         }
     }
 
     /**
-     * Cancels the an incoming call confirmation for the specified call ID.
-     * TODO(santoscordon): This method should be called by IncomingCallManager when the incoming
-     * call confirmation has failed.
+     * Cancels the incoming call for the specified call ID.
+     * TODO(santoscordon): This method should be called by IncomingCallsManager when the incoming
+     * call has failed.
      *
      * @param callId The ID of the call.
      */
     void cancelIncomingCall(String callId) {
-        mAdapter.removeUnconfirmedIncomingCallId(callId);
+        mAdapter.removePendingIncomingCallId(callId);
     }
 
     /** {@inheritDoc} */
     @Override protected void setServiceInterface(IBinder binder) {
         mServiceInterface = ICallService.Stub.asInterface(binder);
         setCallServiceAdapter(mAdapter);
+    }
+
+    private boolean isServiceValid(String actionName) {
+        if (mServiceInterface != null) {
+            return true;
+        }
+
+        Log.wtf(TAG, actionName + " invoked while service is unbound");
+        return false;
     }
 }
