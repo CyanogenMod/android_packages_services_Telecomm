@@ -126,6 +126,7 @@ public class CallActivity extends Activity {
             return;
         }
 
-        // Notify CallsManager.
+        Log.d(TAG, "Processing incoming call from call service [" + descriptor + "]");
+        mCallsManager.processIncomingCallIntent(descriptor);
     }
 }

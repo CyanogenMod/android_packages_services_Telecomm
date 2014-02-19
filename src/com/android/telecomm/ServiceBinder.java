@@ -22,6 +22,7 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.IBinder;
 import android.os.IInterface;
+import android.util.Log;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
@@ -72,6 +73,8 @@ abstract class ServiceBinder<ServiceInterface extends IInterface> {
         }
     }
 
+    private static final String TAG = ServiceBinder.class.getSimpleName();
+
     /** The application context. */
     private final Context mContext;
 
@@ -119,6 +122,7 @@ abstract class ServiceBinder<ServiceInterface extends IInterface> {
      */
     final boolean bind(BindCallback callback) {
         ThreadUtil.checkOnMainThread();
+        Log.d(TAG, "bind()");
 
         // Reset any abort request if we're asked to bind again.
         clearAbort();
@@ -135,11 +139,13 @@ abstract class ServiceBinder<ServiceInterface extends IInterface> {
             Intent serviceIntent = new Intent(mServiceAction).setComponent(mComponentName);
             ServiceConnection connection = new ServiceBinderConnection();
 
+            Log.d(TAG, "Binding to call service with intent: " + serviceIntent);
             if (!mContext.bindService(serviceIntent, connection, Context.BIND_AUTO_CREATE)) {
                 handleFailedConnection();
                 return false;
             }
         } else {
+            Log.d(TAG, "Service is already bound.");
             Preconditions.checkNotNull(mBinder);
             handleSuccessfulConnection();
         }

@@ -64,6 +64,13 @@ final class Call {
     private CallInfo mCallInfo;
 
     /**
+     * Creates an empty call object with a unique call ID.
+     */
+    Call() {
+        this(null, null);
+    }
+
+    /**
      * Persists the specified parameters and initializes the new instance.
      *
      * @param handle The handle to dial.

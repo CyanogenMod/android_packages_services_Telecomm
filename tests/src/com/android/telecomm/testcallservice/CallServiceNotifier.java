@@ -110,6 +110,7 @@ public class CallServiceNotifier {
      * Creates the intent to add an incoming call through Telecomm.
      */
     private PendingIntent createIncomingCallIntent(Context context) {
+        Log.i(TAG, "Creating incoming call pending intent.");
         // Build descriptor for TestCallService.
         CallServiceDescriptor.Builder descriptorBuilder = CallServiceDescriptor.newBuilder(context);
         descriptorBuilder.setCallService(TestCallService.class);
@@ -122,7 +123,7 @@ public class CallServiceNotifier {
         intent.setPackage("com.android.telecomm");
         intent.putExtra(TelecommConstants.EXTRA_CALL_SERVICE_DESCRIPTOR, descriptorBuilder.build());
 
-        return PendingIntent.getBroadcast(context, 0, intent, 0);
+        return PendingIntent.getActivity(context, 0, intent, 0);
     }
 
     /**

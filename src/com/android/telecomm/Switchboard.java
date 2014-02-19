@@ -24,6 +24,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.telecomm.CallServiceDescriptor;
 import android.telecomm.ICallServiceSelector;
+import android.util.Log;
 
 import java.util.Collection;
 import java.util.List;
@@ -36,6 +37,7 @@ import java.util.Set;
  */
 final class Switchboard {
 
+    private final static String TAG = Switchboard.class.getSimpleName();
     /**
      * The frequency of invoking tick in milliseconds.
      * TODO(gilad): May require tuning.
@@ -47,7 +49,7 @@ final class Switchboard {
     /** Used to place outgoing calls. */
     private final OutgoingCallsManager mOutgoingCallsManager;
 
-    /** Used to confirm incoming calls. */
+    /** Used to retrieve incoming call details. */
     private final IncomingCallsManager mIncomingCallsManager;
 
     private final CallServiceRepository mCallServiceRepository;
@@ -103,8 +105,9 @@ final class Switchboard {
         mCallsManager = callsManager;
         mOutgoingCallsManager = new OutgoingCallsManager(this);
         mIncomingCallsManager = new IncomingCallsManager(this);
-        mCallServiceRepository = new CallServiceRepository(this, mOutgoingCallsManager);
         mSelectorRepository = new CallServiceSelectorRepository(this);
+        mCallServiceRepository =
+                new CallServiceRepository(this, mOutgoingCallsManager, mIncomingCallsManager);
     }
 
     /**
@@ -135,18 +138,18 @@ final class Switchboard {
     }
 
     /**
-     * Confirms with incoming call manager that an incoming call exists for the specified call
-     * service and call token. The incoming call manager will invoke either
-     * {@link #handleSuccessfulIncomingCall} or {@link #handleFailedIncomingCall} depending
-     * on the result.
+     * Retrieves details about the incoming call through the incoming call manager. The incoming
+     * call manager will invoke either {@link #handleSuccessfulIncomingCall} or
+     * {@link #handleFailedIncomingCall} depending on the result of the retrieval.
      *
      * @param call The call object.
      * @param descriptor The relevant call-service descriptor.
-     * @param callToken The token used by the call service to identify the incoming call.
      */
-    void confirmIncomingCall(Call call, CallServiceDescriptor descriptor, String callToken) {
+    void retrieveIncomingCall(Call call, CallServiceDescriptor descriptor) {
+        Log.d(TAG, "retrieveIncomingCall");
         CallServiceWrapper callService = mCallServiceRepository.getCallService(descriptor);
-        mIncomingCallsManager.confirmIncomingCall(call, callService, callToken);
+        call.setCallService(callService);
+        mIncomingCallsManager.retrieveIncomingCall(call);
     }
 
     /**
@@ -208,26 +211,30 @@ final class Switchboard {
     }
 
     /**
-     * Handles the case where we received confirmation of an incoming call. Hands the resulting
-     * call to {@link CallsManager} as the final step in the incoming sequence. At that point,
-     * {@link CallsManager} should bring up the incoming-call UI.
+     * Handles the case where we successfully receive details of an incoming call. Hands the
+     * resulting call to {@link CallsManager} as the final step in the incoming sequence. At that
+     * point, {@link CallsManager} should bring up the incoming-call UI.
      */
     void handleSuccessfulIncomingCall(Call call) {
+        Log.d(TAG, "handleSuccessfulIncomingCall");
         mCallsManager.handleSuccessfulIncomingCall(call);
     }
 
     /**
-     * Handles the case where we failed to confirm an incoming call after receiving an incoming-call
-     * intent via {@link TelecommReceiver}.
+     * Handles the case where we failed to retrieve an incoming call after receiving an incoming-call
+     * intent via {@link CallActivity}.
      *
      * @param call The call.
      */
     void handleFailedIncomingCall(Call call) {
-        // At the moment there is nothing to do if an incoming call is not confirmed. We may at a
-        // future date bind to the in-call app optimistically during the incoming-call sequence and
-        // this method could tell {@link CallsManager} to unbind from the in-call app if the
-        // incoming call was not confirmed. It's worth keeping this method for parity with the
-        // outgoing call sequence.
+        // Since we set the call service before calling into incoming-calls manager, we clear it for
+        // good measure if an error is reported.
+        call.clearCallService();
+
+        // At the moment there is nothing more to do if an incoming call is not retrieved. We may at
+        // a future date bind to the in-call app optimistically during the incoming-call sequence
+        // and this method could tell {@link CallsManager} to unbind from the in-call app if the
+        // incoming call was not retrieved.
     }
 
     /**

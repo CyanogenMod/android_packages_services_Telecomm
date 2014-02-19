@@ -44,6 +44,8 @@ public final class CallServiceAdapter extends ICallServiceAdapter.Stub {
 
     private final OutgoingCallsManager mOutgoingCallsManager;
 
+    private final IncomingCallsManager mIncomingCallsManager;
+
     /** Used to run code (e.g. messages, Runnables) on the main (UI) thread. */
     private final Handler mHandler = new Handler(Looper.getMainLooper());
 
@@ -55,10 +57,16 @@ public final class CallServiceAdapter extends ICallServiceAdapter.Stub {
 
     /**
      * Persists the specified parameters.
+     *
+     * @param outgoingCallsManager Manages the placing of outgoing calls.
+     * @param incomingCallsManager Manages the incoming call initialization flow.
      */
-    CallServiceAdapter(OutgoingCallsManager outgoingCallsManager) {
+    CallServiceAdapter(
+            OutgoingCallsManager outgoingCallsManager, IncomingCallsManager incomingCallsManager) {
+
         mCallsManager = CallsManager.getInstance();
         mOutgoingCallsManager = outgoingCallsManager;
+        mIncomingCallsManager = incomingCallsManager;
     }
 
     /** {@inheritDoc} */
@@ -72,8 +80,7 @@ public final class CallServiceAdapter extends ICallServiceAdapter.Stub {
         mHandler.post(new Runnable() {
             @Override public void run() {
                 if (mPendingIncomingCallIds.remove(callInfo.getId())) {
-                    // TODO(santoscordon): Uncomment when ready.
-                    // mIncomingCallsManager.handleSuccessfulIncomingCall(callInfo);
+                    mIncomingCallsManager.handleSuccessfulIncomingCall(callInfo);
                 } else {
                     Log.wtf(TAG, "Received details for an unknown incoming call " + callInfo);
                 }

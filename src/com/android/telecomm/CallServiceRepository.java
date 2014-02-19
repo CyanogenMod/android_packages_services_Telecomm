@@ -63,6 +63,8 @@ final class CallServiceRepository {
 
     private final OutgoingCallsManager mOutgoingCallsManager;
 
+    private final IncomingCallsManager mIncomingCallsManager;
+
     /** Used to run code (e.g. messages, Runnables) on the main (UI) thread. */
     private final Handler mHandler = new Handler(Looper.getMainLooper());
 
@@ -111,11 +113,17 @@ final class CallServiceRepository {
      * Persists the specified parameters.
      *
      * @param switchboard The switchboard.
-     * @param outgoingCallsManager Manager in charge of placing outgoing calls.
+     * @param outgoingCallsManager Manages the placing of outgoing calls.
+     * @param incomingCallsManager Manages the incoming call initialization flow.
      */
-    CallServiceRepository(Switchboard switchboard, OutgoingCallsManager outgoingCallsManager) {
+    CallServiceRepository(
+            Switchboard switchboard,
+            OutgoingCallsManager outgoingCallsManager,
+            IncomingCallsManager incomingCallsManager) {
+
         mSwitchboard = switchboard;
         mOutgoingCallsManager = outgoingCallsManager;
+        mIncomingCallsManager = incomingCallsManager;
     }
 
     /**
@@ -311,7 +319,8 @@ final class CallServiceRepository {
 
         CallServiceWrapper callService = mCallServices.get(callServiceName);
         if (callService == null) {
-            CallServiceAdapter adapter = new CallServiceAdapter(mOutgoingCallsManager);
+            CallServiceAdapter adapter =
+                    new CallServiceAdapter(mOutgoingCallsManager, mIncomingCallsManager);
             mCallServices.put(callServiceName, new CallServiceWrapper(descriptor, adapter));
         }
     }

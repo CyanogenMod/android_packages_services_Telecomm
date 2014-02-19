@@ -268,6 +268,8 @@ final class OutgoingCallProcessor {
                         attemptNextCallService();
                     }
                 };
+                // TODO(santoscordon): Consider making bind private to CallServiceWrapper and having
+                // CSWrapper.call() do the bind automatically.
                 mCallService.bind(callback);
             }
         } else {

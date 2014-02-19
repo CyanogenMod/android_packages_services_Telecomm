@@ -84,21 +84,20 @@ public final class CallsManager {
     }
 
     /**
-     * Starts the incoming call sequence by having switchboard confirm with the specified call
-     * service that an incoming call actually exists for the specified call token. Upon success,
-     * execution returns to {@link #handleSuccessfulIncomingCall} to start the in-call UI.
+     * Starts the incoming call sequence by having switchboard gather more information about the
+     * specified call; using the specified call service descriptor. Upon success, execution returns
+     * to {@link #handleSuccessfulIncomingCall} to start the in-call UI.
      *
      * @param descriptor The descriptor of the call service to use for this incoming call.
-     * @param callToken The token used by the call service to identify the incoming call.
      */
-    void processIncomingCallIntent(CallServiceDescriptor descriptor, String callToken) {
+    void processIncomingCallIntent(CallServiceDescriptor descriptor) {
         Log.d(TAG, "processIncomingCallIntent");
         // Create a call with no handle. Eventually, switchboard will update the call with
         // additional information from the call service, but for now we just need one to pass around
         // with a unique call ID.
-        Call call = new Call(null, null);
+        Call call = new Call();
 
-        mSwitchboard.confirmIncomingCall(call, descriptor, callToken);
+        mSwitchboard.retrieveIncomingCall(call, descriptor);
     }
 
     /**

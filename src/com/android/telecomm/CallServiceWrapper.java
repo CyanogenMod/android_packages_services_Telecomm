@@ -24,6 +24,8 @@ import android.telecomm.ICallService;
 import android.telecomm.ICallServiceAdapter;
 import android.util.Log;
 
+import com.android.telecomm.ServiceBinder.BindCallback;
+
 /**
  * Wrapper for {@link ICallService}s, handles binding to {@link ICallService} and keeps track of
  * when the object can safely be unbound. Other classes should not use {@link ICallService} directly
@@ -146,6 +148,27 @@ public class CallServiceWrapper extends ServiceBinder<ICallService> {
                 Log.e(TAG, "Failed to reject call " + callId, e);
             }
         }
+    }
+
+    /**
+     * Starts retrieval of details for an incoming call. Details are returned through the
+     * call-service adapter using the specified call ID. Upon failure, the specified error callback
+     * is invoked. Can be invoked even when the call service is unbound.
+     *
+     * @param callID The call ID used for the incoming call.
+     * @param errorCallback The callback invoked upon failure.
+     */
+    void retrieveIncomingCall(final String callId, final Runnable errorCallback) {
+        BindCallback callback = new BindCallback() {
+            @Override public void onSuccess() {
+                setIncomingCallId(callId);
+            }
+            @Override public void onFailure() {
+                errorCallback.run();
+            }
+        };
+
+        bind(callback);
     }
 
     /**
