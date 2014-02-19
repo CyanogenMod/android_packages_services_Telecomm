@@ -16,15 +16,8 @@
 
 package com.android.telecomm.testcallservice;
 
-import android.app.Service;
-import android.content.Intent;
-import android.os.IBinder;
-import android.os.RemoteException;
 import android.telecomm.CallInfo;
-import android.telecomm.CallServiceInfo;
-import android.telecomm.ICallServiceSelector;
-import android.telecomm.ICallServiceSelectionResponse;
-import android.telecomm.ICallSwitchabilityResponse;
+import android.telecomm.CallServiceSelector;
 
 import java.util.List;
 
@@ -32,36 +25,14 @@ import java.util.List;
  * Dummy call-service selector which returns the list of call services in the same order in which it
  * was given. Also returns false for every request on switchability.
  */
-public class DummyCallServiceSelector extends Service {
-
-    /**
-     * Actual Binder implementation of ICallServiceSelector.
-     */
-    private final IBinder mBinder = new ICallServiceSelector.Stub() {
-        /**
-         * Returns the unaltered list of call services.
-         *
-         * {@inheritDoc}
-         */
-        @Override public void select(
-                CallInfo callInfo,
-                List<CallServiceInfo> callServiceInfos,
-                ICallServiceSelectionResponse response) throws RemoteException {
-
-            response.setSelectedCallServiceInfos(callServiceInfos);
-        }
-
-        /** {@inheritDoc} */
-        @Override public void isSwitchable(CallInfo callInfo, ICallSwitchabilityResponse response)
-                throws RemoteException {
-
-            response.setIsSwitchable(false);
-        }
-    };
-
-    /** {@inheritDoc} */
+public class DummyCallServiceSelector extends CallServiceSelector {
     @Override
-    public IBinder onBind(Intent intent) {
-        return mBinder;
+    protected boolean isSwitchable(CallInfo callInfo) {
+        return false;
+    }
+
+    @Override
+    protected List<String> select(CallInfo callInfo, List<String> callServiceIds) {
+        return callServiceIds;
     }
 }
