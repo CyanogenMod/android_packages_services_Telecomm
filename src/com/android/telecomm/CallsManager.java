@@ -17,6 +17,7 @@
 package com.android.telecomm;
 
 import android.content.Context;
+import android.telecomm.CallServiceInfo;
 import android.telecomm.CallState;
 import android.text.TextUtils;
 import android.util.Log;
@@ -86,6 +87,23 @@ public final class CallsManager {
     }
 
     /**
+     * Starts the incoming call sequence by having switchboard confirm with the specified call
+     * service that an incoming call actually exists for the specified call token. Upon success,
+     * execution returns to {@link #handleSuccessfulIncomingCall} to start the in-call UI.
+     *
+     * @param callServiceInfo The details of the call service to use for this incoming call.
+     * @param callToken The token used by the call service to identify the incoming call.
+     */
+    void processIncomingCallIntent(CallServiceInfo callServiceInfo, String callToken) {
+        // Create a call with no handle. Eventually, switchboard will update the call with
+        // additional information from the call service, but for now we just need one to pass around
+        // with a unique call ID.
+        Call call = new Call(null, null);
+
+        mSwitchboard.confirmIncomingCall(call, callServiceInfo, callToken);
+    }
+
+    /**
      * Attempts to issue/connect the specified call.  From an (arbitrary) application standpoint,
      * all that is required to initiate this flow is to fire either of the CALL, CALL_PRIVILEGED,
      * and CALL_EMERGENCY intents. These are listened to by CallActivity.java which then invokes
@@ -120,6 +138,17 @@ public final class CallsManager {
 
         addCall(call);
 
+        mInCallController.addCall(call.toCallInfo());
+    }
+
+    /**
+     * Adds a new incoming call to the list of live calls and notifies the in-call app.
+     *
+     * @param call The new incoming call.
+     */
+    void handleSuccessfulIncomingCall(Call call) {
+        Preconditions.checkState(call.getState() == CallState.RINGING);
+        addCall(call);
         mInCallController.addCall(call.toCallInfo());
     }
 

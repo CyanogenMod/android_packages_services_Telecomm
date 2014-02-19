@@ -174,6 +174,31 @@ final class CallServiceRepository {
     }
 
     /**
+     * Creates and returns the call service for the specified {@link CallServiceInfo}. Inserts newly
+     * created entries into the cache, see {@link #mCallServiceCache}, or if a cached version
+     * already exists, returns that instead. All newly created instances will not yet be bound,
+     * however cached versions may or may not be bound.
+     *
+     * @param info The call service descriptor.
+     * @return The call service.
+     */
+    CallServiceWrapper getCallService(CallServiceInfo info) {
+        Preconditions.checkNotNull(info);
+
+        // TODO(santoscordon): Rename getServiceComponent to getComponentName.
+        ComponentName componentName = info.getServiceComponent();
+
+        CallServiceWrapper callService = mCallServiceCache.get(componentName);
+        if (callService == null) {
+            CallServiceAdapter adapter = new CallServiceAdapter(mOutgoingCallsManager);
+            callService = new CallServiceWrapper(info, adapter);
+            mCallServiceCache.put(componentName, callService);
+        }
+
+        return callService;
+    }
+
+    /**
      * Attempts to bind to the specified provider before continuing to {@link #processProvider}.
      *
      * @param componentName The component name of the relevant provider.
@@ -346,30 +371,5 @@ final class CallServiceRepository {
         }
 
         return provider;
-    }
-
-    /**
-     * Creates and returns the call service for the specified call-service info object. Inserts
-     * newly created entries into the cache, see {@link #mCallServiceCache}, or if a cached
-     * version already exists, returns that instead. All newly created instances will not yet
-     * be bound, however cached versions may or may not be bound.
-     *
-     * @param info The call service descriptor.
-     * @return The call service.
-     */
-    private CallServiceWrapper getCallService(CallServiceInfo info) {
-        Preconditions.checkNotNull(info);
-
-        // TODO(santoscordon): Rename getServiceComponent to getComponentName.
-        ComponentName componentName = info.getServiceComponent();
-
-        CallServiceWrapper callService = mCallServiceCache.get(componentName);
-        if (callService == null) {
-            CallServiceAdapter adapter = new CallServiceAdapter(mOutgoingCallsManager);
-            callService = new CallServiceWrapper(info, adapter);
-            mCallServiceCache.put(componentName, callService);
-        }
-
-        return callService;
     }
 }

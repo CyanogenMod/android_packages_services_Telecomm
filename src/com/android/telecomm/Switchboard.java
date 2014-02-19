@@ -20,9 +20,9 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
+import android.telecomm.CallServiceInfo;
 import android.telecomm.ICallServiceSelector;
 
 import java.util.Collection;
@@ -46,6 +46,9 @@ final class Switchboard {
 
     /** Used to place outgoing calls. */
     private final OutgoingCallsManager mOutgoingCallsManager;
+
+    /** Used to confirm incoming calls. */
+    private final IncomingCallsManager mIncomingCallsManager;
 
     private final CallServiceRepository mCallServiceRepository;
 
@@ -100,6 +103,7 @@ final class Switchboard {
     Switchboard(CallsManager callsManager) {
         mCallsManager = callsManager;
         mOutgoingCallsManager = new OutgoingCallsManager(this);
+        mIncomingCallsManager = new IncomingCallsManager(this);
         mCallServiceRepository = new CallServiceRepository(this, mOutgoingCallsManager);
         mSelectorRepository = new CallServiceSelectorRepository(this);
     }
@@ -121,6 +125,21 @@ final class Switchboard {
         mLookupId++;
         mCallServiceRepository.initiateLookup(mLookupId);
         mSelectorRepository.initiateLookup(mLookupId);
+    }
+
+    /**
+     * Confirms with incoming call manager that an incoming call exists for the specified call
+     * service and call token. The incoming call manager will invoke either
+     * {@link #handleSuccessfulIncomingCall} or {@link #handleFailedIncomingCall} depending
+     * on the result.
+     *
+     * @param call The call object.
+     * @param callServiceInfo The details of the call service.
+     * @param callToken The token used by the call service to identify the incoming call.
+     */
+    void confirmIncomingCall(Call call, CallServiceInfo callServiceInfo, String callToken) {
+        CallServiceWrapper callService = mCallServiceRepository.getCallService(callServiceInfo);
+        mIncomingCallsManager.confirmIncomingCall(call, callService, callToken);
     }
 
     /**
@@ -179,6 +198,29 @@ final class Switchboard {
 
         // Process additional (new) calls, if any.
         processNewOutgoingCalls();
+    }
+
+    /**
+     * Handles the case where we received confirmation of an incoming call. Hands the resulting
+     * call to {@link CallsManager} as the final step in the incoming sequence. At that point,
+     * {@link CallsManager} should bring up the incoming-call UI.
+     */
+    void handleSuccessfulIncomingCall(Call call) {
+        mCallsManager.handleSuccessfulIncomingCall(call);
+    }
+
+    /**
+     * Handles the case where we failed to confirm an incoming call after receiving an incoming-call
+     * intent via {@link TelecommReceiver}.
+     *
+     * @param call The call.
+     */
+    void handleFailedIncomingCall(Call call) {
+        // At the moment there is nothing to do if an incoming call is not confirmed. We may at a
+        // future date bind to the in-call app optimistically during the incoming-call sequence and
+        // this method could tell {@link CallsManager} to unbind from the in-call app if the
+        // incoming call was not confirmed. It's worth keeping this method for parity with the
+        // outgoing call sequence.
     }
 
     /**
