@@ -21,6 +21,8 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.telecomm.CallServiceDescriptor;
+import android.telecomm.TelecommConstants;
 import android.util.Log;
 
 /**
@@ -36,11 +38,6 @@ public class CallServiceNotifier {
      * Static notification id.
      */
     private static final int CALL_NOTIFICATION_ID = 1;
-
-    /**
-     * Application context for getting Notification Manager.
-     */
-    private Context mContext;
 
     /**
      * Singleton accessor.
@@ -86,7 +83,7 @@ public class CallServiceNotifier {
         builder.setOngoing(true);
         builder.setPriority(Notification.PRIORITY_HIGH);
 
-        final PendingIntent intent = createMainIntent(context);
+        final PendingIntent intent = createIncomingCallIntent(context);
         builder.setContentIntent(intent);
 
         builder.setSmallIcon(android.R.drawable.stat_sys_phone_call);
@@ -100,16 +97,6 @@ public class CallServiceNotifier {
     }
 
     /**
-     * Creates the intent issued when the user clicks the notification.
-     */
-    private PendingIntent createMainIntent(Context context) {
-        final Intent intent = new Intent(CallNotificationReceiver.ACTION_CALL_SERVICE_MAIN, null,
-                context, CallNotificationReceiver.class);
-
-        return PendingIntent.getBroadcast(context, 0, intent, 0);
-    }
-
-    /**
      * Creates the intent to remove the notification.
      */
     private PendingIntent createExitIntent(Context context) {
@@ -120,11 +107,31 @@ public class CallServiceNotifier {
     }
 
     /**
-     * Adds an action to the Notification Builder for adding a call through the CallService.
+     * Creates the intent to add an incoming call through Telecomm.
+     */
+    private PendingIntent createIncomingCallIntent(Context context) {
+        // Build descriptor for TestCallService.
+        CallServiceDescriptor.Builder descriptorBuilder = CallServiceDescriptor.newBuilder(context);
+        descriptorBuilder.setCallService(TestCallService.class);
+        descriptorBuilder.setNetworkType(CallServiceDescriptor.FLAG_WIFI);
+
+        // Create intent for adding an incoming call.
+        Intent intent = new Intent(TelecommConstants.ACTION_INCOMING_CALL);
+        // TODO(santoscordon): Use a private @hide permission to make sure this only goes to
+        // Telecomm instead of setting the package explicitly.
+        intent.setPackage("com.android.telecomm");
+        intent.putExtra(TelecommConstants.EXTRA_CALL_SERVICE_DESCRIPTOR, descriptorBuilder.build());
+
+        return PendingIntent.getBroadcast(context, 0, intent, 0);
+    }
+
+    /**
+     * Adds an action to the Notification Builder for adding an incoming call through Telecomm.
      * @param builder The Notification Builder.
      */
     private void addAddCallAction(Notification.Builder builder, Context context) {
-        builder.addAction(0, "Add a Call", createMainIntent(context));
+        // Set pending intent on the notification builder.
+        builder.addAction(0, "Add a Call", createIncomingCallIntent(context));
     }
 
     /**

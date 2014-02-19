@@ -25,19 +25,11 @@ import android.content.Intent;
  * {@link TestCallService}.
  */
 public class CallNotificationReceiver extends BroadcastReceiver {
-
-    /**
-     * Main intent action is sent when the user clicks the main portion of the TestCallService
-     * notification. No-op at the time of this writing.
-     */
-    /* package */ static final String ACTION_CALL_SERVICE_MAIN =
-            "com.android.telecomm.testcallservice.ACTION_CALL_SERVICE_MAIN";
-
     /**
      * Exit intent action is sent when the user clicks the "exit" action of the TestCallService
      * notification. Used to cancel (remove) the notification.
      */
-    /* package */ static final String ACTION_CALL_SERVICE_EXIT =
+    static final String ACTION_CALL_SERVICE_EXIT =
             "com.android.telecomm.testcallservice.ACTION_CALL_SERVICE_EXIT";
 
     /** {@inheritDoc} */
