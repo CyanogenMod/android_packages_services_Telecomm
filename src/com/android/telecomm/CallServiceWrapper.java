@@ -121,6 +121,32 @@ public class CallServiceWrapper extends ServiceBinder<ICallService> {
         }
     }
 
+    /** See {@link ICallService#confirmIncomingCall}. */
+    public void confirmIncomingCall(String callId, String callToken) {
+        try {
+            if (mServiceInterface == null) {
+                Log.wtf(TAG, "confirmIncomingCall() invoked while service in unbound.");
+            } else {
+                mAdapter.addUnconfirmedIncomingCallId(callId);
+                mServiceInterface.confirmIncomingCall(callId, callToken);
+            }
+        } catch (RemoteException e) {
+            Log.e(TAG, "Failed to confirmIncomingCall for call " + callId, e);
+            mAdapter.removeUnconfirmedIncomingCallId(callId);
+        }
+    }
+
+    /**
+     * Cancels the an incoming call confirmation for the specified call ID.
+     * TODO(santoscordon): This method should be called by IncomingCallManager when the incoming
+     * call confirmation has failed.
+     *
+     * @param callId The ID of the call.
+     */
+    void cancelIncomingCall(String callId) {
+        mAdapter.removeUnconfirmedIncomingCallId(callId);
+    }
+
     /** {@inheritDoc} */
     @Override protected void setServiceInterface(IBinder binder) {
         mServiceInterface = ICallService.Stub.asInterface(binder);
