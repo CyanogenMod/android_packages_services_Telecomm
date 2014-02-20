@@ -119,8 +119,7 @@ final class Switchboard {
 
         mNewOutgoingCalls.add(call);
 
-        // We initialize a lookup every time because between calls the set of available call
-        // services can change between calls.
+        // Initiate a lookup every time to account for newly-installed apps and/or updated settings.
         mLookupId++;
         mCallServiceRepository.initiateLookup(mLookupId);
         mSelectorRepository.initiateLookup(mLookupId);

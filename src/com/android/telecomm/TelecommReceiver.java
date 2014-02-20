@@ -26,6 +26,9 @@ import com.google.common.base.Strings;
 
 /**
  * Receiver for public intents relating to Telecomm.
+ *
+ * TODO(gilad): Unify the incoming/outgoing approach to use startActivity in both cases thereby
+ * eliminating the incoming logic below, as well as this class as a whole.
  */
 public class TelecommReceiver extends BroadcastReceiver {
 

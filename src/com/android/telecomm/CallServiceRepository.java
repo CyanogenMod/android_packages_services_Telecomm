@@ -154,14 +154,10 @@ final class CallServiceRepository {
         }
 
         int providerCount = providerNames.size();
-        int outstandingProviderCount = mOutstandingProviders.size();
+        Log.i(TAG, "Found " + providerCount + " implementations of ICallServiceProvider.");
 
-        Log.i(TAG, "Found " + providerCount + " implementations of ICallServiceProvider, "
-                + outstandingProviderCount + " of which are not currently processed.");
-
-        if (outstandingProviderCount == 0) {
-            // All known (provider) implementations are already processed, pass control
-            // back to the switchboard.
+        if (providerCount == 0) {
+            // Nothing to process, pass control back to the switchboard.
             updateSwitchboard();
         } else {
             // Schedule a lookup terminator to run after LOOKUP_TIMEOUT_MS milliseconds.

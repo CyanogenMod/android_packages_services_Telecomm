@@ -56,7 +56,6 @@ final class IncomingCallsManager {
         mSwitchboard = switchboard;
     }
 
-
     /**
      * Confirms the existence of an incoming call with the specified call service (asynchronously).
      * Starts the timeout sequence in case the call service is unresponsive.
