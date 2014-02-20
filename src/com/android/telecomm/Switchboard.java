@@ -78,9 +78,8 @@ final class Switchboard {
 
     /**
      * The set of currently available call service implementations, see
-     * {@link CallServiceRepository}. Populated after a lookup for call services as part of
-     * {@link #placeCall}. It is cleared periodically when there are no more new or pending outgoing
-     * calls.
+     * {@link CallServiceRepository}.  Populated during call-service lookup cycles as part of the
+     * {@link #placeOutgoingCall} flow and cleared upon zero-remaining new/pending outgoing calls.
      */
     private Set<CallServiceWrapper> mCallServices;
 
@@ -93,7 +92,7 @@ final class Switchboard {
 
     /**
      * The current lookup-cycle ID used with the repositories. Incremented with each invocation
-     * of {@link #placeCall} and passed to the repositories via initiateLookup().
+     * of {@link #placeOutgoingCall} and passed to the repositories via initiateLookup().
      */
     private int mLookupId = 0;
 
