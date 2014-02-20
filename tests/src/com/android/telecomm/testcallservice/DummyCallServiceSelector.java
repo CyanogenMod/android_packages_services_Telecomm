@@ -28,14 +28,15 @@ import java.util.List;
  */
 public class DummyCallServiceSelector extends CallServiceSelector {
     @Override
-    protected boolean isSwitchable(CallInfo callInfo) {
-        return false;
+    protected void isSwitchable(CallInfo callInfo, CallSwitchabilityResponse response) {
+        response.setSwitchable(false);
     }
 
     @Override
-    protected List<CallServiceDescriptor> select(
-            CallInfo callInfo, List<CallServiceDescriptor> callServiceDescriptors) {
+    protected void select(
+            CallInfo callInfo, List<CallServiceDescriptor> callServiceDescriptors,
+            CallServiceSelectionResponse response) {
 
-        return callServiceDescriptors;
+        response.setSelectedCallServices(callServiceDescriptors);
     }
 }
