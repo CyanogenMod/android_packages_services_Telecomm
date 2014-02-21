@@ -166,10 +166,9 @@ final class OutgoingCallProcessor {
      * placed the call.
      */
     void handleSuccessfulCallAttempt() {
-        abort();  // Technically not needed but playing it safe.
         mCall.setCallService(mCallService);
         mCall.setState(CallState.DIALING);
-        resetCallService();
+        abort();
 
         mSwitchboard.handleSuccessfulOutgoingCall(mCall);
     }
