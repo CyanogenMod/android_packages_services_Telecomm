@@ -215,6 +215,7 @@ public final class CallsManager {
 
     void markCallAsActive(String callId) {
         setCallState(callId, CallState.ACTIVE);
+        mInCallController.markCallAsActive(callId);
     }
 
     /**
