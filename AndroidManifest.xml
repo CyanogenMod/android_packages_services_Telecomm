@@ -148,10 +148,13 @@
             </intent-filter>
         </activity-alias>
 
-        <receiver android:name="TelecommReceiver" android:exported="true">
+        <activity-alias android:name="IncomingCallActivity"
+                android:targetActivity="CallActivity"
+                android:exported="true">
             <intent-filter>
-                <action android:name="com.android.telecomm.CONNECT_CALL_SERVICE" />
+                <action android:name="com.android.telecomm.INCOMING_CALL" />
             </intent-filter>
-        </receiver>
+        </activity-alias>
+
     </application>
 </manifest>

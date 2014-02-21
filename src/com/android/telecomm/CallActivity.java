@@ -21,6 +21,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.res.Configuration;
 import android.os.Bundle;
+import android.telecomm.CallServiceDescriptor;
+import android.telecomm.TelecommConstants;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -67,13 +69,30 @@ public class CallActivity extends Activity {
         // TODO(santoscordon): Figure out if there is something to restore from bundle.
         // See OutgoingCallBroadcaster in services/Telephony for more.
 
-        processOutgoingCallIntent(intent);
+        processIntent(intent);
 
-        // TODO(santoscordon): Remove this finish() once this app does more than just show a toast.
+        // This activity does not have associated UI, so close.
         finish();
 
         if (DEBUG) {
             Log.d(TAG, "onCreate: end");
+        }
+    }
+
+    /**
+     * Processes intents sent to the activity.
+     *
+     * @param intent The intent.
+     */
+    private void processIntent(Intent intent) {
+        String action = intent.getAction();
+
+        if (Intent.ACTION_CALL.equals(action) ||
+                Intent.ACTION_CALL_PRIVILEGED.equals(action) ||
+                Intent.ACTION_CALL_EMERGENCY.equals(action)) {
+            processOutgoingCallIntent(intent);
+        } else if (TelecommConstants.ACTION_INCOMING_CALL.equals(action)) {
+            processIncomingCallIntent(intent);
         }
     }
 
@@ -102,5 +121,22 @@ public class CallActivity extends Activity {
         } catch (RestrictedCallException e) {
             // TODO(gilad): Handle or explicitly state to be ignored.
         }
+    }
+
+    /**
+     * Processes INCOMING_CALL intents. Grabs the call service informations from the intent extra
+     * and forwards that to the CallsManager to start the incoming call flow.
+     *
+     * @param intent The incoming call intent.
+     */
+    private void processIncomingCallIntent(Intent intent) {
+        CallServiceDescriptor descriptor =
+                intent.getParcelableExtra(TelecommConstants.EXTRA_CALL_SERVICE_DESCRIPTOR);
+        if (descriptor == null) {
+            Log.w(TAG, "Rejecting incoming call due to null descriptor");
+            return;
+        }
+
+        // Notify CallsManager.
     }
 }
