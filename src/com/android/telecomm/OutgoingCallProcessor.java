@@ -265,7 +265,7 @@ final class OutgoingCallProcessor {
                         mCallService.call(mCall.toCallInfo());
                     }
                     @Override public void onFailure() {
-                        attemptNextSelector();
+                        attemptNextCallService();
                     }
                 };
                 mCallService.bind(callback);
