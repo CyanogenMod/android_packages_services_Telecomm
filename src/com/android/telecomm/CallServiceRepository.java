@@ -72,13 +72,12 @@ final class CallServiceRepository {
     private int mLookupId = 0;
 
     /**
-     * Map of {@link CallServiceProviderWrapper}s keyed by their ComponentName. Used as a cache for
-     * call services. Entries are added to the cache as part of the lookup sequence. Every call
-     * service found will have an entry in the cache. The cache is cleaned up periodically to
-     * remove any call services (bound or unbound) which are no longer needed because they have no
-     * associated calls. After a cleanup, the only entries in the cache should be call services
-     * with existing calls. During the lookup, we will always use a cached version of a call service
-     * if one exists.
+     * Map of {@link CallServiceProviderWrapper}s keyed by their ComponentName. Gets populated as
+     * the first step in the lookup cycle with all provider implementations that exist on the
+     * device. For each provider, we attempt to get a cached instance from this map and if no such
+     * instance exists, a new provider wrapper is created. At the end of the lookup cycle, providers
+     * are unbound, but are kept in this map for use in the next lookup cycle.
+     * TODO(santoscordon): Limit entries to those which the user has explicitly allowed.
      */
     private Map<ComponentName, CallServiceProviderWrapper> mProviderCache = Maps.newHashMap();
 
