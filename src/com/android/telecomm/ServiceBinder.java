@@ -130,8 +130,8 @@ abstract class ServiceBinder<ServiceInterface extends IInterface> {
             return true;
         }
 
+        mCallbacks.add(callback);
         if (mServiceConnection == null) {
-            mCallbacks.add(callback);
             Intent serviceIntent = new Intent(mServiceAction).setComponent(mComponentName);
             ServiceConnection connection = new ServiceBinderConnection();
 
