@@ -17,7 +17,6 @@
 package com.android.telecomm;
 
 import android.content.ComponentName;
-import android.os.Binder;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.telecomm.ICallServiceLookupResponse;
@@ -30,7 +29,6 @@ import android.util.Log;
  * {@link ICallServiceProvider} directly and instead should use this class to invoke methods of
  * {@link ICallServiceProvider}.
  * TODO(santoscordon): Keep track of when the service can be safely unbound.
- * TODO(santoscordon): Look into combining with android.telecomm.CallServiceProvider.
  */
 public class CallServiceProviderWrapper extends ServiceBinder<ICallServiceProvider> {
     /**
@@ -45,11 +43,6 @@ public class CallServiceProviderWrapper extends ServiceBinder<ICallServiceProvid
     private ICallServiceProvider mServiceInterface;
 
     /**
-     * The class to notify when binding succeeds or fails.
-     */
-    private final CallServiceRepository mRepository;
-
-    /**
      * Creates a call-service provider for the specified component.
      *
      * @param componentName The component name of the service to bind to.
@@ -59,7 +52,6 @@ public class CallServiceProviderWrapper extends ServiceBinder<ICallServiceProvid
             ComponentName componentName, CallServiceRepository repository) {
 
         super(CALL_SERVICE_PROVIDER_ACTION, componentName);
-        mRepository = repository;
     }
 
     /** {@inheritDoc} */
