@@ -21,19 +21,15 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.Sets;
 
-import java.util.Date;
 import java.util.Set;
 
-import android.content.Context;
 import android.content.Intent;
-import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.os.RemoteException;
 import android.telecomm.CallInfo;
 import android.telecomm.CallService;
 import android.telecomm.CallState;
 import android.telecomm.ICallServiceAdapter;
-import android.text.TextUtils;
 import android.util.Log;
 
 /**
@@ -42,11 +38,6 @@ import android.util.Log;
  */
 public class TestCallService extends CallService {
     private static final String TAG = TestCallService.class.getSimpleName();
-
-    /**
-     * The application context.
-     */
-    private final Context mContext;
 
     /**
      * Set of call IDs for live (active, ringing, dialing) calls.
@@ -64,11 +55,6 @@ public class TestCallService extends CallService {
      */
     private MediaPlayer mMediaPlayer;
 
-    /** Persists the specified parameters. */
-    public TestCallService(Context context) {
-        mContext = context;
-    }
-
     /** {@inheritDoc} */
     @Override
     public void setCallServiceAdapter(ICallServiceAdapter callServiceAdapter) {
@@ -78,7 +64,7 @@ public class TestCallService extends CallService {
         mLiveCallIds = Sets.newHashSet();
 
         // Prepare the media player to play a tone when there is a call.
-        mMediaPlayer = MediaPlayer.create(mContext, R.raw.beep_boop);
+        mMediaPlayer = MediaPlayer.create(getApplicationContext(), R.raw.beep_boop);
         mMediaPlayer.setLooping(true);
 
         // TODO(santoscordon): Re-enable audio through voice-call stream.
@@ -144,17 +130,37 @@ public class TestCallService extends CallService {
 
     /** {@inheritDoc} */
     @Override
-    public void confirmIncomingCall(String callId, String callToken) {
-        Log.i(TAG, "confirmIncomingCall(" + callId + ", " + callToken + ")");
+    public void setIncomingCallId(String callId) {
+        Log.i(TAG, "setIncomingCallId(" + callId + ")");
 
         // Use dummy number for testing incoming calls.
         String handle = "5551234";
 
         CallInfo callInfo = new CallInfo(callId, CallState.RINGING, handle);
         try {
-            mCallsManagerAdapter.handleConfirmedIncomingCall(callInfo);
+            mCallsManagerAdapter.handleIncomingCall(callInfo);
         } catch (RemoteException e) {
-            Log.e(TAG, "Failed to handleConfirmedIncomingCall().", e);
+            Log.e(TAG, "Failed to handleIncomingCall().", e);
+        }
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void answer(String callId) {
+        try {
+            mCallsManagerAdapter.setActive(callId);
+        } catch (RemoteException e) {
+            Log.e(TAG, "Failed to setActive the call " + callId);
+        }
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void reject(String callId) {
+        try {
+            mCallsManagerAdapter.setDisconnected(callId);
+        } catch (RemoteException e) {
+            Log.e(TAG, "Failed to setDisconnected the call " + callId);
         }
     }
 
