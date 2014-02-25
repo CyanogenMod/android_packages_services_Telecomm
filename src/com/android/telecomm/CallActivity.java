@@ -113,11 +113,7 @@ public class CallActivity extends Activity {
         String handle = intent.getDataString();
         ContactInfo contactInfo = null;
         try {
-            // we use the application context because the lifetime of the call services bound on
-            // this context extends beyond the life of this activity.
-            Context context = getApplicationContext();
-
-            mCallsManager.processOutgoingCallIntent(handle, contactInfo, context);
+            mCallsManager.processOutgoingCallIntent(handle, contactInfo);
         } catch (RestrictedCallException e) {
             // TODO(gilad): Handle or explicitly state to be ignored.
         }

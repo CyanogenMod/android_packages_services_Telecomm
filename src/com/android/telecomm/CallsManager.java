@@ -16,7 +16,6 @@
 
 package com.android.telecomm;
 
-import android.content.Context;
 import android.telecomm.CallServiceDescriptor;
 import android.telecomm.CallState;
 import android.util.Log;
@@ -110,9 +109,8 @@ public final class CallsManager {
      *
      * @param handle The handle to dial.
      * @param contactInfo Information about the entity being called.
-     * @param context The application context.
      */
-    void processOutgoingCallIntent(String handle, ContactInfo contactInfo, Context context)
+    void processOutgoingCallIntent(String handle, ContactInfo contactInfo)
             throws RestrictedCallException {
 
         for (OutgoingCallValidator validator : mOutgoingCallValidators) {
