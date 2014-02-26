@@ -17,7 +17,6 @@
 package com.android.telecomm;
 
 import android.app.Activity;
-import android.content.Context;
 import android.content.Intent;
 import android.content.res.Configuration;
 import android.os.Bundle;
@@ -25,8 +24,6 @@ import android.telecomm.CallServiceDescriptor;
 import android.telecomm.TelecommConstants;
 import android.util.Log;
 import android.widget.Toast;
-
-import com.android.telecomm.exceptions.RestrictedCallException;
 
 /**
  * Activity that handles system CALL actions and forwards them to {@link CallsManager}.
@@ -112,11 +109,7 @@ public class CallActivity extends Activity {
         // non-trivial/voluminous.
         String handle = intent.getDataString();
         ContactInfo contactInfo = null;
-        try {
-            mCallsManager.processOutgoingCallIntent(handle, contactInfo);
-        } catch (RestrictedCallException e) {
-            // TODO(gilad): Handle or explicitly state to be ignored.
-        }
+        mCallsManager.processOutgoingCallIntent(handle, contactInfo);
     }
 
     /**

@@ -20,8 +20,6 @@ import android.telecomm.CallServiceDescriptor;
 import android.telecomm.CallState;
 import android.util.Log;
 
-import com.android.telecomm.exceptions.RestrictedCallException;
-
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
@@ -38,6 +36,7 @@ import java.util.Map;
  * beyond the com.android.telecomm package boundary.
  */
 public final class CallsManager {
+
     private static final String TAG = CallsManager.class.getSimpleName();
 
     private static final CallsManager INSTANCE = new CallsManager();
@@ -72,16 +71,16 @@ public final class CallsManager {
 
     private List<IncomingCallValidator> mIncomingCallValidators = Lists.newArrayList();
 
-    static CallsManager getInstance() {
-        return INSTANCE;
-    }
-
     /**
      * Initializes the required Telecomm components.
      */
     private CallsManager() {
         mSwitchboard = new Switchboard(this);
         mInCallController = new InCallController(this);
+    }
+
+    static CallsManager getInstance() {
+        return INSTANCE;
     }
 
     /**
@@ -103,6 +102,31 @@ public final class CallsManager {
     }
 
     /**
+     * Validates the specified call and, upon no objection to connect it, adds the new call to the
+     * list of live calls. Also notifies the in-call app so the user can answer or reject the call.
+     *
+     * @param call The new incoming call.
+     */
+    void handleSuccessfulIncomingCall(Call call) {
+        Log.d(TAG, "handleSuccessfulIncomingCall");
+        Preconditions.checkState(call.getState() == CallState.RINGING);
+
+        String handle = call.getHandle();
+        ContactInfo contactInfo = call.getContactInfo();
+        for (IncomingCallValidator validator : mIncomingCallValidators) {
+            if (!validator.isValid(handle, contactInfo)) {
+                // TODO(gilad): Consider displaying an error message.
+                Log.i(TAG, "Dropping restricted incoming call");
+                return;
+            }
+        }
+
+        // No objection to accept the incoming call, proceed with potentially connecting it (based
+        // on the user's action, or lack thereof).
+        addCall(call);
+    }
+
+    /**
      * Attempts to issue/connect the specified call.  From an (arbitrary) application standpoint,
      * all that is required to initiate this flow is to fire either of the CALL, CALL_PRIVILEGED,
      * and CALL_EMERGENCY intents. These are listened to by CallActivity.java which then invokes
@@ -111,11 +135,13 @@ public final class CallsManager {
      * @param handle The handle to dial.
      * @param contactInfo Information about the entity being called.
      */
-    void processOutgoingCallIntent(String handle, ContactInfo contactInfo)
-            throws RestrictedCallException {
-
+    void processOutgoingCallIntent(String handle, ContactInfo contactInfo) {
         for (OutgoingCallValidator validator : mOutgoingCallValidators) {
-            validator.validate(handle, contactInfo);
+            if (!validator.isValid(handle, contactInfo)) {
+                // TODO(gilad): Display an error message.
+                Log.i(TAG, "Dropping restricted outgoing call.");
+                return;
+            }
         }
 
         // No objection to issue the call, proceed with trying to put it through.
@@ -133,37 +159,7 @@ public final class CallsManager {
         // placed call from the call service so there is no need to set it here. Instead, check that
         // the state is appropriate.
         Preconditions.checkState(call.getState() == CallState.DIALING);
-
         addCall(call);
-
-        mInCallController.addCall(call.toCallInfo());
-    }
-
-    /**
-     * Adds a new incoming call to the list of live calls and notifies the in-call app.
-     *
-     * @param call The new incoming call.
-     */
-    void handleSuccessfulIncomingCall(Call call) {
-        Log.d(TAG, "handleSuccessfulIncomingCall");
-        Preconditions.checkState(call.getState() == CallState.RINGING);
-        addCall(call);
-        mInCallController.addCall(call.toCallInfo());
-    }
-
-    /*
-     * Sends all the live calls to the in-call app if any exist. If there are no live calls, then
-     * tells the in-call controller to unbind since it is not needed.
-     */
-    void updateInCall() {
-        if (mCalls.isEmpty()) {
-            mInCallController.unbind();
-            return;
-        }
-
-        for (Call call : mCalls.values()) {
-            mInCallController.addCall(call.toCallInfo());
-        }
     }
 
     /**
@@ -254,6 +250,37 @@ public final class CallsManager {
     }
 
     /**
+     * Sends all the live calls to the in-call app if any exist. If there are no live calls, then
+     * tells the in-call controller to unbind since it is not needed.
+     */
+    void updateInCall() {
+        if (mCalls.isEmpty()) {
+            mInCallController.unbind();
+        } else {
+            for (Call call : mCalls.values()) {
+                addInCallEntry(call);
+            }
+        }
+    }
+
+    /**
+     * Adds the specified call to the main list of live calls.
+     *
+     * @param call The call to add.
+     */
+    private void addCall(Call call) {
+        mCalls.put(call.getId(), call);
+        addInCallEntry(call);
+    }
+
+    /**
+     * Notifies the in-call app of the specified (new) call.
+     */
+    private void addInCallEntry(Call call) {
+        mInCallController.addCall(call.toCallInfo());
+    }
+
+    /**
      * Sets the specified state on the specified call.
      *
      * @param callId The ID of the call to update.
@@ -278,14 +305,5 @@ public final class CallsManager {
             call.setState(state);
             // TODO(santoscordon): Notify the in-call app whenever a call changes state.
         }
-    }
-
-    /**
-     * Adds the specified call to the main list of live calls.
-     *
-     * @param call The call to add.
-     */
-    private void addCall(Call call) {
-        mCalls.put(call.getId(), call);
     }
 }
