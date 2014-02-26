@@ -54,11 +54,6 @@ public class CallServiceProviderWrapper extends ServiceBinder<ICallServiceProvid
         super(CALL_SERVICE_PROVIDER_ACTION, componentName);
     }
 
-    /** {@inheritDoc} */
-    @Override protected void setServiceInterface(IBinder binder) {
-        mServiceInterface = ICallServiceProvider.Stub.asInterface(binder);
-    }
-
     /**
      * See {@link ICallServiceProvider#lookupCallServices}.
      */
@@ -72,5 +67,10 @@ public class CallServiceProviderWrapper extends ServiceBinder<ICallServiceProvid
         } catch (RemoteException e) {
             Log.e(TAG, "Failed to lookupCallServices.", e);
         }
+    }
+
+    /** {@inheritDoc} */
+    @Override protected void setServiceInterface(IBinder binder) {
+        mServiceInterface = ICallServiceProvider.Stub.asInterface(binder);
     }
 }

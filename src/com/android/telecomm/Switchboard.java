@@ -77,7 +77,7 @@ final class Switchboard {
     private final Set<Call> mPendingOutgoingCalls = Sets.newLinkedHashSet();
 
     /**
-     * The set of currently available call service implementations, see
+     * The set of currently available call-service implementations, see
      * {@link CallServiceRepository}.  Populated during call-service lookup cycles as part of the
      * {@link #placeOutgoingCall} flow and cleared upon zero-remaining new/pending outgoing calls.
      */
@@ -116,6 +116,15 @@ final class Switchboard {
      */
     void placeOutgoingCall(Call call) {
         ThreadUtil.checkOnMainThread();
+
+        // Reset prior to initiating the next lookup. One case to consider is (1) placeOutgoingCall
+        // is invoked with call A, (2) the call-service lookup completes, but the one for selectors
+        // does not, (3) placeOutgoingCall is invoked again with call B, (4) mCallServices below is
+        // reset, (5) the selector lookup completes but the call-services are missing.  This should
+        // be okay since the call-service lookup completed. Specifically the already-available call
+        // services are cached and will be provided in response to the second lookup cycle.
+        mCallServices = null;
+        mSelectors = null;
 
         mNewOutgoingCalls.add(call);
 

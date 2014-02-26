@@ -163,7 +163,7 @@ abstract class ServiceBinder<ServiceInterface extends IInterface> {
         }
     }
 
-    ComponentName getComponentName() {
+    final ComponentName getComponentName() {
         return mComponentName;
     }
 
