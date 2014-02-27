@@ -93,6 +93,9 @@ abstract class ServiceBinder<ServiceInterface extends IInterface> {
     /** The binder provided by {@link ServiceConnection#onServiceConnected} */
     private IBinder mBinder;
 
+    /** The number of calls currently associated with this service. */
+    private int mAssociatedCallCount = 0;
+
     /**
      * Indicates that an unbind request was made when the service was not yet bound. If the service
      * successfully connects when this is true, it should be unbound immediately.
@@ -151,6 +154,23 @@ abstract class ServiceBinder<ServiceInterface extends IInterface> {
         }
 
         return true;
+    }
+
+    final void incrementAssociatedCallCount() {
+        mAssociatedCallCount++;
+    }
+
+    final void decrementAssociatedCallCount() {
+        if (mAssociatedCallCount > 0) {
+            mAssociatedCallCount--;
+        } else {
+            Log.wtf(TAG, mComponentName.getClassName() +
+                    ": ignoring a request to decrement mAssociatedCallCount below zero");
+        }
+    }
+
+    final int getAssociatedCallCount() {
+        return mAssociatedCallCount;
     }
 
     /**

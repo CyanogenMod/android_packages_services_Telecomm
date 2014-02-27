@@ -27,6 +27,7 @@ import android.telecomm.ICallServiceSelector;
 import android.util.Log;
 
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
@@ -42,7 +43,13 @@ final class Switchboard {
      * The frequency of invoking tick in milliseconds.
      * TODO(gilad): May require tuning.
      */
-    private final static int TICK_FREQUENCY = 250;
+    private final static int TICK_FREQUENCY_MS = 250;
+
+    /**
+     * The timeout beyond which to drop ongoing attempts to place/receive calls.
+     * TODO(gilad): May require tuning.
+     */
+    private final static int NEW_CALL_TIMEOUT_MS = 5000;
 
     private final CallsManager mCallsManager;
 
@@ -55,6 +62,8 @@ final class Switchboard {
     private final CallServiceRepository mCallServiceRepository;
 
     private final CallServiceSelectorRepository mSelectorRepository;
+
+    private final BinderDeallocator mBinderDeallocator;
 
     /** Used to schedule tasks on the main (UI) thread. */
     private final Handler mHandler = new Handler(Looper.getMainLooper());
@@ -108,6 +117,8 @@ final class Switchboard {
         mSelectorRepository = new CallServiceSelectorRepository(this);
         mCallServiceRepository =
                 new CallServiceRepository(this, mOutgoingCallsManager, mIncomingCallsManager);
+
+        mBinderDeallocator = new BinderDeallocator();
     }
 
     /**
@@ -118,7 +129,7 @@ final class Switchboard {
      * @param call The yet-to-be-connected outgoing-call object.
      */
     void placeOutgoingCall(Call call) {
-        ThreadUtil.checkOnMainThread();
+        mBinderDeallocator.acquireUsePermit();
 
         // Reset prior to initiating the next lookup. One case to consider is (1) placeOutgoingCall
         // is invoked with call A, (2) the call-service lookup completes, but the one for selectors
@@ -147,6 +158,8 @@ final class Switchboard {
      */
     void retrieveIncomingCall(Call call, CallServiceDescriptor descriptor) {
         Log.d(TAG, "retrieveIncomingCall");
+        mBinderDeallocator.acquireUsePermit();
+
         CallServiceWrapper callService = mCallServiceRepository.getCallService(descriptor);
         call.setCallService(callService);
         mIncomingCallsManager.retrieveIncomingCall(call);
@@ -161,7 +174,7 @@ final class Switchboard {
      *     hence effectively omitted from the specified list.
      */
     void setCallServices(Set<CallServiceWrapper> callServices) {
-        ThreadUtil.checkOnMainThread();
+        mBinderDeallocator.updateBinders(mCallServices);
 
         mCallServices = callServices;
         processNewOutgoingCalls();
@@ -177,7 +190,8 @@ final class Switchboard {
      */
     void setSelectors(Set<ICallServiceSelector> selectors) {
         // TODO(santoscordon): This should take in CallServiceSelectorWrapper instead of the direct
-        // ICallServiceSelector implementation. Copy what we have for CallServiceWrapper.
+        // ICallServiceSelector implementation. Copy what we have for CallServiceWrapper. Also need
+        // to invoke updateBinders(selectors) once this to-do is addressed.
         ThreadUtil.checkOnMainThread();
 
         // TODO(gilad): Add logic to include the built-in selectors (e.g. for dealing with
@@ -193,10 +207,10 @@ final class Switchboard {
      * see {@link OutgoingCallProcessor}.
      */
     void handleSuccessfulOutgoingCall(Call call) {
-        mCallsManager.handleSuccessfulOutgoingCall(call);
+        Log.d(TAG, "handleSuccessfulOutgoingCall");
 
-        // Process additional (new) calls, if any.
-        processNewOutgoingCalls();
+        mCallsManager.handleSuccessfulOutgoingCall(call);
+        finalizeOutgoingCall(call);
     }
 
     /**
@@ -204,10 +218,11 @@ final class Switchboard {
      * selector/call-service implementations, see {@link OutgoingCallProcessor}.
      */
     void handleFailedOutgoingCall(Call call) {
-        // TODO(gilad): More here.
+        Log.d(TAG, "handleFailedOutgoingCall");
 
-        // Process additional (new) calls, if any.
-        processNewOutgoingCalls();
+        // TODO(gilad): Notify mCallsManager.
+
+        finalizeOutgoingCall(call);
     }
 
     /**
@@ -217,7 +232,9 @@ final class Switchboard {
      */
     void handleSuccessfulIncomingCall(Call call) {
         Log.d(TAG, "handleSuccessfulIncomingCall");
+
         mCallsManager.handleSuccessfulIncomingCall(call);
+        mBinderDeallocator.releaseUsePermit();
     }
 
     /**
@@ -227,9 +244,13 @@ final class Switchboard {
      * @param call The call.
      */
     void handleFailedIncomingCall(Call call) {
+        Log.d(TAG, "handleFailedIncomingCall");
+
         // Since we set the call service before calling into incoming-calls manager, we clear it for
         // good measure if an error is reported.
         call.clearCallService();
+
+        mBinderDeallocator.releaseUsePermit();
 
         // At the moment there is nothing more to do if an incoming call is not retrieved. We may at
         // a future date bind to the in-call app optimistically during the incoming-call sequence
@@ -251,19 +272,7 @@ final class Switchboard {
      * Schedules the next tick invocation.
      */
     private void scheduleNextTick() {
-         mHandler.postDelayed(mTicker, TICK_FREQUENCY);
-    }
-
-    /**
-     * Performs the set of tasks that needs to be executed on polling basis.
-     * TODO(gilad): Check for stale pending calls that may need to be terminated etc, see
-     * mNewOutgoingCalls and mPendingOutgoingCalls.
-     * TODO(gilad): Also intended to trigger the call switching/hand-off logic when applicable.
-     */
-    private void tick() {
-        // TODO(gilad): More here.
-        // TODO(santoscordon): Clear mCallServices if there exist no more new or pending outgoing
-        // calls.
+         mHandler.postDelayed(mTicker, TICK_FREQUENCY_MS);
     }
 
     /**
@@ -301,6 +310,56 @@ final class Switchboard {
         selectors.addAll(mSelectors);
 
         mOutgoingCallsManager.placeCall(call, mCallServices, selectors);
+    }
+
+    /**
+     * Finalizes the outgoing-call sequence, regardless if it succeeded or failed.
+     */
+    private void finalizeOutgoingCall(Call call) {
+        mPendingOutgoingCalls.remove(call);
+
+        mBinderDeallocator.releaseUsePermit();
+        processNewOutgoingCalls();  // Process additional (new) calls, if any.
+    }
+
+    /**
+     * Performs the set of tasks that needs to be executed on polling basis.
+     */
+    private void tick() {
+        // TODO(gilad): Add the necessary logic to support switching.
+
+        expireStaleOutgoingCalls(mNewOutgoingCalls);
+        expireStaleOutgoingCalls(mPendingOutgoingCalls);
+    }
+
+    /**
+     * Identifies stale calls and takes the necessary steps to mark these as expired.
+     *
+     * @param calls The set of calls to iterate through.
+     */
+    private void expireStaleOutgoingCalls(Set<Call> calls) {
+        if (calls.isEmpty()) {
+            return;
+        }
+
+        Iterator<Call> iterator = calls.iterator();
+        while (iterator.hasNext()) {
+            Call call = iterator.next();
+            if (call.getAgeInMilliseconds() >= NEW_CALL_TIMEOUT_MS) {
+                mOutgoingCallsManager.abort(call);
+                calls.remove(call);
+
+                // TODO(gilad): We may also have expired calls that are not yet associated with an
+                // OutgoingCallProcessor (e.g. when newer calls are "blocked" on older-yet-expired
+                // ones), in which case call.abort may need to be invoked directly.  Alternatively
+                // we can also create an OutgoingCallsManager instance for every new call at intent-
+                // processing time.
+
+                // TODO(gilad): Notify the user in the relevant cases (at least outgoing).
+
+                mBinderDeallocator.releaseUsePermit();
+            }
+        }
     }
 
     /**

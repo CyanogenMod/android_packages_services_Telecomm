@@ -124,4 +124,16 @@ final class OutgoingCallsManager {
         mOutgoingCallProcessors.remove(call.getId());
         mSwitchboard.handleFailedOutgoingCall(call);
     }
+
+    /**
+     * Aborts any ongoing attempts to connect the specified (outgoing) call.
+     *
+     * @param call The call to be aborted.
+     */
+    void abort(Call call) {
+        OutgoingCallProcessor processor = mOutgoingCallProcessors.remove(call.getId());
+        if (processor != null) {
+            processor.abort();
+        }
+    }
 }

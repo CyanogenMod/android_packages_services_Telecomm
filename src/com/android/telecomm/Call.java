@@ -16,9 +16,9 @@
 
 package com.android.telecomm;
 
-import android.os.RemoteException;
 import android.telecomm.CallInfo;
 import android.telecomm.CallState;
+import android.telecomm.ICallServiceSelector;
 import android.util.Log;
 
 import com.google.common.base.Preconditions;
@@ -55,10 +55,15 @@ final class Call {
     private String mHandle;
 
     /**
-     * The call service which is currently connecting this call, null as long as the call is not
-     * connected.
+     * The call service which is attempted or already connecting this call.
      */
     private CallServiceWrapper mCallService;
+
+    /**
+     * The call-service selector for this call.
+     * TODO(gilad): Switch to using a wrapper object, see {@link #mCallService}.
+     */
+    private ICallServiceSelector mCallServiceSelector;
 
     /** Read-only and parcelable version of this call. */
     private CallInfo mCallInfo;
@@ -133,6 +138,14 @@ final class Call {
     }
 
     void setCallService(CallServiceWrapper callService) {
+        Preconditions.checkNotNull(callService);
+
+        if (mCallService != null) {
+            // Should never be the case, basically covering for potential programming errors.
+            decrementAssociatedCallCount(mCallService);
+        }
+
+        callService.incrementAssociatedCallCount();
         mCallService = callService;
     }
 
@@ -140,7 +153,34 @@ final class Call {
      * Clears the associated call service.
      */
     void clearCallService() {
-        setCallService(null);
+        decrementAssociatedCallCount(mCallService);
+        mCallService = null;
+    }
+
+    void setCallServiceSelector(ICallServiceSelector selector) {
+        Preconditions.checkNotNull(selector);
+        mCallServiceSelector = selector;
+    }
+
+    void clearCallServiceSelector() {
+        mCallServiceSelector = null;
+
+        // TODO(gilad): Un-comment once selectors are converted into wrappers.
+        // decrementAssociatedCallCount(mCallServiceSelector);
+    }
+
+    /**
+     * Aborts ongoing attempts to connect this call. No-op once the call is connected or has been
+     * disconnected.  See {@link #disconnect} for already-connected calls.
+     */
+    void abort() {
+        if (mState == CallState.NEW ||
+                mState == CallState.DIALING ||
+                mState == CallState.RINGING) {
+
+            // TODO(gilad): Add CallState.ABORTED and set it here.
+            // mState = CallState.ABORTED;
+        }
     }
 
     /**
@@ -215,5 +255,12 @@ final class Call {
      */
     private void clearCallInfo() {
         mCallInfo = null;
+    }
+
+    @SuppressWarnings("rawtypes")
+    private void decrementAssociatedCallCount(ServiceBinder binder) {
+        if (binder != null) {
+            binder.decrementAssociatedCallCount();
+        }
     }
 }

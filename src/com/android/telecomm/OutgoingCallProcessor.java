@@ -87,12 +87,6 @@ final class OutgoingCallProcessor {
 
     private Iterator<ICallServiceSelector> mSelectorIterator;
 
-    /**
-     * The last call service which we asked to place the call. If null, it indicates that there
-     * exists no call service that we expect to place this call.
-     */
-    private CallServiceWrapper mCallService;
-
     private boolean mIsAborted = false;
 
     /**
@@ -143,6 +137,8 @@ final class OutgoingCallProcessor {
         if (mSelectors.isEmpty() || mCallServiceDescriptors.isEmpty()) {
             // TODO(gilad): Consider adding a failure message/type to differentiate the various
             // cases, or potentially throw an exception in this case.
+            // TODO(gilad): Perform this check all the way up in switchboard to short-circuit
+            // the current detour.
             mOutgoingCallsManager.handleFailedOutgoingCall(mCall);
         } else if (mSelectorIterator == null) {
             mSelectorIterator = mSelectors.iterator();
@@ -155,8 +151,10 @@ final class OutgoingCallProcessor {
      * switchboard through the outgoing-calls manager.
      */
     void abort() {
-        ThreadUtil.checkOnMainThread();
-        resetCallService();
+        mCall.abort();
+
+        // TODO(gilad): Add logic to notify the relevant call service and/or selector.
+
         mIsAborted = true;
     }
 
@@ -166,8 +164,16 @@ final class OutgoingCallProcessor {
      * placed the call.
      */
     void handleSuccessfulCallAttempt() {
-        mCall.setCallService(mCallService);
+        ThreadUtil.checkOnMainThread();
+
+        if (mIsAborted) {
+            // TODO(gilad): Ask the call service to drop the call?
+            return;
+        }
+
         mCall.setState(CallState.DIALING);
+
+        // TODO(gilad): Seems better/clearer not to invoke "abort" on successfully-connected calls.
         abort();
 
         mSwitchboard.handleSuccessfulOutgoingCall(mCall);
@@ -180,6 +186,10 @@ final class OutgoingCallProcessor {
      * @param reason The call-service supplied reason for the failed call attempt.
      */
     void handleFailedCallAttempt(String reason) {
+        ThreadUtil.checkOnMainThread();
+
+        mCall.clearCallService();
+        mCall.clearCallServiceSelector();
         attemptNextCallService();
     }
 
@@ -194,6 +204,8 @@ final class OutgoingCallProcessor {
 
         if (mSelectorIterator.hasNext()) {
             ICallServiceSelector selector = mSelectorIterator.next();
+            mCall.setCallServiceSelector(selector);
+
             ICallServiceSelectionResponse.Stub response = createSelectionResponse();
             try {
                 selector.select(mCall.toCallInfo(), mCallServiceDescriptors, response);
@@ -256,34 +268,30 @@ final class OutgoingCallProcessor {
 
         if (mCallServiceDescriptorIterator.hasNext()) {
             CallServiceDescriptor descriptor = mCallServiceDescriptorIterator.next();
-            mCallService = mCallServicesById.get(descriptor.getCallServiceId());
-            if (mCallService == null) {
+            final CallServiceWrapper callService =
+                    mCallServicesById.get(descriptor.getCallServiceId());
+
+            if (callService == null) {
                 attemptNextCallService();
             } else {
                 BindCallback callback = new BindCallback() {
                     @Override public void onSuccess() {
-                        mCallService.call(mCall.toCallInfo());
+                        callService.call(mCall.toCallInfo());
                     }
                     @Override public void onFailure() {
                         attemptNextCallService();
                     }
                 };
+
+                mCall.setCallService(callService);
+
                 // TODO(santoscordon): Consider making bind private to CallServiceWrapper and having
                 // CSWrapper.call() do the bind automatically.
-                mCallService.bind(callback);
+                callService.bind(callback);
             }
         } else {
             mCallServiceDescriptorIterator = null;
-            resetCallService();
             attemptNextSelector();
         }
-    }
-
-    /**
-     * Nulls out the reference to the current call service. Invoked when the call service is no longer
-     * expected to place the outgoing call.
-     */
-    private void resetCallService() {
-        mCallService = null;
     }
 }

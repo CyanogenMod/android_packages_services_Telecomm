@@ -16,8 +16,6 @@
 
 package com.android.telecomm;
 
-import android.os.Handler;
-import android.os.Looper;
 import android.telecomm.CallInfo;
 import android.util.Log;
 
@@ -36,15 +34,7 @@ final class IncomingCallsManager {
 
     private static final String TAG = IncomingCallsManager.class.getSimpleName();
 
-    /**
-     * The amount of time to wait for details of an incoming call, in milliseconds.
-     * TODO(santoscordon): Likely needs adjustment.
-     */
-    private static final int INCOMING_CALL_TIMEOUT_MS = 1000;
-
     private final Switchboard mSwitchboard;
-
-    private final Handler mHandler = new Handler(Looper.getMainLooper());
 
     /** Maps call ID to the call. */
     private final Map<String, Call> mPendingIncomingCalls = Maps.newHashMap();
@@ -64,7 +54,7 @@ final class IncomingCallsManager {
      *
      * @param call The call object.
      */
-    void retrieveIncomingCall(Call call) {
+    void retrieveIncomingCall(final Call call) {
         ThreadUtil.checkOnMainThread();
         Log.d(TAG, "retrieveIncomingCall");
 
@@ -74,11 +64,13 @@ final class IncomingCallsManager {
 
         mPendingIncomingCalls.put(callId, call);
 
-        // TODO(santoscordon): Timeout will not be necessary after cleanup via tick() is implemented
-        // in Switchboard.
-        startTimeoutForCall(call);
+        Runnable errorCallback = new Runnable() {
+            @Override public void run() {
+                handleFailedIncomingCall(call);
+            }
+        };
 
-        Runnable errorCallback = getFailedIncomingCallback(call);
+        // TODO(gilad): call.retrieve*Call() seems a bit unusual, consider revisiting.
         call.getCallService().retrieveIncomingCall(callId, errorCallback);
     }
 
@@ -114,30 +106,5 @@ final class IncomingCallsManager {
             // The call was found still waiting for details. Consider it failed.
             mSwitchboard.handleFailedIncomingCall(call);
         }
-    }
-
-    /**
-     * Starts a timeout to timebox the retrieval of an incoming call. When the timeout expires,
-     * it will notify switchboard that the incoming call was not retrieved and thus does not exist
-     * as far as Telecomm is concerned.
-     *
-     * @param call The call.
-     */
-    private void startTimeoutForCall(Call call) {
-        Runnable timeoutCallback = getFailedIncomingCallback(call);
-        mHandler.postDelayed(timeoutCallback, INCOMING_CALL_TIMEOUT_MS);
-    }
-
-    /**
-     * Returns a runnable to be invoked upon failure to get details for an incoming call.
-     *
-     * @param call The failed incoming call.
-     */
-    private Runnable getFailedIncomingCallback(final Call call) {
-        return new Runnable() {
-            @Override public void run() {
-                handleFailedIncomingCall(call);
-            }
-        };
     }
 }
