@@ -163,10 +163,10 @@ final class Call {
     }
 
     void clearCallServiceSelector() {
-        mCallServiceSelector = null;
-
         // TODO(gilad): Un-comment once selectors are converted into wrappers.
         // decrementAssociatedCallCount(mCallServiceSelector);
+
+        mCallServiceSelector = null;
     }
 
     /**
@@ -178,8 +178,9 @@ final class Call {
                 mState == CallState.DIALING ||
                 mState == CallState.RINGING) {
 
-            // TODO(gilad): Add CallState.ABORTED and set it here.
-            // mState = CallState.ABORTED;
+            clearCallService();
+            clearCallServiceSelector();
+            mState = CallState.ABORTED;
         }
     }
 

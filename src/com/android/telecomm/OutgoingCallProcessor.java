@@ -151,11 +151,14 @@ final class OutgoingCallProcessor {
      * switchboard through the outgoing-calls manager.
      */
     void abort() {
-        mCall.abort();
+        ThreadUtil.checkOnMainThread();
+        if (!mIsAborted) {
+            mCall.abort();
 
-        // TODO(gilad): Add logic to notify the relevant call service and/or selector.
+            // TODO(gilad): Add logic to notify the relevant call service and/or selector.
 
-        mIsAborted = true;
+            mIsAborted = true;
+        }
     }
 
     /**
