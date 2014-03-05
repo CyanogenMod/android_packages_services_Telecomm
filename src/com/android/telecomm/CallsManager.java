@@ -94,6 +94,7 @@ public final class CallsManager {
         mSwitchboard = new Switchboard(this);
         mInCallController = new InCallController(this);
         mRinger = new Ringer();
+        mCallLogManager = new CallLogManager(TelecommApp.getInstance());
     }
 
     static CallsManager getInstance() {
@@ -183,6 +184,15 @@ public final class CallsManager {
         // the state is appropriate.
         Preconditions.checkState(call.getState() == CallState.DIALING);
         addCall(call);
+    }
+
+    /**
+     * Informs mCallLogManager about the outgoing call that failed, so that it can be logged.
+     *
+     * @param call The failed outgoing call.
+     */
+    void handleFailedOutgoingCall(Call call) {
+        mCallLogManager.logFailedOutgoingCall(call);
     }
 
     /**
@@ -291,6 +301,9 @@ public final class CallsManager {
         if (mCalls.isEmpty()) {
             mInCallController.unbind();
         }
+
+        // Log the call in the call log.
+        mCallLogManager.logDisconnectedCall(call);
     }
 
     /**
