@@ -16,9 +16,11 @@
 
 package com.android.telecomm;
 
+import android.os.Bundle;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.telecomm.CallInfo;
+import android.telecomm.CallService;
 import android.telecomm.CallServiceDescriptor;
 import android.telecomm.ICallService;
 import android.telecomm.ICallServiceAdapter;
@@ -105,11 +107,11 @@ public class CallServiceWrapper extends ServiceBinder<ICallService> {
     }
 
     /** See {@link ICallService#setIncomingCallId}. */
-    public void setIncomingCallId(String callId) {
+    public void setIncomingCallId(String callId, Bundle extras) {
         if (isServiceValid("setIncomingCallId")) {
             mAdapter.addPendingIncomingCallId(callId);
             try {
-                mServiceInterface.setIncomingCallId(callId);
+                mServiceInterface.setIncomingCallId(callId, extras);
             } catch (RemoteException e) {
                 Log.e(TAG, "Failed to setIncomingCallId for call " + callId, e);
                 mAdapter.removePendingIncomingCallId(callId);
@@ -155,13 +157,16 @@ public class CallServiceWrapper extends ServiceBinder<ICallService> {
      * call-service adapter using the specified call ID. Upon failure, the specified error callback
      * is invoked. Can be invoked even when the call service is unbound.
      *
-     * @param callID The call ID used for the incoming call.
+     * @param callId The call ID used for the incoming call.
+     * @param extras The {@link CallService}-provided extras which need to be sent back.
      * @param errorCallback The callback invoked upon failure.
      */
-    void retrieveIncomingCall(final String callId, final Runnable errorCallback) {
+    void retrieveIncomingCall(final String callId, final Bundle extras,
+            final Runnable errorCallback) {
+
         BindCallback callback = new BindCallback() {
             @Override public void onSuccess() {
-                setIncomingCallId(callId);
+                setIncomingCallId(callId, extras);
             }
             @Override public void onFailure() {
                 errorCallback.run();

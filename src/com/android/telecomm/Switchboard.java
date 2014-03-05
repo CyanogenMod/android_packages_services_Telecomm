@@ -20,10 +20,12 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.telecomm.CallServiceDescriptor;
 import android.telecomm.ICallServiceSelector;
+import android.telecomm.TelecommConstants;
 import android.util.Log;
 
 import java.util.Collection;
@@ -155,14 +157,16 @@ final class Switchboard {
      *
      * @param call The call object.
      * @param descriptor The relevant call-service descriptor.
+     * @param extras The optional extras passed via
+     *     {@link TelecommConstants#EXTRA_INCOMING_CALL_EXTRAS}
      */
-    void retrieveIncomingCall(Call call, CallServiceDescriptor descriptor) {
+    void retrieveIncomingCall(Call call, CallServiceDescriptor descriptor, Bundle extras) {
         Log.d(TAG, "retrieveIncomingCall");
         mBinderDeallocator.acquireUsePermit();
 
         CallServiceWrapper callService = mCallServiceRepository.getCallService(descriptor);
         call.setCallService(callService);
-        mIncomingCallsManager.retrieveIncomingCall(call);
+        mIncomingCallsManager.retrieveIncomingCall(call, extras);
     }
 
     /**

@@ -126,7 +126,12 @@ public class CallActivity extends Activity {
             return;
         }
 
+        Bundle clientExtras = Bundle.EMPTY;
+        if (intent.hasExtra(TelecommConstants.EXTRA_INCOMING_CALL_EXTRAS)) {
+            clientExtras = intent.getBundleExtra(TelecommConstants.EXTRA_INCOMING_CALL_EXTRAS);
+        }
+
         Log.d(TAG, "Processing incoming call from call service [" + descriptor + "]");
-        mCallsManager.processIncomingCallIntent(descriptor);
+        mCallsManager.processIncomingCallIntent(descriptor, clientExtras);
     }
 }
