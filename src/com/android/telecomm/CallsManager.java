@@ -46,6 +46,8 @@ public final class CallsManager {
     /** Used to control the in-call app. */
     private final InCallController mInCallController;
 
+    private final Ringer mRinger;
+
     /**
      * The main call repository. Keeps an instance of all live calls keyed by call ID. New incoming
      * and outgoing calls are added to the map and removed when the calls move to the disconnected
@@ -53,6 +55,15 @@ public final class CallsManager {
      * TODO(santoscordon): Add new CallId class and use it in place of String.
      */
     private final Map<String, Call> mCalls = Maps.newHashMap();
+
+    /**
+     * Used to keep ordering of unanswered incoming calls. The existence of multiple call services
+     * means that there can easily exist multiple incoming calls and explicit ordering is useful for
+     * maintaining the proper state of the ringer.
+     * TODO(santoscordon): May want to add comments about ITelephony.answerCall() method since
+     * ordering may also apply to that case.
+     */
+    private final List<Call> mUnansweredIncomingCalls = Lists.newLinkedList();
 
     /**
      * May be unnecessary per off-line discussions (between santoscordon and gilad) since the set
@@ -77,6 +88,7 @@ public final class CallsManager {
     private CallsManager() {
         mSwitchboard = new Switchboard(this);
         mInCallController = new InCallController(this);
+        mRinger = new Ringer();
     }
 
     static CallsManager getInstance() {
@@ -123,6 +135,12 @@ public final class CallsManager {
         // No objection to accept the incoming call, proceed with potentially connecting it (based
         // on the user's action, or lack thereof).
         addCall(call);
+
+        mUnansweredIncomingCalls.add(call);
+        if (mUnansweredIncomingCalls.size() == 1) {
+            // Start the ringer if we are the top-most incoming call (the only one in this case).
+            mRinger.startRinging();
+        }
     }
 
     /**
@@ -173,6 +191,8 @@ public final class CallsManager {
         if (call == null) {
             Log.i(TAG, "Request to answer a non-existent call " + callId);
         } else {
+            stopRinging(call);
+
             // We do not update the UI until we get confirmation of the answer() through
             // {@link #markCallAsActive}. However, if we ever change that to look more responsive,
             // then we need to make sure we add a timeout for the answer() in case the call never
@@ -193,6 +213,7 @@ public final class CallsManager {
         if (call == null) {
             Log.i(TAG, "Request to reject a non-existent call " + callId);
         } else {
+            stopRinging(call);
             call.reject();
         }
     }
@@ -224,6 +245,7 @@ public final class CallsManager {
 
     void markCallAsActive(String callId) {
         setCallState(callId, CallState.ACTIVE);
+        removeFromUnansweredCalls(callId);
         mInCallController.markCallAsActive(callId);
     }
 
@@ -235,6 +257,7 @@ public final class CallsManager {
      */
     void markCallAsDisconnected(String callId) {
         setCallState(callId, CallState.DISCONNECTED);
+        removeFromUnansweredCalls(callId);
 
         Call call = mCalls.remove(callId);
         // At this point the call service has confirmed that the call is disconnected to it is
@@ -280,29 +303,65 @@ public final class CallsManager {
     }
 
     /**
-     * Sets the specified state on the specified call.
+     * Sets the specified state on the specified call. Updates the ringer if the call is exiting
+     * the RINGING state.
      *
      * @param callId The ID of the call to update.
-     * @param state The new state of the call.
+     * @param newState The new state of the call.
      */
-    private void setCallState(String callId, CallState state) {
+    private void setCallState(String callId, CallState newState) {
         Preconditions.checkState(!Strings.isNullOrEmpty(callId));
-        Preconditions.checkNotNull(state);
+        Preconditions.checkNotNull(newState);
 
         Call call = mCalls.get(callId);
         if (call == null) {
-            Log.e(TAG, "Call " + callId + " was not found while attempting to upda the state to " +
-                    state + ".");
+            Log.e(TAG, "Call " + callId + " was not found while attempting to update the state " +
+                    "to " + newState + ".");
         } else {
-            // Unfortunately, in the telephony world, the radio is king. So if the call notifies us
-            // that the call is in a particular state, we allow it even if it doesn't make sense
-            // (e.g., ACTIVE -> RINGING).
-            // TODO(santoscordon): Consider putting a stop to the above and turning CallState into
-            // a well-defined state machine.
-            // TODO(santoscordon): Define expected state transitions here, and log when an
-            // unexpected transition occurs.
-            call.setState(state);
-            // TODO(santoscordon): Notify the in-call app whenever a call changes state.
+            if (newState != call.getState()) {
+                // Unfortunately, in the telephony world the radio is king. So if the call notifies
+                // us that the call is in a particular state, we allow it even if it doesn't make
+                // sense (e.g., ACTIVE -> RINGING).
+                // TODO(santoscordon): Consider putting a stop to the above and turning CallState
+                // into a well-defined state machine.
+                // TODO(santoscordon): Define expected state transitions here, and log when an
+                // unexpected transition occurs.
+                call.setState(newState);
+                // TODO(santoscordon): Notify the in-call app whenever a call changes state.
+            }
+        }
+    }
+
+    /**
+     * Removes the specified call from the list of unanswered incoming calls and updates the ringer
+     * based on the new state of {@link #mUnansweredIncomingCalls}. Safe to call with a call ID that
+     * is not present in the list of incoming calls.
+     *
+     * @param callId The ID of the call.
+     */
+    private void removeFromUnansweredCalls(String callId) {
+        Call call = mCalls.get(callId);
+        if (call != null && mUnansweredIncomingCalls.remove(call)) {
+            if (mUnansweredIncomingCalls.isEmpty()) {
+                mRinger.stopRinging();
+            } else {
+                mRinger.startRinging();
+            }
+        }
+    }
+
+    /**
+     * Stops playing the ringer if the specified call is the top-most incoming call. This exists
+     * separately from {@link #removeIncomingCall} for cases where we would like to stop playing the
+     * ringer for a call, but that call may still exist in {@link #mUnansweredIncomingCalls} - See
+     * {@link #rejectCall}, {@link #answerCall}.
+     *
+     * @param call The call for which we should stop ringing.
+     */
+    private void stopRinging(Call call) {
+        // Only stop the ringer if this call is the top-most incoming call.
+        if (!mUnansweredIncomingCalls.isEmpty() && mUnansweredIncomingCalls.get(0) == call) {
+            mRinger.stopRinging();
         }
     }
 }
