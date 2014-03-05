@@ -175,10 +175,6 @@ final class OutgoingCallProcessor {
         }
 
         mCall.setState(CallState.DIALING);
-
-        // TODO(gilad): Seems better/clearer not to invoke "abort" on successfully-connected calls.
-        abort();
-
         mSwitchboard.handleSuccessfulOutgoingCall(mCall);
     }
 
