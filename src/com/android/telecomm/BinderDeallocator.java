@@ -87,7 +87,9 @@ final class BinderDeallocator {
     void updateBinders(Set<? extends ServiceBinder> binders) {
         ThreadUtil.checkOnMainThread();
 
-        mBinders.addAll(binders);
+        if (binders != null) {
+            mBinders.addAll(binders);
+        }
     }
 
     /**
