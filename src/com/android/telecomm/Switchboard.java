@@ -16,7 +16,6 @@
 
 package com.android.telecomm;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -28,7 +27,6 @@ import android.telecomm.ICallServiceSelector;
 import android.telecomm.TelecommConstants;
 import android.util.Log;
 
-import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;

@@ -18,7 +18,6 @@ package com.android.telecomm;
 
 import android.os.Handler;
 import android.os.Looper;
-import android.os.RemoteException;
 import android.telecomm.IInCallAdapter;
 import android.util.Log;
 
@@ -42,7 +41,7 @@ class InCallAdapter extends IInCallAdapter.Stub {
 
     /** {@inheritDoc} */
     @Override
-    public void answerCall(final String callId) throws RemoteException {
+    public void answerCall(final String callId) {
         Log.d(TAG, "answerCall(" + callId + ")");
         mHandler.post(new Runnable() {
             @Override public void run() {
@@ -53,7 +52,7 @@ class InCallAdapter extends IInCallAdapter.Stub {
 
     /** {@inheritDoc} */
     @Override
-    public void rejectCall(final String callId) throws RemoteException {
+    public void rejectCall(final String callId) {
         Log.d(TAG, "rejectCall(" + callId + ")");
         mHandler.post(new Runnable() {
             @Override public void run() {
@@ -64,12 +63,11 @@ class InCallAdapter extends IInCallAdapter.Stub {
 
     /** {@inheritDoc} */
     @Override
-    public void disconnectCall(final String callId) throws RemoteException {
+    public void disconnectCall(final String callId) {
         mHandler.post(new Runnable() {
             @Override public void run() {
                 mCallsManager.disconnectCall(callId);
             }
         });
     }
-
 }

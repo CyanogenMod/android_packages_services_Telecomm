@@ -26,8 +26,6 @@ import android.telecomm.ICallService;
 import android.telecomm.ICallServiceAdapter;
 import android.util.Log;
 
-import com.android.telecomm.ServiceBinder.BindCallback;
-
 /**
  * Wrapper for {@link ICallService}s, handles binding to {@link ICallService} and keeps track of
  * when the object can safely be unbound. Other classes should not use {@link ICallService} directly
