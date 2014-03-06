@@ -118,15 +118,9 @@ public class TestCallService extends CallService {
 
     /** {@inheritDoc} */
     @Override
-    public void disconnect(String callId) {
-        Log.i(TAG, "disconnect(" + callId + ")");
-
-        try {
-            destroyCall(callId);
-            mCallsManagerAdapter.setDisconnected(callId);
-        } catch (RemoteException e) {
-            Log.e(TAG, "Failed to setDisconnected().", e);
-        }
+    public void abort(String callId) {
+        Log.i(TAG, "abort(" + callId + ")");
+        destroyCall(callId);
     }
 
     /** {@inheritDoc} */
@@ -162,6 +156,19 @@ public class TestCallService extends CallService {
             mCallsManagerAdapter.setDisconnected(callId);
         } catch (RemoteException e) {
             Log.e(TAG, "Failed to setDisconnected the call " + callId);
+        }
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void disconnect(String callId) {
+        Log.i(TAG, "disconnect(" + callId + ")");
+
+        destroyCall(callId);
+        try {
+            mCallsManagerAdapter.setDisconnected(callId);
+        } catch (RemoteException e) {
+            Log.e(TAG, "Failed to setDisconnected().", e);
         }
     }
 
