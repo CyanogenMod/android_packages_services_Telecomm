@@ -98,7 +98,7 @@ final class CallServiceRepository {
      * responses are received, the partial (potentially empty) set gets passed (to the switchboard)
      * instead. Entries are removed from this set as providers are processed.
      */
-    private Set<ComponentName> mOutstandingProviders;
+    private final Set<ComponentName> mOutstandingProviders = Sets.newHashSet();
 
     /**
      * The map of call-service wrappers keyed by their ComponentName.  Used to ensure at most one
@@ -107,7 +107,7 @@ final class CallServiceRepository {
      * include only active call services (ones that are associated with one or more active calls)
      * upon {@link #purgeInactiveCallServices()} invocations.
      */
-    private Map<ComponentName, CallServiceWrapper> mCallServices = Maps.newHashMap();
+    private final Map<ComponentName, CallServiceWrapper> mCallServices = Maps.newHashMap();
 
     /**
      * Persists the specified parameters.
@@ -149,7 +149,7 @@ final class CallServiceRepository {
         mLookupId = lookupId;
         mIsLookupInProgress = true;
 
-        mOutstandingProviders = Sets.newHashSet();
+        mOutstandingProviders.clear();
         for (ComponentName name : providerNames) {
             mOutstandingProviders.add(name);
             bindProvider(name);
@@ -347,7 +347,7 @@ final class CallServiceRepository {
      */
     private void terminateLookup() {
         mHandler.removeCallbacks(mLookupTerminator);
-        mOutstandingProviders = null;
+        mOutstandingProviders.clear();
 
         updateSwitchboard();
         mIsLookupInProgress = false;

@@ -79,9 +79,9 @@ public final class CallsManager {
 
     private VoicemailManager mVoicemailManager;
 
-    private List<OutgoingCallValidator> mOutgoingCallValidators = Lists.newArrayList();
+    private final List<OutgoingCallValidator> mOutgoingCallValidators = Lists.newArrayList();
 
-    private List<IncomingCallValidator> mIncomingCallValidators = Lists.newArrayList();
+    private final List<IncomingCallValidator> mIncomingCallValidators = Lists.newArrayList();
 
     /**
      * Initializes the required Telecomm components.

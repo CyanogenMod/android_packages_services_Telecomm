@@ -91,7 +91,7 @@ final class CallServiceSelectorRepository {
      * The set of bound call-service selectors.  Only populated via initiateLookup scenarios.
      * Selectors should only be removed upon unbinding.
      */
-    private Set<ICallServiceSelector> mSelectorRegistry = Sets.newHashSet();
+    private final Set<ICallServiceSelector> mSelectorRegistry = Sets.newHashSet();
 
     /**
      * Stores the names of the selectors to bind to in one lookup cycle.  The set size represents
@@ -103,7 +103,7 @@ final class CallServiceSelectorRepository {
      * selectors do not require finding and hence are excluded from this set.  Also note that
      * selectors are removed from this set as they register.
      */
-    private Set<ComponentName> mUnregisteredSelectors;
+    private final Set<ComponentName> mUnregisteredSelectors = Sets.newHashSet();
 
     /**
      * Persists the specified parameters and initializes the new instance.
@@ -136,7 +136,7 @@ final class CallServiceSelectorRepository {
 
         mLookupId = lookupId;
         mIsLookupInProgress = true;
-        mUnregisteredSelectors = Sets.newHashSet();
+        mUnregisteredSelectors.clear();
 
         for (ComponentName name : selectorNames) {
             if (!mSelectorRegistry.contains(name)) {

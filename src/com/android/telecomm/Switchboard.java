@@ -94,14 +94,14 @@ final class Switchboard {
      * {@link CallServiceRepository}.  Populated during call-service lookup cycles as part of the
      * {@link #placeOutgoingCall} flow and cleared upon zero-remaining new/pending outgoing calls.
      */
-    private Set<CallServiceWrapper> mCallServices;
+    private final Set<CallServiceWrapper> mCallServices = Sets.newHashSet();
 
     /**
      * The set of currently available call-service-selector implementations,
      * see {@link CallServiceSelectorRepository}.
-     * TODO(gilad): Null out once the active-call count goes to zero.
+     * TODO(gilad): Clear once the active-call count goes to zero.
      */
-    private Set<ICallServiceSelector> mSelectors;
+    private final Set<ICallServiceSelector> mSelectors = Sets.newHashSet();
 
     /**
      * The current lookup-cycle ID used with the repositories. Incremented with each invocation
@@ -139,8 +139,8 @@ final class Switchboard {
         // reset, (5) the selector lookup completes but the call-services are missing.  This should
         // be okay since the call-service lookup completed. Specifically the already-available call
         // services are cached and will be provided in response to the second lookup cycle.
-        mCallServices = null;
-        mSelectors = null;
+        mCallServices.clear();
+        mSelectors.clear();
 
         mNewOutgoingCalls.add(call);
 
@@ -180,7 +180,8 @@ final class Switchboard {
     void setCallServices(Set<CallServiceWrapper> callServices) {
         mBinderDeallocator.updateBinders(mCallServices);
 
-        mCallServices = callServices;
+        mCallServices.clear();
+        mCallServices.addAll(callServices);
         processNewOutgoingCalls();
     }
 
@@ -202,7 +203,8 @@ final class Switchboard {
         // emergency calls) and order the entire set prior to the assignment below. If the
         // built-in selectors can be implemented in a manner that does not require binding,
         // that's probably preferred.  May want to use a LinkedHashSet for the sorted set.
-        mSelectors = selectors;
+        mSelectors.clear();
+        mSelectors.addAll(selectors);
         processNewOutgoingCalls();
     }
 
@@ -283,7 +285,7 @@ final class Switchboard {
      * Attempts to process the next new outgoing calls that have not yet been expired.
      */
     private void processNewOutgoingCalls() {
-        if (isNullOrEmpty(mCallServices) || isNullOrEmpty(mSelectors)) {
+        if (mCallServices.isEmpty() || mSelectors.isEmpty()) {
             // At least one call service and one selector are required to process outgoing calls.
             return;
         }
@@ -305,9 +307,6 @@ final class Switchboard {
      * @param call The call to place.
      */
     private void processNewOutgoingCall(Call call) {
-        Preconditions.checkNotNull(mCallServices);
-        Preconditions.checkNotNull(mSelectors);
-
         // Convert to (duplicate-free) list to aid index-based iteration, see the comment under
         // setSelectors regarding using LinkedHashSet instead.
         List<ICallServiceSelector> selectors = Lists.newArrayList();
@@ -364,16 +363,5 @@ final class Switchboard {
                 mBinderDeallocator.releaseUsePermit();
             }
         }
-    }
-
-    /**
-     * Determines whether or not the specified collection is either null or empty.
-     *
-     * @param collection Either null or the collection object to be evaluated.
-     * @return True if the collection is null or empty.
-     */
-    @SuppressWarnings("rawtypes")
-    private boolean isNullOrEmpty(Collection collection) {
-        return collection == null || collection.isEmpty();
     }
 }

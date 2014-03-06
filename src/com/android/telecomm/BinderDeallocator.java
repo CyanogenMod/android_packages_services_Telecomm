@@ -65,7 +65,7 @@ final class BinderDeallocator {
      * The set of all known binders, either in use or potentially about to be used.
      */
     @SuppressWarnings("rawtypes")
-    private Set<ServiceBinder> mBinders = Sets.newHashSet();
+    private final Set<ServiceBinder> mBinders = Sets.newHashSet();
 
     /**
      * Accounts for the action entering a critical section (i.e. potentially needing access to

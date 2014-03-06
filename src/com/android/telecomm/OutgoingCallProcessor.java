@@ -269,7 +269,7 @@ final class OutgoingCallProcessor {
             return;
         }
 
-        if (mCallServiceDescriptorIterator.hasNext()) {
+        if (mCallServiceDescriptorIterator != null && mCallServiceDescriptorIterator.hasNext()) {
             CallServiceDescriptor descriptor = mCallServiceDescriptorIterator.next();
             final CallServiceWrapper callService =
                     mCallServicesById.get(descriptor.getCallServiceId());
