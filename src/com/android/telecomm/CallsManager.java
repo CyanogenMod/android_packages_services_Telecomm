@@ -16,9 +16,14 @@
 
 package com.android.telecomm;
 
+import android.Manifest;
+import android.content.Intent;
 import android.os.Bundle;
+import android.telecomm.CallService;
 import android.telecomm.CallServiceDescriptor;
 import android.telecomm.CallState;
+import android.telecomm.ICallService;
+import android.telephony.TelephonyManager;
 import android.util.Log;
 
 import com.google.common.base.Preconditions;
@@ -330,8 +335,57 @@ public final class CallsManager {
                 // unexpected transition occurs.
                 call.setState(newState);
                 // TODO(santoscordon): Notify the in-call app whenever a call changes state.
+
+                broadcastState(call);
             }
         }
+    }
+
+    /**
+     * Send a {@link TelephonyManager#ACTION_PHONE_STATE_CHANGED} broadcast when the call state
+     * changes. TODO: Split this out into a separate class and do it properly; this is just a first
+     * pass over the functionality.
+     *
+     * @param call The {@link Call} being updated.
+     */
+    private void broadcastState(Call call) {
+        final String callState;
+        switch (call.getState()) {
+            case DIALING:
+            case ACTIVE:
+                callState = TelephonyManager.EXTRA_STATE_OFFHOOK;
+                break;
+
+            case RINGING:
+                callState = TelephonyManager.EXTRA_STATE_RINGING;
+                break;
+
+            case DISCONNECTED:
+            case ABORTED:
+                callState = TelephonyManager.EXTRA_STATE_IDLE;
+                break;
+
+            default:
+                Log.e(TAG, "Call is in an unknown state (" + call.getState() +
+                        "), not broadcasting: " + call.getId());
+                return;
+        }
+
+        Intent updateIntent = new Intent(TelephonyManager.ACTION_PHONE_STATE_CHANGED);
+        updateIntent.putExtra(TelephonyManager.EXTRA_STATE, callState);
+
+        // Populate both, since the original API was needlessly complicated.
+        updateIntent.putExtra(TelephonyManager.EXTRA_INCOMING_NUMBER, call.getHandle());
+        // TODO: See if we can add this (the current API only sets this on NEW_OUTGOING_CALL).
+        updateIntent.putExtra(Intent.EXTRA_PHONE_NUMBER, call.getHandle());
+
+        // TODO: Replace these with real constants once this API has been vetted.
+        CallServiceWrapper callService = call.getCallService();
+        if (callService != null) {
+            updateIntent.putExtra(CallService.class.getName(), callService.getComponentName());
+        }
+        TelecommApp.getInstance().sendBroadcast(updateIntent, Manifest.permission.READ_PHONE_STATE);
+        Log.i(TAG, "Broadcasted state change: " + callState);
     }
 
     /**
