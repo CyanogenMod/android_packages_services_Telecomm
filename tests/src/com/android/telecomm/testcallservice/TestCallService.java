@@ -130,8 +130,8 @@ public class TestCallService extends CallService {
 
     /** {@inheritDoc} */
     @Override
-    public void setIncomingCallId(String callId) {
-        Log.i(TAG, "setIncomingCallId(" + callId + ")");
+    public void setIncomingCallId(String callId, Bundle extras) {
+        Log.i(TAG, "setIncomingCallId(" + callId + ", " + extras + ")");
 
         // Use dummy number for testing incoming calls.
         String handle = "5551234";
