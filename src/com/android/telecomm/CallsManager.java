@@ -16,6 +16,7 @@
 
 package com.android.telecomm;
 
+import android.os.Bundle;
 import android.telecomm.CallServiceDescriptor;
 import android.telecomm.CallState;
 import android.util.Log;
@@ -101,15 +102,16 @@ public final class CallsManager {
      * to {@link #handleSuccessfulIncomingCall} to start the in-call UI.
      *
      * @param descriptor The descriptor of the call service to use for this incoming call.
+     * @param extras The optional extras Bundle passed with the intent used for the incoming call.
      */
-    void processIncomingCallIntent(CallServiceDescriptor descriptor) {
+    void processIncomingCallIntent(CallServiceDescriptor descriptor, Bundle extras) {
         Log.d(TAG, "processIncomingCallIntent");
         // Create a call with no handle. Eventually, switchboard will update the call with
         // additional information from the call service, but for now we just need one to pass around
         // with a unique call ID.
         Call call = new Call();
 
-        mSwitchboard.retrieveIncomingCall(call, descriptor);
+        mSwitchboard.retrieveIncomingCall(call, descriptor, extras);
     }
 
     /**

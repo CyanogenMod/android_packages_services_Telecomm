@@ -16,7 +16,9 @@
 
 package com.android.telecomm;
 
+import android.os.Bundle;
 import android.telecomm.CallInfo;
+import android.telecomm.CallService;
 import android.util.Log;
 
 import com.google.common.base.Preconditions;
@@ -53,8 +55,10 @@ final class IncomingCallsManager {
      * Starts the timeout sequence in case the call service is unresponsive.
      *
      * @param call The call object.
+     * @param extras The optional extras passed with the incoming call intent (to be returned to
+     *     the call service via {@link CallService#setIncomingCallId(String, android.os.Bundle)}).
      */
-    void retrieveIncomingCall(final Call call) {
+    void retrieveIncomingCall(final Call call, Bundle extras) {
         ThreadUtil.checkOnMainThread();
         Log.d(TAG, "retrieveIncomingCall");
 
@@ -71,7 +75,7 @@ final class IncomingCallsManager {
         };
 
         // TODO(gilad): call.retrieve*Call() seems a bit unusual, consider revisiting.
-        call.getCallService().retrieveIncomingCall(callId, errorCallback);
+        call.getCallService().retrieveIncomingCall(callId, extras, errorCallback);
     }
 
     /**
