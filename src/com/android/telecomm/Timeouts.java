@@ -36,7 +36,7 @@ public final class Timeouts {
      *     allowed to span over.
      */
     public static long getProviderLookupMs() {
-        return get("provider_lookup_ms", 100);
+        return get("provider_lookup_ms", 1000);
     }
 
     /**
@@ -44,7 +44,7 @@ public final class Timeouts {
      *     allowed to span over.
      */
     public static long getSelectorLookupMs() {
-        return get("selector_lookup_ms", 100);
+        return get("selector_lookup_ms", 1000);
     }
 
     /**
