@@ -39,17 +39,6 @@ import java.util.Set;
 final class Switchboard {
 
     private final static String TAG = Switchboard.class.getSimpleName();
-    /**
-     * The frequency of invoking tick in milliseconds.
-     * TODO(gilad): May require tuning.
-     */
-    private final static int TICK_FREQUENCY_MS = 250;
-
-    /**
-     * The timeout beyond which to drop ongoing attempts to place/receive calls.
-     * TODO(gilad): May require tuning.
-     */
-    private final static int NEW_CALL_TIMEOUT_MS = 5000;
 
     private final CallsManager mCallsManager;
 
@@ -276,7 +265,7 @@ final class Switchboard {
      * Schedules the next tick invocation.
      */
     private void scheduleNextTick() {
-         mHandler.postDelayed(mTicker, TICK_FREQUENCY_MS);
+         mHandler.postDelayed(mTicker, Timeouts.getTickMs());
     }
 
     /**
@@ -343,10 +332,11 @@ final class Switchboard {
             return;
         }
 
+        final long newCallTimeoutMs = Timeouts.getNewOutgoingCallMs();
         Iterator<Call> iterator = calls.iterator();
         while (iterator.hasNext()) {
             Call call = iterator.next();
-            if (call.getAgeInMilliseconds() >= NEW_CALL_TIMEOUT_MS) {
+            if (call.getAgeInMilliseconds() >= newCallTimeoutMs) {
                 mOutgoingCallsManager.abort(call);
                 calls.remove(call);
 

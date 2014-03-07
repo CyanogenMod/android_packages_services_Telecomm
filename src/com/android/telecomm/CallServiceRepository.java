@@ -52,13 +52,6 @@ final class CallServiceRepository {
 
     private static final String TAG = CallServiceRepository.class.getSimpleName();
 
-    /**
-     * The longest period in milliseconds each lookup cycle is allowed to span over, see
-     * {@link #mLookupTerminator}.
-     * TODO(gilad): Likely requires tuning.
-     */
-    private static final int LOOKUP_TIMEOUT_MS = 100;
-
     private final Switchboard mSwitchboard;
 
     private final OutgoingCallsManager mOutgoingCallsManager;
@@ -70,7 +63,7 @@ final class CallServiceRepository {
 
     /**
      * Used to interrupt lookup cycles that didn't terminate naturally within the allowed
-     * period, see LOOKUP_TIMEOUT_MS.
+     * period, see {@link Timeouts#getProviderLookupMs()}.
      */
     private final Runnable mLookupTerminator = new Runnable() {
         @Override
@@ -158,8 +151,8 @@ final class CallServiceRepository {
         Log.i(TAG, "Found " + mOutstandingProviders.size() +
                 " implementations of ICallServiceProvider.");
 
-        // Schedule a lookup terminator to run after LOOKUP_TIMEOUT_MS milliseconds.
-        mHandler.postDelayed(mLookupTerminator, LOOKUP_TIMEOUT_MS);
+        // Schedule a lookup terminator to run after Timeouts.getProviderLookupMs() milliseconds.
+        mHandler.postDelayed(mLookupTerminator, Timeouts.getProviderLookupMs());
     }
 
     /**
