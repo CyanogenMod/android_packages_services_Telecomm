@@ -58,6 +58,7 @@ final class CallServiceSelectorRepository {
     private final Runnable mLookupTerminator = new Runnable() {
         @Override
         public void run() {
+            Log.d(TAG, "Timed out processing selectors");
             terminateLookup();
         }
     };
