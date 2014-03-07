@@ -169,14 +169,14 @@ final class Call {
     }
 
     /**
-     * Aborts ongoing attempts to connect this call. No-op once the call is connected or has been
-     * disconnected.  See {@link #disconnect} for already-connected calls.
+     * Aborts ongoing attempts to connect this call. Only applicable to {@link CallState#NEW}
+     * outgoing calls.  See {@link #disconnect} for already-connected calls.
      */
     void abort() {
-        if (mState == CallState.NEW ||
-                mState == CallState.DIALING ||
-                mState == CallState.RINGING) {
-
+        if (mState == CallState.NEW) {
+            if (mCallService != null) {
+                mCallService.abort(mId);
+            }
             clearCallService();
             clearCallServiceSelector();
             mState = CallState.ABORTED;

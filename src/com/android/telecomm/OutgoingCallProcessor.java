@@ -68,7 +68,7 @@ final class OutgoingCallProcessor {
     private final Map<String, CallServiceWrapper> mCallServicesById = Maps.newHashMap();
 
     /**
-     * The set of currently-available call-service selector implementations.
+     * The list of currently-available call-service selector implementations.
      */
     private final List<ICallServiceSelector> mSelectors;
 
@@ -111,9 +111,6 @@ final class OutgoingCallProcessor {
 
         ThreadUtil.checkOnMainThread();
 
-        Preconditions.checkNotNull(callServices);
-        Preconditions.checkNotNull(selectors);
-
         mCall = call;
         mSelectors = selectors;
         mOutgoingCallsManager = outgoingCallsManager;
@@ -132,17 +129,14 @@ final class OutgoingCallProcessor {
      * Initiates the attempt to place the call.  No-op beyond the first invocation.
      */
     void process() {
-        ThreadUtil.checkOnMainThread();
+        if (!mIsAborted) {
+            // Only process un-aborted calls.
+            ThreadUtil.checkOnMainThread();
 
-        if (mSelectors.isEmpty() || mCallServiceDescriptors.isEmpty()) {
-            // TODO(gilad): Consider adding a failure message/type to differentiate the various
-            // cases, or potentially throw an exception in this case.
-            // TODO(gilad): Perform this check all the way up in switchboard to short-circuit
-            // the current detour.
-            mOutgoingCallsManager.handleFailedOutgoingCall(mCall);
-        } else if (mSelectorIterator == null) {
-            mSelectorIterator = mSelectors.iterator();
-            attemptNextSelector();
+            if (mSelectorIterator == null) {
+                mSelectorIterator = mSelectors.iterator();
+                attemptNextSelector();
+            }
         }
     }
 
@@ -154,9 +148,6 @@ final class OutgoingCallProcessor {
         ThreadUtil.checkOnMainThread();
         if (!mIsAborted) {
             mCall.abort();
-
-            // TODO(gilad): Add logic to notify the relevant call service and/or selector.
-
             mIsAborted = true;
         }
     }
@@ -185,11 +176,13 @@ final class OutgoingCallProcessor {
      * @param reason The call-service supplied reason for the failed call attempt.
      */
     void handleFailedCallAttempt(String reason) {
-        ThreadUtil.checkOnMainThread();
+        if (!mIsAborted) {
+            ThreadUtil.checkOnMainThread();
 
-        mCall.clearCallService();
-        mCall.clearCallServiceSelector();
-        attemptNextCallService();
+            mCall.clearCallService();
+            mCall.clearCallServiceSelector();
+            attemptNextCallService();
+        }
     }
 
     /**

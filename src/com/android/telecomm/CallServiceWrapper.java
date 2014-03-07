@@ -24,6 +24,7 @@ import android.telecomm.CallService;
 import android.telecomm.CallServiceDescriptor;
 import android.telecomm.ICallService;
 import android.telecomm.ICallServiceAdapter;
+import android.telecomm.ICallServiceProvider;
 
 /**
  * Wrapper for {@link ICallService}s, handles binding to {@link ICallService} and keeps track of
@@ -92,11 +93,25 @@ public class CallServiceWrapper extends ServiceBinder<ICallService> {
 
     /** See {@link ICallService#call}. */
     public void call(CallInfo callInfo) {
+        String callId = callInfo.getId();
         if (isServiceValid("call")) {
             try {
                 mServiceInterface.call(callInfo);
+                mAdapter.addPendingOutgoingCallId(callId);
             } catch (RemoteException e) {
-                Log.e(this, e, "Failed to place call " + callInfo.getId() + ".");
+                Log.e(this, e, "Failed to place call " + callId + ".");
+            }
+        }
+    }
+
+    /** See {@link ICallService#abort}. */
+    public void abort(String callId) {
+        mAdapter.removePendingOutgoingCallId(callId);
+        if (isServiceValid("abort")) {
+            try {
+                mServiceInterface.abort(callId);
+            } catch (RemoteException e) {
+                Log.e(this, e, "Failed to abort call %s", callId);
             }
         }
     }

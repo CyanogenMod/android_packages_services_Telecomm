@@ -46,9 +46,16 @@ public final class CallServiceAdapter extends ICallServiceAdapter.Stub {
     /** Used to run code (e.g. messages, Runnables) on the main (UI) thread. */
     private final Handler mHandler = new Handler(Looper.getMainLooper());
 
-    /** The set of pending incoming call IDs. Contains the call IDs for which we are expecting
-     * details via {@link #handleIncomingCall}. If {@link #handleIncomingCall} is invoked for a call
-     * ID that is not in this set, it will be ignored.
+    /**
+     * The set of pending outgoing call IDs.  Any {@link #handleSuccessfulOutgoingCall} and
+     * {@link #handleFailedOutgoingCall} invocations with a call ID that is not in this set
+     * are ignored.
+     */
+    private final Set<String> mPendingOutgoingCallIds = Sets.newHashSet();
+
+    /**
+     * The set of pending incoming call IDs.  Any {@link #handleIncomingCall} invocations with
+     * a call ID not in this set are ignored.
      */
     private final Set<String> mPendingIncomingCallIds = Sets.newHashSet();
 
@@ -80,7 +87,7 @@ public final class CallServiceAdapter extends ICallServiceAdapter.Stub {
                     mIncomingCallsManager.handleSuccessfulIncomingCall(callInfo);
                 } else {
                     Log.wtf(CallServiceAdapter.this,
-                            "Received details for an unknown incoming call %s", callInfo);
+                            "Unknown incoming call: %s", callInfo);
                 }
             }
         });
@@ -91,7 +98,13 @@ public final class CallServiceAdapter extends ICallServiceAdapter.Stub {
         checkValidCallId(callId);
         mHandler.post(new Runnable() {
             @Override public void run() {
-                mOutgoingCallsManager.handleSuccessfulCallAttempt(callId);
+                if (mPendingOutgoingCallIds.remove(callId)) {
+                    mOutgoingCallsManager.handleSuccessfulCallAttempt(callId);
+                } else {
+                    // TODO(gilad): Figure out how to wire up the callService.abort() call.
+                    Log.wtf(CallServiceAdapter.this,
+                            "Unknown outgoing call: %s", callId);
+                }
             }
         });
     }
@@ -101,7 +114,12 @@ public final class CallServiceAdapter extends ICallServiceAdapter.Stub {
         checkValidCallId(callId);
         mHandler.post(new Runnable() {
             @Override public void run() {
-                mOutgoingCallsManager.handleFailedCallAttempt(callId, reason);
+                if (mPendingOutgoingCallIds.remove(callId)) {
+                    mOutgoingCallsManager.handleFailedCallAttempt(callId, reason);
+                } else {
+                    Log.wtf(CallServiceAdapter.this,
+                            "Unknown outgoing call: %s", callId);
+                }
             }
         });
     }
@@ -137,6 +155,8 @@ public final class CallServiceAdapter extends ICallServiceAdapter.Stub {
     }
 
     /** {@inheritDoc} */
+    // TODO(gilad): Ensure that any communication from the underlying ICallService
+    // implementation is expected (or otherwise suppressed at the adapter level).
     @Override public void setDisconnected(final String callId) {
         checkValidCallId(callId);
         mHandler.post(new Runnable() {
@@ -144,6 +164,26 @@ public final class CallServiceAdapter extends ICallServiceAdapter.Stub {
                 mCallsManager.markCallAsDisconnected(callId);
             }
         });
+    }
+
+    /**
+     * Adds the specified call ID to the list of pending outgoing call IDs.
+     * TODO(gilad): Consider passing the call processor (instead of the ID) both here and in the
+     * remove case (same for incoming) such that the detour via the *CallsManager can be avoided.
+     *
+     * @param callId The ID of the call.
+     */
+    void addPendingOutgoingCallId(String callId) {
+        mPendingOutgoingCallIds.add(callId);
+    }
+
+    /**
+     * Removes the specified call ID from the list of pending outgoing call IDs.
+     *
+     * @param callId The ID of the call.
+     */
+    void removePendingOutgoingCallId(String callId) {
+        mPendingOutgoingCallIds.remove(callId);
     }
 
     /**
@@ -157,7 +197,7 @@ public final class CallServiceAdapter extends ICallServiceAdapter.Stub {
     }
 
     /**
-     * Removed a call ID from the list of pending incoming call IDs.
+     * Removes the specified call ID from the list of pending incoming call IDs.
      *
      * @param callId The ID of the call.
      */
