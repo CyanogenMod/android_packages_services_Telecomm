@@ -25,7 +25,6 @@ import android.os.Looper;
 import android.telecomm.CallServiceDescriptor;
 import android.telecomm.ICallServiceSelector;
 import android.telecomm.TelecommConstants;
-import android.util.Log;
 
 import java.util.Iterator;
 import java.util.List;
@@ -37,8 +36,6 @@ import java.util.Set;
  * (via {@link OutgoingCallsManager} and (3) switching active calls between call services.
  */
 final class Switchboard {
-
-    private final static String TAG = Switchboard.class.getSimpleName();
 
     private final CallsManager mCallsManager;
 
@@ -148,7 +145,7 @@ final class Switchboard {
      *     {@link TelecommConstants#EXTRA_INCOMING_CALL_EXTRAS}
      */
     void retrieveIncomingCall(Call call, CallServiceDescriptor descriptor, Bundle extras) {
-        Log.d(TAG, "retrieveIncomingCall");
+        Log.d(this, "retrieveIncomingCall");
         mBinderDeallocator.acquireUsePermit();
 
         CallServiceWrapper callService = mCallServiceRepository.getCallService(descriptor);
@@ -200,7 +197,7 @@ final class Switchboard {
      * see {@link OutgoingCallProcessor}.
      */
     void handleSuccessfulOutgoingCall(Call call) {
-        Log.d(TAG, "handleSuccessfulOutgoingCall");
+        Log.d(this, "handleSuccessfulOutgoingCall");
 
         mCallsManager.handleSuccessfulOutgoingCall(call);
         finalizeOutgoingCall(call);
@@ -211,7 +208,7 @@ final class Switchboard {
      * selector/call-service implementations, see {@link OutgoingCallProcessor}.
      */
     void handleFailedOutgoingCall(Call call) {
-        Log.d(TAG, "handleFailedOutgoingCall");
+        Log.d(this, "handleFailedOutgoingCall");
 
         // TODO(gilad): Notify mCallsManager.
 
@@ -224,7 +221,7 @@ final class Switchboard {
      * point, {@link CallsManager} should bring up the incoming-call UI.
      */
     void handleSuccessfulIncomingCall(Call call) {
-        Log.d(TAG, "handleSuccessfulIncomingCall");
+        Log.d(this, "handleSuccessfulIncomingCall");
 
         mCallsManager.handleSuccessfulIncomingCall(call);
         mBinderDeallocator.releaseUsePermit();
@@ -237,7 +234,7 @@ final class Switchboard {
      * @param call The call.
      */
     void handleFailedIncomingCall(Call call) {
-        Log.d(TAG, "handleFailedIncomingCall");
+        Log.d(this, "handleFailedIncomingCall");
 
         // Since we set the call service before calling into incoming-calls manager, we clear it for
         // good measure if an error is reported.
@@ -337,7 +334,7 @@ final class Switchboard {
         while (iterator.hasNext()) {
             Call call = iterator.next();
             if (call.getAgeInMilliseconds() >= newCallTimeoutMs) {
-                Log.d(TAG, "Call " + call.getId() + " timed out.");
+                Log.d(this, "Call %s timed out.", call.getId());
                 mOutgoingCallsManager.abort(call);
                 calls.remove(call);
 

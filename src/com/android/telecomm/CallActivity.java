@@ -22,7 +22,6 @@ import android.content.res.Configuration;
 import android.os.Bundle;
 import android.telecomm.CallServiceDescriptor;
 import android.telecomm.TelecommConstants;
-import android.util.Log;
 import android.widget.Toast;
 
 /**
@@ -30,11 +29,6 @@ import android.widget.Toast;
  * Handles all three CALL action types: CALL, CALL_PRIVILEGED, and CALL_EMERGENCY.
  */
 public class CallActivity extends Activity {
-
-    private static final String TAG = CallActivity.class.getSimpleName();
-
-    /** Indicates whether or not debug-level entries should be logged. */
-    private static boolean DEBUG = Log.isLoggable(TAG, Log.DEBUG);
 
     private CallsManager mCallsManager = CallsManager.getInstance();
 
@@ -57,11 +51,9 @@ public class CallActivity extends Activity {
         Intent intent = getIntent();
         Configuration configuration = getResources().getConfiguration();
 
-        if (DEBUG) {
-            Log.d(TAG, "onCreate: this = " + this + ", bundle= " + bundle);
-            Log.d(TAG, " - intent = " + intent);
-            Log.d(TAG, " - configuration = " + configuration);
-        }
+        Log.d(this, "onCreate: this = %s, bundle = %s", this, bundle);
+        Log.d(this, " - intent = %s", intent);
+        Log.d(this, " - configuration = %s", configuration);
 
         // TODO(santoscordon): Figure out if there is something to restore from bundle.
         // See OutgoingCallBroadcaster in services/Telephony for more.
@@ -71,9 +63,7 @@ public class CallActivity extends Activity {
         // This activity does not have associated UI, so close.
         finish();
 
-        if (DEBUG) {
-            Log.d(TAG, "onCreate: end");
-        }
+        Log.d(this, "onCreate: end");
     }
 
     /**
@@ -122,7 +112,7 @@ public class CallActivity extends Activity {
         CallServiceDescriptor descriptor =
                 intent.getParcelableExtra(TelecommConstants.EXTRA_CALL_SERVICE_DESCRIPTOR);
         if (descriptor == null) {
-            Log.w(TAG, "Rejecting incoming call due to null descriptor");
+            Log.w(this, "Rejecting incoming call due to null descriptor");
             return;
         }
 
@@ -131,7 +121,7 @@ public class CallActivity extends Activity {
             clientExtras = intent.getBundleExtra(TelecommConstants.EXTRA_INCOMING_CALL_EXTRAS);
         }
 
-        Log.d(TAG, "Processing incoming call from call service [" + descriptor + "]");
+        Log.d(this, "Processing incoming call from call service [%s]", descriptor);
         mCallsManager.processIncomingCallIntent(descriptor, clientExtras);
     }
 }

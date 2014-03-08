@@ -19,7 +19,6 @@ package com.android.telecomm;
 import android.os.Handler;
 import android.os.Looper;
 import android.telecomm.IInCallAdapter;
-import android.util.Log;
 
 /**
  * Receives call commands and updates from in-call app and passes them through to CallsManager.
@@ -27,8 +26,6 @@ import android.util.Log;
  * binding to it. This adapter can receive commands and updates until the in-call app is unbound.
  */
 class InCallAdapter extends IInCallAdapter.Stub {
-
-    private static final String TAG = InCallAdapter.class.getSimpleName();
 
     private final CallsManager mCallsManager;
 
@@ -42,7 +39,7 @@ class InCallAdapter extends IInCallAdapter.Stub {
     /** {@inheritDoc} */
     @Override
     public void answerCall(final String callId) {
-        Log.d(TAG, "answerCall(" + callId + ")");
+        Log.d(this, "answerCall(%s)", callId);
         mHandler.post(new Runnable() {
             @Override public void run() {
                 mCallsManager.answerCall(callId);
@@ -53,7 +50,7 @@ class InCallAdapter extends IInCallAdapter.Stub {
     /** {@inheritDoc} */
     @Override
     public void rejectCall(final String callId) {
-        Log.d(TAG, "rejectCall(" + callId + ")");
+        Log.d(this, "rejectCall(%s)", callId);
         mHandler.post(new Runnable() {
             @Override public void run() {
                 mCallsManager.rejectCall(callId);

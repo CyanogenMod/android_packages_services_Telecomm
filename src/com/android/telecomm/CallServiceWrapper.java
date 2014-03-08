@@ -24,7 +24,6 @@ import android.telecomm.CallService;
 import android.telecomm.CallServiceDescriptor;
 import android.telecomm.ICallService;
 import android.telecomm.ICallServiceAdapter;
-import android.util.Log;
 
 /**
  * Wrapper for {@link ICallService}s, handles binding to {@link ICallService} and keeps track of
@@ -40,8 +39,6 @@ public class CallServiceWrapper extends ServiceBinder<ICallService> {
      * TODO(santoscordon): Move this to TelecommConstants.
      */
     static final String CALL_SERVICE_ACTION = ICallService.class.getName();
-
-    private static final String TAG = CallServiceWrapper.class.getSimpleName();
 
     /** The descriptor of this call service as supplied by the call-service provider. */
     private final CallServiceDescriptor mDescriptor;
@@ -77,7 +74,7 @@ public class CallServiceWrapper extends ServiceBinder<ICallService> {
             try {
                 mServiceInterface.setCallServiceAdapter(callServiceAdapter);
             } catch (RemoteException e) {
-                Log.e(TAG, "Failed to setCallServiceAdapter.", e);
+                Log.e(this, e, "Failed to setCallServiceAdapter.");
             }
         }
     }
@@ -88,7 +85,7 @@ public class CallServiceWrapper extends ServiceBinder<ICallService> {
             try {
                 mServiceInterface.isCompatibleWith(callInfo);
             } catch (RemoteException e) {
-                Log.e(TAG, "Failed checking isCompatibleWith.", e);
+                Log.e(this, e, "Failed checking isCompatibleWith.");
             }
         }
     }
@@ -99,7 +96,7 @@ public class CallServiceWrapper extends ServiceBinder<ICallService> {
             try {
                 mServiceInterface.call(callInfo);
             } catch (RemoteException e) {
-                Log.e(TAG, "Failed to place call " + callInfo.getId() + ".", e);
+                Log.e(this, e, "Failed to place call " + callInfo.getId() + ".");
             }
         }
     }
@@ -111,7 +108,7 @@ public class CallServiceWrapper extends ServiceBinder<ICallService> {
             try {
                 mServiceInterface.setIncomingCallId(callId, extras);
             } catch (RemoteException e) {
-                Log.e(TAG, "Failed to setIncomingCallId for call " + callId, e);
+                Log.e(this, e, "Failed to setIncomingCallId for call %s", callId);
                 mAdapter.removePendingIncomingCallId(callId);
             }
         }
@@ -123,7 +120,7 @@ public class CallServiceWrapper extends ServiceBinder<ICallService> {
             try {
                 mServiceInterface.disconnect(callId);
             } catch (RemoteException e) {
-                Log.e(TAG, "Failed to disconnect call " + callId + ".", e);
+                Log.e(this, e, "Failed to disconnect call %s", callId);
             }
         }
     }
@@ -134,7 +131,7 @@ public class CallServiceWrapper extends ServiceBinder<ICallService> {
             try {
                 mServiceInterface.answer(callId);
             } catch (RemoteException e) {
-                Log.e(TAG, "Failed to answer call " + callId, e);
+                Log.e(this, e, "Failed to answer call %s", callId);
             }
         }
     }
@@ -145,7 +142,7 @@ public class CallServiceWrapper extends ServiceBinder<ICallService> {
             try {
                 mServiceInterface.reject(callId);
             } catch (RemoteException e) {
-                Log.e(TAG, "Failed to reject call " + callId, e);
+                Log.e(this, e, "Failed to reject call %s");
             }
         }
     }
@@ -196,7 +193,7 @@ public class CallServiceWrapper extends ServiceBinder<ICallService> {
             return true;
         }
 
-        Log.wtf(TAG, actionName + " invoked while service is unbound");
+        Log.wtf(this, "%s invoked while service is unbound", actionName);
         return false;
     }
 }

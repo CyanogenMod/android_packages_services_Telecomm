@@ -24,7 +24,6 @@ import android.os.IBinder;
 import android.os.RemoteException;
 import android.telecomm.CallInfo;
 import android.telecomm.IInCallService;
-import android.util.Log;
 
 /**
  * Binds to {@link IInCallService} and provides the service to {@link CallsManager} through which it
@@ -51,8 +50,6 @@ public final class InCallController {
             onDisconnected();
         }
     }
-
-    private static final String TAG = InCallController.class.getSimpleName();
 
     /**
      * Package name of the in-call app. Although in-call code in kept in its own namespace, it is
@@ -101,11 +98,11 @@ public final class InCallController {
                 bind();
             } else {
                 // TODO(santoscordon): Protect against logging phone number.
-                Log.i(TAG, "Adding call: " + callInfo);
+                Log.i(this, "Adding call: %s", callInfo);
                 mInCallService.addCall(callInfo);
             }
         } catch (RemoteException e) {
-            Log.e(TAG, "Exception attempting to addCall.", e);
+            Log.e(this, e, "Exception attempting to addCall.");
         }
     }
 
@@ -117,11 +114,11 @@ public final class InCallController {
     void markCallAsActive(String callId) {
         try {
             if (mInCallService != null) {
-                Log.i(TAG, "Mark call as ACTIVE: " + callId);
+                Log.i(this, "Mark call as ACTIVE: %s", callId);
                 mInCallService.setActive(callId);
             }
         } catch (RemoteException e) {
-            Log.e(TAG, "Exception attempting to markCallAsActive.", e);
+            Log.e(this, e, "Exception attempting to markCallAsActive.");
         }
     }
 
@@ -134,11 +131,11 @@ public final class InCallController {
     void markCallAsDisconnected(String callId) {
         try {
             if (mInCallService != null) {
-                Log.i(TAG, "Mark call as DISCONNECTED: " + callId);
+                Log.i(this, "Mark call as DISCONNECTED: %s", callId);
                 mInCallService.setDisconnected(callId);
             }
         } catch (RemoteException e) {
-            Log.e(TAG, "Exception attempting to markCallAsDisconnected.", e);
+            Log.e(this, e, "Exception attempting to markCallAsDisconnected.");
         }
     }
 
@@ -148,7 +145,7 @@ public final class InCallController {
     void unbind() {
         ThreadUtil.checkOnMainThread();
         if (mInCallService != null) {
-            Log.i(TAG, "Unbinding from InCallService");
+            Log.i(this, "Unbinding from InCallService");
             TelecommApp.getInstance().unbindService(mConnection);
             mInCallService = null;
         }
@@ -163,14 +160,14 @@ public final class InCallController {
         if (mInCallService == null) {
             ComponentName component =
                     new ComponentName(IN_CALL_PACKAGE_NAME, IN_CALL_SERVICE_CLASS_NAME);
-            Log.i(TAG, "Attempting to bind to InCallService: " + component);
+            Log.i(this, "Attempting to bind to InCallService: %s", component);
 
             Intent serviceIntent = new Intent(IInCallService.class.getName());
             serviceIntent.setComponent(component);
 
             Context context = TelecommApp.getInstance();
             if (!context.bindService(serviceIntent, mConnection, Context.BIND_AUTO_CREATE)) {
-                Log.e(TAG, "Could not connect to the in-call app (" + component + ")");
+                Log.w(this, "Could not connect to the in-call app (%s)", component);
 
                 // TODO(santoscordon): Implement retry or fall-back-to-default logic.
             }
@@ -191,7 +188,7 @@ public final class InCallController {
         try {
             mInCallService.setInCallAdapter(new InCallAdapter(mCallsManager));
         } catch (RemoteException e) {
-            Log.e(TAG, "Failed to set the in-call adapter.", e);
+            Log.e(this, e, "Failed to set the in-call adapter.");
             mInCallService = null;
         }
 

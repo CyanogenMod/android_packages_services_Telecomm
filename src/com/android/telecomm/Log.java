@@ -16,91 +16,106 @@
 
 package com.android.telecomm;
 
-import android.util.Log;
-
 import java.util.IllegalFormatException;
 import java.util.Locale;
 
 /**
  * Manages logging for the entire module.
  */
-public class LogUtil {
+public class Log {
 
     // Generic tag for all In Call logging
     private static final String TAG = "Telecomm";
 
     public static final boolean FORCE_LOGGING = true; /* STOP SHIP if true */
-    public static final boolean DEBUG = isLoggable(Log.DEBUG);
-    public static final boolean VERBOSE = isLoggable(Log.VERBOSE);
+    public static final boolean DEBUG = isLoggable(android.util.Log.DEBUG);
+    public static final boolean INFO = isLoggable(android.util.Log.INFO);
+    public static final boolean VERBOSE = isLoggable(android.util.Log.VERBOSE);
+    public static final boolean WARN = isLoggable(android.util.Log.WARN);
+    public static final boolean ERROR = isLoggable(android.util.Log.ERROR);
 
-    private LogUtil() {}
+    private Log() {}
 
     public static boolean isLoggable(int level) {
-        return FORCE_LOGGING || Log.isLoggable(TAG, level);
+        return FORCE_LOGGING || android.util.Log.isLoggable(TAG, level);
     }
 
     public static void d(String prefix, String format, Object... args) {
         if (DEBUG) {
-            Log.d(TAG, buildMessage(prefix, format, args));
+            android.util.Log.d(TAG, buildMessage(prefix, format, args));
         }
     }
 
     public static void d(Object objectPrefix, String format, Object... args) {
         if (DEBUG) {
-            Log.d(TAG, buildMessage(getPrefixFromObject(objectPrefix), format, args));
+            android.util.Log.d(TAG, buildMessage(getPrefixFromObject(objectPrefix), format, args));
+        }
+    }
+
+    public static void i(String prefix, String format, Object... args) {
+        if (INFO) {
+            android.util.Log.i(TAG, buildMessage(prefix, format, args));
+        }
+    }
+
+    public static void i(Object objectPrefix, String format, Object... args) {
+        if (INFO) {
+            android.util.Log.i(TAG, buildMessage(getPrefixFromObject(objectPrefix), format, args));
         }
     }
 
     public static void v(String prefix, String format, Object... args) {
         if (VERBOSE) {
-            Log.v(TAG, buildMessage(prefix, format, args));
+            android.util.Log.v(TAG, buildMessage(prefix, format, args));
         }
     }
 
     public static void v(Object objectPrefix, String format, Object... args) {
         if (VERBOSE) {
-            Log.v(TAG, buildMessage(getPrefixFromObject(objectPrefix), format, args));
+            android.util.Log.v(TAG, buildMessage(getPrefixFromObject(objectPrefix), format, args));
         }
     }
 
     public static void w(String prefix, String format, Object... args) {
-        if (isLoggable(Log.WARN)) {
-            Log.w(TAG, buildMessage(prefix, format, args));
+        if (WARN) {
+            android.util.Log.w(TAG, buildMessage(prefix, format, args));
         }
     }
 
     public static void w(Object objectPrefix, String format, Object... args) {
-        if (isLoggable(Log.WARN)) {
-            Log.w(TAG, buildMessage(getPrefixFromObject(objectPrefix), format, args));
+        if (WARN) {
+            android.util.Log.w(TAG, buildMessage(getPrefixFromObject(objectPrefix), format, args));
         }
     }
 
     public static void e(String prefix, Throwable tr, String format, Object... args) {
-        if (isLoggable(Log.ERROR)) {
-            Log.e(TAG, buildMessage(prefix, format, args), tr);
+        if (ERROR) {
+            android.util.Log.e(TAG, buildMessage(prefix, format, args), tr);
         }
     }
 
     public static void e(Object objectPrefix, Throwable tr, String format, Object... args) {
-        if (isLoggable(Log.ERROR)) {
-            Log.e(TAG, buildMessage(getPrefixFromObject(objectPrefix), format, args), tr);
+        if (ERROR) {
+            android.util.Log.e(TAG, buildMessage(getPrefixFromObject(objectPrefix), format, args),
+                    tr);
         }
     }
 
     public static void wtf(String prefix, Throwable tr, String format, Object... args) {
-        Log.wtf(TAG, buildMessage(prefix, format, args), tr);
+        android.util.Log.wtf(TAG, buildMessage(prefix, format, args), tr);
     }
 
     public static void wtf(Object objectPrefix, Throwable tr, String format, Object... args) {
-        Log.wtf(TAG, buildMessage(getPrefixFromObject(objectPrefix), format, args), tr);
+        android.util.Log.wtf(TAG, buildMessage(getPrefixFromObject(objectPrefix), format, args),
+                tr);
     }
 
     public static void wtf(String prefix, String format, Object... args) {
-        Log.wtf(TAG, buildMessage(prefix, format, args));
+        android.util.Log.wtf(TAG, buildMessage(prefix, format, args));
     }
 
     public static void wtf(Object objectPrefix, String format, Object... args) {
-        Log.wtf(TAG, buildMessage(getPrefixFromObject(objectPrefix), format, args));
+        android.util.Log.wtf(TAG, buildMessage(getPrefixFromObject(objectPrefix), format, args));
     }
 
     private static String getPrefixFromObject(Object obj) {
@@ -113,7 +128,7 @@ public class LogUtil {
             msg = (args == null || args.length == 0) ? format
                     : String.format(Locale.US, format, args);
         } catch (IllegalFormatException ife) {
-            wtf("LogUtil", "IllegalFormatException: formatString='%s' numArgs=%d", format,
+            wtf("Log", ife, "IllegalFormatException: formatString='%s' numArgs=%d", format,
                     args.length);
             msg = format + " (An error occurred while formatting the message.)";
         }

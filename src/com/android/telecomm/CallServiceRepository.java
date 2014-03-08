@@ -26,7 +26,6 @@ import android.os.Looper;
 import android.telecomm.CallServiceDescriptor;
 import android.telecomm.ICallServiceLookupResponse;
 import android.telecomm.ICallServiceProvider;
-import android.util.Log;
 
 import com.android.telecomm.ServiceBinder.BindCallback;
 
@@ -50,8 +49,6 @@ import java.util.Set;
  */
 final class CallServiceRepository {
 
-    private static final String TAG = CallServiceRepository.class.getSimpleName();
-
     private final Switchboard mSwitchboard;
 
     private final OutgoingCallsManager mOutgoingCallsManager;
@@ -68,7 +65,7 @@ final class CallServiceRepository {
     private final Runnable mLookupTerminator = new Runnable() {
         @Override
         public void run() {
-            Log.d(TAG, "Timed out processing providers");
+            Log.d(CallServiceRepository.this, "Timed out processing providers");
             terminateLookup();
         }
     };
@@ -136,7 +133,7 @@ final class CallServiceRepository {
 
         List<ComponentName> providerNames = getProviderNames();
         if (providerNames.isEmpty()) {
-            Log.i(TAG, "No ICallServiceProvider implementations found, bailing out.");
+            Log.i(this, "No ICallServiceProvider implementations found, bailing out.");
             return;
         }
 
@@ -149,8 +146,8 @@ final class CallServiceRepository {
             bindProvider(name);
         }
 
-        Log.i(TAG, "Found " + mOutstandingProviders.size() +
-                " implementations of ICallServiceProvider.");
+        Log.i(this, "Found %d implementations of ICallServiceProvider.",
+                mOutstandingProviders.size());
 
         // Schedule a lookup terminator to run after Timeouts.getProviderLookupMs() milliseconds.
         mHandler.postDelayed(mLookupTerminator, Timeouts.getProviderLookupMs());
@@ -294,7 +291,7 @@ final class CallServiceRepository {
 
             removeOutstandingProvider(providerName);
         } else {
-            Log.i(TAG, "Unexpected list of call services in lookup " + mLookupId + " from " +
+            Log.i(this, "Unexpected list of call services in lookup %s from %s ", mLookupId,
                     providerName);
         }
     }

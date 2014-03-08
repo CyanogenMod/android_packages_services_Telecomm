@@ -17,7 +17,6 @@
 package com.android.telecomm;
 
 import android.os.Looper;
-import android.util.Log;
 
 /**
  * A utility class which helps organize callers' threads. This class cannot be instantiated; callers
@@ -39,7 +38,7 @@ public final class ThreadUtil {
      */
     public static void checkOnMainThread() {
         if (!isOnMainThread()) {
-            Log.wtf(TAG, "Must be on the main thread!", new IllegalStateException());
+            Log.wtf(TAG, new IllegalStateException(), "Must be on the main thread!");
         }
     }
 
@@ -49,7 +48,7 @@ public final class ThreadUtil {
      */
     public static void checkNotOnMainThread() {
         if (isOnMainThread()) {
-            Log.wtf(TAG, "Must not be on the main thread!", new IllegalStateException());
+            Log.wtf(TAG, new IllegalStateException(), "Must not be on the main thread!");
         }
     }
 }

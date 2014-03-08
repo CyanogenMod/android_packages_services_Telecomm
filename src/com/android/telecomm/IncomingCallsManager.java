@@ -19,7 +19,6 @@ package com.android.telecomm;
 import android.os.Bundle;
 import android.telecomm.CallInfo;
 import android.telecomm.CallService;
-import android.util.Log;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
@@ -33,8 +32,6 @@ import java.util.Map;
  * incoming sequence. The entire process is timeboxed to protect against unresponsive call services.
  */
 final class IncomingCallsManager {
-
-    private static final String TAG = IncomingCallsManager.class.getSimpleName();
 
     private final Switchboard mSwitchboard;
 
@@ -60,7 +57,7 @@ final class IncomingCallsManager {
      */
     void retrieveIncomingCall(final Call call, Bundle extras) {
         ThreadUtil.checkOnMainThread();
-        Log.d(TAG, "retrieveIncomingCall");
+        Log.d(this, "retrieveIncomingCall");
 
         final String callId = call.getId();
         // Just to be safe, lets make sure we're not already processing this call.
@@ -89,7 +86,7 @@ final class IncomingCallsManager {
 
         Call call = mPendingIncomingCalls.remove(callInfo.getId());
         if (call != null) {
-            Log.d(TAG, "Incoming call " + call.getId() + " found.");
+            Log.d(this, "Incoming call %s found.", call.getId());
             call.setHandle(callInfo.getHandle());
             call.setState(callInfo.getState());
 
@@ -106,7 +103,7 @@ final class IncomingCallsManager {
         ThreadUtil.checkOnMainThread();
 
         if (mPendingIncomingCalls.remove(call.getId()) != null) {
-            Log.i(TAG, "Failed to get details for incoming call " + call);
+            Log.i(this, "Failed to get details for incoming call %s", call);
             // The call was found still waiting for details. Consider it failed.
             mSwitchboard.handleFailedIncomingCall(call);
         }

@@ -24,7 +24,6 @@ import android.telecomm.CallServiceDescriptor;
 import android.telecomm.CallState;
 import android.telecomm.ICallService;
 import android.telephony.TelephonyManager;
-import android.util.Log;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
@@ -42,8 +41,6 @@ import java.util.Map;
  * beyond the com.android.telecomm package boundary.
  */
 public final class CallsManager {
-
-    private static final String TAG = CallsManager.class.getSimpleName();
 
     private static final CallsManager INSTANCE = new CallsManager();
 
@@ -110,7 +107,7 @@ public final class CallsManager {
      * @param extras The optional extras Bundle passed with the intent used for the incoming call.
      */
     void processIncomingCallIntent(CallServiceDescriptor descriptor, Bundle extras) {
-        Log.d(TAG, "processIncomingCallIntent");
+        Log.d(this, "processIncomingCallIntent");
         // Create a call with no handle. Eventually, switchboard will update the call with
         // additional information from the call service, but for now we just need one to pass around
         // with a unique call ID.
@@ -126,7 +123,7 @@ public final class CallsManager {
      * @param call The new incoming call.
      */
     void handleSuccessfulIncomingCall(Call call) {
-        Log.d(TAG, "handleSuccessfulIncomingCall");
+        Log.d(this, "handleSuccessfulIncomingCall");
         Preconditions.checkState(call.getState() == CallState.RINGING);
 
         String handle = call.getHandle();
@@ -134,7 +131,7 @@ public final class CallsManager {
         for (IncomingCallValidator validator : mIncomingCallValidators) {
             if (!validator.isValid(handle, contactInfo)) {
                 // TODO(gilad): Consider displaying an error message.
-                Log.i(TAG, "Dropping restricted incoming call");
+                Log.i(this, "Dropping restricted incoming call");
                 return;
             }
         }
@@ -163,7 +160,7 @@ public final class CallsManager {
         for (OutgoingCallValidator validator : mOutgoingCallValidators) {
             if (!validator.isValid(handle, contactInfo)) {
                 // TODO(gilad): Display an error message.
-                Log.i(TAG, "Dropping restricted outgoing call.");
+                Log.i(this, "Dropping restricted outgoing call.");
                 return;
             }
         }
@@ -196,7 +193,7 @@ public final class CallsManager {
     void answerCall(String callId) {
         Call call = mCalls.get(callId);
         if (call == null) {
-            Log.i(TAG, "Request to answer a non-existent call " + callId);
+            Log.i(this, "Request to answer a non-existent call %s", callId);
         } else {
             stopRinging(call);
 
@@ -218,7 +215,7 @@ public final class CallsManager {
     void rejectCall(String callId) {
         Call call = mCalls.get(callId);
         if (call == null) {
-            Log.i(TAG, "Request to reject a non-existent call " + callId);
+            Log.i(this, "Request to reject a non-existent call %s", callId);
         } else {
             stopRinging(call);
             call.reject();
@@ -235,7 +232,7 @@ public final class CallsManager {
     void disconnectCall(String callId) {
         Call call = mCalls.get(callId);
         if (call == null) {
-            Log.e(TAG, "Unknown call (" + callId + ") asked to disconnect");
+            Log.w(this, "Unknown call (%s) asked to disconnect", callId);
         } else {
             call.disconnect();
         }
@@ -322,8 +319,8 @@ public final class CallsManager {
 
         Call call = mCalls.get(callId);
         if (call == null) {
-            Log.e(TAG, "Call " + callId + " was not found while attempting to update the state " +
-                    "to " + newState + ".");
+            Log.w(this, "Call %s was not found while attempting to update the state to %s.",
+                    callId, newState );
         } else {
             if (newState != call.getState()) {
                 // Unfortunately, in the telephony world the radio is king. So if the call notifies
@@ -366,8 +363,8 @@ public final class CallsManager {
                 break;
 
             default:
-                Log.e(TAG, "Call is in an unknown state (" + call.getState() +
-                        "), not broadcasting: " + call.getId());
+                Log.w(this, "Call is in an unknown state (%s), not broadcasting: %s", call.getState(),
+                        call.getId());
                 return;
         }
 
@@ -385,7 +382,7 @@ public final class CallsManager {
             updateIntent.putExtra(CallService.class.getName(), callService.getComponentName());
         }
         TelecommApp.getInstance().sendBroadcast(updateIntent, Manifest.permission.READ_PHONE_STATE);
-        Log.i(TAG, "Broadcasted state change: " + callState);
+        Log.i(this, "Broadcasted state change: %s", callState);
     }
 
     /**

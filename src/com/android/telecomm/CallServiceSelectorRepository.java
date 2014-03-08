@@ -27,7 +27,6 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 import android.telecomm.ICallServiceSelector;
-import android.util.Log;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
@@ -43,8 +42,6 @@ import java.util.Set;
  */
 final class CallServiceSelectorRepository {
 
-    private static final String TAG = CallServiceSelectorRepository.class.getSimpleName();
-
     /**
      * Used to retrieve all known ICallServiceSelector implementations from the framework.
      */
@@ -58,7 +55,7 @@ final class CallServiceSelectorRepository {
     private final Runnable mLookupTerminator = new Runnable() {
         @Override
         public void run() {
-            Log.d(TAG, "Timed out processing selectors");
+            Log.d(CallServiceSelectorRepository.this, "Timed out processing selectors");
             terminateLookup();
         }
     };
@@ -123,7 +120,7 @@ final class CallServiceSelectorRepository {
 
         List<ComponentName> selectorNames = getSelectorNames();
         if (selectorNames.isEmpty()) {
-            Log.i(TAG, "No ICallServiceSelector implementations found.");
+            Log.i(this, "No ICallServiceSelector implementations found.");
             updateSwitchboard();
             return;
         }
@@ -144,8 +141,8 @@ final class CallServiceSelectorRepository {
         int selectorCount = selectorNames.size();
         int unregisteredSelectorCount = mUnregisteredSelectors.size();
 
-        Log.i(TAG, "Found " + selectorCount + " implementations of ICallServiceSelector, "
-                + unregisteredSelectorCount + " of which are not currently registered.");
+        Log.i(this, "Found %d implementations of ICallServiceSelector, %d of which are not " +
+                "currently registered.", selectorCount , unregisteredSelectorCount);
 
         if (unregisteredSelectorCount == 0) {
             // All known (selector) implementations are already registered, pass control
@@ -195,7 +192,7 @@ final class CallServiceSelectorRepository {
 
         Intent serviceIntent =
                 new Intent(CALL_SERVICE_SELECTOR_CLASS_NAME).setComponent(selectorName);
-        Log.i(TAG, "Binding to ICallServiceSelector through " + serviceIntent);
+        Log.i(this, "Binding to ICallServiceSelector through %s", serviceIntent);
 
         // Connection object for the service binding.
         ServiceConnection connection = new ServiceConnection() {

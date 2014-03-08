@@ -17,7 +17,6 @@
 package com.android.telecomm;
 
 import android.telecomm.ICallServiceSelector;
-import android.util.Log;
 
 import com.google.common.collect.Maps;
 
@@ -33,8 +32,6 @@ import java.util.Set;
  * can simply call into this class instead of individual OutgoingCallProcessors.
  */
 final class OutgoingCallsManager {
-    private static final String TAG = OutgoingCallsManager.class.getSimpleName();
-
     private final Switchboard mSwitchboard;
 
     /**
@@ -60,7 +57,7 @@ final class OutgoingCallsManager {
     void placeCall(
             Call call, Set<CallServiceWrapper> callServices, List<ICallServiceSelector> selectors) {
 
-        Log.i(TAG, "Placing an outgoing call (" + call.getId() + ")");
+        Log.i(this, "Placing an outgoing call (%s)", call.getId());
 
         // Create the processor for this (outgoing) call and store it in a map such that call
         // attempts can be aborted etc.
@@ -84,7 +81,7 @@ final class OutgoingCallsManager {
 
         if (processor == null) {
             // Shouldn't happen, so log a wtf if it does.
-            Log.wtf(TAG, "Received an unexpected placed-call notification.");
+            Log.wtf(this, "Received an unexpected placed-call notification.");
         } else {
             processor.handleSuccessfulCallAttempt();
         }
@@ -105,7 +102,7 @@ final class OutgoingCallsManager {
         // TODO(santoscordon): Consider combining the check here and in handleSuccessfulCallAttempt.
         if (processor == null) {
             // Shouldn't happen, so log a wtf if it does.
-            Log.wtf(TAG, "Received an unexpected failed-call notification.");
+            Log.wtf(this, "Received an unexpected failed-call notification.");
         } else {
             processor.handleFailedCallAttempt(reason);
         }

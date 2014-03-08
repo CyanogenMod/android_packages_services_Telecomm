@@ -20,7 +20,6 @@ import android.os.Handler;
 import android.os.Looper;
 import android.telecomm.CallInfo;
 import android.telecomm.ICallServiceAdapter;
-import android.util.Log;
 
 import com.google.android.collect.Sets;
 import com.google.common.base.Strings;
@@ -38,8 +37,6 @@ import java.util.Set;
  * TODO(santoscordon): Do we need Binder.clear/restoreCallingIdentity() in the service methods?
  */
 public final class CallServiceAdapter extends ICallServiceAdapter.Stub {
-    private static final String TAG = CallServiceAdapter.class.getSimpleName();
-
     private final CallsManager mCallsManager;
 
     private final OutgoingCallsManager mOutgoingCallsManager;
@@ -82,7 +79,8 @@ public final class CallServiceAdapter extends ICallServiceAdapter.Stub {
                 if (mPendingIncomingCallIds.remove(callInfo.getId())) {
                     mIncomingCallsManager.handleSuccessfulIncomingCall(callInfo);
                 } else {
-                    Log.wtf(TAG, "Received details for an unknown incoming call " + callInfo);
+                    Log.wtf(CallServiceAdapter.this,
+                            "Received details for an unknown incoming call %s", callInfo);
                 }
             }
         });

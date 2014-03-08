@@ -21,7 +21,6 @@ import android.os.IBinder;
 import android.os.RemoteException;
 import android.telecomm.ICallServiceLookupResponse;
 import android.telecomm.ICallServiceProvider;
-import android.util.Log;
 
 /**
  * Wrapper for {@link ICallServiceProvider}s, handles binding to {@link ICallServiceProvider} and
@@ -36,8 +35,6 @@ public class CallServiceProviderWrapper extends ServiceBinder<ICallServiceProvid
      * TODO(santoscordon): Move this to TelecommConstants.
      */
     static final String CALL_SERVICE_PROVIDER_ACTION = ICallServiceProvider.class.getName();
-
-    private static final String TAG = CallServiceProviderWrapper.class.getSimpleName();
 
     /** The actual service implementation. */
     private ICallServiceProvider mServiceInterface;
@@ -60,12 +57,12 @@ public class CallServiceProviderWrapper extends ServiceBinder<ICallServiceProvid
     public void lookupCallServices(ICallServiceLookupResponse response) {
         try {
             if (mServiceInterface == null) {
-                Log.wtf(TAG, "lookupCallServices() invoked while the service is unbound.");
+                Log.wtf(this, "lookupCallServices() invoked while the service is unbound.");
             } else {
                 mServiceInterface.lookupCallServices(response);
             }
         } catch (RemoteException e) {
-            Log.e(TAG, "Failed to lookupCallServices.", e);
+            Log.e(this, e, "Failed to lookupCallServices.");
         }
     }
 

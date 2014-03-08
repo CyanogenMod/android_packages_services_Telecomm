@@ -19,7 +19,6 @@ package com.android.telecomm;
 import android.telecomm.CallInfo;
 import android.telecomm.CallState;
 import android.telecomm.ICallServiceSelector;
-import android.util.Log;
 
 import com.google.common.base.Preconditions;
 
@@ -32,8 +31,6 @@ import java.util.UUID;
  *  connected etc).
  */
 final class Call {
-    private static final String TAG = Call.class.getSimpleName();
-
     /** Unique identifier for the call as a UUID string. */
     private final String mId;
 
@@ -189,9 +186,9 @@ final class Call {
      */
     void disconnect() {
         if (mCallService == null) {
-            Log.w(TAG, "disconnect() request on a call without a call service.");
+            Log.w(this, "disconnect() request on a call without a call service.");
         } else {
-            Log.i(TAG, "Send disconnect to call service for call with id " + mId);
+            Log.i(this, "Send disconnect to call service for call with id %s", mId);
             // The call isn't officially disconnected until the call service confirms that the call
             // was actually disconnected. Only then is the association between call and call service
             // severed, see {@link CallsManager#markCallAsDisconnected}.
@@ -247,7 +244,7 @@ final class Call {
             return true;
         }
 
-        Log.i(TAG, "Request to " + actionName + " a non-ringing call " + this);
+        Log.i(this, "Request to %s a non-ringing call %s", actionName, this);
         return false;
     }
 

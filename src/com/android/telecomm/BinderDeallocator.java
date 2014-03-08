@@ -16,8 +16,6 @@
 
 package com.android.telecomm;
 
-import android.util.Log;
-
 import com.google.common.collect.Sets;
 
 import java.util.Iterator;
@@ -52,8 +50,6 @@ import java.util.Set;
  * which these resources turned up to be necessary such that counting permits seems sufficient.
  */
 final class BinderDeallocator {
-
-    private static final String TAG = BinderDeallocator.class.getSimpleName();
 
     /**
      * The number of actions currently permitted to use previously-allocated resources and/or create
@@ -100,7 +96,7 @@ final class BinderDeallocator {
         ThreadUtil.checkOnMainThread();
 
         if (mPermitCount < 1) {
-            Log.wtf(TAG, "releaseUsePermit should only be invoked upon mPermitCount > 0");
+            Log.wtf(this, "releaseUsePermit should only be invoked upon mPermitCount > 0");
         } else if (--mPermitCount == 0) {
             deallocateUnusedResources();
         }
