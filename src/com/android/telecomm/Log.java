@@ -18,6 +18,8 @@ package com.android.telecomm;
 
 import java.util.IllegalFormatException;
 import java.util.Locale;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 /**
  * Manages logging for the entire module.
@@ -116,6 +118,44 @@ public class Log {
 
     public static void wtf(Object objectPrefix, String format, Object... args) {
         android.util.Log.wtf(TAG, buildMessage(getPrefixFromObject(objectPrefix), format, args));
+    }
+
+    /**
+     * Redact personally identifiable information for production users.
+     * If we are running in verbose mode, return the original string, otherwise
+     * return a SHA-1 hash of the input string.
+     */
+    public static String pii(Object pii) {
+        if (pii == null || VERBOSE) {
+            return String.valueOf(pii);
+        }
+        return "[" + secureHash(String.valueOf(pii).getBytes()) + "]";
+    }
+
+    private static String secureHash(byte[] input) {
+        MessageDigest messageDigest;
+        try {
+            messageDigest = MessageDigest.getInstance("SHA-1");
+        } catch (NoSuchAlgorithmException e) {
+            return null;
+        }
+        messageDigest.update(input);
+        byte[] result = messageDigest.digest();
+        return encodeHex(result);
+    }
+
+    private static String encodeHex(byte[] bytes) {
+        StringBuffer hex = new StringBuffer(bytes.length * 2);
+
+        for (int i = 0; i < bytes.length; i++) {
+            int byteIntValue = (int) bytes[i] & 0xff;
+            if (byteIntValue < 0x10) {
+                hex.append("0");
+            }
+            hex.append(Integer.toString(byteIntValue, 16));
+        }
+
+        return hex.toString();
     }
 
     private static String getPrefixFromObject(Object obj) {

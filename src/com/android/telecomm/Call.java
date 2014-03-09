@@ -23,6 +23,7 @@ import android.telecomm.ICallServiceSelector;
 import com.google.common.base.Preconditions;
 
 import java.util.Date;
+import java.util.Locale;
 import java.util.UUID;
 
 /**
@@ -88,7 +89,8 @@ final class Call {
 
     /** {@inheritDoc} */
     @Override public String toString() {
-        return "[" + mId + ", " + mState + ", " + mCallService.getComponentName() + "]";
+        return String.format(Locale.US, "[%s, %s, %s, %s]", mId, mState,
+                mCallService.getComponentName(), Log.pii(mHandle));
     }
 
     String getId() {
