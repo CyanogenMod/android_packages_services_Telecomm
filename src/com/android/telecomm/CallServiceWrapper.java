@@ -135,7 +135,7 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
          mBinder.bind(callback);
     }
 
-    /** See {@link ICallService#abort}. */
+    /** @see CallService#abort(String) */
     void abort(String callId) {
         mAdapter.removePendingOutgoingCallId(callId);
         if (isServiceValid("abort")) {
@@ -147,7 +147,7 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
         }
     }
 
-    /** See {@link ICallService#hold}. */
+    /** @see CallService#hold(String) */
     void hold(String callId) {
         if (isServiceValid("hold")) {
             try {
@@ -158,7 +158,7 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
         }
     }
 
-    /** See {@link ICallService#unhold}. */
+    /** @see CallService#unhold(String) */
     void unhold(String callId) {
         if (isServiceValid("unhold")) {
             try {
@@ -169,7 +169,7 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
         }
     }
 
-    /** See {@link ICallService#onAudioStateChanged}. */
+    /** @see CallService#onAudioStateChanged(String,CallAudioState) */
     void onAudioStateChanged(String activeCallId, CallAudioState audioState) {
         if (isServiceValid("onAudioStateChanged")) {
             try {
@@ -217,7 +217,7 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
         mBinder.bind(callback);
     }
 
-    /** See {@link ICallService#disconnect}. */
+    /** @see CallService#disconnect(String) */
     void disconnect(String callId) {
         if (isServiceValid("disconnect")) {
             try {
@@ -228,7 +228,7 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
         }
     }
 
-    /** See {@link ICallService#answer}. */
+    /** @see CallService#answer(String) */
     void answer(String callId) {
         if (isServiceValid("answer")) {
             try {
@@ -239,13 +239,35 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
         }
     }
 
-    /** See {@link ICallService#reject}. */
+    /** @see CallService#reject(String) */
     void reject(String callId) {
         if (isServiceValid("reject")) {
             try {
                 mServiceInterface.reject(callId);
             } catch (RemoteException e) {
-                Log.e(this, e, "Failed to reject call %s");
+                Log.e(this, e, "Failed to reject call %s", callId);
+            }
+        }
+    }
+
+    /** @see CallService#playDtmfTone(String,char) */
+    void playDtmfTone(String callId, char digit) {
+        if (isServiceValid("playDtmfTone")) {
+            try {
+                mServiceInterface.playDtmfTone(callId, digit);
+            } catch (RemoteException e) {
+                Log.e(this, e, "Failed to play DTMF tone for call %s", callId);
+            }
+        }
+    }
+
+    /** @see CallService#stopDtmfTone(String) */
+    void stopDtmfTone(String callId) {
+        if (isServiceValid("stopDtmfTone")) {
+            try {
+                mServiceInterface.stopDtmfTone(callId);
+            } catch (RemoteException e) {
+                Log.e(this, e, "Failed to stop DTMF tone for call %s", callId);
             }
         }
     }

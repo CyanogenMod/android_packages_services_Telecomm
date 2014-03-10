@@ -60,6 +60,36 @@ class InCallAdapter extends IInCallAdapter.Stub {
     }
 
     /** {@inheritDoc} */
+    public void playDtmfTone(final String callId, final char digit) {
+        Log.d(this, "playDtmfTone(%s,%c)", callId, digit);
+        mHandler.post(new Runnable() {
+            @Override public void run() {
+                mCallsManager.playDtmfTone(callId, digit);
+            }
+        });
+    }
+
+    /** {@inheritDoc} */
+    public void stopDtmfTone(final String callId) {
+        Log.d(this, "stopDtmfTone(%s)", callId);
+        mHandler.post(new Runnable() {
+            @Override public void run() {
+                mCallsManager.stopDtmfTone(callId);
+            }
+        });
+    }
+
+    /** {@inheritDoc} */
+    public void postDialContinue(final String callId) {
+        Log.d(this, "postDialContinue(%s)", callId);
+        mHandler.post(new Runnable() {
+            @Override public void run() {
+                mCallsManager.postDialContinue(callId);
+            }
+        });
+    }
+
+    /** {@inheritDoc} */
     @Override
     public void disconnectCall(final String callId) {
         mHandler.post(new Runnable() {

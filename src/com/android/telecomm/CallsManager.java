@@ -287,6 +287,51 @@ public final class CallsManager {
     }
 
     /**
+     * Instructs Telecomm to play the specified DTMF tone within the specified call.
+     *
+     * @param callId The ID of the call.
+     * @param digit The DTMF digit to play.
+     */
+    void playDtmfTone(String callId, char digit) {
+        Call call = mCalls.get(callId);
+        if (call == null) {
+            Log.i(this, "Request to play DTMF in a non-existent call %s", callId);
+        } else {
+            call.playDtmfTone(digit);
+        }
+    }
+
+    /**
+     * Instructs Telecomm to stop the currently playing DTMF tone, if any.
+     *
+     * @param callId The ID of the call.
+     */
+    void stopDtmfTone(String callId) {
+        Call call = mCalls.get(callId);
+        if (call == null) {
+            Log.i(this, "Request to stop DTMF in a non-existent call %s", callId);
+        } else {
+            call.stopDtmfTone();
+        }
+    }
+
+    /**
+     * Instructs Telecomm to continue the current post-dial DTMF string, if any.
+     *
+     * @param callId The ID of the call.
+     */
+    void postDialContinue(String callId) {
+        Call call = mCalls.get(callId);
+        if (call == null) {
+            Log.i(this, "Request to continue post-dial string in a non-existent call %s", callId);
+        } else {
+            // TODO(ihab): Implement this from this level on downwards
+            // call.postDialContinue();
+            // Must play tones locally -- see DTMFTonePlayer.java in Telephony
+        }
+    }
+
+    /**
      * Instructs Telecomm to disconnect the specified call. Intended to be invoked by the
      * in-call app through {@link InCallAdapter} for an ongoing call. This is usually triggered by
      * the user hitting the end-call button.

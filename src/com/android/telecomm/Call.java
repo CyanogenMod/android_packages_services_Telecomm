@@ -303,6 +303,30 @@ final class Call {
     }
 
     /**
+     * Plays the specified DTMF tone.
+     */
+    void playDtmfTone(char digit) {
+        if (mCallService == null) {
+            Log.w(this, "playDtmfTone() request on a call without a call service.");
+        } else {
+            Log.i(this, "Send playDtmfTone to call service for call with id %s", mId);
+            mCallService.playDtmfTone(mId, digit);
+        }
+    }
+
+    /**
+     * Stops playing any currently playing DTMF tone.
+     */
+    void stopDtmfTone() {
+        if (mCallService == null) {
+            Log.w(this, "stopDtmfTone() request on a call without a call service.");
+        } else {
+            Log.i(this, "Send stopDtmfTone to call service for call with id %s", mId);
+            mCallService.stopDtmfTone(mId);
+        }
+    }
+
+    /**
      * Attempts to disconnect the call through the call service.
      */
     void disconnect() {
