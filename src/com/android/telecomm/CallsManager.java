@@ -17,7 +17,9 @@
 package com.android.telecomm;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.Intent;
+import android.media.AudioManager;
 import android.os.Bundle;
 import android.telecomm.CallService;
 import android.telecomm.CallServiceDescriptor;
@@ -237,6 +239,12 @@ public final class CallsManager {
             call.disconnect();
         }
 
+        // TODO(sail): Replace with CallAudioManager.
+        Log.v(this, "disconnectCall, abandoning audio focus");
+        Context context = TelecommApp.getInstance().getApplicationContext();
+        AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+        audioManager.setMode(AudioManager.MODE_NORMAL);
+        audioManager.abandonAudioFocusForCall();
     }
 
     void markCallAsRinging(String callId) {
@@ -251,6 +259,16 @@ public final class CallsManager {
         setCallState(callId, CallState.ACTIVE);
         removeFromUnansweredCalls(callId);
         mInCallController.markCallAsActive(callId);
+
+        // TODO(sail): Replace with CallAudioManager.
+        Log.v(this, "markCallAsActive, requesting audio focus");
+        Context context = TelecommApp.getInstance().getApplicationContext();
+        AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+        audioManager.requestAudioFocusForCall(AudioManager.STREAM_VOICE_CALL,
+                    AudioManager.AUDIOFOCUS_GAIN_TRANSIENT);
+        audioManager.setMode(AudioManager.MODE_IN_CALL);
+        audioManager.setMicrophoneMute(false);
+        audioManager.setSpeakerphoneOn(false);
     }
 
     /**
