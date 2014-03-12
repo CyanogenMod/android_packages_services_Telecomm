@@ -16,10 +16,6 @@
 
 package com.android.telecomm;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Lists;
-
 import android.os.Handler;
 import android.os.Looper;
 import android.os.RemoteException;
@@ -28,7 +24,9 @@ import android.telecomm.CallServiceDescriptor;
 
 import com.android.internal.telecomm.ICallServiceSelectionResponse;
 import com.android.internal.telecomm.ICallServiceSelector;
-import com.android.telecomm.ServiceBinder.BindCallback;
+import com.google.android.collect.Sets;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Lists;
 
 import java.util.Iterator;
 import java.util.List;
@@ -68,6 +66,17 @@ final class OutgoingCallProcessor {
     private final Map<String, CallServiceWrapper> mCallServicesById = Maps.newHashMap();
 
     /**
+     * The set of attempted call services, used to ensure services are attempted at most once per
+     * outgoing-call attempt.
+     */
+    private final Set<CallServiceWrapper> mAttemptedCallServices = Sets.newHashSet();
+
+    /**
+     * The set of incompatible call services, used to suppress unnecessary call switching attempts.
+     */
+    private final Set<CallServiceWrapper> mIncompatibleCallServices = Sets.newHashSet();
+
+    /**
      * The list of currently-available call-service selector implementations.
      */
     private final List<ICallServiceSelector> mSelectors;
@@ -79,6 +88,12 @@ final class OutgoingCallProcessor {
     private final OutgoingCallsManager mOutgoingCallsManager;
 
     private final Switchboard mSwitchboard;
+
+    private final Runnable mNextCallServiceCallback = new Runnable() {
+        @Override public void run() {
+            attemptNextCallService();
+        }
+    };
 
     /**
      * The iterator over the currently-selected ordered list of call-service descriptors.
@@ -141,6 +156,34 @@ final class OutgoingCallProcessor {
     }
 
     /**
+     * Handles the specified compatibility status from the call-service implementation.
+     * TODO(gilad): Consider making this class stateful, potentially rejecting out-of-order/
+     * unexpected invocations (i.e. beyond checking for unexpected call IDs).
+     *
+     * @param callId The ID of the call.
+     * @param isCompatible True if the call-service is compatible with the corresponding call and
+     *     false otherwise.
+     */
+    void setIsCompatibleWith(String callId, boolean isCompatible) {
+      if (callId != mCall.getId()) {
+          Log.wtf(this, "setIsCompatibleWith invoked with unexpected call ID: %s", callId);
+          return;
+      }
+
+      if (!mIsAborted) {
+          CallServiceWrapper callService = mCall.getCallService();
+          if (callService != null) {
+              if (isCompatible) {
+                  callService.call(mCall.toCallInfo(), mNextCallServiceCallback);
+                  return;
+              }
+              mIncompatibleCallServices.add(callService);
+          }
+          attemptNextCallService();
+      }
+    }
+
+    /**
      * Aborts the attempt to place the relevant call.  Intended to be invoked by
      * switchboard through the outgoing-calls manager.
      */
@@ -166,6 +209,9 @@ final class OutgoingCallProcessor {
         }
 
         mCall.setState(CallState.DIALING);
+        for (CallServiceWrapper callService : mIncompatibleCallServices) {
+            mCall.addIncompatibleCallService(callService);
+        }
         mSwitchboard.handleSuccessfulOutgoingCall(mCall);
     }
 
@@ -263,23 +309,14 @@ final class OutgoingCallProcessor {
             final CallServiceWrapper callService =
                     mCallServicesById.get(descriptor.getCallServiceId());
 
-            if (callService == null) {
+            if (callService == null || mAttemptedCallServices.contains(callService)) {
+                // The next call service is either null or has already been attempted, fast forward
+                // to the next.
                 attemptNextCallService();
             } else {
-                BindCallback callback = new BindCallback() {
-                    @Override public void onSuccess() {
-                        callService.call(mCall.toCallInfo());
-                    }
-                    @Override public void onFailure() {
-                        attemptNextCallService();
-                    }
-                };
-
+                mAttemptedCallServices.add(callService);
                 mCall.setCallService(callService);
-
-                // TODO(santoscordon): Consider making bind private to CallServiceWrapper and having
-                // CSWrapper.call() do the bind automatically.
-                callService.bind(callback);
+                callService.isCompatibleWith(mCall.toCallInfo(), mNextCallServiceCallback);
             }
         } else {
             mCallServiceDescriptorIterator = null;

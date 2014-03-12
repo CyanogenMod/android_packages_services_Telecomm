@@ -28,7 +28,6 @@ import android.telecomm.TelecommConstants;
 
 import com.android.internal.telecomm.ICallServiceLookupResponse;
 import com.android.internal.telecomm.ICallServiceProvider;
-import com.android.telecomm.ServiceBinder.BindCallback;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -143,7 +142,7 @@ final class CallServiceRepository {
         mOutstandingProviders.clear();
         for (ComponentName name : providerNames) {
             mOutstandingProviders.add(name);
-            bindProvider(name);
+            lookupCallServices(name);
         }
 
         Log.i(this, "Found %d implementations of ICallServiceProvider.",
@@ -213,41 +212,16 @@ final class CallServiceRepository {
     }
 
     /**
-     * Attempts to bind to the specified provider.
+     * Attempts to obtain call-service descriptors from the specified provider (asynchronously) and
+     * passes the list through to {@link #processCallServices}, which then relinquishes control back
+     * to the switchboard.
      *
      * @param providerName The component name of the relevant provider.
      */
-    private void bindProvider(final ComponentName providerName) {
-        final CallServiceProviderWrapper provider =
-                new CallServiceProviderWrapper(providerName, this);
+    private void lookupCallServices(final ComponentName providerName) {
+        final CallServiceProviderWrapper provider = new CallServiceProviderWrapper(providerName);
 
-        BindCallback callback = new BindCallback() {
-            @Override public void onSuccess() {
-                processProvider(provider);
-            }
-            @Override public void onFailure() {
-                removeOutstandingProvider(providerName);
-            }
-        };
-
-        provider.bind(callback);
-    }
-
-    /**
-     * Queries the supplied provider asynchronously for its CallServices and passes the list through
-     * to {@link #processCallServices} which will relinquish control back to switchboard.
-     *
-     * @param provider The provider object to process.
-     */
-    private void processProvider(final CallServiceProviderWrapper provider) {
-        if (!mIsLookupInProgress) {
-            return;
-        }
-
-        Preconditions.checkNotNull(provider);
-
-        // Query the provider for {@link ICallService} implementations.
-        provider.lookupCallServices(new ICallServiceLookupResponse.Stub() {
+        ICallServiceLookupResponse response = new ICallServiceLookupResponse.Stub() {
             @Override
             public void setCallServiceDescriptors(
                     final List<CallServiceDescriptor> callServiceDescriptors) {
@@ -255,11 +229,21 @@ final class CallServiceRepository {
                 // TODO(santoscordon): Do we need Binder.clear/restoreCallingIdentity()?
                 mHandler.post(new Runnable() {
                     @Override public void run() {
-                        processCallServices(provider, Sets.newHashSet(callServiceDescriptors));
+                        if (mIsLookupInProgress) {
+                            processCallServices(provider, Sets.newHashSet(callServiceDescriptors));
+                        }
                     }
                 });
             }
-        });
+        };
+
+        Runnable errorCallback = new Runnable() {
+            @Override public void run() {
+                removeOutstandingProvider(providerName);
+            }
+        };
+
+        provider.lookupCallServices(response, errorCallback);
     }
 
     /**
@@ -291,8 +275,8 @@ final class CallServiceRepository {
 
             removeOutstandingProvider(providerName);
         } else {
-            Log.i(this, "Unexpected list of call services in lookup %s from %s ", mLookupId,
-                    providerName);
+            Log.i(this,
+                    "Unexpected call services from %s in lookup %s", providerName, mLookupId);
         }
     }
 

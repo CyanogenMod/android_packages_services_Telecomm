@@ -31,35 +31,56 @@ import com.android.internal.telecomm.ICallServiceProvider;
  * {@link ICallServiceProvider}.
  * TODO(santoscordon): Keep track of when the service can be safely unbound.
  */
-public class CallServiceProviderWrapper extends ServiceBinder<ICallServiceProvider> {
+final class CallServiceProviderWrapper extends ServiceBinder<ICallServiceProvider> {
+    /**
+     * The service action used to bind to ICallServiceProvider implementations.
+     * TODO(santoscordon): Move this to TelecommConstants.
+     */
+    static final String CALL_SERVICE_PROVIDER_ACTION = ICallServiceProvider.class.getName();
+
     /** The actual service implementation. */
     private ICallServiceProvider mServiceInterface;
+
+    private Binder mBinder = new Binder();
 
     /**
      * Creates a call-service provider for the specified component.
      *
      * @param componentName The component name of the service to bind to.
-     * @param repository The call-service repository.
      */
-    public CallServiceProviderWrapper(
-            ComponentName componentName, CallServiceRepository repository) {
-
+    CallServiceProviderWrapper(ComponentName componentName) {
         super(TelecommConstants.ACTION_CALL_SERVICE_PROVIDER, componentName);
     }
 
     /**
-     * See {@link ICallServiceProvider#lookupCallServices}.
+     * initiates a call-service lookup cycle, see {@link ICallServiceProvider#lookupCallServices}.
+     * Upon failure, the specified error callback is invoked.  Can be invoked even when the call
+     * service is unbound.
+     *
+     * @param response The response object via which to return the relevant call-service
+     *     implementations, if any.
+     * @param errorCallback The callback to invoke upon failure.
      */
-    public void lookupCallServices(ICallServiceLookupResponse response) {
-        try {
-            if (mServiceInterface == null) {
-                Log.wtf(this, "lookupCallServices() invoked while the service is unbound.");
-            } else {
-                mServiceInterface.lookupCallServices(response);
+    void lookupCallServices(
+            final ICallServiceLookupResponse response,
+            final Runnable errorCallback) {
+
+        BindCallback callback = new BindCallback() {
+            @Override public void onSuccess() {
+                if (isServiceValid("lookupCallServices")) {
+                    try {
+                        mServiceInterface.lookupCallServices(response);
+                    } catch (RemoteException e) {
+                        Log.e(CallServiceProviderWrapper.this, e, "Failed to lookupCallServices.");
+                    }
+                }
             }
-        } catch (RemoteException e) {
-            Log.e(this, e, "Failed to lookupCallServices.");
-        }
+            @Override public void onFailure() {
+                errorCallback.run();
+            }
+        };
+
+        mBinder.bind(callback);
     }
 
     /** {@inheritDoc} */

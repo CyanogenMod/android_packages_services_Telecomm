@@ -20,10 +20,12 @@ import android.telecomm.CallInfo;
 import android.telecomm.CallState;
 
 import com.android.internal.telecomm.ICallServiceSelector;
+import com.google.android.collect.Sets;
 import com.google.common.base.Preconditions;
 
 import java.util.Date;
 import java.util.Locale;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -65,6 +67,12 @@ final class Call {
 
     /** Read-only and parcelable version of this call. */
     private CallInfo mCallInfo;
+
+    /**
+     * The set of call services that were attempted in the process of placing/switching this call
+     * but turned out unsuitable.  Only used in the context of call switching.
+     */
+    private Set<CallServiceWrapper> mIncompatibleCallServices;
 
     /**
      * Creates an empty call object with a unique call ID.
@@ -174,6 +182,32 @@ final class Call {
         // decrementAssociatedCallCount(mCallServiceSelector);
 
         mCallServiceSelector = null;
+    }
+
+    /**
+     * Adds the specified call service to the list of incompatible services.  The set is used when
+     * attempting to switch a phone call between call services such that incompatible services can
+     * be avoided.
+     *
+     * @param callService The incompatible call service.
+     */
+    void addIncompatibleCallService(CallServiceWrapper callService) {
+        if (mIncompatibleCallServices == null) {
+            mIncompatibleCallServices = Sets.newHashSet();
+        }
+        mIncompatibleCallServices.add(callService);
+    }
+
+    /**
+     * Checks whether or not the specified callService was identified as incompatible in the
+     * context of this call.
+     *
+     * @param callService The call service to evaluate.
+     * @return True upon incompatible call services and false otherwise.
+     */
+    boolean isIncompatibleCallService(CallServiceWrapper callService) {
+        return mIncompatibleCallServices != null &&
+                mIncompatibleCallServices.contains(callService);
     }
 
     /**

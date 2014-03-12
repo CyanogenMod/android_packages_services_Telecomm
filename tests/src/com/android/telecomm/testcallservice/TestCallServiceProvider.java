@@ -16,16 +16,12 @@
 
 package com.android.telecomm.testcallservice;
 
-import android.content.ComponentName;
-import android.os.IBinder;
 import android.telecomm.CallServiceDescriptor;
 import android.telecomm.CallServiceLookupResponse;
 import android.telecomm.CallServiceProvider;
 import android.util.Log;
 
 import com.google.common.collect.Lists;
-
-import java.util.List;
 
 /**
  * Service which provides fake calls to test the ICallService interface.

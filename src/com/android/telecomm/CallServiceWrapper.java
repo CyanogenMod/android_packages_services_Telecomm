@@ -35,7 +35,7 @@ import com.android.internal.telecomm.ICallServiceProvider;
  * TODO(santoscordon): Keep track of when the service can be safely unbound.
  * TODO(santoscordon): Look into combining with android.telecomm.CallService.
  */
-public class CallServiceWrapper extends ServiceBinder<ICallService> {
+final class CallServiceWrapper extends ServiceBinder<ICallService> {
 
     /** The descriptor of this call service as supplied by the call-service provider. */
     private final CallServiceDescriptor mDescriptor;
@@ -48,6 +48,8 @@ public class CallServiceWrapper extends ServiceBinder<ICallService> {
     /** The actual service implementation. */
     private ICallService mServiceInterface;
 
+    private Binder mBinder = new Binder();
+
     /**
      * Creates a call-service provider for the specified component.
      *
@@ -55,18 +57,18 @@ public class CallServiceWrapper extends ServiceBinder<ICallService> {
      *         {@link ICallServiceProvider#lookupCallServices}.
      * @param adapter The call-service adapter.
      */
-    public CallServiceWrapper(CallServiceDescriptor descriptor, CallServiceAdapter adapter) {
+    CallServiceWrapper(CallServiceDescriptor descriptor, CallServiceAdapter adapter) {
         super(TelecommConstants.ACTION_CALL_SERVICE, descriptor.getServiceComponent());
         mDescriptor = descriptor;
         mAdapter = adapter;
     }
 
-    public CallServiceDescriptor getDescriptor() {
+    CallServiceDescriptor getDescriptor() {
         return mDescriptor;
     }
 
     /** See {@link ICallService#setCallServiceAdapter}. */
-    public void setCallServiceAdapter(ICallServiceAdapter callServiceAdapter) {
+    void setCallServiceAdapter(ICallServiceAdapter callServiceAdapter) {
         if (isServiceValid("setCallServiceAdapter")) {
             try {
                 mServiceInterface.setCallServiceAdapter(callServiceAdapter);
@@ -76,32 +78,63 @@ public class CallServiceWrapper extends ServiceBinder<ICallService> {
         }
     }
 
-    /** See {@link ICallService#isCompatibleWith}. */
-    public void isCompatibleWith(CallInfo callInfo) {
-        if (isServiceValid("isCompatibleWith")) {
-            try {
-                mServiceInterface.isCompatibleWith(callInfo);
-            } catch (RemoteException e) {
-                Log.e(this, e, "Failed checking isCompatibleWith.");
+    /**
+     * Checks whether or not the specified call is compatible with this call-service implementation,
+     * see {@link ICallService#isCompatibleWith}.  Upon failure, the specified error callback is
+     * invoked. Can be invoked even when the call service is unbound.
+     *
+     * @param callInfo The details of the call.
+     * @param errorCallback The callback to invoke upon failure.
+     */
+    void isCompatibleWith(final CallInfo callInfo, final Runnable errorCallback) {
+        BindCallback callback = new BindCallback() {
+            @Override public void onSuccess() {
+                if (isServiceValid("isCompatibleWith")) {
+                    try {
+                        mServiceInterface.isCompatibleWith(callInfo);
+                    } catch (RemoteException e) {
+                        Log.e(CallServiceWrapper.this, e, "Failed checking isCompatibleWith.");
+                    }
+                }
             }
-        }
+            @Override public void onFailure() {
+                errorCallback.run();
+            }
+        };
+
+        mBinder.bind(callback);
     }
 
-    /** See {@link ICallService#call}. */
-    public void call(CallInfo callInfo) {
-        String callId = callInfo.getId();
-        if (isServiceValid("call")) {
-            try {
-                mServiceInterface.call(callInfo);
-                mAdapter.addPendingOutgoingCallId(callId);
-            } catch (RemoteException e) {
-                Log.e(this, e, "Failed to place call " + callId + ".");
+    /**
+     * Attempts to place the specified call, see {@link ICallService#call}.  Upon failure, the
+     * specified error callback is invoked. Can be invoked even when the call service is unbound.
+     *
+     * @param callInfo The details of the call.
+     * @param errorCallback The callback to invoke upon failure.
+     */
+    void call(final CallInfo callInfo, final Runnable errorCallback) {
+        BindCallback callback = new BindCallback() {
+            @Override public void onSuccess() {
+                String callId = callInfo.getId();
+                if (isServiceValid("call")) {
+                    try {
+                        mServiceInterface.call(callInfo);
+                        mAdapter.addPendingOutgoingCallId(callId);
+                    } catch (RemoteException e) {
+                        Log.e(CallServiceWrapper.this, e, "Failed to place call %s", callId);
+                    }
+                }
             }
-        }
+            @Override public void onFailure() {
+                errorCallback.run();
+            }
+        };
+
+         mBinder.bind(callback);
     }
 
     /** See {@link ICallService#abort}. */
-    public void abort(String callId) {
+    void abort(String callId) {
         mAdapter.removePendingOutgoingCallId(callId);
         if (isServiceValid("abort")) {
             try {
@@ -112,21 +145,44 @@ public class CallServiceWrapper extends ServiceBinder<ICallService> {
         }
     }
 
-    /** See {@link ICallService#setIncomingCallId}. */
-    public void setIncomingCallId(String callId, Bundle extras) {
-        if (isServiceValid("setIncomingCallId")) {
-            mAdapter.addPendingIncomingCallId(callId);
-            try {
-                mServiceInterface.setIncomingCallId(callId, extras);
-            } catch (RemoteException e) {
-                Log.e(this, e, "Failed to setIncomingCallId for call %s", callId);
-                mAdapter.removePendingIncomingCallId(callId);
+    /**
+     * Starts retrieval of details for an incoming call. Details are returned through the
+     * call-service adapter using the specified call ID. Upon failure, the specified error callback
+     * is invoked. Can be invoked even when the call service is unbound.
+     * See {@link ICallService#setIncomingCallId}.
+     *
+     * @param callId The call ID used for the incoming call.
+     * @param extras The {@link CallService}-provided extras which need to be sent back.
+     * @param errorCallback The callback to invoke upon failure.
+     */
+    void setIncomingCallId(
+            final String callId,
+            final Bundle extras,
+            final Runnable errorCallback) {
+
+        BindCallback callback = new BindCallback() {
+            @Override public void onSuccess() {
+                if (isServiceValid("setIncomingCallId")) {
+                    mAdapter.addPendingIncomingCallId(callId);
+                    try {
+                        mServiceInterface.setIncomingCallId(callId, extras);
+                    } catch (RemoteException e) {
+                        Log.e(CallServiceWrapper.this, e,
+                                "Failed to setIncomingCallId for call %s", callId);
+                        mAdapter.removePendingIncomingCallId(callId);
+                    }
+                }
             }
-        }
+            @Override public void onFailure() {
+                errorCallback.run();
+            }
+        };
+
+        mBinder.bind(callback);
     }
 
     /** See {@link ICallService#disconnect}. */
-    public void disconnect(String callId) {
+    void disconnect(String callId) {
         if (isServiceValid("disconnect")) {
             try {
                 mServiceInterface.disconnect(callId);
@@ -137,7 +193,7 @@ public class CallServiceWrapper extends ServiceBinder<ICallService> {
     }
 
     /** See {@link ICallService#answer}. */
-    public void answer(String callId) {
+    void answer(String callId) {
         if (isServiceValid("answer")) {
             try {
                 mServiceInterface.answer(callId);
@@ -148,7 +204,7 @@ public class CallServiceWrapper extends ServiceBinder<ICallService> {
     }
 
     /** See {@link ICallService#reject}. */
-    public void reject(String callId) {
+    void reject(String callId) {
         if (isServiceValid("reject")) {
             try {
                 mServiceInterface.reject(callId);
@@ -156,30 +212,6 @@ public class CallServiceWrapper extends ServiceBinder<ICallService> {
                 Log.e(this, e, "Failed to reject call %s");
             }
         }
-    }
-
-    /**
-     * Starts retrieval of details for an incoming call. Details are returned through the
-     * call-service adapter using the specified call ID. Upon failure, the specified error callback
-     * is invoked. Can be invoked even when the call service is unbound.
-     *
-     * @param callId The call ID used for the incoming call.
-     * @param extras The {@link CallService}-provided extras which need to be sent back.
-     * @param errorCallback The callback invoked upon failure.
-     */
-    void retrieveIncomingCall(final String callId, final Bundle extras,
-            final Runnable errorCallback) {
-
-        BindCallback callback = new BindCallback() {
-            @Override public void onSuccess() {
-                setIncomingCallId(callId, extras);
-            }
-            @Override public void onFailure() {
-                errorCallback.run();
-            }
-        };
-
-        bind(callback);
     }
 
     /**
@@ -197,14 +229,5 @@ public class CallServiceWrapper extends ServiceBinder<ICallService> {
     @Override protected void setServiceInterface(IBinder binder) {
         mServiceInterface = ICallService.Stub.asInterface(binder);
         setCallServiceAdapter(mAdapter);
-    }
-
-    private boolean isServiceValid(String actionName) {
-        if (mServiceInterface != null) {
-            return true;
-        }
-
-        Log.wtf(this, "%s invoked while service is unbound", actionName);
-        return false;
     }
 }

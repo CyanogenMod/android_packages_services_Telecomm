@@ -436,9 +436,9 @@ public final class CallsManager {
 
     /**
      * Stops playing the ringer if the specified call is the top-most incoming call. This exists
-     * separately from {@link #removeIncomingCall} for cases where we would like to stop playing the
-     * ringer for a call, but that call may still exist in {@link #mUnansweredIncomingCalls} - See
-     * {@link #rejectCall}, {@link #answerCall}.
+     * separately from {@link #removeFromUnansweredCalls} to allow stopping the ringer for calls
+     * that should remain in {@link #mUnansweredIncomingCalls}, invoked from {@link #answerCall}
+     * and {@link #rejectCall}.
      *
      * @param call The call for which we should stop ringing.
      */

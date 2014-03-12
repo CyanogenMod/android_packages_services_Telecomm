@@ -74,8 +74,17 @@ public final class CallServiceAdapter extends ICallServiceAdapter.Stub {
     }
 
     /** {@inheritDoc} */
-    @Override public void setIsCompatibleWith(String callId, boolean isCompatible) {
-        // TODO(santoscordon): fill in.
+    @Override public void setIsCompatibleWith(final String callId, final boolean isCompatible) {
+        checkValidCallId(callId);
+        mHandler.post(new Runnable() {
+            @Override public void run() {
+                if (mPendingOutgoingCallIds.contains(callId)) {
+                    mOutgoingCallsManager.setIsCompatibleWith(callId, isCompatible);
+                } else {
+                    Log.wtf(CallServiceAdapter.this, "Unknown outgoing call: %s", callId);
+                }
+            }
+        });
     }
 
     /** {@inheritDoc} */
@@ -86,8 +95,7 @@ public final class CallServiceAdapter extends ICallServiceAdapter.Stub {
                 if (mPendingIncomingCallIds.remove(callInfo.getId())) {
                     mIncomingCallsManager.handleSuccessfulIncomingCall(callInfo);
                 } else {
-                    Log.wtf(CallServiceAdapter.this,
-                            "Unknown incoming call: %s", callInfo);
+                    Log.wtf(CallServiceAdapter.this, "Unknown incoming call: %s", callInfo);
                 }
             }
         });
@@ -102,8 +110,7 @@ public final class CallServiceAdapter extends ICallServiceAdapter.Stub {
                     mOutgoingCallsManager.handleSuccessfulCallAttempt(callId);
                 } else {
                     // TODO(gilad): Figure out how to wire up the callService.abort() call.
-                    Log.wtf(CallServiceAdapter.this,
-                            "Unknown outgoing call: %s", callId);
+                    Log.wtf(CallServiceAdapter.this, "Unknown outgoing call: %s", callId);
                 }
             }
         });
@@ -117,8 +124,7 @@ public final class CallServiceAdapter extends ICallServiceAdapter.Stub {
                 if (mPendingOutgoingCallIds.remove(callId)) {
                     mOutgoingCallsManager.handleFailedCallAttempt(callId, reason);
                 } else {
-                    Log.wtf(CallServiceAdapter.this,
-                            "Unknown outgoing call: %s", callId);
+                    Log.wtf(CallServiceAdapter.this, "Unknown outgoing call: %s", callId);
                 }
             }
         });

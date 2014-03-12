@@ -71,8 +71,7 @@ final class IncomingCallsManager {
             }
         };
 
-        // TODO(gilad): call.retrieve*Call() seems a bit unusual, consider revisiting.
-        call.getCallService().retrieveIncomingCall(callId, extras, errorCallback);
+        call.getCallService().setIncomingCallId(callId, extras, errorCallback);
     }
 
     /**

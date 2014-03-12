@@ -69,6 +69,24 @@ final class OutgoingCallsManager {
     }
 
     /**
+     * Forwards the compatibility status from the call-service implementation to the corresponding
+     * outgoing-call processor.
+     *
+     * @param callId The ID of the call.
+     * @param isCompatible True if the call-service is compatible with the corresponding call and
+     *     false otherwise.
+     */
+    void setCompatibleWith(String callId, boolean isCompatible) {
+        OutgoingCallProcessor processor = mOutgoingCallProcessors.get(callId);
+        if (processor == null) {
+            // Shouldn't happen, so log a wtf if it does.
+            Log.wtf(this, "Received unexpected setCompatibleWith notification.");
+        } else {
+            processor.setCompatibleWith(callId, isCompatible);
+        }
+    }
+
+    /**
      * Removes the outgoing call processor mapping for the successful call and returns execution to
      * the switchboard. This method is invoked from {@link CallServiceAdapter} after a call service
      * has notified Telecomm that it successfully placed the call.

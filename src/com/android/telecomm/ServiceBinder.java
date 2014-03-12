@@ -44,6 +44,47 @@ abstract class ServiceBinder<ServiceInterface extends IInterface> {
         public void onFailure();
     }
 
+    /**
+     * Helper class to perform on-demand binding.
+     */
+    final class Binder {
+        /**
+         * Performs an asynchronous bind to the service (only if not already bound) and executes the
+         * specified callback.
+         *
+         * @param callback The callback to notify of the binding's success or failure.
+         */
+        void bind(BindCallback callback) {
+            ThreadUtil.checkOnMainThread();
+            Log.d(ServiceBinder.this, "bind()");
+
+            // Reset any abort request if we're asked to bind again.
+            clearAbort();
+
+            if (!mCallbacks.isEmpty()) {
+                // Binding already in progress, append to the list of callbacks and bail out.
+                mCallbacks.add(callback);
+                return;
+            }
+
+            mCallbacks.add(callback);
+            if (mServiceConnection == null) {
+                Intent serviceIntent = new Intent(mServiceAction).setComponent(mComponentName);
+                ServiceConnection connection = new ServiceBinderConnection();
+
+                Log.d(ServiceBinder.this, "Binding to call service with intent: %s", serviceIntent);
+                if (!mContext.bindService(serviceIntent, connection, Context.BIND_AUTO_CREATE)) {
+                    handleFailedConnection();
+                    return;
+                }
+            } else {
+                Log.d(ServiceBinder.this, "Service is already bound.");
+                Preconditions.checkNotNull(mBinder);
+                handleSuccessfulConnection();
+            }
+        }
+    }
+
     private final class ServiceBinderConnection implements ServiceConnection {
         @Override
         public void onServiceConnected(ComponentName componentName, IBinder binder) {
@@ -58,8 +99,7 @@ abstract class ServiceBinder<ServiceInterface extends IInterface> {
             }
 
             mServiceConnection = this;
-            mBinder = binder;
-            setServiceInterface(binder);
+            setBinder(binder);
             handleSuccessfulConnection();
         }
 
@@ -114,45 +154,6 @@ abstract class ServiceBinder<ServiceInterface extends IInterface> {
         mComponentName = componentName;
     }
 
-    /**
-     * Performs an asynchronous bind to the service if not already bound.
-     *
-     * @param callback The callback to notify of the binding's success or failure.
-     * @return The result of {#link Context#bindService} or true if already bound.
-     */
-    final boolean bind(BindCallback callback) {
-        ThreadUtil.checkOnMainThread();
-        Log.d(this, "bind()");
-
-        // Reset any abort request if we're asked to bind again.
-        clearAbort();
-
-        // If we are already waiting on a binding request, simply append to the list of waiting
-        // callbacks.
-        if (!mCallbacks.isEmpty()) {
-            mCallbacks.add(callback);
-            return true;
-        }
-
-        mCallbacks.add(callback);
-        if (mServiceConnection == null) {
-            Intent serviceIntent = new Intent(mServiceAction).setComponent(mComponentName);
-            ServiceConnection connection = new ServiceBinderConnection();
-
-            Log.d(this, "Binding to call service with intent: %s", serviceIntent);
-            if (!mContext.bindService(serviceIntent, connection, Context.BIND_AUTO_CREATE)) {
-                handleFailedConnection();
-                return false;
-            }
-        } else {
-            Log.d(this, "Service is already bound.");
-            Preconditions.checkNotNull(mBinder);
-            handleSuccessfulConnection();
-        }
-
-        return true;
-    }
-
     final void incrementAssociatedCallCount() {
         mAssociatedCallCount++;
     }
@@ -182,12 +183,21 @@ abstract class ServiceBinder<ServiceInterface extends IInterface> {
         } else {
             mContext.unbindService(mServiceConnection);
             mServiceConnection = null;
-            mBinder = null;
+            setBinder(null);
         }
     }
 
     final ComponentName getComponentName() {
         return mComponentName;
+    }
+
+    final boolean isServiceValid(String actionName) {
+        if (mBinder == null) {
+            Log.wtf(this, "%s invoked while service is unbound", actionName);
+            return false;
+        }
+
+        return true;
     }
 
     /**
@@ -216,11 +226,21 @@ abstract class ServiceBinder<ServiceInterface extends IInterface> {
      * Handles a service disconnection.
      */
     private void handleServiceDisconnected() {
-        setServiceInterface(null);
+        setBinder(null);
     }
 
     private void clearAbort() {
         mIsBindingAborted = false;
+    }
+
+    /**
+     * Sets the (private) binder and updates the child class.
+     *
+     * @param binder The new binder value.
+     */
+    private void setBinder(IBinder binder) {
+        mBinder = binder;
+        setServiceInterface(binder);
     }
 
     /**
