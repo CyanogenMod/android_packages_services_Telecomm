@@ -211,8 +211,6 @@ final class Switchboard {
     void handleFailedOutgoingCall(Call call) {
         Log.d(this, "handleFailedOutgoingCall");
 
-        // TODO(gilad): Notify mCallsManager.
-
         finalizeOutgoingCall(call);
     }
 

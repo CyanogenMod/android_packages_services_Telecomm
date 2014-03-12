@@ -132,6 +132,14 @@ final class Call {
         return new Date().getTime() - mCreationTime.getTime();
     }
 
+    /**
+     * @return The time when this call object was created and added to the set of pending outgoing
+     *     calls.
+     */
+    long getCreationTimeInMilliseconds() {
+        return mCreationTime.getTime();
+    }
+
     CallServiceWrapper getCallService() {
         return mCallService;
     }
