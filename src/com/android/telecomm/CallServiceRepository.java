@@ -24,11 +24,11 @@ import android.content.pm.ServiceInfo;
 import android.os.Handler;
 import android.os.Looper;
 import android.telecomm.CallServiceDescriptor;
-import android.telecomm.ICallServiceLookupResponse;
-import android.telecomm.ICallServiceProvider;
+import android.telecomm.TelecommConstants;
 
+import com.android.internal.telecomm.ICallServiceLookupResponse;
+import com.android.internal.telecomm.ICallServiceProvider;
 import com.android.telecomm.ServiceBinder.BindCallback;
-
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -199,7 +199,7 @@ final class CallServiceRepository {
         List<ComponentName> providerNames = Lists.newArrayList();
 
         PackageManager packageManager = TelecommApp.getInstance().getPackageManager();
-        Intent intent = new Intent(CallServiceProviderWrapper.CALL_SERVICE_PROVIDER_ACTION);
+        Intent intent = new Intent(TelecommConstants.ACTION_CALL_SERVICE_PROVIDER);
         for (ResolveInfo entry : packageManager.queryIntentServices(intent, 0)) {
             ServiceInfo serviceInfo = entry.serviceInfo;
             if (serviceInfo != null) {

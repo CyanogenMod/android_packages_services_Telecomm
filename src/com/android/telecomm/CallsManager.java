@@ -24,9 +24,9 @@ import android.os.Bundle;
 import android.telecomm.CallService;
 import android.telecomm.CallServiceDescriptor;
 import android.telecomm.CallState;
-import android.telecomm.ICallService;
 import android.telephony.TelephonyManager;
 
+import com.android.internal.telecomm.ICallService;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;

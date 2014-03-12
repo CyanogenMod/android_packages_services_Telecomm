@@ -16,22 +16,21 @@
 
 package com.android.telecomm.testcallservice;
 
+import android.content.Intent;
+import android.media.MediaPlayer;
+import android.os.Bundle;
+import android.telecomm.CallInfo;
+import android.telecomm.CallService;
+import android.telecomm.CallServiceAdapter;
+import android.telecomm.CallState;
+import android.util.Log;
+
 import com.android.telecomm.tests.R;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.Sets;
 
 import java.util.Set;
-
-import android.content.Intent;
-import android.media.MediaPlayer;
-import android.os.Bundle;
-import android.os.RemoteException;
-import android.telecomm.CallInfo;
-import android.telecomm.CallService;
-import android.telecomm.CallState;
-import android.telecomm.ICallServiceAdapter;
-import android.util.Log;
 
 /**
  * Service which provides fake calls to test the ICallService interface.
@@ -49,7 +48,7 @@ public class TestCallService extends CallService {
     /**
      * Adapter to call back into CallsManager.
      */
-    private ICallServiceAdapter mCallsManagerAdapter;
+    private CallServiceAdapter mCallsManagerAdapter;
 
     /**
      * Used to play an audio tone during a call.
@@ -58,7 +57,7 @@ public class TestCallService extends CallService {
 
     /** {@inheritDoc} */
     @Override
-    public void setCallServiceAdapter(ICallServiceAdapter callServiceAdapter) {
+    public void setCallServiceAdapter(CallServiceAdapter callServiceAdapter) {
         Log.i(TAG, "setCallServiceAdapter()");
 
         mCallsManagerAdapter = callServiceAdapter;
@@ -86,15 +85,11 @@ public class TestCallService extends CallService {
         // Is compatible if the handle doesn't start with 7.
         boolean isCompatible = !callInfo.getHandle().startsWith("7");
 
-        try {
-            // Tell CallsManager whether this call service can place the call (is compatible).
-            // Returning positively on setCompatibleWith() doesn't guarantee that we will be chosen
-            // to place the call. If we *are* chosen then CallsManager will execute the call()
-            // method below.
-            mCallsManagerAdapter.setCompatibleWith(callInfo.getId(), isCompatible);
-        } catch (RemoteException e) {
-            Log.e(TAG, "Failed to setCompatibleWith().", e);
-        }
+        // Tell CallsManager whether this call service can place the call (is compatible).
+        // Returning positively on setCompatibleWith() doesn't guarantee that we will be chosen
+        // to place the call. If we *are* chosen then CallsManager will execute the call()
+        // method below.
+        mCallsManagerAdapter.setIsCompatibleWith(callInfo.getId(), isCompatible);
     }
 
     /**
@@ -109,11 +104,7 @@ public class TestCallService extends CallService {
 
         createCall(callInfo.getId());
 
-        try {
-            mCallsManagerAdapter.handleSuccessfulOutgoingCall(callInfo.getId());
-        } catch (RemoteException e) {
-            Log.e(TAG, "Failed to create a newOutgoingCall().", e);
-        }
+        mCallsManagerAdapter.handleSuccessfulOutgoingCall(callInfo.getId());
     }
 
     /** {@inheritDoc} */
@@ -132,31 +123,19 @@ public class TestCallService extends CallService {
         String handle = "5551234";
 
         CallInfo callInfo = new CallInfo(callId, CallState.RINGING, handle);
-        try {
-            mCallsManagerAdapter.handleIncomingCall(callInfo);
-        } catch (RemoteException e) {
-            Log.e(TAG, "Failed to handleIncomingCall().", e);
-        }
+        mCallsManagerAdapter.notifyIncomingCall(callInfo);
     }
 
     /** {@inheritDoc} */
     @Override
     public void answer(String callId) {
-        try {
-            mCallsManagerAdapter.setActive(callId);
-        } catch (RemoteException e) {
-            Log.e(TAG, "Failed to setActive the call " + callId);
-        }
+        mCallsManagerAdapter.setActive(callId);
     }
 
     /** {@inheritDoc} */
     @Override
     public void reject(String callId) {
-        try {
-            mCallsManagerAdapter.setDisconnected(callId);
-        } catch (RemoteException e) {
-            Log.e(TAG, "Failed to setDisconnected the call " + callId);
-        }
+        mCallsManagerAdapter.setDisconnected(callId);
     }
 
     /** {@inheritDoc} */
@@ -165,11 +144,7 @@ public class TestCallService extends CallService {
         Log.i(TAG, "disconnect(" + callId + ")");
 
         destroyCall(callId);
-        try {
-            mCallsManagerAdapter.setDisconnected(callId);
-        } catch (RemoteException e) {
-            Log.e(TAG, "Failed to setDisconnected().", e);
-        }
+        mCallsManagerAdapter.setDisconnected(callId);
     }
 
     /** {@inheritDoc} */

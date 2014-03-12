@@ -19,8 +19,8 @@ package com.android.telecomm;
 import android.os.Handler;
 import android.os.Looper;
 import android.telecomm.CallInfo;
-import android.telecomm.ICallServiceAdapter;
 
+import com.android.internal.telecomm.ICallServiceAdapter;
 import com.google.android.collect.Sets;
 import com.google.common.base.Strings;
 
@@ -74,12 +74,12 @@ public final class CallServiceAdapter extends ICallServiceAdapter.Stub {
     }
 
     /** {@inheritDoc} */
-    @Override public void setCompatibleWith(String callId, boolean isCompatible) {
+    @Override public void setIsCompatibleWith(String callId, boolean isCompatible) {
         // TODO(santoscordon): fill in.
     }
 
     /** {@inheritDoc} */
-    @Override public void handleIncomingCall(final CallInfo callInfo) {
+    @Override public void notifyIncomingCall(final CallInfo callInfo) {
         checkValidCallId(callInfo.getId());
         mHandler.post(new Runnable() {
             @Override public void run() {

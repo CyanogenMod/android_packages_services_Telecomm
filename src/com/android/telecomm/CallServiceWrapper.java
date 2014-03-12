@@ -22,9 +22,10 @@ import android.os.RemoteException;
 import android.telecomm.CallInfo;
 import android.telecomm.CallService;
 import android.telecomm.CallServiceDescriptor;
-import android.telecomm.ICallService;
-import android.telecomm.ICallServiceAdapter;
-import android.telecomm.ICallServiceProvider;
+
+import com.android.internal.telecomm.ICallService;
+import com.android.internal.telecomm.ICallServiceAdapter;
+import com.android.internal.telecomm.ICallServiceProvider;
 
 /**
  * Wrapper for {@link ICallService}s, handles binding to {@link ICallService} and keeps track of
@@ -34,12 +35,6 @@ import android.telecomm.ICallServiceProvider;
  * TODO(santoscordon): Look into combining with android.telecomm.CallService.
  */
 public class CallServiceWrapper extends ServiceBinder<ICallService> {
-
-    /**
-     * The service action used to bind to ICallService implementations.
-     * TODO(santoscordon): Move this to TelecommConstants.
-     */
-    static final String CALL_SERVICE_ACTION = ICallService.class.getName();
 
     /** The descriptor of this call service as supplied by the call-service provider. */
     private final CallServiceDescriptor mDescriptor;
@@ -60,7 +55,7 @@ public class CallServiceWrapper extends ServiceBinder<ICallService> {
      * @param adapter The call-service adapter.
      */
     public CallServiceWrapper(CallServiceDescriptor descriptor, CallServiceAdapter adapter) {
-        super(CALL_SERVICE_ACTION, descriptor.getServiceComponent());
+        super(TelecommConstants.ACTION_CALL_SERVICE, descriptor.getServiceComponent());
         mDescriptor = descriptor;
         mAdapter = adapter;
     }

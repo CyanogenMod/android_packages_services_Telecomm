@@ -18,7 +18,8 @@ package com.android.telecomm;
 
 import android.os.Handler;
 import android.os.Looper;
-import android.telecomm.IInCallAdapter;
+
+import com.android.internal.telecomm.IInCallAdapter;
 
 /**
  * Receives call commands and updates from in-call app and passes them through to CallsManager.

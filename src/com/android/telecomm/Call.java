@@ -18,8 +18,8 @@ package com.android.telecomm;
 
 import android.telecomm.CallInfo;
 import android.telecomm.CallState;
-import android.telecomm.ICallServiceSelector;
 
+import com.android.internal.telecomm.ICallServiceSelector;
 import com.google.common.base.Preconditions;
 
 import java.util.Date;

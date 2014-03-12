@@ -26,8 +26,9 @@ import android.content.pm.ServiceInfo;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
-import android.telecomm.ICallServiceSelector;
+import android.telecomm.TelecommConstants;
 
+import com.android.internal.telecomm.ICallServiceSelector;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -41,12 +42,6 @@ import java.util.Set;
  * to bind are effectively omitted from the set that is passed back to {@link Switchboard}.
  */
 final class CallServiceSelectorRepository {
-
-    /**
-     * Used to retrieve all known ICallServiceSelector implementations from the framework.
-     */
-    private static final String CALL_SERVICE_SELECTOR_CLASS_NAME =
-            ICallServiceSelector.class.getName();
 
     /**
      * Used to interrupt lookup cycles that didn't terminate naturally within the allowed
@@ -165,7 +160,7 @@ final class CallServiceSelectorRepository {
         List<ComponentName> selectorNames = Lists.newArrayList();
 
         PackageManager packageManager = mContext.getPackageManager();
-        Intent intent = new Intent(CALL_SERVICE_SELECTOR_CLASS_NAME);
+        Intent intent = new Intent(TelecommConstants.ACTION_CALL_SERVICE_SELECTOR);
         for (ResolveInfo entry : packageManager.queryIntentServices(intent, 0)) {
             ServiceInfo serviceInfo = entry.serviceInfo;
             if (serviceInfo != null) {
@@ -190,8 +185,8 @@ final class CallServiceSelectorRepository {
 
         Preconditions.checkNotNull(selectorName);
 
-        Intent serviceIntent =
-                new Intent(CALL_SERVICE_SELECTOR_CLASS_NAME).setComponent(selectorName);
+        Intent serviceIntent = new Intent(
+                TelecommConstants.ACTION_CALL_SERVICE_SELECTOR).setComponent(selectorName);
         Log.i(this, "Binding to ICallServiceSelector through %s", serviceIntent);
 
         // Connection object for the service binding.

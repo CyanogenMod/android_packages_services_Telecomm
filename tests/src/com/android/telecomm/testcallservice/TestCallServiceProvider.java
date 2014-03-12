@@ -18,10 +18,9 @@ package com.android.telecomm.testcallservice;
 
 import android.content.ComponentName;
 import android.os.IBinder;
-import android.os.RemoteException;
 import android.telecomm.CallServiceDescriptor;
+import android.telecomm.CallServiceLookupResponse;
 import android.telecomm.CallServiceProvider;
-import android.telecomm.ICallServiceLookupResponse;
 import android.util.Log;
 
 import com.google.common.collect.Lists;
@@ -37,17 +36,13 @@ public class TestCallServiceProvider extends CallServiceProvider {
 
     /** {@inheritDoc} */
     @Override
-    public void lookupCallServices(ICallServiceLookupResponse response) {
+    public void lookupCallServices(CallServiceLookupResponse response) {
         Log.i(TAG, "lookupCallServices()");
 
-        try {
-            CallServiceDescriptor.Builder builder = CallServiceDescriptor.newBuilder(this);
-            builder.setCallService(TestCallService.class);
-            builder.setNetworkType(CallServiceDescriptor.FLAG_WIFI);
+        CallServiceDescriptor.Builder builder = CallServiceDescriptor.newBuilder(this);
+        builder.setCallService(TestCallService.class);
+        builder.setNetworkType(CallServiceDescriptor.FLAG_WIFI);
 
-            response.setCallServiceDescriptors(Lists.newArrayList(builder.build()));
-        } catch (RemoteException e) {
-            Log.e(TAG, "Failed to setCallServices().", e);
-        }
+        response.setCallServiceDescriptors(Lists.newArrayList(builder.build()));
     }
 }

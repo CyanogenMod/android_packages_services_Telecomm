@@ -23,8 +23,9 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.telecomm.CallServiceDescriptor;
-import android.telecomm.ICallServiceSelector;
 import android.telecomm.TelecommConstants;
+
+import com.android.internal.telecomm.ICallServiceSelector;
 
 import java.util.Iterator;
 import java.util.List;

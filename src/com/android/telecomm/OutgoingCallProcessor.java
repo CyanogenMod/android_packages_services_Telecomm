@@ -25,9 +25,9 @@ import android.os.Looper;
 import android.os.RemoteException;
 import android.telecomm.CallState;
 import android.telecomm.CallServiceDescriptor;
-import android.telecomm.ICallServiceSelectionResponse;
-import android.telecomm.ICallServiceSelector;
 
+import com.android.internal.telecomm.ICallServiceSelectionResponse;
+import com.android.internal.telecomm.ICallServiceSelector;
 import com.android.telecomm.ServiceBinder.BindCallback;
 
 import java.util.Iterator;

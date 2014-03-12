@@ -23,7 +23,8 @@ import android.content.ServiceConnection;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.telecomm.CallInfo;
-import android.telecomm.IInCallService;
+
+import com.android.internal.telecomm.IInCallService;
 
 /**
  * Binds to {@link IInCallService} and provides the service to {@link CallsManager} through which it
@@ -62,7 +63,8 @@ public final class InCallController {
     /**
      * Class name of the component within in-call app which implements {@link IInCallService}.
      */
-    private static final String IN_CALL_SERVICE_CLASS_NAME = "com.android.incallui.InCallService";
+    private static final String IN_CALL_SERVICE_CLASS_NAME =
+            "com.android.incallui.InCallServiceImpl";
 
     /** Maintains a binding connection to the in-call app. */
     private final InCallServiceConnection mConnection = new InCallServiceConnection();

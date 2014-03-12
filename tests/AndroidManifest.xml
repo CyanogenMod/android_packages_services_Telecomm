@@ -24,19 +24,19 @@
         <!-- TODO(santoscordon): STOPSHIP Services in this manifest need permission protection. -->
         <service android:name="com.android.telecomm.testcallservice.TestCallServiceProvider">
             <intent-filter>
-                <action android:name="android.telecomm.ICallServiceProvider" />
+                <action android:name="android.telecomm.CallServiceProvider" />
             </intent-filter>
         </service>
 
         <service android:name="com.android.telecomm.testcallservice.TestCallService">
             <intent-filter>
-                <action android:name="android.telecomm.ICallService" />
+                <action android:name="android.telecomm.CallService" />
             </intent-filter>
         </service>
 
         <service android:name="com.android.telecomm.testcallservice.DummyCallServiceSelector">
             <intent-filter>
-                <action android:name="android.telecomm.ICallServiceSelector" />
+                <action android:name="android.telecomm.CallServiceSelector" />
             </intent-filter>
         </service>
 

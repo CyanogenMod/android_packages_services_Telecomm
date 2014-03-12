@@ -16,8 +16,7 @@
 
 package com.android.telecomm;
 
-import android.telecomm.ICallServiceSelector;
-
+import com.android.internal.telecomm.ICallServiceSelector;
 import com.google.common.collect.Maps;
 
 import java.util.List;

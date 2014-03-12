@@ -19,8 +19,10 @@ package com.android.telecomm;
 import android.content.ComponentName;
 import android.os.IBinder;
 import android.os.RemoteException;
-import android.telecomm.ICallServiceLookupResponse;
-import android.telecomm.ICallServiceProvider;
+import android.telecomm.TelecommConstants;
+
+import com.android.internal.telecomm.ICallServiceLookupResponse;
+import com.android.internal.telecomm.ICallServiceProvider;
 
 /**
  * Wrapper for {@link ICallServiceProvider}s, handles binding to {@link ICallServiceProvider} and
@@ -30,12 +32,6 @@ import android.telecomm.ICallServiceProvider;
  * TODO(santoscordon): Keep track of when the service can be safely unbound.
  */
 public class CallServiceProviderWrapper extends ServiceBinder<ICallServiceProvider> {
-    /**
-     * The service action used to bind to ICallServiceProvider implementations.
-     * TODO(santoscordon): Move this to TelecommConstants.
-     */
-    static final String CALL_SERVICE_PROVIDER_ACTION = ICallServiceProvider.class.getName();
-
     /** The actual service implementation. */
     private ICallServiceProvider mServiceInterface;
 
@@ -48,7 +44,7 @@ public class CallServiceProviderWrapper extends ServiceBinder<ICallServiceProvid
     public CallServiceProviderWrapper(
             ComponentName componentName, CallServiceRepository repository) {
 
-        super(CALL_SERVICE_PROVIDER_ACTION, componentName);
+        super(TelecommConstants.ACTION_CALL_SERVICE_PROVIDER, componentName);
     }
 
     /**
