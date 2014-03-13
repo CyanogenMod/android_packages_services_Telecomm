@@ -89,7 +89,7 @@ public class TestCallService extends CallService {
         // Returning positively on setCompatibleWith() doesn't guarantee that we will be chosen
         // to place the call. If we *are* chosen then CallsManager will execute the call()
         // method below.
-        mTelecommAdapter.setCompatibleWith(callInfo.getId(), isCompatible);
+        mTelecommAdapter.setIsCompatibleWith(callInfo.getId(), isCompatible);
     }
 
     /**
@@ -122,7 +122,7 @@ public class TestCallService extends CallService {
         String handle = "5551234";
 
         CallInfo callInfo = new CallInfo(callId, CallState.RINGING, handle);
-        mTelecommAdapter.handleIncomingCall(callInfo);
+        mTelecommAdapter.notifyIncomingCall(callInfo);
     }
 
     /** {@inheritDoc} */
