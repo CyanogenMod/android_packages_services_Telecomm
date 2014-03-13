@@ -165,8 +165,9 @@ final class OutgoingCallProcessor {
      *     false otherwise.
      */
     void setIsCompatibleWith(String callId, boolean isCompatible) {
-      if (callId != mCall.getId()) {
-          Log.wtf(this, "setIsCompatibleWith invoked with unexpected call ID: %s", callId);
+      if (!callId.equals(mCall.getId())) {
+          Log.wtf(this, "setIsCompatibleWith invoked with unexpected call ID: %s - expected call"
+                  + " ID: %s", callId, mCall.getId());
           return;
       }
 

@@ -91,8 +91,10 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
             @Override public void onSuccess() {
                 if (isServiceValid("isCompatibleWith")) {
                     try {
+                        mAdapter.addPendingOutgoingCallId(callInfo.getId());
                         mServiceInterface.isCompatibleWith(callInfo);
                     } catch (RemoteException e) {
+                        mAdapter.removePendingOutgoingCallId(callInfo.getId());
                         Log.e(CallServiceWrapper.this, e, "Failed checking isCompatibleWith.");
                     }
                 }
@@ -119,7 +121,6 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
                 if (isServiceValid("call")) {
                     try {
                         mServiceInterface.call(callInfo);
-                        mAdapter.addPendingOutgoingCallId(callId);
                     } catch (RemoteException e) {
                         Log.e(CallServiceWrapper.this, e, "Failed to place call %s", callId);
                     }
@@ -223,6 +224,15 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
      */
     void cancelIncomingCall(String callId) {
         mAdapter.removePendingIncomingCallId(callId);
+    }
+
+    /**
+     * Cancels the outgoing call for the specified call ID.
+     *
+     * @param callId The ID of the call.
+     */
+    void cancelOutgoingCall(String callId) {
+        mAdapter.removePendingOutgoingCallId(callId);
     }
 
     /** {@inheritDoc} */

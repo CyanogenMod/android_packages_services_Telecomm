@@ -155,10 +155,7 @@ final class Call {
     void setCallService(CallServiceWrapper callService) {
         Preconditions.checkNotNull(callService);
 
-        if (mCallService != null) {
-            // Should never be the case, basically covering for potential programming errors.
-            decrementAssociatedCallCount(mCallService);
-        }
+        clearCallService();
 
         callService.incrementAssociatedCallCount();
         mCallService = callService;
@@ -168,8 +165,11 @@ final class Call {
      * Clears the associated call service.
      */
     void clearCallService() {
-        decrementAssociatedCallCount(mCallService);
-        mCallService = null;
+        if (mCallService != null) {
+            decrementAssociatedCallCount(mCallService);
+            mCallService.cancelOutgoingCall(getId());
+            mCallService = null;
+        }
     }
 
     void setCallServiceSelector(ICallServiceSelector selector) {
