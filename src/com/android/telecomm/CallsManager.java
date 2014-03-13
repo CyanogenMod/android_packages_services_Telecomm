@@ -401,6 +401,8 @@ public final class CallsManager {
 
         Intent updateIntent = new Intent(TelephonyManager.ACTION_PHONE_STATE_CHANGED);
         updateIntent.putExtra(TelephonyManager.EXTRA_STATE, callState);
+        // TODO: See if we can add this (the current API doesn't have a callId).
+        updateIntent.putExtra(TelecommConstants.EXTRA_CALL_ID, call.getId());
 
         // Populate both, since the original API was needlessly complicated.
         updateIntent.putExtra(TelephonyManager.EXTRA_INCOMING_NUMBER, call.getHandle());
