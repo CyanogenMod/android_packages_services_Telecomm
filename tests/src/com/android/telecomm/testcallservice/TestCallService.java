@@ -148,6 +148,20 @@ public class TestCallService extends CallService {
 
     /** {@inheritDoc} */
     @Override
+    public void hold(String callId) {
+        Log.i(TAG, "hold(" + callId + ")");
+        mTelecommAdapter.setOnHold(callId);
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void unhold(String callId) {
+        Log.i(TAG, "unhold(" + callId + ")");
+        mTelecommAdapter.setActive(callId);
+    }
+
+    /** {@inheritDoc} */
+    @Override
     public boolean onUnbind(Intent intent) {
         mMediaPlayer = null;
 

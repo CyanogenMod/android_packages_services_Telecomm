@@ -141,6 +141,17 @@ public final class InCallController {
         }
     }
 
+    void markCallAsOnHold(String callId) {
+        try {
+            if (mInCallService != null) {
+                Log.i(this, "Mark call as HOLD: %s", callId);
+                mInCallService.setOnHold(callId);
+            }
+        } catch (RemoteException e) {
+            Log.e(this, e, "Exception attempting to markCallAsHeld.");
+        }
+    }
+
     /**
      * Unbinds an existing bound connection to the in-call app.
      */

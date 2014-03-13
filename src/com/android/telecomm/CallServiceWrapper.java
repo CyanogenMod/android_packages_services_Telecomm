@@ -146,6 +146,28 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
         }
     }
 
+    /** See {@link ICallService#hold}. */
+    public void hold(String callId) {
+        if (isServiceValid("hold")) {
+            try {
+                mServiceInterface.hold(callId);
+            } catch (RemoteException e) {
+                Log.e(this, e, "Failed to put on hold for call %s", callId);
+            }
+        }
+    }
+
+    /** See {@link ICallService#unhold}. */
+    public void unhold(String callId) {
+        if (isServiceValid("unhold")) {
+            try {
+                mServiceInterface.unhold(callId);
+            } catch (RemoteException e) {
+                Log.e(this, e, "Failed to remove from hold for call %s", callId);
+            }
+        }
+    }
+
     /**
      * Starts retrieval of details for an incoming call. Details are returned through the
      * call-service adapter using the specified call ID. Upon failure, the specified error callback

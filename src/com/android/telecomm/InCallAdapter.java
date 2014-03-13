@@ -68,4 +68,24 @@ class InCallAdapter extends IInCallAdapter.Stub {
             }
         });
     }
+
+    /** {@inheritDoc} */
+    @Override
+    public void holdCall(final String callId) {
+        mHandler.post(new Runnable() {
+            @Override public void run() {
+                mCallsManager.holdCall(callId);
+            }
+        });
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void unholdCall(final String callId) {
+        mHandler.post(new Runnable() {
+            @Override public void run() {
+                mCallsManager.unholdCall(callId);
+            }
+        });
+    }
 }

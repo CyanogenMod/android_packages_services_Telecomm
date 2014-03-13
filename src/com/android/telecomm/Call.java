@@ -271,6 +271,28 @@ final class Call {
     }
 
     /**
+     * Puts the call on hold if it is currently active.
+     */
+    void hold() {
+        Preconditions.checkNotNull(mCallService);
+
+        if (mState == CallState.ACTIVE) {
+            mCallService.hold(mId);
+        }
+    }
+
+    /**
+     * Releases the call from hold if it is currently active.
+     */
+    void unhold() {
+        Preconditions.checkNotNull(mCallService);
+
+        if (mState == CallState.ON_HOLD) {
+            mCallService.unhold(mId);
+        }
+    }
+
+    /**
      * @return An object containing read-only information about this call.
      */
     CallInfo toCallInfo() {

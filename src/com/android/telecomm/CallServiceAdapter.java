@@ -172,6 +172,16 @@ public final class CallServiceAdapter extends ICallServiceAdapter.Stub {
         });
     }
 
+    /** {@inheritDoc} */
+    @Override public void setOnHold(final String callId) {
+        checkValidCallId(callId);
+        mHandler.post(new Runnable() {
+            @Override public void run() {
+                mCallsManager.markCallAsOnHold(callId);
+            }
+        });
+    }
+
     /**
      * Adds the specified call ID to the list of pending outgoing call IDs.
      * TODO(gilad): Consider passing the call processor (instead of the ID) both here and in the

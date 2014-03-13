@@ -258,6 +258,40 @@ public final class CallsManager {
         audioManager.abandonAudioFocusForCall();
     }
 
+    /**
+     * Instructs Telecomm to put the specified call on hold. Intended to be invoked by the
+     * in-call app through {@link InCallAdapter} for an ongoing call. This is usually triggered by
+     * the user hitting the hold button during an active call.
+     *
+     * @param callId The ID of the call.
+     */
+    void holdCall(String callId) {
+        Call call = mCalls.get(callId);
+        if (call == null) {
+            Log.w(this, "Unknown call (%s) asked to be put on hold", callId);
+        } else {
+            Log.d(this, "Putting call on hold: (%s)", callId);
+            call.hold();
+        }
+    }
+
+    /**
+     * Instructs Telecomm to release the specified call from hold. Intended to be invoked by
+     * the in-call app through {@link InCallAdapter} for an ongoing call. This is usually triggered
+     * by the user hitting the hold button during a held call.
+     *
+     * @param callId The ID of the call
+     */
+    void unholdCall(String callId) {
+        Call call = mCalls.get(callId);
+        if (call == null) {
+            Log.w(this, "Unknown call (%s) asked to be removed from hold", callId);
+        } else {
+            Log.d(this, "Removing call from hold: (%s)", callId);
+            call.unhold();
+        }
+    }
+
     void markCallAsRinging(String callId) {
         setCallState(callId, CallState.RINGING);
     }
@@ -280,6 +314,13 @@ public final class CallsManager {
         audioManager.setMode(AudioManager.MODE_IN_CALL);
         audioManager.setMicrophoneMute(false);
         audioManager.setSpeakerphoneOn(false);
+    }
+
+    void markCallAsOnHold(String callId) {
+        setCallState(callId, CallState.ON_HOLD);
+
+        // Notify the in-call UI
+        mInCallController.markCallAsOnHold(callId);
     }
 
     /**
@@ -382,6 +423,7 @@ public final class CallsManager {
         switch (call.getState()) {
             case DIALING:
             case ACTIVE:
+            case ON_HOLD:
                 callState = TelephonyManager.EXTRA_STATE_OFFHOOK;
                 break;
 
