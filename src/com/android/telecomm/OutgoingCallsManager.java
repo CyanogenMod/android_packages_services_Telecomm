@@ -76,13 +76,13 @@ final class OutgoingCallsManager {
      * @param isCompatible True if the call-service is compatible with the corresponding call and
      *     false otherwise.
      */
-    void setCompatibleWith(String callId, boolean isCompatible) {
+    void setIsCompatibleWith(String callId, boolean isCompatible) {
         OutgoingCallProcessor processor = mOutgoingCallProcessors.get(callId);
         if (processor == null) {
             // Shouldn't happen, so log a wtf if it does.
             Log.wtf(this, "Received unexpected setCompatibleWith notification.");
         } else {
-            processor.setCompatibleWith(callId, isCompatible);
+            processor.setIsCompatibleWith(callId, isCompatible);
         }
     }
 
