@@ -32,8 +32,6 @@ import com.android.internal.telecomm.ICallServiceProvider;
  * Wrapper for {@link ICallService}s, handles binding to {@link ICallService} and keeps track of
  * when the object can safely be unbound. Other classes should not use {@link ICallService} directly
  * and instead should use this class to invoke methods of {@link ICallService}.
- * TODO(santoscordon): Keep track of when the service can be safely unbound.
- * TODO(santoscordon): Look into combining with android.telecomm.CallService.
  */
 final class CallServiceWrapper extends ServiceBinder<ICallService> {
 
