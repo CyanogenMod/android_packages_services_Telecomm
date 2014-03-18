@@ -19,8 +19,7 @@ package com.android.telecomm;
 import android.os.Looper;
 
 /**
- * A utility class which helps organize callers' threads. This class cannot be instantiated; callers
- * should use the static methods.
+ * Helper methods to deal with threading related tasks.
  */
 public final class ThreadUtil {
     private static final String TAG = ThreadUtil.class.getSimpleName();

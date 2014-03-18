@@ -26,10 +26,7 @@ import com.google.common.collect.Maps;
 import java.util.Map;
 
 /**
- * Utility class to retrieve details of an incoming call after receiving an incoming-call intent,
- * see {@link CallActivity}. Binds with the specified call services and requests details of incoming
- * calls. Upon receipt of the details, yields execution back to the switchboard to complete the
- * incoming sequence. The entire process is timeboxed to protect against unresponsive call services.
+ * Used to retrieve details about an incoming call. This is invoked after an incoming call intent.
  */
 final class IncomingCallsManager {
 
@@ -48,8 +45,7 @@ final class IncomingCallsManager {
     }
 
     /**
-     * Retrieves details of an incoming call through its associated call service (asynchronously).
-     * Starts the timeout sequence in case the call service is unresponsive.
+     * Retrieves details of an incoming call through its associated call service.
      *
      * @param call The call object.
      * @param extras The optional extras passed with the incoming call intent (to be returned to

@@ -57,11 +57,7 @@ final class CallServiceRepository {
     /** Used to run code (e.g. messages, Runnables) on the main (UI) thread. */
     private final Handler mHandler = new Handler(Looper.getMainLooper());
 
-    /**
-     * Used to interrupt lookup cycles that didn't terminate naturally within the allowed
-     * period, see {@link Timeouts#getProviderLookupMs()}.
-     */
-    private final Runnable mLookupTerminator = new Runnable() {
+    private final Runnable mTimeoutLookupTerminator = new Runnable() {
         @Override
         public void run() {
             Log.d(CallServiceRepository.this, "Timed out processing providers");
@@ -80,22 +76,16 @@ final class CallServiceRepository {
     private boolean mIsLookupInProgress = false;
 
     /**
-     * Stores the names of the providers to bind to in one lookup cycle.  The set size represents
-     * the number of call-service providers this repository expects to hear back from upon
-     * initiating call-service lookups, see initiateLookup. Whenever all providers respond before
-     * the lookup timeout occurs, the complete set of (available) call services is passed to the
-     * switchboard for further processing of outgoing calls etc.  When the timeout occurs before all
-     * responses are received, the partial (potentially empty) set gets passed (to the switchboard)
-     * instead. Entries are removed from this set as providers are processed.
+     * Stores the names of the providers to bind to in one lookup cycle. During lookup two things
+     * can happen:
+     *    - lookup can succeed, in this case this set will be empty at the end of the lookup.
+     *    - lookup can timeout, in this case any outstanding providers will be discarded.
      */
     private final Set<ComponentName> mOutstandingProviders = Sets.newHashSet();
 
     /**
-     * The map of call-service wrappers keyed by their ComponentName.  Used to ensure at most one
-     * instance exists per call-service type at any given time. Populated during lookup cycles to
-     * include all-known ICallService implementations (i.e. wrappers thereof) and then updated to
-     * include only active call services (ones that are associated with one or more active calls)
-     * upon {@link #purgeInactiveCallServices()} invocations.
+     * The map of call-service wrappers keyed by their ComponentName. This is passed back to the
+     * switchboard once lookup is complete.
      */
     private final Map<ComponentName, CallServiceWrapper> mCallServices = Maps.newHashMap();
 
@@ -148,8 +138,8 @@ final class CallServiceRepository {
         Log.i(this, "Found %d implementations of ICallServiceProvider.",
                 mOutstandingProviders.size());
 
-        // Schedule a lookup terminator to run after Timeouts.getProviderLookupMs() milliseconds.
-        mHandler.postDelayed(mLookupTerminator, Timeouts.getProviderLookupMs());
+        // Schedule a timeout.
+        mHandler.postDelayed(mTimeoutLookupTerminator, Timeouts.getProviderLookupMs());
     }
 
     /**
@@ -247,11 +237,9 @@ final class CallServiceRepository {
     }
 
     /**
-     * Processes the {@link CallServiceDescriptor}s for the specified provider, and performs the
-     * necessary bookkeeping to potentially return control to the switchboard before the timeout
-     * for the current lookup cycle.
+     * Creates {@link CallServiceWrapper}s from the given {@link CallServiceDescriptor}s.
      *
-     * @param provider The provider associated with callServices.
+     * @param provider The provider associated with call services.
      * @param callServiceDescriptors The set of call service descriptors to process.
      */
     private void processCallServices(
@@ -275,16 +263,15 @@ final class CallServiceRepository {
 
             removeOutstandingProvider(providerName);
         } else {
-            Log.i(this,
-                    "Unexpected call services from %s in lookup %s", providerName, mLookupId);
+            Log.i(this, "Unexpected call services from %s in lookup %s", providerName, mLookupId);
         }
     }
 
     /**
-     * Creates the call service for the specified call-service descriptor and saves newly-created
-     * entries into {@link #mCallServices}.  Does nothing upon already-registered entries.
+     * Creates a call-service wrapper from the given call-service descriptor if no cached instance
+     * exists.
      *
-     * @param descriptor The call service descriptor.
+     * @param descriptor The call-service descriptor.
      */
     private void registerCallService(CallServiceDescriptor descriptor) {
         Preconditions.checkNotNull(descriptor);
@@ -318,10 +305,10 @@ final class CallServiceRepository {
     }
 
     /**
-     * Timeouts the current lookup cycle, see LookupTerminator.
+     * Terminates the current lookup cycle, either due to a timeout or completed lookup.
      */
     private void terminateLookup() {
-        mHandler.removeCallbacks(mLookupTerminator);
+        mHandler.removeCallbacks(mTimeoutLookupTerminator);
         mOutstandingProviders.clear();
 
         updateSwitchboard();
