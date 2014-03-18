@@ -90,7 +90,9 @@ public class CallActivity extends Activity {
      */
     private void processOutgoingCallIntent(Intent intent) {
         ContactInfo contactInfo = null;
-        mCallsManager.processOutgoingCallIntent(intent.getData(), contactInfo);
+        NewOutgoingCallIntentBroadcaster broadcaster =
+                new NewOutgoingCallIntentBroadcaster(mCallsManager, contactInfo, intent);
+        broadcaster.processIntent();
     }
 
     /**

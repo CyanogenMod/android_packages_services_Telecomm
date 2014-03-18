@@ -19,6 +19,7 @@ package com.android.telecomm;
 import android.net.Uri;
 import android.telecomm.CallInfo;
 import android.telecomm.CallState;
+import android.telecomm.GatewayInfo;
 
 import com.google.android.collect.Sets;
 import com.google.common.base.Preconditions;
@@ -57,6 +58,12 @@ final class Call {
     /** The handle with which to establish this call. */
     private Uri mHandle;
 
+    /** The gateway information associated with this call. This stores the original call handle
+     * that the user is attempting to connect to via the gateway, the actual handle to dial in
+     * order to connect the call via the gateway, as well as the package name of the gateway
+     * service. */
+    private final GatewayInfo mGatewayInfo;
+
     /**
      * The call service which is attempted or already connecting this call.
      */
@@ -66,9 +73,6 @@ final class Call {
      * The call-service selector for this call.
      */
     private CallServiceSelectorWrapper mCallServiceSelector;
-
-    /** Read-only and parcelable version of this call. */
-    private CallInfo mCallInfo;
 
     /**
      * The set of call services that were attempted in the process of placing/switching this call
@@ -82,7 +86,7 @@ final class Call {
      * @param isIncoming True if this is an incoming call.
      */
     Call(boolean isIncoming) {
-        this(null, null, isIncoming);
+        this(null, null, null, isIncoming);
     }
 
     /**
@@ -90,13 +94,15 @@ final class Call {
      *
      * @param handle The handle to dial.
      * @param contactInfo Information about the entity being called.
+     * @param gatewayInfo Gateway information to use for the call.
      * @param isIncoming True if this is an incoming call.
      */
-    Call(Uri handle, ContactInfo contactInfo, boolean isIncoming) {
+    Call(Uri handle, ContactInfo contactInfo, GatewayInfo gatewayInfo, boolean isIncoming) {
         mId = UUID.randomUUID().toString();  // UUIDs should provide sufficient uniqueness.
         mState = CallState.NEW;
         mHandle = handle;
         mContactInfo = contactInfo;
+        mGatewayInfo = gatewayInfo;
         mIsIncoming = isIncoming;
         mCreationTime = new Date();
     }
@@ -126,7 +132,6 @@ final class Call {
         if (mState != newState) {
             Log.v(this, "setState %s -> %s", mState, newState);
             mState = newState;
-            clearCallInfo();
         }
     }
 
@@ -136,6 +141,21 @@ final class Call {
 
     void setHandle(Uri handle) {
         mHandle = handle;
+    }
+
+    /**
+     * @return The original handle this call is associated with. In-call services should use this
+     * handle when indicating in their UI the handle that is being called.
+     */
+    public Uri getOriginalHandle() {
+        if (mGatewayInfo != null && !mGatewayInfo.isEmpty()) {
+            return mGatewayInfo.getOriginalHandle();
+        }
+        return getHandle();
+    }
+
+    GatewayInfo getGatewayInfo() {
+        return mGatewayInfo;
     }
 
     ContactInfo getContactInfo() {
@@ -309,10 +329,7 @@ final class Call {
      * @return An object containing read-only information about this call.
      */
     CallInfo toCallInfo() {
-        if (mCallInfo == null) {
-            mCallInfo = new CallInfo(mId, mState, mHandle);
-        }
-        return mCallInfo;
+        return new CallInfo(mId, mState, mHandle, mGatewayInfo);
     }
 
     /**
@@ -325,13 +342,6 @@ final class Call {
 
         Log.i(this, "Request to %s a non-ringing call %s", actionName, this);
         return false;
-    }
-
-    /**
-     * Resets the cached read-only version of this call.
-     */
-    private void clearCallInfo() {
-        mCallInfo = null;
     }
 
     @SuppressWarnings("rawtypes")

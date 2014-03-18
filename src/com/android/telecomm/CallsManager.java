@@ -16,14 +16,13 @@
 
 package com.android.telecomm;
 
-import android.content.Context;
 import android.net.Uri;
 import android.os.Bundle;
 import android.telecomm.CallInfo;
 import android.telecomm.CallServiceDescriptor;
 import android.telecomm.CallState;
+import android.telecomm.GatewayInfo;
 
-import com.android.internal.telecomm.ICallService;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableCollection;
@@ -161,15 +160,14 @@ public final class CallsManager {
     }
 
     /**
-     * Attempts to issue/connect the specified call.  From an (arbitrary) application standpoint,
-     * all that is required to initiate this flow is to fire either of the CALL, CALL_PRIVILEGED,
-     * and CALL_EMERGENCY intents. These are listened to by CallActivity.java which then invokes
-     * this method.
+     * Attempts to issue/connect the specified call.
      *
-     * @param handle The handle to dial.
+     * @param handle Handle to connect the call with.
      * @param contactInfo Information about the entity being called.
+     * @param gatewayInfo Optional gateway information that can be used to route the call to the
+     *     actual dialed handle via a gateway provider. May be null.
      */
-    void processOutgoingCallIntent(Uri handle, ContactInfo contactInfo) {
+    void placeOutgoingCall(Uri handle, ContactInfo contactInfo, GatewayInfo gatewayInfo) {
         for (OutgoingCallValidator validator : mOutgoingCallValidators) {
             if (!validator.isValid(handle, contactInfo)) {
                 // TODO(gilad): Display an error message.
@@ -178,8 +176,15 @@ public final class CallsManager {
             }
         }
 
-        // No objection to issue the call, proceed with trying to put it through.
-        Call call = new Call(handle, contactInfo, false /* isIncoming */);
+        final Uri uriHandle = (gatewayInfo == null) ? handle : gatewayInfo.getGatewayHandle();
+
+        if (gatewayInfo == null) {
+            Log.i(this, "Creating a new outgoing call with handle: %s", Log.pii(uriHandle));
+        } else {
+            Log.i(this, "Creating a new outgoing call with gateway handle: %s, original handle: %s",
+                    Log.pii(uriHandle), Log.pii(handle));
+        }
+        Call call = new Call(uriHandle, contactInfo, gatewayInfo, false /*isIncoming*/);
         setCallState(call, CallState.DIALING);
         addCall(call);
         mSwitchboard.placeOutgoingCall(call);

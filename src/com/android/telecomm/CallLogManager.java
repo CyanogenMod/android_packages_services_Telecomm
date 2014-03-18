@@ -101,15 +101,13 @@ final class CallLogManager extends CallsManagerListenerBase {
      *     {@link android.provider.CallLog.Calls#MISSED_TYPE}
      */
     private void logCall(Call call, int callLogType) {
-        Uri number = call.getHandle();
         final long creationTime = call.getCreationTimeInMilliseconds();
         final long age = call.getAgeInMilliseconds();
 
         final ContactInfo contactInfo = call.getContactInfo();  // May be null.
         final String logNumber = getLogNumber(call);
 
-        Log.d(TAG, "logNumber set to:" + Log.pii(logNumber) + ", number set to: "
-                + Log.pii(number));
+        Log.d(TAG, "logNumber set to: %s", Log.pii(logNumber));
 
         final int presentation = getPresentation(call, contactInfo);
 
@@ -164,7 +162,7 @@ final class CallLogManager extends CallsManagerListenerBase {
      * @return the phone number to be logged.
      */
     private String getLogNumber(Call call) {
-        Uri handle = call.getHandle();
+        Uri handle = call.getOriginalHandle();
 
         if (handle == null) {
             return null;

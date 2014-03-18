@@ -22,4 +22,10 @@
          avoid the risk of accidental redialing from the call log UI.
          The default is false. -->
     <bool name="allow_emergency_numbers_in_call_log">false</bool>
+
+    <!-- Package name for the default in-call UI and dialer [DO NOT TRANSLATE] -->
+    <string name="ui_default_package" translatable="false">com.android.dialer</string>
+
+    <!-- Class name for the default main dialer activity [DO NOT TRANSLATE] -->
+    <string name="dialer_default_class" translatable="false">com.android.dialer.DialtactsActivity</string>
 </resources>
