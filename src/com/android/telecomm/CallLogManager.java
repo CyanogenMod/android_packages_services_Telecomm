@@ -97,7 +97,7 @@ class CallLogManager {
      *     {@link android.provider.CallLog.Calls#MISSED_TYPE}
      */
     private void logCall(Call call, int callLogType) {
-        String number = call.getHandle();
+        Uri number = call.getHandle();
         final long creationTime = call.getCreationTimeInMilliseconds();
         final long age = call.getAgeInMilliseconds();
 
@@ -160,16 +160,18 @@ class CallLogManager {
      * @return the phone number to be logged.
      */
     private String getLogNumber(Call call) {
-        String handle = call.getHandle();
+        Uri handle = call.getHandle();
 
         if (handle == null) {
             return null;
         }
 
-        if (!PhoneNumberUtils.isUriNumber(handle)) {
-            handle = PhoneNumberUtils.stripSeparators(handle);
+        // TODO: Add support for SIP numbers.
+        String handleString = handle.toString();
+        if (!PhoneNumberUtils.isUriNumber(handleString)) {
+            handleString = PhoneNumberUtils.stripSeparators(handleString);
         }
-        return handle;
+        return handleString;
     }
 
     /**
