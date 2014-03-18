@@ -16,6 +16,7 @@
 
 package com.android.telecomm;
 
+import android.net.Uri;
 import android.telecomm.CallInfo;
 import android.telecomm.CallState;
 
@@ -52,7 +53,7 @@ final class Call {
     private CallState mState;
 
     /** The handle with which to establish this call. */
-    private String mHandle;
+    private Uri mHandle;
 
     /**
      * The call service which is attempted or already connecting this call.
@@ -87,7 +88,7 @@ final class Call {
      * @param handle The handle to dial.
      * @param contactInfo Information about the entity being called.
      */
-    Call(String handle, ContactInfo contactInfo) {
+    Call(Uri handle, ContactInfo contactInfo) {
         mId = UUID.randomUUID().toString();  // UUIDs should provide sufficient uniqueness.
         mState = CallState.NEW;
         mHandle = handle;
@@ -120,11 +121,11 @@ final class Call {
         clearCallInfo();
     }
 
-    String getHandle() {
+    Uri getHandle() {
         return mHandle;
     }
 
-    void setHandle(String handle) {
+    void setHandle(Uri handle) {
         mHandle = handle;
     }
 

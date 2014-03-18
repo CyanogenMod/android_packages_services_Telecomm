@@ -20,6 +20,7 @@ import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
 import android.media.AudioManager;
+import android.net.Uri;
 import android.os.Bundle;
 import android.telecomm.CallService;
 import android.telecomm.CallServiceDescriptor;
@@ -130,7 +131,7 @@ public final class CallsManager {
         Log.d(this, "handleSuccessfulIncomingCall");
         Preconditions.checkState(call.getState() == CallState.RINGING);
 
-        String handle = call.getHandle();
+        Uri handle = call.getHandle();
         ContactInfo contactInfo = call.getContactInfo();
         for (IncomingCallValidator validator : mIncomingCallValidators) {
             if (!validator.isValid(handle, contactInfo)) {
@@ -160,7 +161,7 @@ public final class CallsManager {
      * @param handle The handle to dial.
      * @param contactInfo Information about the entity being called.
      */
-    void processOutgoingCallIntent(String handle, ContactInfo contactInfo) {
+    void processOutgoingCallIntent(Uri handle, ContactInfo contactInfo) {
         for (OutgoingCallValidator validator : mOutgoingCallValidators) {
             if (!validator.isValid(handle, contactInfo)) {
                 // TODO(gilad): Display an error message.

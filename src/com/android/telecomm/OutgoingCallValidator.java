@@ -16,6 +16,8 @@
 
 package com.android.telecomm;
 
+import android.net.Uri;
+
 /**
  * Implementations can be used to suppress certain classes of outgoing calls based on arbitrary
  * restrictions across call services (e.g. black-listing some phone numbers regardless if these
@@ -27,5 +29,5 @@ package com.android.telecomm;
  */
 public interface OutgoingCallValidator {
 
-    boolean isValid(String handle, ContactInfo contactInfo);
+    boolean isValid(Uri handle, ContactInfo contactInfo);
 }

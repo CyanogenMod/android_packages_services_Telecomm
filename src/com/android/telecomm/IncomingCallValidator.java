@@ -16,6 +16,8 @@
 
 package com.android.telecomm;
 
+import android.net.Uri;
+
 /**
  * Implementations can be used to reject incoming calls based on arbitrary restrictions across call
  * services (e.g. suppressing calls from certain phone numbers regardless if they are received over
@@ -23,5 +25,5 @@ package com.android.telecomm;
  */
 public interface IncomingCallValidator {
 
-    boolean isValid(String handle, ContactInfo contactInfo);
+    boolean isValid(Uri handle, ContactInfo contactInfo);
 }

@@ -18,6 +18,7 @@ package com.android.telecomm.testcallservice;
 
 import android.content.Intent;
 import android.media.MediaPlayer;
+import android.net.Uri;
 import android.os.Bundle;
 import android.telecomm.CallInfo;
 import android.telecomm.CallService;
@@ -83,7 +84,7 @@ public class TestCallService extends CallService {
         Preconditions.checkNotNull(callInfo.getHandle());
 
         // Is compatible if the handle doesn't start with 7.
-        boolean isCompatible = !callInfo.getHandle().startsWith("7");
+        boolean isCompatible = !callInfo.getHandle().getSchemeSpecificPart().startsWith("7");
 
         // Tell CallsManager whether this call service can place the call (is compatible).
         // Returning positively on setCompatibleWith() doesn't guarantee that we will be chosen
@@ -119,7 +120,7 @@ public class TestCallService extends CallService {
         Log.i(TAG, "setIncomingCallId(" + callId + ", " + extras + ")");
 
         // Use dummy number for testing incoming calls.
-        String handle = "5551234";
+        Uri handle = Uri.fromParts("tel", "5551234", null);
 
         CallInfo callInfo = new CallInfo(callId, CallState.RINGING, handle);
         mTelecommAdapter.notifyIncomingCall(callInfo);

@@ -89,17 +89,8 @@ public class CallActivity extends Activity {
      * @param intent Call intent containing data about the handle to call.
      */
     private void processOutgoingCallIntent(Intent intent) {
-        // TODO(santoscordon): Remove the toast.
-        String toastContent = "[" + intent.getAction() + "] " + intent.getDataString();
-        Toast.makeText(this, toastContent, Toast.LENGTH_LONG).show();
-
-        // TODO(gilad): Pull the scheme etc. from the data string as well as any relevant extras
-        // from the intent into structured data and invoke the corresponding CallsManager APIs
-        // based on that.  May want to add a static utility to perform that in case the logic is
-        // non-trivial/voluminous.
-        String handle = intent.getDataString();
         ContactInfo contactInfo = null;
-        mCallsManager.processOutgoingCallIntent(handle, contactInfo);
+        mCallsManager.processOutgoingCallIntent(intent.getData(), contactInfo);
     }
 
     /**
