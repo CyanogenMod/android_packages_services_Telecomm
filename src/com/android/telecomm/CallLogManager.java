@@ -25,6 +25,9 @@ import android.telephony.PhoneNumberUtils;
 
 import com.android.internal.telephony.PhoneConstants;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+
 /**
  * Helper class that provides functionality to write information about calls and their associated
  * caller details to the call log. All logging activity will be performed asynchronously in a
@@ -167,8 +170,7 @@ final class CallLogManager extends CallsManagerListenerBase {
             return null;
         }
 
-        // TODO: Add support for SIP numbers.
-        String handleString = handle.toString();
+        String handleString = handle.getSchemeSpecificPart();
         if (!PhoneNumberUtils.isUriNumber(handleString)) {
             handleString = PhoneNumberUtils.stripSeparators(handleString);
         }
