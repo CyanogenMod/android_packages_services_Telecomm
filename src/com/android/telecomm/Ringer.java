@@ -16,13 +16,17 @@
 
 package com.android.telecomm;
 
-import android.media.Ringtone;
+import android.content.Context;
+import android.media.AudioManager;
+import android.media.MediaPlayer;
+import android.media.MediaPlayer.OnErrorListener;
+import android.media.MediaPlayer.OnPreparedListener;
 import android.media.RingtoneManager;
-import android.os.Handler;
-import android.os.HandlerThread;
-import android.os.Message;
-import android.provider.Settings;
-import android.util.Log;
+import android.net.Uri;
+
+import com.google.common.base.Preconditions;
+
+import java.io.IOException;
 
 /**
  * Controls ringing and vibration for incoming calls.
@@ -30,120 +34,239 @@ import android.util.Log;
  * TODO(santoscordon): Consider moving all ringing responsibility to InCall app as an implementation
  * within InCallServiceBase.
  */
-final class Ringer {
+final class Ringer implements OnErrorListener, OnPreparedListener {
+    // States for the Ringer.
+    /** Actively playing the ringer. */
+    private static final int RINGING = 1;
 
-    private static final String TAG = Ringer.class.getSimpleName();
+    /** Ringer currently stopped. */
+    private static final int STOPPED = 2;
 
-    // Message codes used with {@link #mRingtoneHandler}.
-    private static final int EVENT_PLAY_RING = 1;
-    private static final int EVENT_STOP_RING = 2;
+    /** {@link #mMediaPlayer} is preparing, expected to ring once prepared. */
+    private static final int PREPARING_WITH_RING = 3;
+
+    /** {@link #mMediaPlayer} is preparing, expected to stop once prepared. */
+    private static final int PREPARING_WITH_STOP = 4;
 
     /**
-     * Handler used to send messages to the ringtone-playing thread.
+     * The current state of the ringer.
      */
-    private Handler mRingtoneHandler;
+    private int mState = STOPPED;
 
-    /**
-     * The active ringtone. Accessed only from the thread looping {@link #mRingtoneHandler}.
-     */
-    private Ringtone mRingtone;
+    /** The active media player for the ringer. */
+    private MediaPlayer mMediaPlayer;
 
     /**
      * Starts the vibration, ringer, and/or call-waiting tone.
+     * TODO(santoscordon): vibration and call-waiting tone.
      */
     void startRinging() {
-        // TODO(santoscordon): Double-check that we want to play the ringtone. e.g., don't play if
-        // the volume is currently set to 0.
-
-        ThreadUtil.checkOnMainThread();
-        Handler handler = getRingtoneHandler();
-
-        Log.d(TAG, "Posting play");
-        handler.obtainMessage(EVENT_PLAY_RING, getCurrentRingtone()).sendToTarget();
+        // Check if we are muted before playing the ringer.
+        if (getAudioManager().getStreamVolume(AudioManager.STREAM_RING) > 0) {
+            moveToState(RINGING);
+        } else {
+            Log.d(this, "Ringer play skipped due to muted volume.");
+        }
     }
 
     /**
      * Stops the vibration, ringer, and/or call-waiting tone.
      */
     void stopRinging() {
-        ThreadUtil.checkOnMainThread();
-        if (mRingtoneHandler != null) {
-            Log.d(TAG, "Posting stop");
-            mRingtoneHandler.sendEmptyMessage(EVENT_STOP_RING);
-            mRingtoneHandler = null;
-        }
+        moveToState(STOPPED);
     }
 
     /**
-     * Returns the handler to use for playing ringtones.
+     * Handles asynchronous media player "prepared" response by playing the ringer if we are
+     * still expected to or uninitializing it if we've been asked to stop.
+     *
+     * {@inheritDoc}
      */
-    private Handler getRingtoneHandler() {
-        if (mRingtoneHandler == null) {
-            // TODO(santoscordon): Clean this up. Needs more investigation for multi-incoming calls
-            // and this multiple thread approach.
-            HandlerThread thread = new HandlerThread("ringer");
-            thread.start();
+    @Override
+    public void onPrepared(MediaPlayer mediaPlayer) {
+        Preconditions.checkState(mMediaPlayer == null);
 
-            mRingtoneHandler = new Handler(thread.getLooper()) {
-                @Override
-                public void handleMessage(Message msg) {
-                    switch(msg.what) {
-                        case EVENT_PLAY_RING:
-                            handlePlayRingtone(this, (Ringtone) msg.obj);
-                            break;
-                        case EVENT_STOP_RING:
-                            handleStopRingtone(this);
-                            break;
-                    }
+        // See {@link #moveToState} for state transitions.
+        if (PREPARING_WITH_RING == mState) {
+            Log.i(this, "Playing the ringer.");
+            setRingerAudioMode();
+            mMediaPlayer = mediaPlayer;
+            mMediaPlayer.start();
+            setState(RINGING);
+        } else if (PREPARING_WITH_STOP == mState) {
+            mediaPlayer.release();
+            setState(STOPPED);
+        }
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public boolean onError(MediaPlayer mediaPlayer, int what, int extra) {
+        Log.i(this, "Mediaplayer failed to initialize. What: %d, extra: %d.", what, extra);
+        resetMediaPlayer();
+        setState(STOPPED);
+        return true;
+    }
+
+    /**
+     * Transitions the state of the ringer. State machine below. Any missing arrows imply that the
+     * state remains the same (e.g., (r) on RING state keeps it at RING state).
+     *
+     * +----------------(s)----------------------------+
+     * |                                               |
+     * +----------------(e)-------+                    |
+     * |                          |                    |
+     * +-> STOPPED -(r)-> PREPARING_WITH_RING +-(p)-> RING
+     *       ^                    ^           |
+     *       |                    |           |
+     *     (p,e)                 (r)          |
+     *       |                    |           +-(s)-> PREPARING_WITH_STOP
+     *       |                    |                      | |
+     *       |                    +----------------------+ |
+     *       +---------------------------------------------+
+     *
+     * STOPPED - Ringer completely stopped, like its initial state.
+     * PREPARING_TO_RING - Media player preparing asynchronously to start ringing.
+     * RINGING - The ringtone is currently playing.
+     * PREPARING_TO_STOP - Media player is still preparing, but we've already been asked to stop.
+     *
+     * (r) - {@link #startRinging}
+     * (s) - {@link #stopRinging}
+     * (p) - {@link #onPrepared}
+     * (e) - {@link #onError}
+     */
+    private void moveToState(int newState) {
+        // Only this method sets PREPARING_* states.
+        Preconditions.checkState(newState == RINGING || newState == STOPPED);
+
+        if (newState == mState) {
+            return;
+        }
+
+        if (RINGING == newState) {
+            if (STOPPED == mState) {
+                // If we are stopped, we need to preparing the media player and wait for it to
+                // start the ring. New state set by prepareForRinging.
+                if (prepareForRinging()) {
+                    setState(PREPARING_WITH_RING);
                 }
-            };
-        }
-        return mRingtoneHandler;
-    }
-
-    /**
-     * @return The user's currently-selected ringtone.
-     */
-    private Ringtone getCurrentRingtone() {
-        // TODO(santoscordon): Needs support for custom ringtones.
-        return RingtoneManager.getRingtone(
-                TelecommApp.getInstance(), Settings.System.DEFAULT_RINGTONE_URI);
-    }
-
-    /**
-     * Plays the ringtone. Processed by {@link #mRingtoneHandler}.
-     *
-     * @param handler The handler that invoked this method.
-     */
-    private void handlePlayRingtone(Handler handler, Ringtone ringtone) {
-        ThreadUtil.checkNotOnMainThread();
-        // Verify that we haven't been asked to stop the ringtone before we start playing it.
-        if (!handler.hasMessages(EVENT_STOP_RING)) {
-
-            // Check to see if a ringtone already exists and is playing.
-            if (mRingtone != null && mRingtone.isPlaying()) {
-                mRingtone.stop();
+            } else if (PREPARING_WITH_STOP == mState) {
+                // We are currently preparing the media player, but expect it to put the ringer into
+                // stop once prepared...change that to ring.
+                setState(PREPARING_WITH_RING);
             }
-            mRingtone = ringtone;
-            mRingtone.play();
+        } else if (STOPPED == newState) {
+            if (RINGING == mState) {
+                // We are currently ringing, so just stop it.
+                stopPlayingRinger();
+                setState(STOPPED);
+            } else if (PREPARING_WITH_RING == mState) {
+                // We are preparing the media player, make sure that when it is finished, it moves
+                // to STOPPED instead of ringing.
+                setState(PREPARING_WITH_STOP);
+            }
         }
-
-        // TODO(santoscordon): Requires reposting EVENT_PLAY_RINGTONE in the case where the ringtone
-        // ends. This method only plays one loop of the ringtone.
     }
 
     /**
-     * Stops the ringtone and cleans up references.
+     * Sets the ringer state and checks the current thread.
      *
-     * @param handler The handler that invoked this method.
+     * @param newState The new state to set.
      */
-    private void handleStopRingtone(Handler handler) {
-        ThreadUtil.checkNotOnMainThread();
-        if (mRingtone != null) {
-            mRingtone.stop();
-            mRingtone = null;
+    private void setState(int newState) {
+        ThreadUtil.checkOnMainThread();
+        Log.v(this, "setState, %d -> %d", mState, newState);
+        mState = newState;
+    }
+
+    /**
+     * Starts media player's asynchronous prepare. Response returned in either {@link #onError} or
+     * {@link #onPrepared}.
+     *
+     * @return True if the prepare was successfully started.
+     */
+    private boolean prepareForRinging() {
+        Log.i(this, "Preparing the ringer.");
+
+        Uri ringtoneUri = getCurrentRingtoneUri();
+        if (ringtoneUri == null) {
+            Log.e(this, null, "Ringtone not set.");
+            return false;
         }
 
-        handler.getLooper().quitSafely();
+        MediaPlayer mediaPlayer = new MediaPlayer();
+        mediaPlayer.setOnErrorListener(this);
+        mediaPlayer.setOnPreparedListener(this);
+        mediaPlayer.setAudioStreamType(AudioManager.STREAM_RING);
+
+        try {
+            mediaPlayer.setDataSource(TelecommApp.getInstance(), ringtoneUri);
+            mediaPlayer.prepareAsync();
+            return true;
+        } catch (IOException e) {
+            mediaPlayer.reset();
+            mediaPlayer.release();
+
+            Log.e(this, e, "Failed to initialize media player for ringer: %s.", ringtoneUri);
+            return false;
+        }
+    }
+
+    /**
+     * Stops and uninitializes the media player.
+     */
+    private void stopPlayingRinger() {
+        Preconditions.checkNotNull(mMediaPlayer);
+        Log.i(this, "Stopping the ringer.");
+
+        resetMediaPlayer();
+        unsetRingerAudioMode();
+    }
+
+    /**
+     * Stops and uninitializes the media player.
+     */
+    private void resetMediaPlayer() {
+        if (mMediaPlayer != null) {
+            // Ringtone.java does not do stop() before release, but it's safer to do so and none of
+            // the documentation suggests that stop() should be skipped.
+            mMediaPlayer.stop();
+            mMediaPlayer.release();
+            mMediaPlayer = null;
+        }
+    }
+
+    /**
+     * @return The default ringtone Uri.
+     */
+    private Uri getCurrentRingtoneUri() {
+        return RingtoneManager.getActualDefaultRingtoneUri(
+                TelecommApp.getInstance(), RingtoneManager.TYPE_RINGTONE);
+    }
+
+    /**
+     * Sets the audio mode for playing the ringtone.
+     */
+    private void setRingerAudioMode() {
+        AudioManager audioManager = getAudioManager();
+        audioManager.requestAudioFocusForCall(
+                AudioManager.STREAM_RING, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT);
+        audioManager.setMode(AudioManager.MODE_RINGTONE);
+    }
+
+    /**
+     * Returns the audio mode to the normal state after ringing.
+     */
+    private void unsetRingerAudioMode() {
+        AudioManager audioManager = getAudioManager();
+        audioManager.setMode(AudioManager.MODE_NORMAL);
+        audioManager.abandonAudioFocusForCall();
+    }
+
+    /**
+     * Returns the system audio manager.
+     */
+    private AudioManager getAudioManager() {
+        return (AudioManager) TelecommApp.getInstance().getSystemService(Context.AUDIO_SERVICE);
     }
 }
