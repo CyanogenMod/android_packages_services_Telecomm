@@ -41,6 +41,9 @@ final class Call {
     /** Additional contact information beyond handle above, optional. */
     private final ContactInfo mContactInfo;
 
+    /** True if this is an incoming call. */
+    private final boolean mIsIncoming;
+
     /**
      * The time this call was created, typically also the time this call was added to the set
      * of pending outgoing calls (mPendingOutgoingCalls) that's maintained by the switchboard.
@@ -77,9 +80,11 @@ final class Call {
 
     /**
      * Creates an empty call object with a unique call ID.
+     *
+     * @param isIncoming True if this is an incoming call.
      */
-    Call() {
-        this(null, null);
+    Call(boolean isIncoming) {
+        this(null, null, isIncoming);
     }
 
     /**
@@ -87,19 +92,22 @@ final class Call {
      *
      * @param handle The handle to dial.
      * @param contactInfo Information about the entity being called.
+     * @param isIncoming True if this is an incoming call.
      */
-    Call(Uri handle, ContactInfo contactInfo) {
+    Call(Uri handle, ContactInfo contactInfo, boolean isIncoming) {
         mId = UUID.randomUUID().toString();  // UUIDs should provide sufficient uniqueness.
         mState = CallState.NEW;
         mHandle = handle;
         mContactInfo = contactInfo;
+        mIsIncoming = isIncoming;
         mCreationTime = new Date();
     }
 
     /** {@inheritDoc} */
     @Override public String toString() {
         return String.format(Locale.US, "[%s, %s, %s, %s]", mId, mState,
-                mCallService.getComponentName(), Log.pii(mHandle));
+                mCallService == null ? "<null>" : mCallService.getComponentName(),
+                Log.pii(mHandle));
     }
 
     String getId() {
@@ -116,9 +124,12 @@ final class Call {
      * misbehave and they do this very often. The result is that we do not enforce state transitions
      * and instead keep the code resilient to unexpected state changes.
      */
-    void setState(CallState state) {
-        mState = state;
-        clearCallInfo();
+    void setState(CallState newState) {
+        if (mState != newState) {
+            Log.v(this, "setState %s -> %s", mState, newState);
+            mState = newState;
+            clearCallInfo();
+        }
     }
 
     Uri getHandle() {
@@ -131,6 +142,10 @@ final class Call {
 
     ContactInfo getContactInfo() {
         return mContactInfo;
+    }
+
+    boolean isIncoming() {
+        return mIsIncoming;
     }
 
     /**
@@ -222,7 +237,6 @@ final class Call {
             }
             clearCallService();
             clearCallServiceSelector();
-            mState = CallState.ABORTED;
         }
     }
 

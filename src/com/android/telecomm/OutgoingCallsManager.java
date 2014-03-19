@@ -77,6 +77,7 @@ final class OutgoingCallsManager {
      *     false otherwise.
      */
     void setIsCompatibleWith(String callId, boolean isCompatible) {
+        Log.v(this, "setIsCompatibleWith, callId %s, isCompatible: %b", callId, isCompatible);
         OutgoingCallProcessor processor = mOutgoingCallProcessors.get(callId);
         if (processor == null) {
             // Shouldn't happen, so log a wtf if it does.
@@ -94,6 +95,7 @@ final class OutgoingCallsManager {
      * @param callId The ID of the call.
      */
     void handleSuccessfulCallAttempt(String callId) {
+        Log.v(this, "handleSuccessfulCallAttempt, callId: %s", callId);
         OutgoingCallProcessor processor = mOutgoingCallProcessors.remove(callId);
 
         if (processor == null) {
@@ -114,6 +116,7 @@ final class OutgoingCallsManager {
      * @param reason The call-service supplied reason for the failed call attempt.
      */
     void handleFailedCallAttempt(String callId, String reason) {
+        Log.v(this, "handleFailedCallAttempt, callId: %s, reason: %s", callId, reason);
         OutgoingCallProcessor processor = mOutgoingCallProcessors.get(callId);
 
         // TODO(santoscordon): Consider combining the check here and in handleSuccessfulCallAttempt.
@@ -133,10 +136,12 @@ final class OutgoingCallsManager {
      * should cleanup and notify Switchboard.
      *
      * @param call The failed outgoing call.
+     * @param isAborted True if the call timedout and is aborted.
      */
-    void handleFailedOutgoingCall(Call call) {
+    void handleFailedOutgoingCall(Call call, boolean isAborted) {
+        Log.v(this, "handleFailedOutgoingCall, call: %s", call);
         mOutgoingCallProcessors.remove(call.getId());
-        mSwitchboard.handleFailedOutgoingCall(call);
+        mSwitchboard.handleFailedOutgoingCall(call, isAborted);
     }
 
     /**
@@ -145,6 +150,7 @@ final class OutgoingCallsManager {
      * @param call The call to be aborted.
      */
     void abort(Call call) {
+        Log.v(this, "abort, call: %s", call);
         OutgoingCallProcessor processor = mOutgoingCallProcessors.remove(call.getId());
         if (processor != null) {
             processor.abort();

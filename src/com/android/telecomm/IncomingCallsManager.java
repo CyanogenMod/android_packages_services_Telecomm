@@ -82,10 +82,7 @@ final class IncomingCallsManager {
         Call call = mPendingIncomingCalls.remove(callInfo.getId());
         if (call != null) {
             Log.d(this, "Incoming call %s found.", call.getId());
-            call.setHandle(callInfo.getHandle());
-            call.setState(callInfo.getState());
-
-            mSwitchboard.handleSuccessfulIncomingCall(call);
+            mSwitchboard.handleSuccessfulIncomingCall(call, callInfo);
         }
     }
 

@@ -23,18 +23,18 @@ import android.media.MediaPlayer.OnErrorListener;
 import android.media.MediaPlayer.OnPreparedListener;
 import android.media.RingtoneManager;
 import android.net.Uri;
+import android.telecomm.CallState;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 
 import java.io.IOException;
+import java.util.List;
 
 /**
  * Controls ringing and vibration for incoming calls.
- *
- * TODO(santoscordon): Consider moving all ringing responsibility to InCall app as an implementation
- * within InCallServiceBase.
  */
-final class Ringer implements OnErrorListener, OnPreparedListener {
+final class Ringer extends CallsManagerListenerBase implements OnErrorListener, OnPreparedListener {
     // States for the Ringer.
     /** Actively playing the ringer. */
     private static final int RINGING = 1;
@@ -56,11 +56,79 @@ final class Ringer implements OnErrorListener, OnPreparedListener {
     /** The active media player for the ringer. */
     private MediaPlayer mMediaPlayer;
 
+    /*
+     * Used to keep ordering of unanswered incoming calls. The existence of multiple call services
+     * means that there can easily exist multiple incoming calls and explicit ordering is useful for
+     * maintaining the proper state of the ringer.
+     */
+    private final List<String> mUnansweredCallIds = Lists.newLinkedList();
+
+    @Override
+    public void onCallAdded(Call call) {
+        if (call.isIncoming() && call.getState() == CallState.RINGING) {
+            if (mUnansweredCallIds.contains(call.getId())) {
+                Log.wtf(this, "New ringing call is already in list of unanswered calls");
+            }
+            mUnansweredCallIds.add(call.getId());
+            if (mUnansweredCallIds.size() == 1) {
+                // Start the ringer if we are the top-most incoming call (the only one in this
+                // case).
+                startRinging();
+            }
+        }
+    }
+
+    @Override
+    public void onCallRemoved(Call call) {
+        removeFromUnansweredCallIds(call.getId());
+    }
+
+    @Override
+    public void onCallStateChanged(Call call, CallState oldState, CallState newState) {
+        if (newState != CallState.RINGING) {
+            removeFromUnansweredCallIds(call.getId());
+        }
+    }
+
+    @Override
+    public void onIncomingCallAnswered(Call call) {
+        onRespondedToIncomingCall(call);
+    }
+
+    @Override
+    public void onIncomingCallRejected(Call call) {
+        onRespondedToIncomingCall(call);
+    }
+
+    private void onRespondedToIncomingCall(Call call) {
+        // Only stop the ringer if this call is the top-most incoming call.
+        if (!mUnansweredCallIds.isEmpty() && mUnansweredCallIds.get(0).equals(call.getId())) {
+            stopRinging();
+        }
+    }
+
+    /**
+     * Removes the specified call from the list of unanswered incoming calls and updates the ringer
+     * based on the new state of {@link #mUnansweredCallIds}. Safe to call with a call ID that
+     * is not present in the list of incoming calls.
+     *
+     * @param callId The ID of the call.
+     */
+    private void removeFromUnansweredCallIds(String callId) {
+        if (mUnansweredCallIds.remove(callId)) {
+            if (mUnansweredCallIds.isEmpty()) {
+                stopRinging();
+            } else {
+                startRinging();
+            }
+        }
+    }
+
     /**
      * Starts the vibration, ringer, and/or call-waiting tone.
      * TODO(santoscordon): vibration and call-waiting tone.
      */
-    void startRinging() {
+    private void startRinging() {
         // Check if we are muted before playing the ringer.
         if (getAudioManager().getStreamVolume(AudioManager.STREAM_RING) > 0) {
             moveToState(RINGING);
@@ -72,7 +140,7 @@ final class Ringer implements OnErrorListener, OnPreparedListener {
     /**
      * Stops the vibration, ringer, and/or call-waiting tone.
      */
-    void stopRinging() {
+    private void stopRinging() {
         moveToState(STOPPED);
     }
 

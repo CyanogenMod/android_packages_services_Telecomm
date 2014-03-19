@@ -22,6 +22,7 @@ import com.google.common.collect.Sets;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.telecomm.CallInfo;
 import android.telecomm.CallServiceDescriptor;
 import android.telecomm.TelecommConstants;
 
@@ -208,9 +209,10 @@ final class Switchboard {
      * Handles the case where an outgoing call could not be proceed by any of the
      * selector/call-service implementations, see {@link OutgoingCallProcessor}.
      */
-    void handleFailedOutgoingCall(Call call) {
+    void handleFailedOutgoingCall(Call call, boolean isAborted) {
         Log.d(this, "handleFailedOutgoingCall");
 
+        mCallsManager.handleUnsuccessfulOutgoingCall(call, isAborted);
         finalizeOutgoingCall(call);
     }
 
@@ -219,10 +221,10 @@ final class Switchboard {
      * resulting call to {@link CallsManager} as the final step in the incoming sequence. At that
      * point, {@link CallsManager} should bring up the incoming-call UI.
      */
-    void handleSuccessfulIncomingCall(Call call) {
+    void handleSuccessfulIncomingCall(Call call, CallInfo callInfo) {
         Log.d(this, "handleSuccessfulIncomingCall");
 
-        mCallsManager.handleSuccessfulIncomingCall(call);
+        mCallsManager.handleSuccessfulIncomingCall(call, callInfo);
         mBinderDeallocator.releaseUsePermit();
     }
 
@@ -240,6 +242,8 @@ final class Switchboard {
         call.clearCallService();
 
         mBinderDeallocator.releaseUsePermit();
+
+        mCallsManager.handleUnsuccessfulIncomingCall(call);
 
         // At the moment there is nothing more to do if an incoming call is not retrieved. We may at
         // a future date bind to the in-call app optimistically during the incoming-call sequence

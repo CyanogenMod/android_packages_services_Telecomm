@@ -20,6 +20,7 @@ import android.content.Context;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.provider.CallLog.Calls;
+import android.telecomm.CallState;
 import android.telephony.PhoneNumberUtils;
 
 import com.android.internal.telephony.PhoneConstants;
@@ -29,7 +30,7 @@ import com.android.internal.telephony.PhoneConstants;
  * caller details to the call log. All logging activity will be performed asynchronously in a
  * background thread to avoid blocking on the main thread.
  */
-class CallLogManager {
+final class CallLogManager extends CallsManagerListenerBase {
     /**
      * Parameter object to hold the arguments to add a call in the call log DB.
      */
@@ -72,19 +73,19 @@ class CallLogManager {
         mContext = context;
     }
 
-    void logDisconnectedCall(Call call) {
-        // TODO: Until we add more state to the Call object to track whether this disconnected
-        // call orginated as an incoming or outgoing call, always log it as an incoming call.
-        // See b/13420887.
-        logCall(call, Calls.INCOMING_TYPE);
-    }
-
-    void logFailedOutgoingCall(Call call) {
-        logCall(call, Calls.OUTGOING_TYPE);
-    }
-
-    void logMissedCall(Call call) {
-        logCall(call, Calls.MISSED_TYPE);
+    @Override
+    public void onCallStateChanged(Call call, CallState oldState, CallState newState) {
+        if (newState == CallState.DISCONNECTED || newState == CallState.ABORTED) {
+            int type;
+            if (!call.isIncoming()) {
+                type = Calls.OUTGOING_TYPE;
+            } else if (oldState == CallState.RINGING) {
+                type = Calls.MISSED_TYPE;
+            } else {
+                type = Calls.INCOMING_TYPE;
+            }
+            logCall(call, type);
+        }
     }
 
     /**

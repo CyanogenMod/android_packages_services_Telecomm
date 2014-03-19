@@ -15,6 +15,9 @@ LOCAL_PRIVILEGED_MODULE := true
 
 LOCAL_PROGUARD_ENABLED := optimization
 
+# Workaround for "local variable type mismatch" error.
+LOCAL_DX_FLAGS += --no-locals
+
 include $(BUILD_PACKAGE)
 
 # Build the test package.

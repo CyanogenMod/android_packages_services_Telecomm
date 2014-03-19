@@ -23,8 +23,10 @@ import android.content.ServiceConnection;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.telecomm.CallInfo;
+import android.telecomm.CallState;
 
 import com.android.internal.telecomm.IInCallService;
+import com.google.common.collect.ImmutableCollection;
 
 /**
  * Binds to {@link IInCallService} and provides the service to {@link CallsManager} through which it
@@ -35,7 +37,7 @@ import com.android.internal.telecomm.IInCallService;
  * CallsManager will invoke {@link #disconnect} to sever the binding until the in-call UI is needed
  * again.
  */
-public final class InCallController {
+public final class InCallController extends CallsManagerListenerBase {
     /**
      * Used to bind to the in-call app and triggers the start of communication between
      * CallsManager and in-call app.
@@ -69,17 +71,8 @@ public final class InCallController {
     /** Maintains a binding connection to the in-call app. */
     private final InCallServiceConnection mConnection = new InCallServiceConnection();
 
-    private final CallsManager mCallsManager;
-
     /** The in-call app implementation, see {@link IInCallService}. */
     private IInCallService mInCallService;
-
-    /**
-     * Persists the specified parameters.
-     */
-    InCallController(CallsManager callsManager) {
-        mCallsManager = callsManager;
-    }
 
     // TODO(santoscordon): May be better to expose the IInCallService methods directly from this
     // class as its own method to make the CallsManager code easier to read.
@@ -87,75 +80,68 @@ public final class InCallController {
         return mInCallService;
     }
 
-    /**
-     * Indicates to the in-call app that a new call has been created and an appropriate
-     * user-interface should be built and shown to notify the user.  Information about the call
-     * including its current state is passed in through the callInfo object.
-     *
-     * @param callInfo Details about the new call.
-     */
-    void addCall(CallInfo callInfo) {
-        try {
-            if (mInCallService == null) {
-                bind();
-            } else {
-                // TODO(santoscordon): Protect against logging phone number.
-                Log.i(this, "Adding call: %s", callInfo);
-                mInCallService.addCall(callInfo);
+    @Override
+    public void onCallAdded(Call call) {
+        if (mInCallService == null) {
+            bind();
+        } else {
+            Log.i(this, "Adding call: %s", call);
+            try {
+                mInCallService.addCall(call.toCallInfo());
+            } catch (RemoteException e) {
+                Log.e(this, e, "Exception attempting to addCall.");
             }
-        } catch (RemoteException e) {
-            Log.e(this, e, "Exception attempting to addCall.");
         }
     }
 
-    /**
-     * Indicates to the in-call app that a call has moved to the active state.
-     *
-     * @param callId The identifier of the call that became active.
-     */
-    void markCallAsActive(String callId) {
-        try {
-            if (mInCallService != null) {
-                Log.i(this, "Mark call as ACTIVE: %s", callId);
-                mInCallService.setActive(callId);
-            }
-        } catch (RemoteException e) {
-            Log.e(this, e, "Exception attempting to markCallAsActive.");
+    @Override
+    public void onCallRemoved(Call call) {
+        if (CallsManager.getInstance().getCalls().isEmpty()) {
+            // TODO(sail): Wait for all messages to be delivered to the service before unbinding.
+            unbind();
         }
     }
 
-    /**
-     * Indicates to the in-call app that a call has been disconnected and the user should be
-     * notified.
-     *
-     * @param callId The identifier of the call that was disconnected.
-     */
-    void markCallAsDisconnected(String callId) {
-        try {
-            if (mInCallService != null) {
-                Log.i(this, "Mark call as DISCONNECTED: %s", callId);
-                mInCallService.setDisconnected(callId);
-            }
-        } catch (RemoteException e) {
-            Log.e(this, e, "Exception attempting to markCallAsDisconnected.");
+    @Override
+    public void onCallStateChanged(Call call, CallState oldState, CallState newState) {
+        if (mInCallService == null) {
+            return;
         }
-    }
 
-    void markCallAsOnHold(String callId) {
-        try {
-            if (mInCallService != null) {
-                Log.i(this, "Mark call as HOLD: %s", callId);
-                mInCallService.setOnHold(callId);
-            }
-        } catch (RemoteException e) {
-            Log.e(this, e, "Exception attempting to markCallAsHeld.");
+        switch (newState) {
+            case ACTIVE:
+                Log.i(this, "Mark call as ACTIVE: %s", call.getId());
+                try {
+                    mInCallService.setActive(call.getId());
+                } catch (RemoteException e) {
+                    Log.e(this, e, "Exception attempting to call setActive.");
+                }
+                break;
+            case ON_HOLD:
+                Log.i(this, "Mark call as HOLD: %s", call.getId());
+                try {
+                    mInCallService.setOnHold(call.getId());
+                } catch (RemoteException e) {
+                    Log.e(this, e, "Exception attempting to call setOnHold.");
+                }
+                break;
+            case DISCONNECTED:
+                Log.i(this, "Mark call as DISCONNECTED: %s", call.getId());
+                try {
+                    mInCallService.setDisconnected(call.getId());
+                } catch (RemoteException e) {
+                    Log.e(this, e, "Exception attempting to call setDisconnected.");
+                }
+                break;
+            default:
+                break;
         }
     }
 
     /**
      * Unbinds an existing bound connection to the in-call app.
      */
-    void unbind() {
+    private void unbind() {
         ThreadUtil.checkOnMainThread();
         if (mInCallService != null) {
             Log.i(this, "Unbinding from InCallService");
@@ -199,17 +185,22 @@ public final class InCallController {
         mInCallService = IInCallService.Stub.asInterface(service);
 
         try {
-            mInCallService.setInCallAdapter(new InCallAdapter(mCallsManager));
+            mInCallService.setInCallAdapter(new InCallAdapter(CallsManager.getInstance()));
         } catch (RemoteException e) {
             Log.e(this, e, "Failed to set the in-call adapter.");
             mInCallService = null;
+            return;
         }
 
         // Upon successful connection, send the state of the world to the in-call app.
-        if (mInCallService != null) {
-            mCallsManager.updateInCall();
+        ImmutableCollection<Call> calls = CallsManager.getInstance().getCalls();
+        if (!calls.isEmpty()) {
+            for (Call call : calls) {
+                onCallAdded(call);
+            }
+        } else {
+            unbind();
         }
-
     }
 
     /**

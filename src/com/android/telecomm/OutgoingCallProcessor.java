@@ -144,6 +144,7 @@ final class OutgoingCallProcessor {
      * Initiates the attempt to place the call.  No-op beyond the first invocation.
      */
     void process() {
+        Log.v(this, "process, mIsAborted: %b", mIsAborted);
         if (!mIsAborted) {
             // Only process un-aborted calls.
             ThreadUtil.checkOnMainThread();
@@ -165,23 +166,24 @@ final class OutgoingCallProcessor {
      *     false otherwise.
      */
     void setIsCompatibleWith(String callId, boolean isCompatible) {
-      if (!callId.equals(mCall.getId())) {
-          Log.wtf(this, "setIsCompatibleWith invoked with unexpected call ID: %s - expected call"
+        Log.v(this, "setIsCompatibleWith, callId: %s, isCompatible: %b", callId, isCompatible);
+        if (!callId.equals(mCall.getId())) {
+            Log.wtf(this, "setIsCompatibleWith invoked with unexpected call ID: %s - expected call"
                   + " ID: %s", callId, mCall.getId());
-          return;
-      }
+            return;
+        }
 
-      if (!mIsAborted) {
-          CallServiceWrapper callService = mCall.getCallService();
-          if (callService != null) {
-              if (isCompatible) {
-                  callService.call(mCall.toCallInfo(), mNextCallServiceCallback);
-                  return;
-              }
-              mIncompatibleCallServices.add(callService);
-          }
-          attemptNextCallService();
-      }
+        if (!mIsAborted) {
+            CallServiceWrapper callService = mCall.getCallService();
+            if (callService != null) {
+                if (isCompatible) {
+                    callService.call(mCall.toCallInfo(), mNextCallServiceCallback);
+                    return;
+                }
+                mIncompatibleCallServices.add(callService);
+            }
+            attemptNextCallService();
+        }
     }
 
     /**
@@ -189,10 +191,11 @@ final class OutgoingCallProcessor {
      * switchboard through the outgoing-calls manager.
      */
     void abort() {
+        Log.v(this, "abort");
         ThreadUtil.checkOnMainThread();
         if (!mIsAborted) {
-            mCall.abort();
             mIsAborted = true;
+            mOutgoingCallsManager.handleFailedOutgoingCall(mCall, true /* isAborted */);
         }
     }
 
@@ -202,6 +205,7 @@ final class OutgoingCallProcessor {
      * placed the call.
      */
     void handleSuccessfulCallAttempt() {
+        Log.v(this, "handleSuccessfulCallAttempt");
         ThreadUtil.checkOnMainThread();
 
         if (mIsAborted) {
@@ -209,7 +213,6 @@ final class OutgoingCallProcessor {
             return;
         }
 
-        mCall.setState(CallState.DIALING);
         for (CallServiceWrapper callService : mIncompatibleCallServices) {
             mCall.addIncompatibleCallService(callService);
         }
@@ -223,6 +226,7 @@ final class OutgoingCallProcessor {
      * @param reason The call-service supplied reason for the failed call attempt.
      */
     void handleFailedCallAttempt(String reason) {
+        Log.v(this, "handleFailedCallAttempt");
         if (!mIsAborted) {
             ThreadUtil.checkOnMainThread();
 
@@ -237,6 +241,7 @@ final class OutgoingCallProcessor {
      * are available.
      */
     private void attemptNextSelector() {
+        Log.v(this, "attemptNextSelector, mIsAborted: %b", mIsAborted);
         if (mIsAborted) {
             return;
         }
@@ -253,7 +258,8 @@ final class OutgoingCallProcessor {
             }
 
         } else {
-            mOutgoingCallsManager.handleFailedOutgoingCall(mCall);
+            Log.v(this, "attemptNextSelector, no more selectors, failing");
+            mOutgoingCallsManager.handleFailedOutgoingCall(mCall, false /* isAborted */);
         }
     }
 
@@ -286,6 +292,7 @@ final class OutgoingCallProcessor {
     private void processSelectedCallServiceDescriptors(
             List<CallServiceDescriptor> selectedCallServiceDescriptors) {
 
+        Log.v(this, "processSelectedCallServiceDescriptors");
         if (selectedCallServiceDescriptors == null || selectedCallServiceDescriptors.isEmpty()) {
             attemptNextSelector();
         } else if (mCallServiceDescriptorIterator == null) {
@@ -301,6 +308,7 @@ final class OutgoingCallProcessor {
      * {@link #attemptNextSelector}.
      */
     private void attemptNextCallService() {
+        Log.v(this, "attemptNextCallService, mIsAborted: %b", mIsAborted);
         if (mIsAborted) {
             return;
         }
