@@ -78,8 +78,6 @@ public final class CallsManager {
 
     private final CallsManagerListener mInCallController;
 
-    private final CallsManagerListener mRinger;
-
     private VoicemailManager mVoicemailManager;
 
     private final List<OutgoingCallValidator> mOutgoingCallValidators = Lists.newArrayList();
@@ -95,7 +93,6 @@ public final class CallsManager {
         mPhoneStateBroadcaster = new PhoneStateBroadcaster();
         mCallAudioManager = new CallAudioManager();
         mInCallController = new InCallController();
-        mRinger = new Ringer();
     }
 
     static CallsManager getInstance() {
@@ -232,7 +229,6 @@ public final class CallsManager {
             mPhoneStateBroadcaster.onIncomingCallAnswered(call);
             mCallAudioManager.onIncomingCallAnswered(call);
             mInCallController.onIncomingCallAnswered(call);
-            mRinger.onIncomingCallAnswered(call);
 
             // We do not update the UI until we get confirmation of the answer() through
             // {@link #markCallAsActive}. However, if we ever change that to look more responsive,
@@ -258,7 +254,6 @@ public final class CallsManager {
             mPhoneStateBroadcaster.onIncomingCallRejected(call);
             mCallAudioManager.onIncomingCallRejected(call);
             mInCallController.onIncomingCallRejected(call);
-            mRinger.onIncomingCallRejected(call);
 
             call.reject();
         }
@@ -342,6 +337,21 @@ public final class CallsManager {
     }
 
     /**
+     * @return True if there exists a call with the specific state.
+     */
+    boolean hasCallWithState(CallState... states) {
+        for (Call call : mCalls.values()) {
+            for (CallState state : states) {
+                if (call.getState() == state) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Adds the specified call to the main list of live calls.
      *
      * @param call The call to add.
@@ -353,7 +363,6 @@ public final class CallsManager {
         mPhoneStateBroadcaster.onCallAdded(call);
         mCallAudioManager.onCallAdded(call);
         mInCallController.onCallAdded(call);
-        mRinger.onCallAdded(call);
         updateForegroundCall();
     }
 
@@ -364,13 +373,11 @@ public final class CallsManager {
         mPhoneStateBroadcaster.onCallRemoved(call);
         mCallAudioManager.onCallRemoved(call);
         mInCallController.onCallRemoved(call);
-        mRinger.onCallRemoved(call);
         updateForegroundCall();
     }
 
     /**
-     * Sets the specified state on the specified call. Updates the ringer if the call is exiting
-     * the RINGING state.
+     * Sets the specified state on the specified call.
      *
      * @param callId The ID of the call to update.
      * @param newState The new state of the call.
@@ -389,8 +396,7 @@ public final class CallsManager {
     }
 
     /**
-     * Sets the specified state on the specified call. Updates the ringer if the call is exiting
-     * the RINGING state.
+     * Sets the specified state on the specified call.
      *
      * @param call The call.
      * @param newState The new state of the call.
@@ -413,7 +419,6 @@ public final class CallsManager {
                 mPhoneStateBroadcaster.onCallStateChanged(call, oldState, newState);
                 mCallAudioManager.onCallStateChanged(call, oldState, newState);
                 mInCallController.onCallStateChanged(call, oldState, newState);
-                mRinger.onCallStateChanged(call, oldState, newState);
                 updateForegroundCall();
             }
         }
@@ -444,7 +449,6 @@ public final class CallsManager {
             mPhoneStateBroadcaster.onForegroundCallChanged(oldForegroundCall, mForegroundCall);
             mCallAudioManager.onForegroundCallChanged(oldForegroundCall, mForegroundCall);
             mInCallController.onForegroundCallChanged(oldForegroundCall, mForegroundCall);
-            mRinger.onForegroundCallChanged(oldForegroundCall, mForegroundCall);
         }
     }
 }
