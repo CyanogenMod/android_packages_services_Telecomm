@@ -16,6 +16,9 @@
 
 package com.android.telecomm;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableCollection;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -26,16 +29,18 @@ import android.telecomm.CallInfo;
 import android.telecomm.CallServiceDescriptor;
 import android.telecomm.TelecommConstants;
 
-import com.android.internal.telecomm.ICallServiceSelector;
-
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
 /**
- * Switchboard is responsible for (1) gathering the {@link CallServiceWrapper}s and
- * {@link ICallServiceSelector}s through which to place outgoing calls, (2) starting outgoing calls
- * (via {@link OutgoingCallsManager} and (3) switching active calls between call services.
+ * Switchboard is responsible for:
+ * <ul>
+ * <li> gathering the {@link CallServiceWrapper}s and {@link CallServiceSelectorWrapper}s through which to place
+ * outgoing calls
+ * <li> starting outgoing calls (via {@link OutgoingCallsManager}
+ * <li> switching active calls between call services.
+ * </ul>
  */
 final class Switchboard {
 
@@ -87,7 +92,7 @@ final class Switchboard {
      * see {@link CallServiceSelectorRepository}.
      * TODO(gilad): Clear once the active-call count goes to zero.
      */
-    private final Set<ICallServiceSelector> mSelectors = Sets.newHashSet();
+    private ImmutableCollection<CallServiceSelectorWrapper> mSelectors = ImmutableList.of();
 
     /**
      * The current lookup-cycle ID used with the repositories. Incremented with each invocation
@@ -126,7 +131,7 @@ final class Switchboard {
         // be okay since the call-service lookup completed. Specifically the already-available call
         // services are cached and will be provided in response to the second lookup cycle.
         mCallServices.clear();
-        mSelectors.clear();
+        mSelectors = ImmutableList.of();
 
         mNewOutgoingCalls.add(call);
 
@@ -175,22 +180,19 @@ final class Switchboard {
      * Persists the specified list of selectors and attempts to connect any pending outgoing
      * calls.  Intended to be invoked by {@link CallServiceSelectorRepository} exclusively.
      *
-     * @param selectors The potentially-partial set of selectors.  Partial since the lookup
-     *     procedure is time-boxed such that some selectors may be slow to respond and hence
-     *     effectively omitted from the specified set.
+     * @param selectors Collection of selectors. The order of the collection determines the order in
+     *     which the selectors are tried.
      */
-    void setSelectors(Set<ICallServiceSelector> selectors) {
-        // TODO(santoscordon): This should take in CallServiceSelectorWrapper instead of the direct
-        // ICallServiceSelector implementation. Copy what we have for CallServiceWrapper. Also need
-        // to invoke updateBinders(selectors) once this to-do is addressed.
+    void setSelectors(ImmutableCollection<CallServiceSelectorWrapper> selectors) {
+        // TODO(santoscordon):: Need to invoke updateBinders(selectors).
         ThreadUtil.checkOnMainThread();
+        Preconditions.checkNotNull(selectors);
 
         // TODO(gilad): Add logic to include the built-in selectors (e.g. for dealing with
         // emergency calls) and order the entire set prior to the assignment below. If the
         // built-in selectors can be implemented in a manner that does not require binding,
-        // that's probably preferred.  May want to use a LinkedHashSet for the sorted set.
-        mSelectors.clear();
-        mSelectors.addAll(selectors);
+        // that's probably preferred.
+        mSelectors = selectors;
         processNewOutgoingCalls();
     }
 
@@ -294,12 +296,7 @@ final class Switchboard {
      * @param call The call to place.
      */
     private void processNewOutgoingCall(Call call) {
-        // Convert to (duplicate-free) list to aid index-based iteration, see the comment under
-        // setSelectors regarding using LinkedHashSet instead.
-        List<ICallServiceSelector> selectors = Lists.newArrayList();
-        selectors.addAll(mSelectors);
-
-        mOutgoingCallsManager.placeCall(call, mCallServices, selectors);
+        mOutgoingCallsManager.placeCall(call, mCallServices, mSelectors);
     }
 
     /**
