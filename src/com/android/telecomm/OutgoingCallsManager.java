@@ -19,7 +19,7 @@ package com.android.telecomm;
 import com.android.internal.telecomm.ICallServiceSelector;
 import com.google.common.collect.Maps;
 
-import java.util.List;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 
@@ -54,7 +54,9 @@ final class OutgoingCallsManager {
      * @param selectors The ordered list of selectors used in placing the call.
      */
     void placeCall(
-            Call call, Set<CallServiceWrapper> callServices, List<ICallServiceSelector> selectors) {
+            Call call,
+            Set<CallServiceWrapper> callServices,
+            Collection<CallServiceSelectorWrapper> selectors) {
 
         Log.i(this, "Placing an outgoing call (%s)", call.getId());
 

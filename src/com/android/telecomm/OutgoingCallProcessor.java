@@ -21,13 +21,13 @@ import android.os.Looper;
 import android.os.RemoteException;
 import android.telecomm.CallState;
 import android.telecomm.CallServiceDescriptor;
+import android.telecomm.CallServiceSelector.CallServiceSelectionResponse;
 
-import com.android.internal.telecomm.ICallServiceSelectionResponse;
-import com.android.internal.telecomm.ICallServiceSelector;
 import com.google.android.collect.Sets;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Lists;
 
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -79,10 +79,7 @@ final class OutgoingCallProcessor {
     /**
      * The list of currently-available call-service selector implementations.
      */
-    private final List<ICallServiceSelector> mSelectors;
-
-    /** Used to run code (e.g. messages, Runnables) on the main (UI) thread. */
-    private final Handler mHandler = new Handler(Looper.getMainLooper());
+    private final Collection<CallServiceSelectorWrapper> mSelectors;
 
     /** Manages all outgoing call processors. */
     private final OutgoingCallsManager mOutgoingCallsManager;
@@ -95,12 +92,18 @@ final class OutgoingCallProcessor {
         }
     };
 
+    private final Runnable mNextSelectorCallback = new Runnable() {
+        @Override public void run() {
+            attemptNextSelector();
+        }
+    };
+
     /**
      * The iterator over the currently-selected ordered list of call-service descriptors.
      */
     private Iterator<CallServiceDescriptor> mCallServiceDescriptorIterator;
 
-    private Iterator<ICallServiceSelector> mSelectorIterator;
+    private Iterator<CallServiceSelectorWrapper> mSelectorIterator;
 
     private boolean mIsAborted = false;
 
@@ -120,7 +123,7 @@ final class OutgoingCallProcessor {
     OutgoingCallProcessor(
             Call call,
             Set<CallServiceWrapper> callServices,
-            List<ICallServiceSelector> selectors,
+            Collection<CallServiceSelectorWrapper> selectors,
             OutgoingCallsManager outgoingCallsManager,
             Switchboard switchboard) {
 
@@ -247,39 +250,21 @@ final class OutgoingCallProcessor {
         }
 
         if (mSelectorIterator.hasNext()) {
-            ICallServiceSelector selector = mSelectorIterator.next();
+            CallServiceSelectorWrapper selector = mSelectorIterator.next();
             mCall.setCallServiceSelector(selector);
 
-            ICallServiceSelectionResponse.Stub response = createSelectionResponse();
-            try {
-                selector.select(mCall.toCallInfo(), mCallServiceDescriptors, response);
-            } catch (RemoteException e) {
-                attemptNextSelector();
-            }
-
+            CallServiceSelectionResponse responseCallback = new CallServiceSelectionResponse() {
+                    @Override
+                    public void setSelectedCallServices(List<CallServiceDescriptor> callServices) {
+                        processSelectedCallServiceDescriptors(callServices);
+                    }
+                };
+            selector.select(mCall.toCallInfo(), mCallServiceDescriptors, responseCallback,
+                    mNextSelectorCallback);
         } else {
             Log.v(this, "attemptNextSelector, no more selectors, failing");
             mOutgoingCallsManager.handleFailedOutgoingCall(mCall, false /* isAborted */);
         }
-    }
-
-    /**
-     * @return A new selection-response object that's wired to run on the main (UI) thread.
-     */
-    private ICallServiceSelectionResponse.Stub createSelectionResponse() {
-        return new ICallServiceSelectionResponse.Stub() {
-            @Override public void setSelectedCallServiceDescriptors(
-                    final List<CallServiceDescriptor> selectedCallServiceDescriptors) {
-
-                Runnable runnable = new Runnable() {
-                    @Override public void run() {
-                        processSelectedCallServiceDescriptors(selectedCallServiceDescriptors);
-                    }
-                };
-
-                mHandler.post(runnable);
-            }
-        };
     }
 
     /**

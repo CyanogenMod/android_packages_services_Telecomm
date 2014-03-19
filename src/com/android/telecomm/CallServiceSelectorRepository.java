@@ -19,44 +19,24 @@ package com.android.telecomm;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.content.pm.ServiceInfo;
-import android.os.Handler;
-import android.os.IBinder;
-import android.os.Looper;
 import android.telecomm.TelecommConstants;
 
 import com.android.internal.telecomm.ICallServiceSelector;
-import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
+import com.google.common.collect.Maps;
 
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 
 /**
  * Helper class to retrieve {@link ICallServiceSelector} implementations on the device and
- * asynchronously bind to them.  Each lookup cycle is time-boxed, hence selectors too slow
- * to bind are effectively omitted from the set that is passed back to {@link Switchboard}.
+ * asynchronously bind to them.
  */
 final class CallServiceSelectorRepository {
-
-    /**
-     * Used to interrupt lookup cycles that didn't terminate naturally within the allowed
-     * period, see {@link Timeouts#getSelectorLookupMs()}.
-     */
-    private final Runnable mLookupTerminator = new Runnable() {
-        @Override
-        public void run() {
-            Log.d(CallServiceSelectorRepository.this, "Timed out processing selectors");
-            terminateLookup();
-        }
-    };
-
-    /** Used to run code (e.g. messages, Runnables) on the main (UI) thread. */
-    private final Handler mHandler = new Handler(Looper.getMainLooper());
 
     private final Switchboard mSwitchboard;
 
@@ -64,32 +44,10 @@ final class CallServiceSelectorRepository {
     private final Context mContext;
 
     /**
-     * Determines whether or not a lookup cycle is already running.
+     * The set of call-service selectors. Only populated via initiateLookup scenarios.
      */
-    private boolean mIsLookupInProgress = false;
-
-    /**
-     * The current lookup-cycle ID, unique per invocation of {@link #initiateLookup}.
-     */
-    private int mLookupId = 0;
-
-    /**
-     * The set of bound call-service selectors.  Only populated via initiateLookup scenarios.
-     * Selectors should only be removed upon unbinding.
-     */
-    private final Set<ICallServiceSelector> mSelectorRegistry = Sets.newHashSet();
-
-    /**
-     * Stores the names of the selectors to bind to in one lookup cycle.  The set size represents
-     * the number of call-service selectors this repositories expects to hear back from upon
-     * initiating lookups, see initiateLookup. Whenever all selectors respond before the timeout
-     * occurs, the complete set of available selectors is passed to the switchboard for further
-     * processing of outgoing calls etc.  When the timeout occurs before all responds are received,
-     * the partial (potentially empty) set gets passed to the switchboard instead. Note that cached
-     * selectors do not require finding and hence are excluded from this set.  Also note that
-     * selectors are removed from this set as they register.
-     */
-    private final Set<ComponentName> mUnregisteredSelectors = Sets.newHashSet();
+    private final Map<ComponentName, CallServiceSelectorWrapper> mCallServiceSelectors =
+            Maps.newHashMap();
 
     /**
      * Persists the specified parameters and initializes the new instance.
@@ -108,47 +66,16 @@ final class CallServiceSelectorRepository {
      */
     void initiateLookup(int lookupId) {
         ThreadUtil.checkOnMainThread();
-        if (mIsLookupInProgress) {
-            // At most one active lookup is allowed at any given time, bail out.
-            return;
-        }
 
         List<ComponentName> selectorNames = getSelectorNames();
-        if (selectorNames.isEmpty()) {
-            Log.i(this, "No ICallServiceSelector implementations found.");
-            updateSwitchboard();
-            return;
-        }
-
-        mLookupId = lookupId;
-        mIsLookupInProgress = true;
-        mUnregisteredSelectors.clear();
-
         for (ComponentName name : selectorNames) {
-            if (!mSelectorRegistry.contains(name)) {
-                // The selector is either not yet registered or has been unregistered
-                // due to unbinding etc.
-                mUnregisteredSelectors.add(name);
-                bindSelector(name, lookupId);
+            if (!mCallServiceSelectors.containsKey(name)) {
+                mCallServiceSelectors.put(name, new CallServiceSelectorWrapper(name));
             }
         }
 
-        int selectorCount = selectorNames.size();
-        int unregisteredSelectorCount = mUnregisteredSelectors.size();
-
-        Log.i(this, "Found %d implementations of ICallServiceSelector, %d of which are not " +
-                "currently registered.", selectorCount , unregisteredSelectorCount);
-
-        if (unregisteredSelectorCount == 0) {
-            // All known (selector) implementations are already registered, pass control
-            // back to the switchboard.
-            updateSwitchboard();
-        } else {
-            // Schedule a lookup terminator to run after Timeouts.getSelectorLookupMs()
-            // milliseconds.
-            mHandler.removeCallbacks(mLookupTerminator);
-            mHandler.postDelayed(mLookupTerminator, Timeouts.getSelectorLookupMs());
-        }
+        Log.i(this, "Found %d implementations of ICallServiceSelector", selectorNames.size());
+        updateSwitchboard();
     }
 
     /**
@@ -174,84 +101,22 @@ final class CallServiceSelectorRepository {
     }
 
     /**
-     * Attempts to bind the specified selector and have it register upon successful binding.
-     * Also performs the necessary wiring to unregister the selector upon un-binding.
-     *
-     * @param selectorName The component name of the relevant selector.
-     * @param lookupId The lookup-cycle ID.
-     */
-    private void bindSelector(
-            final ComponentName selectorName, final int lookupId) {
-
-        Preconditions.checkNotNull(selectorName);
-
-        Intent serviceIntent = new Intent(
-                TelecommConstants.ACTION_CALL_SERVICE_SELECTOR).setComponent(selectorName);
-        Log.i(this, "Binding to ICallServiceSelector through %s", serviceIntent);
-
-        // Connection object for the service binding.
-        ServiceConnection connection = new ServiceConnection() {
-            @Override
-            public void onServiceConnected(ComponentName className, IBinder service) {
-                ICallServiceSelector selector = ICallServiceSelector.Stub.asInterface(service);
-                registerSelector(lookupId, selectorName, selector);
-            }
-
-            @Override
-            public void onServiceDisconnected(ComponentName className) {
-                unregisterSelector(selectorName);
-            }
-        };
-
-        if (!mContext.bindService(serviceIntent, connection, Context.BIND_AUTO_CREATE)) {
-            // TODO(gilad): Handle error.
-        }
-    }
-
-    /**
-     * Registers the specified selector.
-     *
-     * @param lookupId The lookup-cycle ID.  Currently unused, consider removing.
-     * @param selectorName The component name of the relevant selector.
-     * @param selector The selector object to register.
-     */
-    private void registerSelector(
-            int lookupId, ComponentName selectorName, ICallServiceSelector selector) {
-
-        ThreadUtil.checkOnMainThread();
-
-        if (mUnregisteredSelectors.remove(selectorName)) {
-            mSelectorRegistry.add(selector);
-            if (mUnregisteredSelectors.size() < 1) {
-                terminateLookup();  // No other selectors to wait for.
-            }
-        }
-    }
-
-    /**
-     * Unregisters the specified selector.
-     *
-     * @param selectorName The component name of the relevant selector.
-     */
-    private void unregisterSelector(ComponentName selectorName) {
-        mSelectorRegistry.remove(selectorName);
-    }
-
-    /**
-     * Timeouts the current lookup cycle, see LookupTerminator.
-     */
-    private void terminateLookup() {
-        mHandler.removeCallbacks(mLookupTerminator);
-        updateSwitchboard();
-    }
-
-    /**
      * Updates the switchboard passing the relevant call services selectors.
      */
     private void updateSwitchboard() {
         ThreadUtil.checkOnMainThread();
 
-        mSwitchboard.setSelectors(mSelectorRegistry);
-        mIsLookupInProgress = false;
+        List<CallServiceSelectorWrapper> selectors = Lists.newLinkedList();
+        for (CallServiceSelectorWrapper selector : mCallServiceSelectors.values()) {
+            if (TelephonyUtil.isTelephonySelector(selector)) {
+                // Add telephony selectors to the end to serve as a fallback.
+                selectors.add(selector);
+            } else {
+                // TODO(sail): Need a way to order selectors.
+                selectors.add(0, selector);
+            }
+        }
+
+        mSwitchboard.setSelectors(ImmutableList.copyOf((selectors)));
     }
 }

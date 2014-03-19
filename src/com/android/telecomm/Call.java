@@ -20,7 +20,6 @@ import android.net.Uri;
 import android.telecomm.CallInfo;
 import android.telecomm.CallState;
 
-import com.android.internal.telecomm.ICallServiceSelector;
 import com.google.android.collect.Sets;
 import com.google.common.base.Preconditions;
 
@@ -65,9 +64,8 @@ final class Call {
 
     /**
      * The call-service selector for this call.
-     * TODO(gilad): Switch to using a wrapper object, see {@link #mCallService}.
      */
-    private ICallServiceSelector mCallServiceSelector;
+    private CallServiceSelectorWrapper mCallServiceSelector;
 
     /** Read-only and parcelable version of this call. */
     private CallInfo mCallInfo;
@@ -188,7 +186,7 @@ final class Call {
         }
     }
 
-    void setCallServiceSelector(ICallServiceSelector selector) {
+    void setCallServiceSelector(CallServiceSelectorWrapper selector) {
         Preconditions.checkNotNull(selector);
         mCallServiceSelector = selector;
     }

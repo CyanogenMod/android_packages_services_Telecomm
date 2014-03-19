@@ -49,7 +49,7 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
     private Binder mBinder = new Binder();
 
     /**
-     * Creates a call-service provider for the specified component.
+     * Creates a call-service provider for the specified descriptor.
      *
      * @param descriptor The call-service descriptor from
      *         {@link ICallServiceProvider#lookupCallServices}.

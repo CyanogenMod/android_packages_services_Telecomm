@@ -54,14 +54,6 @@ public final class Timeouts {
     }
 
     /**
-     * @return The longest period in milliseconds each {@link CallServiceSelector} lookup cycle is
-     *     allowed to span over.
-     */
-    public static long getSelectorLookupMs() {
-        return get("selector_lookup_ms", 1000);
-    }
-
-    /**
      * @return How frequently, in milliseconds, to run {@link Switchboard}'s clean-up "tick" cycle.
      */
     public static long getTickMs() {
