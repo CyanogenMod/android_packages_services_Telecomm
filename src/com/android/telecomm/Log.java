@@ -16,10 +16,10 @@
 
 package com.android.telecomm;
 
-import java.util.IllegalFormatException;
-import java.util.Locale;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.IllegalFormatException;
+import java.util.Locale;
 
 /**
  * Manages logging for the entire module.
@@ -113,11 +113,13 @@ public class Log {
     }
 
     public static void wtf(String prefix, String format, Object... args) {
-        android.util.Log.wtf(TAG, buildMessage(prefix, format, args));
+        String msg = buildMessage(prefix, format, args);
+        android.util.Log.wtf(TAG, msg, new IllegalStateException(msg));
     }
 
     public static void wtf(Object objectPrefix, String format, Object... args) {
-        android.util.Log.wtf(TAG, buildMessage(getPrefixFromObject(objectPrefix), format, args));
+        String msg = buildMessage(getPrefixFromObject(objectPrefix), format, args);
+        android.util.Log.wtf(TAG, msg, new IllegalStateException(msg));
     }
 
     /**
@@ -148,7 +150,7 @@ public class Log {
         StringBuffer hex = new StringBuffer(bytes.length * 2);
 
         for (int i = 0; i < bytes.length; i++) {
-            int byteIntValue = (int) bytes[i] & 0xff;
+            int byteIntValue = bytes[i] & 0xff;
             if (byteIntValue < 0x10) {
                 hex.append("0");
             }
