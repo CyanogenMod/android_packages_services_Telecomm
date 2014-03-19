@@ -78,8 +78,6 @@ public final class CallsManager {
 
     private final CallsManagerListener mInCallController;
 
-    private VoicemailManager mVoicemailManager;
-
     private final List<OutgoingCallValidator> mOutgoingCallValidators = Lists.newArrayList();
 
     private final List<IncomingCallValidator> mIncomingCallValidators = Lists.newArrayList();
