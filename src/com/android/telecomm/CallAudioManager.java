@@ -109,7 +109,7 @@ final class CallAudioManager extends CallsManagerListenerBase {
             mRinger.stop();
         }
 
-        if (!needsFocus) {
+        if (!needsFocus && mHasAudioFocus) {
             setMode(AudioManager.MODE_NORMAL);
             releaseFocus();
         }
