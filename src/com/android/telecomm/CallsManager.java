@@ -350,6 +350,21 @@ public final class CallsManager {
     }
 
     /**
+     * Cleans up any calls currently associated with the specified call service when the
+     * call-service binder disconnects unexpectedly.
+     *
+     * @param callService The call service that disconnected.
+     */
+    void handleCallServiceDeath(CallServiceWrapper callService) {
+        Preconditions.checkNotNull(callService);
+        for (Call call : ImmutableList.copyOf(mCalls.values())) {
+            if (call.getCallService() == callService) {
+                markCallAsDisconnected(call.getId());
+            }
+        }
+    }
+
+    /**
      * Adds the specified call to the main list of live calls.
      *
      * @param call The call to add.

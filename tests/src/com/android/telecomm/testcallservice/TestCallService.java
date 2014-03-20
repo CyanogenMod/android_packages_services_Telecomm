@@ -64,12 +64,7 @@ public class TestCallService extends CallService {
         mTelecommAdapter = callServiceAdapter;
         mLiveCallIds = Sets.newHashSet();
 
-        // Prepare the media player to play a tone when there is a call.
-        mMediaPlayer = MediaPlayer.create(getApplicationContext(), R.raw.beep_boop);
-        mMediaPlayer.setLooping(true);
-
-        // TODO(santoscordon): Re-enable audio through voice-call stream.
-        //mMediaPlayer.setAudioStreamType(AudioManager.STREAM_VOICE_CALL);
+        mMediaPlayer = createMediaPlayer();
     }
 
     /**
@@ -101,7 +96,13 @@ public class TestCallService extends CallService {
      */
     @Override
     public void call(CallInfo callInfo) {
-        Log.i(TAG, "call(" + callInfo + ")");
+        String number = callInfo.getHandle().getSchemeSpecificPart();
+        Log.i(TAG, "call(" + number + ")");
+
+        // Crash on 555-DEAD to test call service crashing.
+        if ("5550340".equals(number)) {
+            throw new RuntimeException("Goodbye, cruel world.");
+        }
 
         createCall(callInfo.getId());
         mTelecommAdapter.handleSuccessfulOutgoingCall(callInfo.getId());
@@ -130,6 +131,7 @@ public class TestCallService extends CallService {
     @Override
     public void answer(String callId) {
         mTelecommAdapter.setActive(callId);
+        createCall(callId);
     }
 
     /** {@inheritDoc} */
@@ -198,6 +200,16 @@ public class TestCallService extends CallService {
         // Stops audio if there are no more calls.
         if (mLiveCallIds.isEmpty() && mMediaPlayer.isPlaying()) {
             mMediaPlayer.stop();
+            mMediaPlayer.release();
+            mMediaPlayer = createMediaPlayer();
         }
     }
+
+    private MediaPlayer createMediaPlayer() {
+        // Prepare the media player to play a tone when there is a call.
+        MediaPlayer mediaPlayer = MediaPlayer.create(getApplicationContext(), R.raw.beep_boop);
+        mediaPlayer.setLooping(true);
+        return mediaPlayer;
+    }
+
 }

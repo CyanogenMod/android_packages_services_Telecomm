@@ -23,7 +23,9 @@ import android.telecomm.CallInfo;
 import com.android.internal.telecomm.ICallServiceAdapter;
 import com.google.android.collect.Sets;
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableList;
 
+import java.util.Collections;
 import java.util.Set;
 
 /**
@@ -219,6 +221,35 @@ public final class CallServiceAdapter extends ICallServiceAdapter.Stub {
      */
     void removePendingIncomingCallId(String callId) {
         mPendingIncomingCallIds.remove(callId);
+    }
+
+    /**
+     * Called when the associated call service dies.
+     */
+    void handleCallServiceDeath() {
+        if (!mPendingIncomingCallIds.isEmpty()) {
+            // Here and in the for loop below, we need to iterate through a copy because the code
+            // inside the loop will modify the original list.
+            for (String callId : ImmutableList.copyOf(mPendingIncomingCallIds)) {
+                mIncomingCallsManager.handleFailedIncomingCall(callId);
+            }
+
+            if (!mPendingIncomingCallIds.isEmpty()) {
+                Log.wtf(this, "Pending incoming calls did not get cleared.");
+                mPendingIncomingCallIds.clear();
+            }
+        }
+
+        if (!mPendingOutgoingCallIds.isEmpty()) {
+            for (String callId : ImmutableList.copyOf(mPendingOutgoingCallIds)) {
+                mOutgoingCallsManager.handleFailedCallAttempt(callId, "Call service disconnected.");
+            }
+
+            if (!mPendingOutgoingCallIds.isEmpty()) {
+                Log.wtf(this, "Pending outgoing calls did not get cleared.");
+                mPendingOutgoingCallIds.clear();
+            }
+        }
     }
 
     /**
