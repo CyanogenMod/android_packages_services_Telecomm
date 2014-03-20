@@ -63,7 +63,7 @@ final class IncomingCallsManager {
 
         Runnable errorCallback = new Runnable() {
             @Override public void run() {
-                handleFailedIncomingCall(call);
+                handleFailedIncomingCall(callId);
             }
         };
 
@@ -89,12 +89,13 @@ final class IncomingCallsManager {
     /**
      * Notifies switchboard of the failed incoming call after removing it from the pending list.
      *
-     * @param call The call.
+     * @param callId The ID of the call.
      */
-    private void handleFailedIncomingCall(Call call) {
+    void handleFailedIncomingCall(String callId) {
         ThreadUtil.checkOnMainThread();
 
-        if (mPendingIncomingCalls.remove(call.getId()) != null) {
+        Call call = mPendingIncomingCalls.remove(callId);
+        if (call != null) {
             Log.i(this, "Failed to get details for incoming call %s", call);
             // The call was found still waiting for details. Consider it failed.
             mSwitchboard.handleFailedIncomingCall(call);

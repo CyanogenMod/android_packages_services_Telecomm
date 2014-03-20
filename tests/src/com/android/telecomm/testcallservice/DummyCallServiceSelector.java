@@ -20,6 +20,8 @@ import android.telecomm.CallInfo;
 import android.telecomm.CallServiceDescriptor;
 import android.telecomm.CallServiceSelector;
 
+import com.google.common.collect.Lists;
+
 import java.util.List;
 
 /**
@@ -37,6 +39,16 @@ public class DummyCallServiceSelector extends CallServiceSelector {
             CallInfo callInfo, List<CallServiceDescriptor> callServiceDescriptors,
             CallServiceSelectionResponse response) {
 
-        response.setSelectedCallServices(callServiceDescriptors);
+        List<CallServiceDescriptor> orderedList = Lists.newLinkedList();
+
+        // Make sure that the test call services are the only ones
+        for (CallServiceDescriptor descriptor : callServiceDescriptors) {
+            String packageName = descriptor.getServiceComponent().getPackageName();
+            if (getPackageName().equals(packageName)) {
+                orderedList.add(descriptor);
+            }
+        }
+
+        response.setSelectedCallServices(orderedList);
     }
 }

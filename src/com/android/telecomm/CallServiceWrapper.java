@@ -85,6 +85,7 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
      * @param errorCallback The callback to invoke upon failure.
      */
     void isCompatibleWith(final CallInfo callInfo, final Runnable errorCallback) {
+        Log.d(this, "isCompatibleWith(%s) via %s.", callInfo, getComponentName());
         BindCallback callback = new BindCallback() {
             @Override public void onSuccess() {
                 if (isServiceValid("isCompatibleWith")) {
@@ -113,6 +114,7 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
      * @param errorCallback The callback to invoke upon failure.
      */
     void call(final CallInfo callInfo, final Runnable errorCallback) {
+        Log.d(this, "call(%s) via %s.", callInfo, getComponentName());
         BindCallback callback = new BindCallback() {
             @Override public void onSuccess() {
                 String callId = callInfo.getId();
@@ -181,6 +183,7 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
             final Bundle extras,
             final Runnable errorCallback) {
 
+        Log.d(this, "setIncomingCall(%s) via %s.", callId, getComponentName());
         BindCallback callback = new BindCallback() {
             @Override public void onSuccess() {
                 if (isServiceValid("setIncomingCallId")) {
@@ -257,7 +260,17 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
 
     /** {@inheritDoc} */
     @Override protected void setServiceInterface(IBinder binder) {
-        mServiceInterface = ICallService.Stub.asInterface(binder);
-        setCallServiceAdapter(mAdapter);
+        if (binder == null) {
+            // We have lost our service connection. Notify the world that this call service is done.
+            // We must notify the adapter before CallsManager. The adapter will force any pending
+            // outgoing calls to try the next call service. This needs to happen before CallsManager
+            // tries to clean up any calls still associated with this call service.
+            mAdapter.handleCallServiceDeath();
+            CallsManager.getInstance().handleCallServiceDeath(this);
+            mServiceInterface = null;
+        } else {
+            mServiceInterface = ICallService.Stub.asInterface(binder);
+            setCallServiceAdapter(mAdapter);
+        }
     }
 }
