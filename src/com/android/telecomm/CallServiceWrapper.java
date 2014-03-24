@@ -19,6 +19,7 @@ package com.android.telecomm;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.RemoteException;
+import android.telecomm.CallAudioState;
 import android.telecomm.CallInfo;
 import android.telecomm.CallService;
 import android.telecomm.CallServiceDescriptor;
@@ -147,7 +148,7 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
     }
 
     /** See {@link ICallService#hold}. */
-    public void hold(String callId) {
+    void hold(String callId) {
         if (isServiceValid("hold")) {
             try {
                 mServiceInterface.hold(callId);
@@ -158,12 +159,23 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
     }
 
     /** See {@link ICallService#unhold}. */
-    public void unhold(String callId) {
+    void unhold(String callId) {
         if (isServiceValid("unhold")) {
             try {
                 mServiceInterface.unhold(callId);
             } catch (RemoteException e) {
                 Log.e(this, e, "Failed to remove from hold for call %s", callId);
+            }
+        }
+    }
+
+    /** See {@link ICallService#onAudioStateChanged}. */
+    void onAudioStateChanged(String activeCallId, CallAudioState audioState) {
+        if (isServiceValid("onAudioStateChanged")) {
+            try {
+                mServiceInterface.onAudioStateChanged(activeCallId, audioState);
+            } catch (RemoteException e) {
+                Log.e(this, e, "Failed to update audio state for call %s", activeCallId);
             }
         }
     }

@@ -18,176 +18,270 @@ package com.android.telecomm;
 
 import android.content.Context;
 import android.media.AudioManager;
+import android.telecomm.CallAudioState;
 import android.telecomm.CallState;
 
-import com.google.common.collect.Lists;
-
-import java.util.List;
+import com.google.common.base.Preconditions;
 
 /**
  * This class manages audio modes, streams and other properties.
  */
 final class CallAudioManager extends CallsManagerListenerBase {
-    private AsyncRingtonePlayer mRinger = new AsyncRingtonePlayer();
+    private static final int STREAM_NONE = -1;
 
-    private boolean mHasAudioFocus = false;
+    private final AudioManager mAudioManager;
+    private final WiredHeadsetManager mWiredHeadsetManager;
+    private CallAudioState mAudioState;
+    private int mAudioFocusStreamType;
+    private boolean mIsRinging;
+    private boolean mWasSpeakerOn;
 
-    /**
-     * Used to keep ordering of unanswered incoming calls. The existence of multiple call services
-     * means that there can easily exist multiple incoming calls and explicit ordering is useful for
-     * maintaining the proper state of the ringer.
-     */
-    private final List<String> mUnansweredCallIds = Lists.newLinkedList();
+    CallAudioManager() {
+        Context context = TelecommApp.getInstance();
+        mAudioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+        mWiredHeadsetManager = new WiredHeadsetManager(this);
+        mAudioState = getInitialAudioState();
+        mAudioFocusStreamType = STREAM_NONE;
+    }
 
-    /**
-     * Denotes when the ringer is disabled. This is useful in temporarily disabling the ringer when
-     * the a call is answered/rejected by the user, but the call hasn't actually moved out of the
-     * ringing state.
-     */
-    private boolean mIsRingingDisabled = false;
+    CallAudioState getAudioState() {
+        return mAudioState;
+    }
 
     @Override
     public void onCallAdded(Call call) {
-        if (call.getState() == CallState.RINGING) {
-            mUnansweredCallIds.add(call.getId());
+        updateAudioStreamAndMode();
+        if (CallsManager.getInstance().getCalls().size() == 1) {
+            Log.v(this, "first call added, reseting system audio to default state");
+            setInitialAudioState();
+        } else if (!call.isIncoming()) {
+            // Unmute new outgoing call.
+            setSystemAudioState(false, mAudioState.route, mAudioState.supportedRouteMask);
         }
-        updateAudio();
     }
 
     @Override
     public void onCallRemoved(Call call) {
-        removeFromUnansweredCallIds(call.getId());
-        updateAudio();
+        if (CallsManager.getInstance().getCalls().isEmpty()) {
+            Log.v(this, "all calls removed, reseting system audio to default state");
+            setInitialAudioState();
+        }
+        updateAudioStreamAndMode();
     }
 
     @Override
     public void onCallStateChanged(Call call, CallState oldState, CallState newState) {
-        if (oldState == CallState.RINGING) {
-            removeFromUnansweredCallIds(call.getId());
-        }
-
-        updateAudio();
+        updateAudioStreamAndMode();
     }
 
     @Override
     public void onIncomingCallAnswered(Call call) {
-        mIsRingingDisabled = true;
-        updateAudio();
+        // Unmute new incoming call.
+        setSystemAudioState(false, mAudioState.route, mAudioState.supportedRouteMask);
     }
 
     @Override
-    public void onIncomingCallRejected(Call call) {
-        mIsRingingDisabled = true;
-        updateAudio();
+    public void onForegroundCallChanged(Call oldForegroundCall, Call newForegroundCall) {
+        updateAudioStreamAndMode();
+        // Ensure that the foreground call knows about the latest audio state.
+        updateAudioForForegroundCall();
     }
 
-    /**
-     * Reads the current state of all calls from CallsManager and sets the appropriate audio modes
-     * as well as triggers the start/stop of the ringer.
-     */
-    private void updateAudio() {
-        CallsManager callsManager = CallsManager.getInstance();
+    void mute(boolean shouldMute) {
+        Log.v(this, "mute, shouldMute: %b", shouldMute);
 
-        boolean hasRingingCall = !mIsRingingDisabled && !mUnansweredCallIds.isEmpty();
-        boolean hasLiveCall = callsManager.hasCallWithState(CallState.ACTIVE, CallState.DIALING);
-
-        int mode = hasRingingCall ? AudioManager.MODE_RINGTONE :
-               hasLiveCall ? AudioManager.MODE_IN_CALL :
-               AudioManager.MODE_NORMAL;
-
-        boolean needsFocus = (mode != AudioManager.MODE_NORMAL);
-
-        // Acquiring focus needs to be first, unlike releasing focus, which happens at the end.
-        if (needsFocus) {
-            acquireFocus(hasRingingCall);
-            setMode(mode);
+        // Don't mute if there are any emergency calls.
+        if (CallsManager.getInstance().hasEmergencyCall()) {
+            shouldMute = false;
+            Log.v(this, "ignoring mute for emergency call");
         }
 
-        if (hasRingingCall) {
-            mRinger.play();
-        } else {
-            mRinger.stop();
-        }
-
-        if (!needsFocus && mHasAudioFocus) {
-            setMode(AudioManager.MODE_NORMAL);
-            releaseFocus();
+        if (mAudioState.isMuted != shouldMute) {
+            setSystemAudioState(shouldMute, mAudioState.route, mAudioState.supportedRouteMask);
         }
     }
 
     /**
-     * Acquires audio focus.
+     * Changed the audio route, for example from earpiece to speaker phone.
      *
-     * @param isForRinging True if this focus is for playing the ringer.
+     * @param route The new audio route to use. See {@link CallAudioState}.
      */
-    private void acquireFocus(boolean isForRinging) {
-        if (!mHasAudioFocus) {
-            int stream = isForRinging ? AudioManager.STREAM_RING : AudioManager.STREAM_VOICE_CALL;
+    void setAudioRoute(int route) {
+        Log.v(this, "setAudioRoute, route: %s", CallAudioState.audioRouteToString(route));
 
-            AudioManager audioManager = getAudioManager();
-            audioManager.requestAudioFocusForCall(stream, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT);
-            audioManager.setMicrophoneMute(false);
-            audioManager.setSpeakerphoneOn(false);
-            mHasAudioFocus = true;
+        // Change ROUTE_WIRED_OR_EARPIECE to a single entry.
+        int newRoute = selectWiredOrEarpiece(route, mAudioState.supportedRouteMask);
+
+        // If route is unsupported, do nothing.
+        if ((mAudioState.supportedRouteMask | newRoute) == 0) {
+            Log.wtf(this, "Asking to set to a route that is unsupported: %d", newRoute);
+            return;
+        }
+
+        if (mAudioState.route != newRoute) {
+            // Remember the new speaker state so it can be restored when the user plugs and unplugs
+            // a headset.
+            mWasSpeakerOn = newRoute == CallAudioState.ROUTE_SPEAKER;
+            setSystemAudioState(mAudioState.isMuted, newRoute, mAudioState.supportedRouteMask);
+        }
+    }
+
+    void setIsRinging(boolean isRinging) {
+        if (mIsRinging != isRinging) {
+            Log.v(this, "setIsRinging %b -> %b", mIsRinging, isRinging);
+            mIsRinging = isRinging;
+            updateAudioStreamAndMode();
         }
     }
 
     /**
-     * Releases focus.
-     */
-    void releaseFocus() {
-        if (mHasAudioFocus) {
-            AudioManager audioManager = getAudioManager();
+      * Updates the audio route when the headset plugged in state changes. For example, if audio is
+      * being routed over speakerphone and a headset is plugged in then switch to wired headset.
+      */
+    void onHeadsetPluggedInChanged(boolean oldIsPluggedIn, boolean newIsPluggedIn) {
+        int newRoute = CallAudioState.ROUTE_EARPIECE;
+        if (newIsPluggedIn) {
+            newRoute = CallAudioState.ROUTE_WIRED_HEADSET;
+        } else if (mWasSpeakerOn) {
+            Call call = CallsManager.getInstance().getForegroundCall();
+            if (call != null && call.isAlive()) {
+                // Restore the speaker state.
+                newRoute = CallAudioState.ROUTE_SPEAKER;
+            }
+        }
+        setSystemAudioState(mAudioState.isMuted, newRoute, calculateSupportedRoutes());
+    }
 
-            // Reset speakerphone and mute in case they were changed by telecomm.
-            audioManager.setMicrophoneMute(false);
-            audioManager.setSpeakerphoneOn(false);
-            audioManager.abandonAudioFocusForCall();
+    private void setSystemAudioState(boolean isMuted, int route, int supportedRouteMask) {
+        CallAudioState oldAudioState = mAudioState;
+        mAudioState = new CallAudioState(isMuted, route, supportedRouteMask);
+        Log.i(this, "changing audio state from %s to %s", oldAudioState, mAudioState);
 
-            mHasAudioFocus = false;
-            Log.v(this, "Focus released");
+        // Mute.
+        if (mAudioState.isMuted != mAudioManager.isMicrophoneMute()) {
+            Log.i(this, "changing microphone mute state to: %b", mAudioState.isMuted);
+            mAudioManager.setMicrophoneMute(mAudioState.isMuted);
         }
 
+        // Audio route.
+        if (mAudioState.route == CallAudioState.ROUTE_SPEAKER) {
+            if (!mAudioManager.isSpeakerphoneOn()) {
+                Log.i(this, "turning speaker phone on");
+                mAudioManager.setSpeakerphoneOn(true);
+            }
+        } else if (mAudioState.route == CallAudioState.ROUTE_EARPIECE ||
+                mAudioState.route == CallAudioState.ROUTE_WIRED_HEADSET) {
+            // Wired headset and earpiece work the same way
+            if (mAudioManager.isSpeakerphoneOn()) {
+                Log.i(this, "turning speaker phone off");
+                mAudioManager.setSpeakerphoneOn(false);
+            }
+        }
+
+        if (!oldAudioState.equals(mAudioState)) {
+            CallsManager.getInstance().onAudioStateChanged(oldAudioState, mAudioState);
+            updateAudioForForegroundCall();
+        }
+    }
+
+    private void updateAudioStreamAndMode() {
+        Log.v(this, "updateAudioStreamAndMode, mIsRinging: %b", mIsRinging);
+        if (mIsRinging) {
+            requestAudioFocusAndSetMode(AudioManager.STREAM_RING, AudioManager.MODE_RINGTONE);
+        } else {
+            Call call = CallsManager.getInstance().getForegroundCall();
+            if (call != null) {
+                int mode = TelephonyUtil.isCurrentlyPSTNCall(call) ?
+                        AudioManager.MODE_IN_CALL : AudioManager.MODE_IN_COMMUNICATION;
+                requestAudioFocusAndSetMode(AudioManager.STREAM_VOICE_CALL, mode);
+            } else {
+                abandonAudioFocus();
+            }
+        }
+    }
+
+    private void requestAudioFocusAndSetMode(int stream, int mode) {
+        Log.v(this, "setSystemAudioStreamAndMode, stream: %d -> %d", mAudioFocusStreamType, stream);
+        Preconditions.checkState(stream != STREAM_NONE);
+
+        // Only request audio focus once. If the stream type changes there's no need to abandon
+        // and re-request audio focus.  The system doesn't really care about the stream we requested
+        // focus for so just silently switch.
+        if (mAudioFocusStreamType == STREAM_NONE) {
+            Log.v(this, "requesting audio focus for stream: %d", stream);
+            mAudioManager.requestAudioFocusForCall(stream,
+                    AudioManager.AUDIOFOCUS_GAIN_TRANSIENT);
+        }
+        mAudioFocusStreamType = stream;
+        setMode(mode);
+    }
+
+    private void abandonAudioFocus() {
+        if (mAudioFocusStreamType != STREAM_NONE) {
+            setMode(AudioManager.MODE_NORMAL);
+            Log.v(this, "abandoning audio focus");
+            mAudioManager.abandonAudioFocusForCall();
+            mAudioFocusStreamType = STREAM_NONE;
+        }
     }
 
     /**
      * Sets the audio mode.
      *
-     * @param mode Mode constant from AudioManager.MODE_*.
+     * @param newMode Mode constant from AudioManager.MODE_*.
      */
-    void setMode(int mode) {
-        if (mHasAudioFocus) {
-            AudioManager audioManager = getAudioManager();
-            if (mode != audioManager.getMode()) {
-                Log.v(this, "Audio mode set to %d.", mode);
-                audioManager.setMode(mode);
-                Log.v(this, "Audio mode actually set to %d.", audioManager.getMode());
+    private void setMode(int newMode) {
+        Preconditions.checkState(mAudioFocusStreamType != STREAM_NONE);
+        int oldMode = mAudioManager.getMode();
+        Log.v(this, "Request to change audio mode from %d to %d", oldMode, newMode);
+        if (oldMode != newMode) {
+            mAudioManager.setMode(newMode);
+        }
+    }
+
+    private int selectWiredOrEarpiece(int route, int supportedRouteMask) {
+        // Since they are mutually exclusive and one is ALWAYS valid, we allow a special input of
+        // ROUTE_WIRED_OR_EARPIECE so that callers dont have to make a call to check which is
+        // supported before calling setAudioRoute.
+        if (route == CallAudioState.ROUTE_WIRED_OR_EARPIECE) {
+            route = CallAudioState.ROUTE_WIRED_OR_EARPIECE & supportedRouteMask;
+            if (route == 0) {
+                Log.wtf(this, "One of wired headset or earpiece should always be valid.");
+                // assume earpiece in this case.
+                route = CallAudioState.ROUTE_EARPIECE;
             }
+        }
+        return route;
+    }
+
+    private int calculateSupportedRoutes() {
+        int routeMask = CallAudioState.ROUTE_SPEAKER;
+
+        if (mWiredHeadsetManager.isPluggedIn()) {
+            routeMask |= CallAudioState.ROUTE_WIRED_HEADSET;
         } else {
-            Log.wtf(this, "Trying to set audio mode to %d without focus.", mode);
+            routeMask |= CallAudioState.ROUTE_EARPIECE;
         }
+
+        return routeMask;
     }
 
-    /**
-     * Removes the specified call from the list of unanswered incoming calls.
-     *
-     * @param callId The ID of the call.
-     */
-    private void removeFromUnansweredCallIds(String callId) {
-        if (!mUnansweredCallIds.isEmpty()) {
-            // If the call is the top-most call, then no longer disable the ringer.
-            if (callId.equals(mUnansweredCallIds.get(0))) {
-                mIsRingingDisabled = false;
-            }
-
-            mUnansweredCallIds.remove(callId);
-        }
+    private CallAudioState getInitialAudioState() {
+        int supportedRouteMask = calculateSupportedRoutes();
+        return new CallAudioState(false,
+                selectWiredOrEarpiece(CallAudioState.ROUTE_WIRED_OR_EARPIECE, supportedRouteMask),
+                supportedRouteMask);
     }
 
-    /**
-     * Returns the system audio manager.
-     */
-    private AudioManager getAudioManager() {
-        return (AudioManager) TelecommApp.getInstance().getSystemService(Context.AUDIO_SERVICE);
+    private void setInitialAudioState() {
+        CallAudioState audioState = getInitialAudioState();
+        setSystemAudioState(audioState.isMuted, audioState.route, audioState.supportedRouteMask);
+    }
+
+    private void updateAudioForForegroundCall() {
+        Call call = CallsManager.getInstance().getForegroundCall();
+        if (call != null && call.getCallService() != null) {
+            call.getCallService().onAudioStateChanged(call.getId(), mAudioState);
+        }
     }
 }

@@ -20,6 +20,7 @@ import android.content.Intent;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
+import android.telecomm.CallAudioState;
 import android.telecomm.CallInfo;
 import android.telecomm.CallService;
 import android.telecomm.CallServiceAdapter;
@@ -161,6 +162,11 @@ public class TestCallService extends CallService {
     public void unhold(String callId) {
         Log.i(TAG, "unhold(" + callId + ")");
         mTelecommAdapter.setActive(callId);
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void onAudioStateChanged(String callId, CallAudioState audioState) {
     }
 
     /** {@inheritDoc} */

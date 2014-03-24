@@ -22,6 +22,7 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.IBinder;
 import android.os.RemoteException;
+import android.telecomm.CallAudioState;
 import android.telecomm.CallInfo;
 import android.telecomm.CallState;
 
@@ -138,6 +139,19 @@ public final class InCallController extends CallsManagerListenerBase {
         }
     }
 
+    @Override
+    public void onAudioStateChanged(CallAudioState oldAudioState, CallAudioState newAudioState) {
+        if (mInCallService != null) {
+            Log.i(this, "Calling onAudioStateChanged, audioState: %s -> %s", oldAudioState,
+                    newAudioState);
+            try {
+                mInCallService.onAudioStateChanged(newAudioState);
+            } catch (RemoteException e) {
+                Log.e(this, e, "Exception attempting to update audio state.");
+            }
+        }
+    }
+
     /**
      * Unbinds an existing bound connection to the in-call app.
      */
@@ -198,6 +212,7 @@ public final class InCallController extends CallsManagerListenerBase {
             for (Call call : calls) {
                 onCallAdded(call);
             }
+            onAudioStateChanged(null, CallsManager.getInstance().getAudioState());
         } else {
             unbind();
         }

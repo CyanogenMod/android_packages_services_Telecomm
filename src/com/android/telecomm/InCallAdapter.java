@@ -88,4 +88,24 @@ class InCallAdapter extends IInCallAdapter.Stub {
             }
         });
     }
+
+    /** {@inheritDoc} */
+    @Override
+    public void mute(final boolean shouldMute) {
+        mHandler.post(new Runnable() {
+            @Override public void run() {
+                mCallsManager.mute(shouldMute);
+            }
+        });
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void setAudioRoute(final int route) {
+        mHandler.post(new Runnable() {
+            @Override public void run() {
+                mCallsManager.setAudioRoute(route);
+            }
+        });
+    }
 }

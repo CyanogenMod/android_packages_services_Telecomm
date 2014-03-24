@@ -16,10 +16,11 @@
 
 package com.android.telecomm;
 
+import android.telecomm.CallAudioState;
 import android.telecomm.CallState;
 
 /**
- * Provides a default implementation for listeners for CallsManager.
+ * Provides a default implementation for listeners of CallsManager.
  */
 class CallsManagerListenerBase implements CallsManager.CallsManagerListener {
     @Override
@@ -44,5 +45,9 @@ class CallsManagerListenerBase implements CallsManager.CallsManagerListener {
 
     @Override
     public void onForegroundCallChanged(Call oldForegroundCall, Call newForegroundCall) {
+    }
+
+    @Override
+    public void onAudioStateChanged(CallAudioState oldAudioState, CallAudioState newAudioState) {
     }
 }

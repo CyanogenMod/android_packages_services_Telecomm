@@ -18,6 +18,7 @@ package com.android.telecomm;
 
 import android.net.Uri;
 import android.os.Bundle;
+import android.telecomm.CallAudioState;
 import android.telecomm.CallInfo;
 import android.telecomm.CallServiceDescriptor;
 import android.telecomm.CallState;
@@ -49,6 +50,7 @@ public final class CallsManager {
         void onIncomingCallAnswered(Call call);
         void onIncomingCallRejected(Call call);
         void onForegroundCallChanged(Call oldForegroundCall, Call newForegroundCall);
+        void onAudioStateChanged(CallAudioState oldAudioState, CallAudioState newAudioState);
     }
 
     private static final CallsManager INSTANCE = new CallsManager();
@@ -73,9 +75,11 @@ public final class CallsManager {
 
     private final CallsManagerListener mPhoneStateBroadcaster;
 
-    private final CallsManagerListener mCallAudioManager;
+    private final CallAudioManager mCallAudioManager;
 
     private final CallsManagerListener mInCallController;
+
+    private final Ringer mRinger;
 
     private final List<OutgoingCallValidator> mOutgoingCallValidators = Lists.newArrayList();
 
@@ -90,6 +94,7 @@ public final class CallsManager {
         mPhoneStateBroadcaster = new PhoneStateBroadcaster();
         mCallAudioManager = new CallAudioManager();
         mInCallController = new InCallController();
+        mRinger = new Ringer(mCallAudioManager);
     }
 
     static CallsManager getInstance() {
@@ -102,6 +107,19 @@ public final class CallsManager {
 
     Call getForegroundCall() {
         return mForegroundCall;
+    }
+
+    boolean hasEmergencyCall() {
+        for (Call call : mCalls.values()) {
+            if (call.isEmergencyCall()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    CallAudioState getAudioState() {
+        return mCallAudioManager.getAudioState();
     }
 
     /**
@@ -232,6 +250,7 @@ public final class CallsManager {
             mPhoneStateBroadcaster.onIncomingCallAnswered(call);
             mCallAudioManager.onIncomingCallAnswered(call);
             mInCallController.onIncomingCallAnswered(call);
+            mRinger.onIncomingCallAnswered(call);
 
             // We do not update the UI until we get confirmation of the answer() through
             // {@link #markCallAsActive}. However, if we ever change that to look more responsive,
@@ -257,6 +276,7 @@ public final class CallsManager {
             mPhoneStateBroadcaster.onIncomingCallRejected(call);
             mCallAudioManager.onIncomingCallRejected(call);
             mInCallController.onIncomingCallRejected(call);
+            mRinger.onIncomingCallRejected(call);
 
             call.reject();
         }
@@ -312,6 +332,29 @@ public final class CallsManager {
         }
     }
 
+    /** Called by the in-call UI to change the mute state. */
+    void mute(boolean shouldMute) {
+        mCallAudioManager.mute(shouldMute);
+    }
+
+    /**
+      * Called by the in-call UI to change the audio route, for example to change from earpiece to
+      * speaker phone.
+      */
+    void setAudioRoute(int route) {
+        mCallAudioManager.setAudioRoute(route);
+    }
+
+    /** Called when the audio state changes. */
+    void onAudioStateChanged(CallAudioState oldAudioState, CallAudioState newAudioState) {
+        Log.v(this, "onAudioStateChanged, audioState: %s -> %s", oldAudioState, newAudioState);
+        mCallLogManager.onAudioStateChanged(oldAudioState, newAudioState);
+        mPhoneStateBroadcaster.onAudioStateChanged(oldAudioState, newAudioState);
+        mCallAudioManager.onAudioStateChanged(oldAudioState, newAudioState);
+        mInCallController.onAudioStateChanged(oldAudioState, newAudioState);
+        mRinger.onAudioStateChanged(oldAudioState, newAudioState);
+    }
+
     void markCallAsRinging(String callId) {
         setCallState(callId, CallState.RINGING);
     }
@@ -337,21 +380,6 @@ public final class CallsManager {
     void markCallAsDisconnected(String callId) {
         setCallState(callId, CallState.DISCONNECTED);
         removeCall(mCalls.remove(callId));
-    }
-
-    /**
-     * @return True if there exists a call with the specific state.
-     */
-    boolean hasCallWithState(CallState... states) {
-        for (Call call : mCalls.values()) {
-            for (CallState state : states) {
-                if (call.getState() == state) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
     }
 
     /**
@@ -381,6 +409,7 @@ public final class CallsManager {
         mPhoneStateBroadcaster.onCallAdded(call);
         mCallAudioManager.onCallAdded(call);
         mInCallController.onCallAdded(call);
+        mRinger.onCallAdded(call);
         updateForegroundCall();
     }
 
@@ -391,6 +420,7 @@ public final class CallsManager {
         mPhoneStateBroadcaster.onCallRemoved(call);
         mCallAudioManager.onCallRemoved(call);
         mInCallController.onCallRemoved(call);
+        mRinger.onCallRemoved(call);
         updateForegroundCall();
     }
 
@@ -437,6 +467,7 @@ public final class CallsManager {
                 mPhoneStateBroadcaster.onCallStateChanged(call, oldState, newState);
                 mCallAudioManager.onCallStateChanged(call, oldState, newState);
                 mInCallController.onCallStateChanged(call, oldState, newState);
+                mRinger.onCallStateChanged(call, oldState, newState);
                 updateForegroundCall();
             }
         }
@@ -453,7 +484,7 @@ public final class CallsManager {
                 newForegroundCall = call;
                 break;
             }
-            if (call.getState() == CallState.ACTIVE) {
+            if (call.isAlive()) {
                 newForegroundCall = call;
                 // Don't break in case there's a ringing call that has priority.
             }
@@ -467,6 +498,7 @@ public final class CallsManager {
             mPhoneStateBroadcaster.onForegroundCallChanged(oldForegroundCall, mForegroundCall);
             mCallAudioManager.onForegroundCallChanged(oldForegroundCall, mForegroundCall);
             mInCallController.onForegroundCallChanged(oldForegroundCall, mForegroundCall);
+            mRinger.onForegroundCallChanged(oldForegroundCall, mForegroundCall);
         }
     }
 }

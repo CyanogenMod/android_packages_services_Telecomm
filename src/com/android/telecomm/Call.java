@@ -20,6 +20,7 @@ import android.net.Uri;
 import android.telecomm.CallInfo;
 import android.telecomm.CallState;
 import android.telecomm.GatewayInfo;
+import android.telephony.PhoneNumberUtils;
 
 import com.google.android.collect.Sets;
 import com.google.common.base.Preconditions;
@@ -80,6 +81,8 @@ final class Call {
      */
     private Set<CallServiceWrapper> mIncompatibleCallServices;
 
+    private boolean mIsEmergencyCall;
+
     /**
      * Creates an empty call object with a unique call ID.
      *
@@ -100,7 +103,7 @@ final class Call {
     Call(Uri handle, ContactInfo contactInfo, GatewayInfo gatewayInfo, boolean isIncoming) {
         mId = UUID.randomUUID().toString();  // UUIDs should provide sufficient uniqueness.
         mState = CallState.NEW;
-        mHandle = handle;
+        setHandle(handle);
         mContactInfo = contactInfo;
         mGatewayInfo = gatewayInfo;
         mIsIncoming = isIncoming;
@@ -141,6 +144,12 @@ final class Call {
 
     void setHandle(Uri handle) {
         mHandle = handle;
+        mIsEmergencyCall = mHandle != null && PhoneNumberUtils.isLocalEmergencyNumber(
+                mHandle.getSchemeSpecificPart(), TelecommApp.getInstance());
+    }
+
+    boolean isEmergencyCall() {
+        return mIsEmergencyCall;
     }
 
     /**
@@ -330,6 +339,19 @@ final class Call {
      */
     CallInfo toCallInfo() {
         return new CallInfo(mId, mState, mHandle, mGatewayInfo);
+    }
+
+    /** Checks if this is a live call or not. */
+    boolean isAlive() {
+        switch (mState) {
+            case NEW:
+            case RINGING:
+            case DISCONNECTED:
+            case ABORTED:
+                return false;
+            default:
+                return true;
+        }
     }
 
     /**
