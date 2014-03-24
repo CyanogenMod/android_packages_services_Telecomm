@@ -34,6 +34,7 @@ final class CallAudioManager extends CallsManagerListenerBase {
     private CallAudioState mAudioState;
     private int mAudioFocusStreamType;
     private boolean mIsRinging;
+    private boolean mIsTonePlaying;
     private boolean mWasSpeakerOn;
 
     CallAudioManager() {
@@ -135,6 +136,23 @@ final class CallAudioManager extends CallsManagerListenerBase {
     }
 
     /**
+     * Sets the tone playing status. Some tones can play even when there are no live calls and this
+     * status indicates that we should keep audio focus even for tones that play beyond the life of
+     * calls.
+     *
+     * @param isPlayingNew The status to set.
+     */
+    void setIsTonePlaying(boolean isPlayingNew) {
+        ThreadUtil.checkOnMainThread();
+
+        if (mIsTonePlaying != isPlayingNew) {
+            Log.v(this, "mIsTonePlaying %b -> %b.", mIsTonePlaying, isPlayingNew);
+            mIsTonePlaying = isPlayingNew;
+            updateAudioStreamAndMode();
+        }
+    }
+
+    /**
       * Updates the audio route when the headset plugged in state changes. For example, if audio is
       * being routed over speakerphone and a headset is plugged in then switch to wired headset.
       */
@@ -185,7 +203,8 @@ final class CallAudioManager extends CallsManagerListenerBase {
     }
 
     private void updateAudioStreamAndMode() {
-        Log.v(this, "updateAudioStreamAndMode, mIsRinging: %b", mIsRinging);
+        Log.v(this, "updateAudioStreamAndMode, mIsRinging: %b, mIsTonePlaying: %b", mIsRinging,
+                mIsTonePlaying);
         if (mIsRinging) {
             requestAudioFocusAndSetMode(AudioManager.STREAM_RING, AudioManager.MODE_RINGTONE);
         } else {
@@ -194,6 +213,10 @@ final class CallAudioManager extends CallsManagerListenerBase {
                 int mode = TelephonyUtil.isCurrentlyPSTNCall(call) ?
                         AudioManager.MODE_IN_CALL : AudioManager.MODE_IN_COMMUNICATION;
                 requestAudioFocusAndSetMode(AudioManager.STREAM_VOICE_CALL, mode);
+            } else if (mIsTonePlaying) {
+                // There is no call, however, we are still playing a tone, so keep focus.
+                requestAudioFocusAndSetMode(
+                        AudioManager.STREAM_VOICE_CALL, AudioManager.MODE_IN_COMMUNICATION);
             } else {
                 abandonAudioFocus();
             }
