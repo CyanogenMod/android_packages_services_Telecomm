@@ -78,6 +78,9 @@ class NewOutgoingCallIntentBroadcaster {
             "com.android.phone.extra.GATEWAY_PROVIDER_PACKAGE";
     public static final String EXTRA_GATEWAY_URI = "com.android.phone.extra.GATEWAY_URI";
 
+    private static final String SCHEME_TEL = "tel";
+    private static final String SCHEME_SIP = "sip";
+
     private final CallsManager mCallsManager;
     private final ContactInfo mContactInfo;
     private final Intent mIntent;
@@ -112,7 +115,10 @@ class NewOutgoingCallIntentBroadcaster {
                 return;
             }
 
-            Uri resultHandleUri = Uri.parse(resultHandle);
+            Uri resultHandleUri = Uri.fromParts(
+                    PhoneNumberUtils.isUriNumber(resultHandle) ? SCHEME_SIP : SCHEME_TEL,
+                    resultHandle,
+                    null);
 
             Uri originalUri = mIntent.getData();
 
