@@ -93,8 +93,9 @@ final class CallServiceSelectorRepository {
             ServiceInfo serviceInfo = entry.serviceInfo;
             if (serviceInfo != null) {
                 // The entry resolves to a proper service, add it to the list of selector names.
-                selectorNames.add(
-                        new ComponentName(serviceInfo.packageName, serviceInfo.name));
+                ComponentName componentName =
+                        new ComponentName(serviceInfo.packageName, serviceInfo.name);
+                selectorNames.add(componentName);
             }
         }
 

@@ -161,5 +161,8 @@
             </intent-filter>
         </activity-alias>
 
+        <!-- Selects call services to place emergency calls. -->
+        <service android:name="EmergencyCallServiceSelector" android:exported="false" />
+
     </application>
 </manifest>
