@@ -25,6 +25,7 @@ import android.telecomm.CallInfo;
 import android.telecomm.CallService;
 import android.telecomm.CallServiceAdapter;
 import android.telecomm.CallState;
+import android.telephony.DisconnectCause;
 import android.util.Log;
 
 import com.android.telecomm.tests.R;
@@ -138,7 +139,7 @@ public class TestCallService extends CallService {
     /** {@inheritDoc} */
     @Override
     public void reject(String callId) {
-        mTelecommAdapter.setDisconnected(callId);
+        mTelecommAdapter.setDisconnected(callId, DisconnectCause.INCOMING_REJECTED, null);
     }
 
     /** {@inheritDoc} */
@@ -147,7 +148,7 @@ public class TestCallService extends CallService {
         Log.i(TAG, "disconnect(" + callId + ")");
 
         destroyCall(callId);
-        mTelecommAdapter.setDisconnected(callId);
+        mTelecommAdapter.setDisconnected(callId, DisconnectCause.LOCAL, null);
     }
 
     /** {@inheritDoc} */

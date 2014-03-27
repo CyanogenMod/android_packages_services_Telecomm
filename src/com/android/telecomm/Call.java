@@ -20,6 +20,7 @@ import android.net.Uri;
 import android.telecomm.CallInfo;
 import android.telecomm.CallState;
 import android.telecomm.GatewayInfo;
+import android.telephony.DisconnectCause;
 import android.telephony.PhoneNumberUtils;
 
 import com.google.android.collect.Sets;
@@ -84,6 +85,17 @@ final class Call {
     private boolean mIsEmergencyCall;
 
     /**
+     * Disconnect cause for the call. Only valid if the state of the call is DISCONNECTED.
+     * See {@link android.telephony.DisconnectCause}.
+     */
+    private int mDisconnectCause;
+
+    /**
+     * Additional disconnect information provided by the call service.
+     */
+    private String mDisconnectMessage;
+
+    /**
      * Creates an empty call object with a unique call ID.
      *
      * @param isIncoming True if this is an incoming call.
@@ -108,6 +120,7 @@ final class Call {
         mGatewayInfo = gatewayInfo;
         mIsIncoming = isIncoming;
         mCreationTime = new Date();
+        mDisconnectCause = DisconnectCause.NOT_VALID;
     }
 
     /** {@inheritDoc} */
@@ -132,6 +145,8 @@ final class Call {
      * and instead keep the code resilient to unexpected state changes.
      */
     void setState(CallState newState) {
+        Preconditions.checkState(newState != CallState.DISCONNECTED ||
+                mDisconnectCause != DisconnectCause.NOT_VALID);
         if (mState != newState) {
             Log.v(this, "setState %s -> %s", mState, newState);
             mState = newState;
@@ -146,6 +161,26 @@ final class Call {
         mHandle = handle;
         mIsEmergencyCall = mHandle != null && PhoneNumberUtils.isLocalEmergencyNumber(
                 mHandle.getSchemeSpecificPart(), TelecommApp.getInstance());
+    }
+
+    /**
+     * @param disconnectCause The reason for the disconnection, any of
+     *         {@link android.telephony.DisconnectCause}.
+     * @param disconnectMessage Optional call-service-provided message about the disconnect.
+     */
+    void setDisconnectCause(int disconnectCause, String disconnectMessage) {
+        // TODO: Consider combining this method with a setDisconnected() method that is totally
+        // separate from setState.
+        mDisconnectCause = disconnectCause;
+        mDisconnectMessage = disconnectMessage;
+    }
+
+    int getDisconnectCause() {
+        return mDisconnectCause;
+    }
+
+    String getDisconnectMessage() {
+        return mDisconnectMessage;
     }
 
     boolean isEmergencyCall() {

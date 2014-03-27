@@ -165,11 +165,12 @@ public final class CallServiceAdapter extends ICallServiceAdapter.Stub {
     /** {@inheritDoc} */
     // TODO(gilad): Ensure that any communication from the underlying ICallService
     // implementation is expected (or otherwise suppressed at the adapter level).
-    @Override public void setDisconnected(final String callId) {
+    @Override public void setDisconnected(
+            final String callId, final int disconnectCause, final String disconnectMessage) {
         checkValidCallId(callId);
         mHandler.post(new Runnable() {
             @Override public void run() {
-                mCallsManager.markCallAsDisconnected(callId);
+                mCallsManager.markCallAsDisconnected(callId, disconnectCause, disconnectMessage);
             }
         });
     }

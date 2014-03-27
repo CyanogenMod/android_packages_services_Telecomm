@@ -23,6 +23,7 @@ import android.telecomm.CallInfo;
 import android.telecomm.CallServiceDescriptor;
 import android.telecomm.CallState;
 import android.telecomm.GatewayInfo;
+import android.telephony.DisconnectCause;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
@@ -175,7 +176,12 @@ public final class CallsManager {
      * @param call The incoming call.
      */
     void handleUnsuccessfulIncomingCall(Call call) {
-        setCallState(call, CallState.DISCONNECTED);
+        // Incoming calls are not added unless they are successful. We set the state and disconnect
+        // cause just as a matter of good bookkeeping. We do not use the specific methods for
+        // setting those values so that we do not trigger CallsManagerListener events.
+        // TODO: Needs more specific disconnect error for this case.
+        call.setDisconnectCause(DisconnectCause.ERROR_UNSPECIFIED, null);
+        call.setState(CallState.DISCONNECTED);
     }
 
     /**
@@ -229,10 +235,11 @@ public final class CallsManager {
         if (isAborted) {
             call.abort();
             setCallState(call, CallState.ABORTED);
+            removeCall(call);
         } else {
-            setCallState(call, CallState.DISCONNECTED);
+            // TODO: Replace disconnect cause with more specific disconnect causes.
+            markCallAsDisconnected(call.getId(), DisconnectCause.ERROR_UNSPECIFIED, null);
         }
-        removeCall(call);
     }
 
     /**
@@ -371,10 +378,16 @@ public final class CallsManager {
      * live call, then also disconnect from the in-call controller.
      *
      * @param callId The ID of the call.
+     * @param disconnectCause The disconnect reason, see {@link android.telephony.DisconnectCause}.
+     * @param disconnectMessage Optional call-service-provided message about the disconnect.
      */
-    void markCallAsDisconnected(String callId) {
-        setCallState(callId, CallState.DISCONNECTED);
-        removeCall(mCalls.remove(callId));
+    void markCallAsDisconnected(String callId, int disconnectCause, String disconnectMessage) {
+        Call call = mCalls.get(callId);
+        if (call != null) {
+            call.setDisconnectCause(disconnectCause, disconnectMessage);
+            setCallState(callId, CallState.DISCONNECTED);
+            removeCall(call);
+        }
     }
 
     /**
@@ -387,7 +400,7 @@ public final class CallsManager {
         Preconditions.checkNotNull(callService);
         for (Call call : ImmutableList.copyOf(mCalls.values())) {
             if (call.getCallService() == callService) {
-                markCallAsDisconnected(call.getId());
+                markCallAsDisconnected(call.getId(), DisconnectCause.ERROR_UNSPECIFIED, null);
             }
         }
     }
@@ -406,6 +419,7 @@ public final class CallsManager {
     }
 
     private void removeCall(Call call) {
+        mCalls.remove(call.getId());
         call.clearCallService();
         for (CallsManagerListener listener : mListeners) {
             listener.onCallRemoved(call);
