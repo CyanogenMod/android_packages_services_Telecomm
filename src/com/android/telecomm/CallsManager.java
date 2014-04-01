@@ -92,19 +92,20 @@ public final class CallsManager {
      * Initializes the required Telecomm components.
      */
     private CallsManager() {
-        mSwitchboard = new Switchboard(this);
+        TelecommApp app = TelecommApp.getInstance();
 
+        mSwitchboard = new Switchboard(this);
         mCallAudioManager = new CallAudioManager();
 
         InCallTonePlayer.Factory playerFactory = new InCallTonePlayer.Factory(mCallAudioManager);
-
-        mListeners.add(new CallLogManager(TelecommApp.getInstance()));
+        mListeners.add(new CallLogManager(app));
         mListeners.add(new PhoneStateBroadcaster());
         mListeners.add(new InCallController());
         mListeners.add(new Ringer(mCallAudioManager));
         mListeners.add(new RingbackPlayer(this, playerFactory));
         mListeners.add(new InCallToneMonitor(playerFactory, this));
         mListeners.add(mCallAudioManager);
+        mListeners.add(app.getMissedCallNotifier());
     }
 
     static CallsManager getInstance() {

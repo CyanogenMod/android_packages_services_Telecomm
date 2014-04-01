@@ -73,6 +73,8 @@ public class CallActivity extends Activity {
     private void processIntent(Intent intent) {
         String action = intent.getAction();
 
+        // TODO: Check for non-voice capable devices before reading any intents.
+
         if (Intent.ACTION_CALL.equals(action) ||
                 Intent.ACTION_CALL_PRIVILEGED.equals(action) ||
                 Intent.ACTION_CALL_EMERGENCY.equals(action)) {

@@ -25,6 +25,7 @@
     <uses-permission android:name="android.permission.STOP_APP_SWITCHES" />
     <uses-permission android:name="android.permission.READ_CALL_LOG" />
     <uses-permission android:name="android.permission.WRITE_CALL_LOG" />
+    <uses-permission android:name="android.permission.INTERACT_ACROSS_USERS_FULL" />
 
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"></uses-permission>
 
@@ -163,6 +164,14 @@
 
         <!-- Selects call services to place emergency calls. -->
         <service android:name="EmergencyCallServiceSelector" android:exported="false" />
+
+        <receiver android:name="TelecommBroadcastReceiver" android:exported="false">
+            <intent-filter>
+                <action android:name="com.android.telecomm.ACTION_CALL_BACK_FROM_NOTIFICATION" />
+                <action android:name="com.android.telecomm.ACTION_CALL_BACK_FROM_NOTIFICATION" />
+                <action android:name="com.android.telecomm.ACTION_SEND_SMS_FROM_NOTIFICATION" />
+            </intent-filter>
+        </receiver>
 
     </application>
 </manifest>

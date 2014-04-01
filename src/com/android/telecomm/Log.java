@@ -16,6 +16,9 @@
 
 package com.android.telecomm;
 
+import android.net.Uri;
+import android.telephony.PhoneNumberUtils;
+
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.IllegalFormatException;
@@ -120,6 +123,34 @@ public class Log {
     public static void wtf(Object objectPrefix, String format, Object... args) {
         String msg = buildMessage(getPrefixFromObject(objectPrefix), format, args);
         android.util.Log.wtf(TAG, msg, new IllegalStateException(msg));
+    }
+
+    public static String piiHandle(Object pii) {
+        if (pii == null || VERBOSE) {
+            return String.valueOf(pii);
+        }
+
+        if (pii instanceof Uri) {
+            Uri uri = (Uri) pii;
+
+            // All Uri's which are not "tel" go through normal pii() method.
+            if (!"tel".equals(uri.getScheme())) {
+                return pii(pii);
+            } else {
+                pii = uri.getSchemeSpecificPart();
+            }
+        }
+
+        String originalString = String.valueOf(pii);
+        StringBuilder stringBuilder = new StringBuilder(originalString.length());
+        for (char c : originalString.toCharArray()) {
+            if (PhoneNumberUtils.isDialable(c)) {
+                stringBuilder.append('*');
+            } else {
+                stringBuilder.append(c);
+            }
+        }
+        return stringBuilder.toString();
     }
 
     /**

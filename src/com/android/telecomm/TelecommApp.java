@@ -23,13 +23,20 @@ import android.app.Application;
  */
 public final class TelecommApp extends Application {
 
-    // Singleton instance of TelecommApp.
+    /** Singleton instance of TelecommApp. */
     private static TelecommApp sInstance;
+
+    /**
+     * Missed call notifier. Exists here so that the instance can be shared with
+     * {@link TelecommBroadcastReceiver}.
+     */
+    private MissedCallNotifier mMissedCallNotifier;
 
     /** {@inheritDoc} */
     @Override public void onCreate() {
         super.onCreate();
         sInstance = this;
+        mMissedCallNotifier = new MissedCallNotifier(this);
     }
 
     public static TelecommApp getInstance() {
@@ -37,5 +44,9 @@ public final class TelecommApp extends Application {
             throw new IllegalStateException("No TelecommApp running.");
         }
         return sInstance;
+    }
+
+    MissedCallNotifier getMissedCallNotifier() {
+        return mMissedCallNotifier;
     }
 }

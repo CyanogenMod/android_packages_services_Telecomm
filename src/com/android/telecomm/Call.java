@@ -137,7 +137,7 @@ final class Call {
     @Override public String toString() {
         return String.format(Locale.US, "[%s, %s, %s]", mState,
                 mCallService == null ? "<null>" : mCallService.getComponentName(),
-                Log.pii(mHandle));
+                Log.piiHandle(mHandle));
     }
 
     CallState getState() {
@@ -220,7 +220,7 @@ final class Call {
      * @return The "age" of this call object in milliseconds, which typically also represents the
      *     period since this call was added to the set pending outgoing calls, see mCreationTime.
      */
-    long getAgeInMilliseconds() {
+    long getAgeMs() {
         return new Date().getTime() - mCreationTime.getTime();
     }
 
@@ -228,7 +228,7 @@ final class Call {
      * @return The time when this call object was created and added to the set of pending outgoing
      *     calls.
      */
-    long getCreationTimeInMilliseconds() {
+    long getCreationTimeMs() {
         return mCreationTime.getTime();
     }
 
