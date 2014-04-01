@@ -89,11 +89,14 @@ public final class CallsManager {
 
         mCallAudioManager = new CallAudioManager();
 
+        InCallTonePlayer.Factory playerFactory = new InCallTonePlayer.Factory(mCallAudioManager);
+
         mListeners.add(new CallLogManager(TelecommApp.getInstance()));
         mListeners.add(new PhoneStateBroadcaster());
         mListeners.add(new InCallController());
         mListeners.add(new Ringer(mCallAudioManager));
-        mListeners.add(new RingbackPlayer(this, new InCallTonePlayer.Factory(mCallAudioManager)));
+        mListeners.add(new RingbackPlayer(this, playerFactory));
+        mListeners.add(new InCallToneMonitor(playerFactory, this));
         mListeners.add(mCallAudioManager);
     }
 

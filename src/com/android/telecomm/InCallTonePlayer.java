@@ -44,10 +44,21 @@ public final class InCallTonePlayer extends Thread {
     }
 
     // The possible tones that we can play.
-    public static final int TONE_NONE = 0;
-    public static final int TONE_RING_BACK = 1;
+    public static final int TONE_INVALID = 0;
+    public static final int TONE_BUSY = 1;
+    public static final int TONE_CALL_ENDED = 2;
+    public static final int TONE_OTA_CALL_ENDED = 3;
+    public static final int TONE_CALL_WAITING = 4;
+    public static final int TONE_CDMA_DROP = 5;
+    public static final int TONE_CONGESTION = 6;
+    public static final int TONE_INTERCEPT = 7;
+    public static final int TONE_OUT_OF_SERVICE = 8;
+    public static final int TONE_REDIAL = 9;
+    public static final int TONE_REORDER = 10;
+    public static final int TONE_RING_BACK = 11;
+    public static final int TONE_UNOBTAINABLE_NUMBER = 12;
+    public static final int TONE_VOICE_PRIVACY = 13;
 
-    // The tone volume relative to other sounds in the stream.
     private static final int RELATIVE_VOLUME_EMERGENCY = 100;
     private static final int RELATIVE_VOLUME_HIPRI = 80;
     private static final int RELATIVE_VOLUME_LOPRI = 50;
@@ -101,11 +112,66 @@ public final class InCallTonePlayer extends Thread {
             final int toneLengthMs;
 
             switch (mToneId) {
+                case TONE_BUSY:
+                    // TODO: CDMA-specific tones
+                    toneType = ToneGenerator.TONE_SUP_BUSY;
+                    toneVolume = RELATIVE_VOLUME_HIPRI;
+                    toneLengthMs = 4000;
+                    break;
+                case TONE_CALL_ENDED:
+                    toneType = ToneGenerator.TONE_PROP_PROMPT;
+                    toneVolume = RELATIVE_VOLUME_HIPRI;
+                    toneLengthMs = 4000;
+                    break;
+                case TONE_OTA_CALL_ENDED:
+                    // TODO: fill in
+                    throw new IllegalStateException("OTA Call ended NYI.");
+                case TONE_CALL_WAITING:
+                    // TODO: fill in.
+                    throw new IllegalStateException("Call waiting NYI.");
+                case TONE_CDMA_DROP:
+                    toneType = ToneGenerator.TONE_CDMA_CALLDROP_LITE;
+                    toneVolume = RELATIVE_VOLUME_LOPRI;
+                    toneLengthMs = 375;
+                    break;
+                case TONE_CONGESTION:
+                    toneType = ToneGenerator.TONE_SUP_CONGESTION;
+                    toneVolume = RELATIVE_VOLUME_HIPRI;
+                    toneLengthMs = 4000;
+                    break;
+                case TONE_INTERCEPT:
+                    toneType = ToneGenerator.TONE_CDMA_ABBR_INTERCEPT;
+                    toneVolume = RELATIVE_VOLUME_LOPRI;
+                    toneLengthMs = 500;
+                    break;
+                case TONE_OUT_OF_SERVICE:
+                    toneType = ToneGenerator.TONE_CDMA_CALLDROP_LITE;
+                    toneVolume = RELATIVE_VOLUME_LOPRI;
+                    toneLengthMs = 375;
+                    break;
+                case TONE_REDIAL:
+                    toneType = ToneGenerator.TONE_CDMA_ALERT_AUTOREDIAL_LITE;
+                    toneVolume = RELATIVE_VOLUME_LOPRI;
+                    toneLengthMs = 5000;
+                    break;
+                case TONE_REORDER:
+                    toneType = ToneGenerator.TONE_CDMA_REORDER;
+                    toneVolume = RELATIVE_VOLUME_HIPRI;
+                    toneLengthMs = 5000;
+                    break;
                 case TONE_RING_BACK:
                     toneType = ToneGenerator.TONE_SUP_RINGTONE;
                     toneVolume = RELATIVE_VOLUME_HIPRI;
                     toneLengthMs = Integer.MAX_VALUE - TIMEOUT_BUFFER_MS;
                     break;
+                case TONE_UNOBTAINABLE_NUMBER:
+                    toneType = ToneGenerator.TONE_SUP_ERROR;
+                    toneVolume = RELATIVE_VOLUME_HIPRI;
+                    toneLengthMs = 4000;
+                    break;
+                case TONE_VOICE_PRIVACY:
+                    // TODO: fill in.
+                    throw new IllegalStateException("Voice privacy tone NYI.");
                 default:
                     throw new IllegalStateException("Bad toneId: " + mToneId);
             }
