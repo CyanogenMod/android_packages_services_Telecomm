@@ -167,6 +167,20 @@ public class TestCallService extends CallService {
 
     /** {@inheritDoc} */
     @Override
+    public void playDtmfTone(String callId, char digit) {
+        Log.i(TAG, "playDtmfTone(" + callId + "," + digit + ")");
+        // TODO(ihab): Implement
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void stopDtmfTone(String callId) {
+        Log.i(TAG, "stopDtmfTone(" + callId + ")");
+        // TODO(ihab): Implement
+    }
+
+    /** {@inheritDoc} */
+    @Override
     public void onAudioStateChanged(String callId, CallAudioState audioState) {
     }
 
