@@ -129,7 +129,7 @@ public final class InCallController extends CallsManagerListenerBase {
             case DISCONNECTED:
                 Log.i(this, "Mark call as DISCONNECTED: %s", call.getId());
                 try {
-                    mInCallService.setDisconnected(call.getId());
+                    mInCallService.setDisconnected(call.getId(), call.getDisconnectCause());
                 } catch (RemoteException e) {
                     Log.e(this, e, "Exception attempting to call setDisconnected.");
                 }
