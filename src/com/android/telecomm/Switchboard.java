@@ -107,7 +107,7 @@ final class Switchboard {
         mCallsManager = callsManager;
         mOutgoingCallsManager = new OutgoingCallsManager(this);
         mIncomingCallsManager = new IncomingCallsManager(this);
-        mSelectorRepository = new CallServiceSelectorRepository(this);
+        mSelectorRepository = new CallServiceSelectorRepository(this, mOutgoingCallsManager);
         mCallServiceRepository =
                 new CallServiceRepository(this, mOutgoingCallsManager, mIncomingCallsManager);
 
@@ -258,8 +258,7 @@ final class Switchboard {
      */
     private boolean isTicking() {
         // TODO(gilad): return true every time at least one outgoing call is pending (i.e. waiting
-        // to be connected by a call service) and also when at least one active call is switch-able
-        // between call services, see {@link ICallServiceSelector#isSwitchable}.
+        // to be connected by a call service).
         return false;
     }
 

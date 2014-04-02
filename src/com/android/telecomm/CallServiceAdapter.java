@@ -66,7 +66,8 @@ public final class CallServiceAdapter extends ICallServiceAdapter.Stub {
                                 clientCallInfo.getHandle());
                         mIncomingCallsManager.handleSuccessfulIncomingCall(call, callInfo);
                     } else {
-                        Log.w(this, "Unknown incoming call: %s, id: %s", call, msg.obj);
+                        Log.w(this, "Unknown incoming call: %s, id: %s", call,
+                                clientCallInfo.getId());
                     }
                     break;
                 case MSG_HANDLE_SUCCESSFUL_OUTGOING_CALL:
@@ -86,7 +87,7 @@ public final class CallServiceAdapter extends ICallServiceAdapter.Stub {
                         if (call != null && mPendingCalls.remove(call) && !call.isIncoming()) {
                             mOutgoingCallsManager.handleFailedCallAttempt(call, reason);
                         } else {
-                            Log.w(this, "Unknown outgoing call: %s, id: %s", call, msg.obj);
+                            Log.w(this, "Unknown outgoing call: %s, id: %s", call, args.arg1);
                         }
                     } finally {
                         args.recycle();
@@ -127,7 +128,7 @@ public final class CallServiceAdapter extends ICallServiceAdapter.Stub {
                             mCallsManager.markCallAsDisconnected(call, disconnectCause,
                                     disconnectMessage);
                         } else {
-                            Log.w(this, "Unknown call id: %s", msg.obj);
+                            Log.w(this, "Unknown call id: %s", args.arg1);
                         }
                     } finally {
                         args.recycle();

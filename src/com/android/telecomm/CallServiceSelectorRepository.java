@@ -39,9 +39,7 @@ import java.util.Map;
 final class CallServiceSelectorRepository {
 
     private final Switchboard mSwitchboard;
-
-    /** The application context. */
-    private final Context mContext;
+    private final OutgoingCallsManager mOutgoingCallsManager;
 
     /**
      * The set of call-service selectors. Only populated via initiateLookup scenarios.
@@ -54,9 +52,11 @@ final class CallServiceSelectorRepository {
      *
      * @param switchboard The switchboard for this finer to work against.
      */
-    CallServiceSelectorRepository(Switchboard switchboard) {
+    CallServiceSelectorRepository(
+            Switchboard switchboard,
+            OutgoingCallsManager outgoingCallsManager) {
         mSwitchboard = switchboard;
-        mContext = TelecommApp.getInstance();
+        mOutgoingCallsManager = outgoingCallsManager;
     }
 
     /**
@@ -70,7 +70,8 @@ final class CallServiceSelectorRepository {
         List<ComponentName> selectorNames = getSelectorNames();
         for (ComponentName name : selectorNames) {
             if (!mCallServiceSelectors.containsKey(name)) {
-                mCallServiceSelectors.put(name, new CallServiceSelectorWrapper(name));
+                mCallServiceSelectors.put(name, new CallServiceSelectorWrapper(name,
+                        CallsManager.getInstance(), mOutgoingCallsManager));
             }
         }
 
@@ -86,7 +87,7 @@ final class CallServiceSelectorRepository {
         // The list of selector names to return to the caller, may be populated below.
         List<ComponentName> selectorNames = Lists.newArrayList();
 
-        PackageManager packageManager = mContext.getPackageManager();
+        PackageManager packageManager = TelecommApp.getInstance().getPackageManager();
         Intent intent = new Intent(TelecommConstants.ACTION_CALL_SERVICE_SELECTOR);
         for (ResolveInfo entry : packageManager.queryIntentServices(intent, 0)) {
             ServiceInfo serviceInfo = entry.serviceInfo;

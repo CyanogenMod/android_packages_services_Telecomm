@@ -16,10 +16,13 @@
 
 package com.android.telecomm;
 
+import android.telecomm.CallServiceDescriptor;
+
 import com.android.internal.telecomm.ICallServiceSelector;
 import com.google.common.collect.Maps;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -138,6 +141,21 @@ final class OutgoingCallsManager {
         Log.v(this, "handleFailedOutgoingCall, call: %s", call);
         mOutgoingCallProcessors.remove(call);
         mSwitchboard.handleFailedOutgoingCall(call, isAborted);
+    }
+
+    /**
+     * Forwards the selected call service from the selector to the corresponding outgoing-call
+     * processor.
+     */
+    void processSelectedCallServices(Call call, List<CallServiceDescriptor> descriptors) {
+        Log.v(this, "processSelectedCallServices, call %s,  descriptors: %s", call, descriptors);
+        OutgoingCallProcessor processor = mOutgoingCallProcessors.get(call);
+        if (processor == null) {
+            // Shouldn't happen, so log a wtf if it does.
+            Log.wtf(this, "Received unexpected setSelectedCallServices notification.");
+        } else {
+            processor.processSelectedCallServices(descriptors);
+        }
     }
 
     /**

@@ -19,6 +19,7 @@ package com.android.telecomm.testcallservice;
 import android.telecomm.CallInfo;
 import android.telecomm.CallServiceDescriptor;
 import android.telecomm.CallServiceSelector;
+import android.telecomm.CallServiceSelectorAdapter;
 
 import com.google.common.collect.Lists;
 
@@ -29,26 +30,25 @@ import java.util.List;
  * was given. Also returns false for every request on switchability.
  */
 public class DummyCallServiceSelector extends CallServiceSelector {
+    private CallServiceSelectorAdapter mAdapter;
+
     @Override
-    protected void isSwitchable(CallInfo callInfo, CallSwitchabilityResponse response) {
-        response.setSwitchable(false);
+    protected void setCallServiceSelectorAdapter(CallServiceSelectorAdapter adapter) {
+        mAdapter = adapter;
     }
 
     @Override
-    protected void select(
-            CallInfo callInfo, List<CallServiceDescriptor> callServiceDescriptors,
-            CallServiceSelectionResponse response) {
-
+    protected void select(CallInfo callInfo, List<CallServiceDescriptor> descriptors) {
         List<CallServiceDescriptor> orderedList = Lists.newLinkedList();
 
         // Make sure that the test call services are the only ones
-        for (CallServiceDescriptor descriptor : callServiceDescriptors) {
+        for (CallServiceDescriptor descriptor : descriptors) {
             String packageName = descriptor.getServiceComponent().getPackageName();
             if (getPackageName().equals(packageName)) {
                 orderedList.add(descriptor);
             }
         }
 
-        response.setSelectedCallServices(orderedList);
+        mAdapter.setSelectedCallServices(callInfo.getId(), orderedList);
     }
 }

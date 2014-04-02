@@ -21,7 +21,6 @@ import android.os.Looper;
 import android.os.RemoteException;
 import android.telecomm.CallState;
 import android.telecomm.CallServiceDescriptor;
-import android.telecomm.CallServiceSelector.CallServiceSelectionResponse;
 
 import com.google.android.collect.Sets;
 import com.google.common.collect.Maps;
@@ -237,6 +236,23 @@ final class OutgoingCallProcessor {
     }
 
     /**
+     * Persists the ordered-list of call-service descriptor as selected by the current selector and
+     * starts iterating through the corresponding call services continuing the attempt to place the
+     * call.
+     *
+     * @param descriptors The (ordered) list of call-service descriptor.
+     */
+    void processSelectedCallServices(List<CallServiceDescriptor> descriptors) {
+        Log.v(this, "processSelectedCallServices");
+        if (descriptors == null || descriptors.isEmpty()) {
+            attemptNextSelector();
+        } else if (mCallServiceDescriptorIterator == null) {
+            mCallServiceDescriptorIterator = descriptors.iterator();
+            attemptNextCallService();
+        }
+    }
+
+    /**
      * Attempts to place the call using the next selector, no-op if no other selectors
      * are available.
      */
@@ -249,38 +265,11 @@ final class OutgoingCallProcessor {
         if (mSelectorIterator.hasNext()) {
             CallServiceSelectorWrapper selector = mSelectorIterator.next();
             mCall.setCallServiceSelector(selector);
-
-            CallServiceSelectionResponse responseCallback = new CallServiceSelectionResponse() {
-                    @Override
-                    public void setSelectedCallServices(List<CallServiceDescriptor> callServices) {
-                        processSelectedCallServiceDescriptors(callServices);
-                    }
-                };
-            selector.select(mCall, mCallServiceDescriptors, responseCallback,
-                    mNextSelectorCallback);
+            selector.select(mCall, mCallServiceDescriptors, mNextSelectorCallback);
         } else {
             Log.v(this, "attemptNextSelector, no more selectors, failing");
             mCall.clearCallServiceSelector();
             mOutgoingCallsManager.handleFailedOutgoingCall(mCall, false /* isAborted */);
-        }
-    }
-
-    /**
-     * Persists the ordered-list of call-service descriptor as selected by the current selector and
-     * starts iterating through the corresponding call services continuing the attempt to place the
-     * call.
-     *
-     * @selectedCallServiceDescriptors The (ordered) list of call-service descriptor.
-     */
-    private void processSelectedCallServiceDescriptors(
-            List<CallServiceDescriptor> selectedCallServiceDescriptors) {
-
-        Log.v(this, "processSelectedCallServiceDescriptors");
-        if (selectedCallServiceDescriptors == null || selectedCallServiceDescriptors.isEmpty()) {
-            attemptNextSelector();
-        } else if (mCallServiceDescriptorIterator == null) {
-            mCallServiceDescriptorIterator = selectedCallServiceDescriptors.iterator();
-            attemptNextCallService();
         }
     }
 

@@ -403,6 +403,10 @@ public final class CallsManager {
         removeCall(call);
     }
 
+    void setHandoffInfo(Call call, Uri handle, Bundle extras) {
+        // TODO(sail): Implement this.
+    }
+
     /**
      * Cleans up any calls currently associated with the specified call service when the
      * call-service binder disconnects unexpectedly.

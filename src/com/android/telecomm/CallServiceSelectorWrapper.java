@@ -23,12 +23,11 @@ import android.os.RemoteException;
 import android.telecomm.CallInfo;
 import android.telecomm.CallServiceDescriptor;
 import android.telecomm.CallServiceSelector;
-import android.telecomm.CallServiceSelector.CallServiceSelectionResponse;
 import android.telecomm.TelecommConstants;
 
 import com.google.common.base.Preconditions;
-import com.android.internal.telecomm.ICallServiceSelectionResponse;
 import com.android.internal.telecomm.ICallServiceSelector;
+import com.android.internal.telecomm.ICallServiceSelectorAdapter;
 
 import java.util.List;
 
@@ -37,59 +36,53 @@ import java.util.List;
  * safely be unbound.
  */
 final class CallServiceSelectorWrapper extends ServiceBinder<ICallServiceSelector> {
-    class SelectionResponseImpl extends ICallServiceSelectionResponse.Stub {
-        private final CallServiceSelectionResponse mResponse;
-
-        SelectionResponseImpl(CallServiceSelectionResponse response) {
-            mResponse = response;
-        }
-
-        @Override
-        public void setSelectedCallServiceDescriptors(
-                final List<CallServiceDescriptor> descriptors) {
-            mHandler.post(new Runnable() {
-                @Override
-                public void run() {
-                    mResponse.setSelectedCallServices(descriptors);
-                }
-            });
-        }
-    }
-
     private ICallServiceSelector mSelectorInterface;
     private final Binder mBinder = new Binder();
     private final Handler mHandler = new Handler();
     private final CallIdMapper mCallIdMapper = new CallIdMapper("CallServiceSelector");
+    private final CallServiceSelectorAdapter mAdapter;
 
     /**
      * Creates a call-service selector for the specified component.
      *
      * @param componentName The component name of the service.
      */
-    CallServiceSelectorWrapper(ComponentName componentName) {
+    CallServiceSelectorWrapper(ComponentName componentName, CallsManager callsManager,
+            OutgoingCallsManager outgoingCallsManager) {
         super(TelecommConstants.ACTION_CALL_SERVICE_SELECTOR, componentName);
+        mAdapter = new CallServiceSelectorAdapter(callsManager, outgoingCallsManager,
+                mCallIdMapper);
+    }
+
+    /** See {@link CallServiceSelector#setCallServiceSelectorAdapter}. */
+    private void setCallServiceSelectorAdapter(ICallServiceSelectorAdapter adapter) {
+        if (isServiceValid("setCallServiceSelectorAdapter")) {
+            try {
+                mSelectorInterface.setCallServiceSelectorAdapter(adapter);
+            } catch (RemoteException e) {
+            }
+        }
     }
 
     /**
      * Retrieves the sorted set of call services that are preferred by this selector. Upon failure,
      * the error callback is invoked. Can be invoked even when the call service is unbound.
      *
-     * @param selectionResponse The selection response callback to invoke upon success.
+     * @param call The call being placed using the {@link CallService}s.
+     * @param descriptors The descriptors of the available {@link CallService}s with which to place
+     *            the call.
      * @param errorCallback The callback to invoke upon failure.
      */
-    void select(final Call call, final List<CallServiceDescriptor> callServiceDescriptors,
-            final CallServiceSelectionResponse selectionResponse, final Runnable errorCallback) {
+    void select(final Call call, final List<CallServiceDescriptor> descriptors,
+            final Runnable errorCallback) {
         BindCallback callback = new BindCallback() {
             @Override
             public void onSuccess() {
                 if (isServiceValid("select")) {
                     try {
                         CallInfo callInfo = call.toCallInfo(mCallIdMapper.getCallId(call));
-                        mSelectorInterface.select(callInfo, callServiceDescriptors,
-                                new SelectionResponseImpl(selectionResponse));
+                        mSelectorInterface.select(callInfo, descriptors);
                     } catch (RemoteException e) {
-                        Log.e(CallServiceSelectorWrapper.this, e,
-                                "Failed calling select for selector: %s.", getComponentName());
                     }
                 }
             }
@@ -114,6 +107,11 @@ final class CallServiceSelectorWrapper extends ServiceBinder<ICallServiceSelecto
     /** {@inheritDoc} */
     @Override
     protected void setServiceInterface(IBinder binder) {
-        mSelectorInterface = ICallServiceSelector.Stub.asInterface(binder);
+        if (binder == null) {
+            mSelectorInterface = null;
+        } else {
+            mSelectorInterface = ICallServiceSelector.Stub.asInterface(binder);
+            setCallServiceSelectorAdapter(mAdapter);
+        }
     }
 }
