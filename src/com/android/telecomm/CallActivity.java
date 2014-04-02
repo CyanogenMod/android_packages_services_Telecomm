@@ -22,7 +22,6 @@ import android.content.res.Configuration;
 import android.os.Bundle;
 import android.telecomm.CallServiceDescriptor;
 import android.telecomm.TelecommConstants;
-import android.widget.Toast;
 
 /**
  * Activity that handles system CALL actions and forwards them to {@link CallsManager}.

@@ -293,7 +293,14 @@ final class Switchboard {
      * @param call The call to place.
      */
     private void processNewOutgoingCall(Call call) {
-        Collection<CallServiceSelectorWrapper> selectors = mSelectors;
+        Collection<CallServiceSelectorWrapper> selectors;
+
+        // Use the call's selector if it's already tied to one. This is the case for handoff calls.
+        if (call.getCallServiceSelector() != null) {
+            selectors = ImmutableList.of(call.getCallServiceSelector());
+        } else {
+            selectors = mSelectors;
+        }
 
         boolean useEmergencySelector =
                 EmergencyCallServiceSelector.shouldUseSelector(call.getHandle());
@@ -315,7 +322,7 @@ final class Switchboard {
                             mOutgoingCallsManager);
 
             selectorsBuilder.add(emergencySelector);
-            selectorsBuilder.addAll(mSelectors);
+            selectorsBuilder.addAll(selectors);
             selectors = selectorsBuilder.build();
         }
 

@@ -120,12 +120,51 @@ final class CallServiceSelectorWrapper extends ServiceBinder<ICallServiceSelecto
         mBinder.bind(callback);
     }
 
+    private void onCallUpdated(final CallInfo callInfo) {
+        BindCallback callback = new BindCallback() {
+            @Override
+            public void onSuccess() {
+                if (isServiceValid("onCallUpdated")) {
+                    try {
+                        mSelectorInterface.onCallUpdated(callInfo);
+                    } catch (RemoteException e) {
+                    }
+                }
+            }
+            @Override
+            public void onFailure() {
+            }
+        };
+        mBinder.bind(callback);
+    }
+
+    private void onCallRemoved(final String callId) {
+        BindCallback callback = new BindCallback() {
+            @Override
+            public void onSuccess() {
+                if (isServiceValid("onCallRemoved")) {
+                    try {
+                        mSelectorInterface.onCallRemoved(callId);
+                    } catch (RemoteException e) {
+                    }
+                }
+            }
+            @Override
+            public void onFailure() {
+            }
+        };
+        mBinder.bind(callback);
+    }
+
     void addCall(Call call) {
         mCallIdMapper.addCall(call);
+        onCallUpdated(call.toCallInfo(mCallIdMapper.getCallId(call)));
     }
 
     void removeCall(Call call) {
+        String callId = mCallIdMapper.getCallId(call);
         mCallIdMapper.removeCall(call);
+        onCallRemoved(callId);
     }
 
     /** {@inheritDoc} */

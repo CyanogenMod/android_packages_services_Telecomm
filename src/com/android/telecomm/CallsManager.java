@@ -53,6 +53,7 @@ public final class CallsManager {
         void onCallStateChanged(Call call, CallState oldState, CallState newState);
         void onIncomingCallAnswered(Call call);
         void onIncomingCallRejected(Call call);
+        void onCallHandoffHandleChanged(Call call, Uri oldHandle, Uri newHandle);
         void onForegroundCallChanged(Call oldForegroundCall, Call newForegroundCall);
         void onAudioStateChanged(CallAudioState oldAudioState, CallAudioState newAudioState);
     }
@@ -66,6 +67,12 @@ public final class CallsManager {
      * calls are added to the map and removed when the calls move to the disconnected state.
      */
     private final Set<Call> mCalls = Sets.newLinkedHashSet();
+
+    /**
+     * Set of new calls created to perform a handoff. The calls are added when handoff is initiated
+     * and removed when hadnoff is complete.
+     */
+    private final Set<Call> mPendingHandoffCalls = Sets.newLinkedHashSet();
 
     /**
      * The call the user is currently interacting with. This is the call that should have audio
@@ -366,6 +373,33 @@ public final class CallsManager {
         mCallAudioManager.setAudioRoute(route);
     }
 
+    void startHandoffForCall(Call originalCall) {
+        if (!mCalls.contains(originalCall)) {
+            Log.w(this, "Unknown call %s asked to be handed off", originalCall);
+            return;
+        }
+
+        for (Call handoffCall : mPendingHandoffCalls) {
+            if (handoffCall.getOriginalCall() == originalCall) {
+                Log.w(this, "Call %s is already being handed off, skipping", originalCall);
+                return;
+            }
+        }
+
+        // Create a new call to be placed in the background. If handoff is successful then the
+        // original call will live on but its state will be updated to the new call's state. In
+        // particular the original call's call service will be updated to the new call's call
+        // service.
+        Call tempCall = new Call(originalCall.getHandoffHandle(), originalCall.getContactInfo(),
+                originalCall.getGatewayInfo(), false);
+        tempCall.setOriginalCall(originalCall);
+        tempCall.setExtras(originalCall.getExtras());
+        tempCall.setCallServiceSelector(originalCall.getCallServiceSelector());
+        mPendingHandoffCalls.add(tempCall);
+        Log.d(this, "Placing handoff call");
+        mSwitchboard.placeOutgoingCall(tempCall);
+    }
+
     /** Called when the audio state changes. */
     void onAudioStateChanged(CallAudioState oldAudioState, CallAudioState newAudioState) {
         Log.v(this, "onAudioStateChanged, audioState: %s -> %s", oldAudioState, newAudioState);
@@ -384,6 +418,10 @@ public final class CallsManager {
 
     void markCallAsActive(Call call) {
         setCallState(call, CallState.ACTIVE);
+
+        if (mPendingHandoffCalls.contains(call)) {
+            completeHandoff(call);
+        }
     }
 
     void markCallAsOnHold(Call call) {
@@ -404,7 +442,25 @@ public final class CallsManager {
     }
 
     void setHandoffInfo(Call call, Uri handle, Bundle extras) {
-        // TODO(sail): Implement this.
+        if (!mCalls.contains(call)) {
+            Log.w(this, "Unknown call (%s) asked to set handoff info", call);
+            return;
+        }
+
+        if (extras == null) {
+            call.setExtras(Bundle.EMPTY);
+        } else {
+            call.setExtras(extras);
+        }
+
+        Uri oldHandle = call.getHandoffHandle();
+        Log.v(this, "set handoff handle %s -> %s, for call: %s", oldHandle, handle, call);
+        if (!areUriEqual(oldHandle, handle)) {
+            call.setHandoffHandle(handle);
+            for (CallsManagerListener listener : mListeners) {
+                listener.onCallHandoffHandleChanged(call, oldHandle, handle);
+            }
+        }
     }
 
     /**
@@ -443,6 +499,10 @@ public final class CallsManager {
         if (mCalls.contains(call)) {
             mCalls.remove(call);
             shouldNotify = true;
+            cleanUpHandoffCallsForOriginalCall(call);
+        } else if (mPendingHandoffCalls.contains(call)) {
+            Log.v(this, "silently removing handoff call %s", call);
+            mPendingHandoffCalls.remove(call);
         }
 
         // Only broadcast changes for calls that are being tracked.
@@ -508,5 +568,51 @@ public final class CallsManager {
                 listener.onForegroundCallChanged(oldForegroundCall, mForegroundCall);
             }
         }
+    }
+
+    private void completeHandoff(Call handoffCall) {
+        Call originalCall = handoffCall.getOriginalCall();
+        Log.v(this, "complete handoff, %s -> %s", handoffCall, originalCall);
+
+        // Disconnect.
+        originalCall.disconnect();
+
+        // Synchronize.
+        originalCall.setCallService(handoffCall.getCallService());
+        setCallState(originalCall, handoffCall.getState());
+
+        // Remove the transient handoff call object (don't disconnect because the call is still
+        // live).
+        removeCall(handoffCall);
+
+        // Force the foreground call changed notification to be sent.
+        for (CallsManagerListener listener : mListeners) {
+            listener.onForegroundCallChanged(mForegroundCall, mForegroundCall);
+        }
+    }
+
+    /** Makes sure there are no dangling handoff calls. */
+    private void cleanUpHandoffCallsForOriginalCall(Call originalCall) {
+        for (Call handoffCall : ImmutableList.copyOf((mPendingHandoffCalls))) {
+            if (handoffCall.getOriginalCall() == originalCall) {
+                Log.d(this, "cancelling handoff call %s for originalCall: %s", handoffCall,
+                        originalCall);
+                if (handoffCall.getState() == CallState.NEW) {
+                    handoffCall.abort();
+                    handoffCall.setState(CallState.ABORTED);
+                } else {
+                    handoffCall.disconnect();
+                    handoffCall.setState(CallState.DISCONNECTED);
+                }
+                removeCall(handoffCall);
+            }
+        }
+    }
+
+    private static boolean areUriEqual(Uri handle1, Uri handle2) {
+        if (handle1 == null) {
+            return handle2 == null;
+        }
+        return handle1.equals(handle2);
     }
 }

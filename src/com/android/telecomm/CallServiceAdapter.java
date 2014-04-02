@@ -55,7 +55,7 @@ public final class CallServiceAdapter extends ICallServiceAdapter.Stub {
                         mOutgoingCallsManager.setIsCompatibleWith(call,
                                 msg.arg1 == 1 ? true : false);
                     } else {
-                        Log.w(this, "Unknown call: %s, id: %s", call, msg.obj);
+                        Log.w(this, "setIsCompatibleWith, unknown call: %s, id: %s", call, msg.obj);
                     }
                     break;
                 case MSG_NOTIFY_INCOMING_CALL:
@@ -66,7 +66,7 @@ public final class CallServiceAdapter extends ICallServiceAdapter.Stub {
                                 clientCallInfo.getHandle());
                         mIncomingCallsManager.handleSuccessfulIncomingCall(call, callInfo);
                     } else {
-                        Log.w(this, "Unknown incoming call: %s, id: %s", call,
+                        Log.w(this, "notifyIncomingCall, unknown incoming call: %s, id: %s", call,
                                 clientCallInfo.getId());
                     }
                     break;
@@ -76,7 +76,9 @@ public final class CallServiceAdapter extends ICallServiceAdapter.Stub {
                         mOutgoingCallsManager.handleSuccessfulCallAttempt(call);
                     } else {
                         // TODO(gilad): Figure out how to wire up the callService.abort() call.
-                        Log.w(this, "Unknown outgoing call: %s, id: %s", call, msg.obj);
+                        Log.w(this,
+                                "handleSuccessfulOutgoingCall, unknown outgoing call: %s, id: %s",
+                                call, msg.obj);
                     }
                     break;
                 case MSG_HANDLE_FAILED_OUTGOING_CALL: {
@@ -87,7 +89,9 @@ public final class CallServiceAdapter extends ICallServiceAdapter.Stub {
                         if (call != null && mPendingCalls.remove(call) && !call.isIncoming()) {
                             mOutgoingCallsManager.handleFailedCallAttempt(call, reason);
                         } else {
-                            Log.w(this, "Unknown outgoing call: %s, id: %s", call, args.arg1);
+                            Log.w(this,
+                                    "handleFailedOutgoingCall, unknown outgoing call: %s, id: %s",
+                                    call, args.arg1);
                         }
                     } finally {
                         args.recycle();
@@ -99,7 +103,7 @@ public final class CallServiceAdapter extends ICallServiceAdapter.Stub {
                     if (call != null) {
                         mCallsManager.markCallAsActive(call);
                     } else {
-                        Log.w(this, "Unknown call id: %s", msg.obj);
+                        Log.w(this, "setActive, unknown call id: %s", msg.obj);
                     }
                     break;
                 case MSG_SET_RINGING:
@@ -107,7 +111,7 @@ public final class CallServiceAdapter extends ICallServiceAdapter.Stub {
                     if (call != null) {
                         mCallsManager.markCallAsRinging(call);
                     } else {
-                        Log.w(this, "Unknown call id: %s", msg.obj);
+                        Log.w(this, "setRinging, unknown call id: %s", msg.obj);
                     }
                     break;
                 case MSG_SET_DIALING:
@@ -115,7 +119,7 @@ public final class CallServiceAdapter extends ICallServiceAdapter.Stub {
                     if (call != null) {
                         mCallsManager.markCallAsDialing(call);
                     } else {
-                        Log.w(this, "Unknown call id: %s", msg.obj);
+                        Log.w(this, "setDialing, unknown call id: %s", msg.obj);
                     }
                     break;
                 case MSG_SET_DISCONNECTED: {
@@ -128,7 +132,7 @@ public final class CallServiceAdapter extends ICallServiceAdapter.Stub {
                             mCallsManager.markCallAsDisconnected(call, disconnectCause,
                                     disconnectMessage);
                         } else {
-                            Log.w(this, "Unknown call id: %s", args.arg1);
+                            Log.w(this, "setDisconnected, unknown call id: %s", args.arg1);
                         }
                     } finally {
                         args.recycle();
@@ -140,7 +144,7 @@ public final class CallServiceAdapter extends ICallServiceAdapter.Stub {
                     if (call != null) {
                         mCallsManager.markCallAsOnHold(call);
                     } else {
-                        Log.w(this, "Unknown call id: %s", msg.obj);
+                        Log.w(this, "setOnHold, unknown call id: %s", msg.obj);
                     }
                     break;
             }

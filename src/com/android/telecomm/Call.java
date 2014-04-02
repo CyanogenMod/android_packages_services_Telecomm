@@ -17,7 +17,9 @@
 package com.android.telecomm;
 
 import android.net.Uri;
+import android.os.Bundle;
 import android.telecomm.CallInfo;
+import android.telecomm.CallServiceDescriptor;
 import android.telecomm.CallState;
 import android.telecomm.GatewayInfo;
 import android.telephony.DisconnectCause;
@@ -91,6 +93,18 @@ final class Call {
      */
     private String mDisconnectMessage;
 
+    /** Info used by the call services. */
+    private Bundle mExtras;
+
+    /** The Uri to dial to perform the handoff. If this is null then handoff is not supported. */
+    private Uri mHandoffHandle;
+
+    /**
+     * References the call that is being handed off. This value is non-null for untracked calls
+     * that are being used to perform a handoff.
+     */
+    private Call mOriginalCall;
+
     /**
      * Creates an empty call object.
      *
@@ -116,6 +130,7 @@ final class Call {
         mIsIncoming = isIncoming;
         mCreationTime = new Date();
         mDisconnectCause = DisconnectCause.NOT_VALID;
+        mExtras = Bundle.EMPTY;
     }
 
     /** {@inheritDoc} */
@@ -240,6 +255,10 @@ final class Call {
             mCallService.removeCall(this);
             mCallService = null;
         }
+    }
+
+    CallServiceSelectorWrapper getCallServiceSelector() {
+        return mCallServiceSelector;
     }
 
     void setCallServiceSelector(CallServiceSelectorWrapper selector) {
@@ -395,7 +414,13 @@ final class Call {
      * @return An object containing read-only information about this call.
      */
     CallInfo toCallInfo(String callId) {
-        return new CallInfo(callId, mState, mHandle, mGatewayInfo);
+        CallServiceDescriptor descriptor = null;
+        if (mCallService != null) {
+            descriptor = mCallService.getDescriptor();
+        } else if (mOriginalCall != null && mOriginalCall.mCallService != null) {
+            descriptor = mOriginalCall.mCallService.getDescriptor();
+        }
+        return new CallInfo(callId, mState, mHandle, mGatewayInfo, mExtras, descriptor);
     }
 
     /** Checks if this is a live call or not. */
@@ -409,6 +434,30 @@ final class Call {
             default:
                 return true;
         }
+    }
+
+    Bundle getExtras() {
+        return mExtras;
+    }
+
+    void setExtras(Bundle extras) {
+        mExtras = extras;
+    }
+
+    Uri getHandoffHandle() {
+        return mHandoffHandle;
+    }
+
+    void setHandoffHandle(Uri handoffHandle) {
+        mHandoffHandle = handoffHandle;
+    }
+
+    Call getOriginalCall() {
+        return mOriginalCall;
+    }
+
+    void setOriginalCall(Call originalCall) {
+        mOriginalCall = originalCall;
     }
 
     /**

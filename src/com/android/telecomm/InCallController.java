@@ -20,6 +20,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.net.Uri;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.telecomm.CallAudioState;
@@ -136,6 +137,17 @@ public final class InCallController extends CallsManagerListenerBase {
     }
 
     @Override
+    public void onCallHandoffHandleChanged(Call call, Uri oldHandle, Uri newHandle) {
+        if (mInCallService != null) {
+            try {
+                mInCallService.setHandoffEnabled(mCallIdMapper.getCallId(call), newHandle != null);
+            } catch (RemoteException e) {
+                Log.e(this, e, "Exception attempting to call setHandoffEnabled.");
+            }
+        }
+    }
+
+    @Override
     public void onAudioStateChanged(CallAudioState oldAudioState, CallAudioState newAudioState) {
         if (mInCallService != null) {
             Log.i(this, "Calling onAudioStateChanged, audioState: %s -> %s", oldAudioState,
@@ -207,6 +219,7 @@ public final class InCallController extends CallsManagerListenerBase {
         if (!calls.isEmpty()) {
             for (Call call : calls) {
                 onCallAdded(call);
+                onCallHandoffHandleChanged(call, null, call.getHandoffHandle());
             }
             onAudioStateChanged(null, CallsManager.getInstance().getAudioState());
         } else {

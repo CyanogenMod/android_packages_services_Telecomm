@@ -35,8 +35,9 @@ class InCallAdapter extends IInCallAdapter.Stub {
     private static final int MSG_DISCONNECT_CALL = 5;
     private static final int MSG_HOLD_CALL = 6;
     private static final int MSG_UNHOLD_CALL = 7;
-    private static final int MSG_MUTE = 8;
-    private static final int MSG_SET_AUDIO_ROUTE = 9;
+    private static final int MSG_HANDOFF_CALL = 8;
+    private static final int MSG_MUTE = 9;
+    private static final int MSG_SET_AUDIO_ROUTE = 10;
 
     private final class InCallAdapterHandler extends Handler {
         @Override
@@ -74,6 +75,9 @@ class InCallAdapter extends IInCallAdapter.Stub {
                     break;
                 case MSG_UNHOLD_CALL:
                     mCallsManager.unholdCall(call);
+                    break;
+                case MSG_HANDOFF_CALL:
+                    mCallsManager.startHandoffForCall(call);
                     break;
                 case MSG_MUTE:
                     mCallsManager.mute(msg.arg1 == 1 ? true : false);
@@ -156,6 +160,13 @@ class InCallAdapter extends IInCallAdapter.Stub {
     public void unholdCall(String callId) {
         mCallIdMapper.checkValidCallId(callId);
         mHandler.obtainMessage(MSG_UNHOLD_CALL, callId).sendToTarget();
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void handoffCall(String callId) {
+        mCallIdMapper.checkValidCallId(callId);
+        mHandler.obtainMessage(MSG_HANDOFF_CALL, callId).sendToTarget();
     }
 
     /** {@inheritDoc} */
