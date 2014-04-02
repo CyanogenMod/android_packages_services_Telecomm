@@ -21,6 +21,7 @@ import android.content.Intent;
 import android.telecomm.CallService;
 import android.telecomm.CallState;
 import android.telecomm.TelecommConstants;
+import android.telephony.DisconnectCause;
 import android.telephony.TelephonyManager;
 
 /**
@@ -69,6 +70,21 @@ final class PhoneStateBroadcaster extends CallsManagerListenerBase {
         if (callService != null) {
             intent.putExtra(CallService.class.getName(), callService.getComponentName());
         }
+
+        // TODO: Replace these with real constants once this API has been vetted.
+        int disconnectCause = call.getDisconnectCause();
+        String disconnectMessage = call.getDisconnectMessage();
+        if (disconnectCause != DisconnectCause.NOT_VALID) {
+            intent.putExtra(TelecommConstants.EXTRA_CALL_DISCONNECT_CAUSE, disconnectCause);
+            if (disconnectMessage == null) {
+                disconnectMessage = DisconnectCause.toString(disconnectCause);
+            }
+        }
+        if (disconnectMessage != null) {
+            intent.putExtra(TelecommConstants.EXTRA_CALL_DISCONNECT_MESSAGE,
+                    call.getDisconnectMessage());
+        }
+
         TelecommApp.getInstance().sendBroadcast(intent, Manifest.permission.READ_PHONE_STATE);
         Log.i(this, "Broadcasted state change: %s", phoneState);
     }
