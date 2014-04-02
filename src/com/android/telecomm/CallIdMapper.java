@@ -19,12 +19,11 @@ package com.android.telecomm;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.HashBiMap;
 
-import java.util.UUID;
-
 /** Utility to map {@link Call} objects to unique IDs. IDs are generated when a call is added. */
 class CallIdMapper {
     private final HashBiMap<String, Call> mCalls = HashBiMap.create();
     private final String mCallIdPrefix;
+    private static int sIdCount;
 
     CallIdMapper(String callIdPrefix) {
         ThreadUtil.checkOnMainThread();
@@ -34,7 +33,8 @@ class CallIdMapper {
     void addCall(Call call) {
         ThreadUtil.checkOnMainThread();
         Preconditions.checkNotNull(call);
-        String callId = mCallIdPrefix + UUID.randomUUID();
+        sIdCount++;
+        String callId = mCallIdPrefix + sIdCount;
         mCalls.put(callId, call);
     }
 
