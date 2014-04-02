@@ -17,7 +17,7 @@
 package com.android.telecomm;
 
 import android.os.Handler;
-import android.os.Looper;
+import android.os.Message;
 
 import com.android.internal.telecomm.IInCallAdapter;
 
@@ -27,115 +27,126 @@ import com.android.internal.telecomm.IInCallAdapter;
  * binding to it. This adapter can receive commands and updates until the in-call app is unbound.
  */
 class InCallAdapter extends IInCallAdapter.Stub {
+    private static final int MSG_ANSWER_CALL = 0;
+    private static final int MSG_REJECT_CALL = 1;
+    private static final int MSG_PLAY_DTMF_TONE = 2;
+    private static final int MSG_STOP_DTMF_TONE = 3;
+    private static final int MSG_POST_DIAL_CONTINUE = 4;
+    private static final int MSG_DISCONNECT_CALL = 5;
+    private static final int MSG_HOLD_CALL = 6;
+    private static final int MSG_UNHOLD_CALL = 7;
+    private static final int MSG_MUTE = 8;
+    private static final int MSG_SET_AUDIO_ROUTE = 9;
+
+    private final class InCallAdapterHandler extends Handler {
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what) {
+                case MSG_ANSWER_CALL:
+                    mCallsManager.answerCall((String) msg.obj);
+                    break;
+                case MSG_REJECT_CALL:
+                    mCallsManager.rejectCall((String) msg.obj);
+                    break;
+                case MSG_PLAY_DTMF_TONE:
+                    mCallsManager.playDtmfTone((String) msg.obj, (char) msg.arg1);
+                    break;
+                case MSG_STOP_DTMF_TONE:
+                    mCallsManager.stopDtmfTone((String) msg.obj);
+                    break;
+                case MSG_POST_DIAL_CONTINUE:
+                    mCallsManager.postDialContinue((String) msg.obj);
+                    break;
+                case MSG_DISCONNECT_CALL:
+                    mCallsManager.disconnectCall((String) msg.obj);
+                    break;
+                case MSG_HOLD_CALL:
+                    mCallsManager.holdCall((String) msg.obj);
+                    break;
+                case MSG_UNHOLD_CALL:
+                    mCallsManager.unholdCall((String) msg.obj);
+                    break;
+                case MSG_MUTE:
+                    mCallsManager.mute(msg.arg1 == 1 ? true : false);
+                    break;
+                case MSG_SET_AUDIO_ROUTE:
+                    mCallsManager.setAudioRoute(msg.arg1);
+                    break;
+            }
+        }
+    }
 
     private final CallsManager mCallsManager;
-
-    private final Handler mHandler = new Handler(Looper.getMainLooper());
+    private final Handler mHandler = new InCallAdapterHandler();
 
     /** Persists the specified parameters. */
     public InCallAdapter(CallsManager callsManager) {
+        ThreadUtil.checkOnMainThread();
         mCallsManager = callsManager;
     }
 
     /** {@inheritDoc} */
     @Override
-    public void answerCall(final String callId) {
+    public void answerCall(String callId) {
         Log.d(this, "answerCall(%s)", callId);
-        mHandler.post(new Runnable() {
-            @Override public void run() {
-                mCallsManager.answerCall(callId);
-            }
-        });
+        mHandler.obtainMessage(MSG_ANSWER_CALL, callId).sendToTarget();
     }
 
     /** {@inheritDoc} */
     @Override
-    public void rejectCall(final String callId) {
+    public void rejectCall(String callId) {
         Log.d(this, "rejectCall(%s)", callId);
-        mHandler.post(new Runnable() {
-            @Override public void run() {
-                mCallsManager.rejectCall(callId);
-            }
-        });
+        mHandler.obtainMessage(MSG_REJECT_CALL, callId).sendToTarget();
     }
 
     /** {@inheritDoc} */
-    public void playDtmfTone(final String callId, final char digit) {
+    @Override
+    public void playDtmfTone(String callId, char digit) {
         Log.d(this, "playDtmfTone(%s,%c)", callId, digit);
-        mHandler.post(new Runnable() {
-            @Override public void run() {
-                mCallsManager.playDtmfTone(callId, digit);
-            }
-        });
+        mHandler.obtainMessage(MSG_PLAY_DTMF_TONE, (int) digit, 0, callId).sendToTarget();
     }
 
     /** {@inheritDoc} */
-    public void stopDtmfTone(final String callId) {
+    @Override
+    public void stopDtmfTone(String callId) {
         Log.d(this, "stopDtmfTone(%s)", callId);
-        mHandler.post(new Runnable() {
-            @Override public void run() {
-                mCallsManager.stopDtmfTone(callId);
-            }
-        });
+        mHandler.obtainMessage(MSG_STOP_DTMF_TONE, callId).sendToTarget();
     }
 
     /** {@inheritDoc} */
-    public void postDialContinue(final String callId) {
+    @Override
+    public void postDialContinue(String callId) {
         Log.d(this, "postDialContinue(%s)", callId);
-        mHandler.post(new Runnable() {
-            @Override public void run() {
-                mCallsManager.postDialContinue(callId);
-            }
-        });
+        mHandler.obtainMessage(MSG_POST_DIAL_CONTINUE, callId).sendToTarget();
     }
 
     /** {@inheritDoc} */
     @Override
-    public void disconnectCall(final String callId) {
-        mHandler.post(new Runnable() {
-            @Override public void run() {
-                mCallsManager.disconnectCall(callId);
-            }
-        });
+    public void disconnectCall(String callId) {
+        mHandler.obtainMessage(MSG_DISCONNECT_CALL, callId).sendToTarget();
     }
 
     /** {@inheritDoc} */
     @Override
-    public void holdCall(final String callId) {
-        mHandler.post(new Runnable() {
-            @Override public void run() {
-                mCallsManager.holdCall(callId);
-            }
-        });
+    public void holdCall(String callId) {
+        mHandler.obtainMessage(MSG_HOLD_CALL, callId).sendToTarget();
     }
 
     /** {@inheritDoc} */
     @Override
-    public void unholdCall(final String callId) {
-        mHandler.post(new Runnable() {
-            @Override public void run() {
-                mCallsManager.unholdCall(callId);
-            }
-        });
+    public void unholdCall(String callId) {
+        mHandler.obtainMessage(MSG_UNHOLD_CALL, callId).sendToTarget();
     }
 
     /** {@inheritDoc} */
     @Override
-    public void mute(final boolean shouldMute) {
-        mHandler.post(new Runnable() {
-            @Override public void run() {
-                mCallsManager.mute(shouldMute);
-            }
-        });
+    public void mute(boolean shouldMute) {
+        mHandler.obtainMessage(MSG_MUTE, shouldMute ? 1 : 0, 0).sendToTarget();
     }
 
     /** {@inheritDoc} */
     @Override
-    public void setAudioRoute(final int route) {
-        mHandler.post(new Runnable() {
-            @Override public void run() {
-                mCallsManager.setAudioRoute(route);
-            }
-        });
+    public void setAudioRoute(int route) {
+        mHandler.obtainMessage(MSG_SET_AUDIO_ROUTE, route, 0).sendToTarget();
     }
 }

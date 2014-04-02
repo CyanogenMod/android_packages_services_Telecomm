@@ -17,15 +17,15 @@
 package com.android.telecomm;
 
 import android.os.Handler;
-import android.os.Looper;
+import android.os.Message;
 import android.telecomm.CallInfo;
 
 import com.android.internal.telecomm.ICallServiceAdapter;
 import com.google.android.collect.Sets;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
+import com.android.internal.os.SomeArgs;
 
-import java.util.Collections;
 import java.util.Set;
 
 /**
@@ -34,19 +34,103 @@ import java.util.Set;
  * Telecomm and the call service.
  * TODO(santoscordon): Whenever we get any method invocations from the call service, we need to
  * check that the invocation is expected from that call service.
- * TODO(santoscordon): Move away from Runnable objects and into messages so that we create fewer
- * objects per IPC method call.
  * TODO(santoscordon): Do we need Binder.clear/restoreCallingIdentity() in the service methods?
  */
 public final class CallServiceAdapter extends ICallServiceAdapter.Stub {
+    private static final int MSG_SET_IS_COMPATIBLE_WITH = 0;
+    private static final int MSG_NOTIFY_INCOMING_CALL = 1;
+    private static final int MSG_HANDLE_SUCCESSFUL_OUTGOING_CALL = 2;
+    private static final int MSG_HANDLE_FAILED_OUTGOING_CALL = 3;
+    private static final int MSG_SET_ACTIVE = 4;
+    private static final int MSG_SET_RINGING = 5;
+    private static final int MSG_SET_DIALING = 6;
+    private static final int MSG_SET_DISCONNECTED = 7;
+    private static final int MSG_SET_ON_HOLD = 8;
+
+    private final class CallServiceAdapterHandler extends Handler {
+        @Override
+        public void handleMessage(Message msg) {
+            String callId;
+
+            switch (msg.what) {
+                case MSG_SET_IS_COMPATIBLE_WITH:
+                    callId = (String) msg.obj;
+                    if (mPendingOutgoingCallIds.contains(callId)) {
+                        mOutgoingCallsManager.setIsCompatibleWith(callId,
+                                msg.arg1 == 1 ? true : false);
+                    } else {
+                        Log.wtf(this, "Unknown outgoing call: %s", callId);
+                    }
+                    break;
+                case MSG_NOTIFY_INCOMING_CALL:
+                    CallInfo callInfo = (CallInfo) msg.obj;
+                    if (mPendingIncomingCallIds.remove(callInfo.getId())) {
+                        mIncomingCallsManager.handleSuccessfulIncomingCall(callInfo);
+                    } else {
+                        Log.wtf(this, "Unknown incoming call: %s", callInfo);
+                    }
+                    break;
+                case MSG_HANDLE_SUCCESSFUL_OUTGOING_CALL:
+                    callId = (String) msg.obj;
+                    if (mPendingOutgoingCallIds.remove(callId)) {
+                        mOutgoingCallsManager.handleSuccessfulCallAttempt(callId);
+                    } else {
+                        // TODO(gilad): Figure out how to wire up the callService.abort() call.
+                        Log.wtf(this, "Unknown outgoing call: %s", callId);
+                    }
+                    break;
+                case MSG_HANDLE_FAILED_OUTGOING_CALL: {
+                    SomeArgs args = (SomeArgs) msg.obj;
+                    try {
+                        callId = (String) args.arg1;
+                        String reason = (String) args.arg2;
+                        if (mPendingOutgoingCallIds.remove(callId)) {
+                            mOutgoingCallsManager.handleFailedCallAttempt(callId, reason);
+                        } else {
+                            Log.wtf(this, "Unknown outgoing call: %s", callId);
+                        }
+                    } finally {
+                        args.recycle();
+                    }
+                    break;
+                }
+                case MSG_SET_ACTIVE:
+                    callId = (String) msg.obj;
+                    mCallsManager.markCallAsActive(callId);
+                    break;
+                case MSG_SET_RINGING:
+                    callId = (String) msg.obj;
+                    mCallsManager.markCallAsRinging(callId);
+                    break;
+                case MSG_SET_DIALING:
+                    callId = (String) msg.obj;
+                    mCallsManager.markCallAsDialing(callId);
+                    break;
+                case MSG_SET_DISCONNECTED: {
+                    SomeArgs args = (SomeArgs) msg.obj;
+                    try {
+                        callId = (String) args.arg1;
+                        String disconnectMessage = (String) args.arg2;
+                        int disconnectCause = args.argi1;
+                        mCallsManager.markCallAsDisconnected(callId, disconnectCause,
+                                disconnectMessage);
+                    } finally {
+                        args.recycle();
+                    }
+                    break;
+                }
+                case MSG_SET_ON_HOLD:
+                    callId = (String) msg.obj;
+                    mCallsManager.markCallAsOnHold(callId);
+                    break;
+            }
+        }
+    }
+
     private final CallsManager mCallsManager;
-
     private final OutgoingCallsManager mOutgoingCallsManager;
-
     private final IncomingCallsManager mIncomingCallsManager;
-
-    /** Used to run code (e.g. messages, Runnables) on the main (UI) thread. */
-    private final Handler mHandler = new Handler(Looper.getMainLooper());
+    private final Handler mHandler = new CallServiceAdapterHandler();
 
     /**
      * The set of pending outgoing call IDs.  Any {@link #handleSuccessfulOutgoingCall} and
@@ -69,120 +153,84 @@ public final class CallServiceAdapter extends ICallServiceAdapter.Stub {
      */
     CallServiceAdapter(
             OutgoingCallsManager outgoingCallsManager, IncomingCallsManager incomingCallsManager) {
-
+        ThreadUtil.checkOnMainThread();
         mCallsManager = CallsManager.getInstance();
         mOutgoingCallsManager = outgoingCallsManager;
         mIncomingCallsManager = incomingCallsManager;
     }
 
     /** {@inheritDoc} */
-    @Override public void setIsCompatibleWith(final String callId, final boolean isCompatible) {
+    @Override
+    public void setIsCompatibleWith(String callId, boolean isCompatible) {
         checkValidCallId(callId);
-        mHandler.post(new Runnable() {
-            @Override public void run() {
-                if (mPendingOutgoingCallIds.contains(callId)) {
-                    mOutgoingCallsManager.setIsCompatibleWith(callId, isCompatible);
-                } else {
-                    Log.wtf(CallServiceAdapter.this, "Unknown outgoing call: %s", callId);
-                }
-            }
-        });
+        mHandler.obtainMessage(MSG_SET_IS_COMPATIBLE_WITH, isCompatible ? 1 : 0, 0, callId).
+                sendToTarget();
     }
 
     /** {@inheritDoc} */
-    @Override public void notifyIncomingCall(final CallInfo callInfo) {
+    @Override
+    public void notifyIncomingCall(CallInfo callInfo) {
         checkValidCallId(callInfo.getId());
-        mHandler.post(new Runnable() {
-            @Override public void run() {
-                if (mPendingIncomingCallIds.remove(callInfo.getId())) {
-                    mIncomingCallsManager.handleSuccessfulIncomingCall(callInfo);
-                } else {
-                    Log.wtf(CallServiceAdapter.this, "Unknown incoming call: %s", callInfo);
-                }
-            }
-        });
+        mHandler.obtainMessage(MSG_NOTIFY_INCOMING_CALL, callInfo).sendToTarget();
     }
 
     /** {@inheritDoc} */
-    @Override public void handleSuccessfulOutgoingCall(final String callId) {
+    @Override
+    public void handleSuccessfulOutgoingCall(String callId) {
         checkValidCallId(callId);
-        mHandler.post(new Runnable() {
-            @Override public void run() {
-                if (mPendingOutgoingCallIds.remove(callId)) {
-                    mOutgoingCallsManager.handleSuccessfulCallAttempt(callId);
-                } else {
-                    // TODO(gilad): Figure out how to wire up the callService.abort() call.
-                    Log.wtf(CallServiceAdapter.this, "Unknown outgoing call: %s", callId);
-                }
-            }
-        });
+        mHandler.obtainMessage(MSG_HANDLE_SUCCESSFUL_OUTGOING_CALL, callId).sendToTarget();
     }
 
     /** {@inheritDoc} */
-    @Override public void handleFailedOutgoingCall(final String callId, final String reason) {
+    @Override
+    public void handleFailedOutgoingCall(String callId, String reason) {
         checkValidCallId(callId);
-        mHandler.post(new Runnable() {
-            @Override public void run() {
-                if (mPendingOutgoingCallIds.remove(callId)) {
-                    mOutgoingCallsManager.handleFailedCallAttempt(callId, reason);
-                } else {
-                    Log.wtf(CallServiceAdapter.this, "Unknown outgoing call: %s", callId);
-                }
-            }
-        });
+        SomeArgs args = SomeArgs.obtain();
+        args.arg1 = callId;
+        args.arg2 = reason;
+        mHandler.obtainMessage(MSG_HANDLE_FAILED_OUTGOING_CALL, args).sendToTarget();
     }
 
     /** {@inheritDoc} */
-    @Override public void setActive(final String callId) {
+    @Override
+    public void setActive(String callId) {
         checkValidCallId(callId);
-        mHandler.post(new Runnable() {
-            @Override public void run() {
-                mCallsManager.markCallAsActive(callId);
-            }
-        });
+        mHandler.obtainMessage(MSG_SET_ACTIVE, callId).sendToTarget();
     }
 
     /** {@inheritDoc} */
-    @Override public void setRinging(final String callId) {
+    @Override
+    public void setRinging(String callId) {
         checkValidCallId(callId);
-        mHandler.post(new Runnable() {
-            @Override public void run() {
-                mCallsManager.markCallAsRinging(callId);
-            }
-        });
+        mHandler.obtainMessage(MSG_SET_RINGING, callId).sendToTarget();
     }
 
     /** {@inheritDoc} */
-    @Override public void setDialing(final String callId) {
+    @Override
+    public void setDialing(String callId) {
         checkValidCallId(callId);
-        mHandler.post(new Runnable() {
-            @Override public void run() {
-                mCallsManager.markCallAsDialing(callId);
-            }
-        });
+        mHandler.obtainMessage(MSG_SET_DIALING, callId).sendToTarget();
     }
 
     /** {@inheritDoc} */
     // TODO(gilad): Ensure that any communication from the underlying ICallService
     // implementation is expected (or otherwise suppressed at the adapter level).
-    @Override public void setDisconnected(
-            final String callId, final int disconnectCause, final String disconnectMessage) {
+    @Override
+    public void setDisconnected(
+            String callId, int disconnectCause, String disconnectMessage) {
         checkValidCallId(callId);
-        mHandler.post(new Runnable() {
-            @Override public void run() {
-                mCallsManager.markCallAsDisconnected(callId, disconnectCause, disconnectMessage);
-            }
-        });
+        SomeArgs args = SomeArgs.obtain();
+        args.arg1 = callId;
+        args.arg2 = disconnectMessage;
+        args.argi1 = disconnectCause;
+        mHandler.obtainMessage(MSG_SET_DISCONNECTED, args).sendToTarget();
     }
 
     /** {@inheritDoc} */
-    @Override public void setOnHold(final String callId) {
+    @Override
+    public void setOnHold(String callId) {
         checkValidCallId(callId);
-        mHandler.post(new Runnable() {
-            @Override public void run() {
-                mCallsManager.markCallAsOnHold(callId);
-            }
-        });
+        mHandler.obtainMessage(MSG_SET_ON_HOLD, callId).sendToTarget();
     }
 
     /**
