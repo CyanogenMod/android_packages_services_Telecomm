@@ -174,7 +174,7 @@ public final class CallServiceAdapter extends ICallServiceAdapter.Stub {
     /** {@inheritDoc} */
     @Override
     public void setIsCompatibleWith(String callId, boolean isCompatible) {
-        Log.v(this, "setIsCompatibleWith id: %d, isCompatible: %b", callId, isCompatible);
+        Log.v(this, "setIsCompatibleWith id: %s, isCompatible: %b", callId, isCompatible);
         mCallIdMapper.checkValidCallId(callId);
         mHandler.obtainMessage(MSG_SET_IS_COMPATIBLE_WITH, isCompatible ? 1 : 0, 0, callId).
                 sendToTarget();
