@@ -22,8 +22,9 @@ import android.os.IBinder;
 import android.os.RemoteException;
 import android.telecomm.CallInfo;
 import android.telecomm.CallServiceDescriptor;
-import android.telecomm.TelecommConstants;
+import android.telecomm.CallServiceSelector;
 import android.telecomm.CallServiceSelector.CallServiceSelectionResponse;
+import android.telecomm.TelecommConstants;
 
 import com.google.common.base.Preconditions;
 import com.android.internal.telecomm.ICallServiceSelectionResponse;
@@ -56,10 +57,9 @@ final class CallServiceSelectorWrapper extends ServiceBinder<ICallServiceSelecto
     }
 
     private ICallServiceSelector mSelectorInterface;
-
-    private Binder mBinder = new Binder();
-
-    private Handler mHandler = new Handler();
+    private final Binder mBinder = new Binder();
+    private final Handler mHandler = new Handler();
+    private final CallIdMapper mCallIdMapper = new CallIdMapper("CallServiceSelector");
 
     /**
      * Creates a call-service selector for the specified component.
@@ -74,22 +74,22 @@ final class CallServiceSelectorWrapper extends ServiceBinder<ICallServiceSelecto
      * Retrieves the sorted set of call services that are preferred by this selector. Upon failure,
      * the error callback is invoked. Can be invoked even when the call service is unbound.
      *
-     * @param callInfo The details of the call.
      * @param selectionResponse The selection response callback to invoke upon success.
      * @param errorCallback The callback to invoke upon failure.
      */
-    void select(final CallInfo callInfo, final List<CallServiceDescriptor> callServiceDescriptors,
+    void select(final Call call, final List<CallServiceDescriptor> callServiceDescriptors,
             final CallServiceSelectionResponse selectionResponse, final Runnable errorCallback) {
         BindCallback callback = new BindCallback() {
             @Override
             public void onSuccess() {
                 if (isServiceValid("select")) {
                     try {
+                        CallInfo callInfo = call.toCallInfo(mCallIdMapper.getCallId(call));
                         mSelectorInterface.select(callInfo, callServiceDescriptors,
                                 new SelectionResponseImpl(selectionResponse));
                     } catch (RemoteException e) {
-                        Log.e(CallServiceSelectorWrapper.this, e, "Failed calling select for selector: %s.",
-                                getComponentName());
+                        Log.e(CallServiceSelectorWrapper.this, e,
+                                "Failed calling select for selector: %s.", getComponentName());
                     }
                 }
             }
@@ -101,6 +101,14 @@ final class CallServiceSelectorWrapper extends ServiceBinder<ICallServiceSelecto
         };
 
         mBinder.bind(callback);
+    }
+
+    void addCall(Call call) {
+        mCallIdMapper.addCall(call);
+    }
+
+    void removeCall(Call call) {
+        mCallIdMapper.removeCall(call);
     }
 
     /** {@inheritDoc} */

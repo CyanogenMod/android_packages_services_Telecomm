@@ -41,30 +41,39 @@ class InCallAdapter extends IInCallAdapter.Stub {
     private final class InCallAdapterHandler extends Handler {
         @Override
         public void handleMessage(Message msg) {
+            Call call = null;
+            if (msg.obj != null) {
+                call = mCallIdMapper.getCall(msg.obj);
+                if (call == null) {
+                    Log.w(this, "Unknown call id: %s, msg: %d", msg.obj, msg.what);
+                    return;
+                }
+            }
+
             switch (msg.what) {
                 case MSG_ANSWER_CALL:
-                    mCallsManager.answerCall((String) msg.obj);
+                    mCallsManager.answerCall(call);
                     break;
                 case MSG_REJECT_CALL:
-                    mCallsManager.rejectCall((String) msg.obj);
+                    mCallsManager.rejectCall(call);
                     break;
                 case MSG_PLAY_DTMF_TONE:
-                    mCallsManager.playDtmfTone((String) msg.obj, (char) msg.arg1);
+                    mCallsManager.playDtmfTone(call, (char) msg.arg1);
                     break;
                 case MSG_STOP_DTMF_TONE:
-                    mCallsManager.stopDtmfTone((String) msg.obj);
+                    mCallsManager.stopDtmfTone(call);
                     break;
                 case MSG_POST_DIAL_CONTINUE:
-                    mCallsManager.postDialContinue((String) msg.obj);
+                    mCallsManager.postDialContinue(call);
                     break;
                 case MSG_DISCONNECT_CALL:
-                    mCallsManager.disconnectCall((String) msg.obj);
+                    mCallsManager.disconnectCall(call);
                     break;
                 case MSG_HOLD_CALL:
-                    mCallsManager.holdCall((String) msg.obj);
+                    mCallsManager.holdCall(call);
                     break;
                 case MSG_UNHOLD_CALL:
-                    mCallsManager.unholdCall((String) msg.obj);
+                    mCallsManager.unholdCall(call);
                     break;
                 case MSG_MUTE:
                     mCallsManager.mute(msg.arg1 == 1 ? true : false);
@@ -78,17 +87,20 @@ class InCallAdapter extends IInCallAdapter.Stub {
 
     private final CallsManager mCallsManager;
     private final Handler mHandler = new InCallAdapterHandler();
+    private final CallIdMapper mCallIdMapper;
 
     /** Persists the specified parameters. */
-    public InCallAdapter(CallsManager callsManager) {
+    public InCallAdapter(CallsManager callsManager, CallIdMapper callIdMapper) {
         ThreadUtil.checkOnMainThread();
         mCallsManager = callsManager;
+        mCallIdMapper = callIdMapper;
     }
 
     /** {@inheritDoc} */
     @Override
     public void answerCall(String callId) {
         Log.d(this, "answerCall(%s)", callId);
+        mCallIdMapper.checkValidCallId(callId);
         mHandler.obtainMessage(MSG_ANSWER_CALL, callId).sendToTarget();
     }
 
@@ -96,6 +108,7 @@ class InCallAdapter extends IInCallAdapter.Stub {
     @Override
     public void rejectCall(String callId) {
         Log.d(this, "rejectCall(%s)", callId);
+        mCallIdMapper.checkValidCallId(callId);
         mHandler.obtainMessage(MSG_REJECT_CALL, callId).sendToTarget();
     }
 
@@ -103,6 +116,7 @@ class InCallAdapter extends IInCallAdapter.Stub {
     @Override
     public void playDtmfTone(String callId, char digit) {
         Log.d(this, "playDtmfTone(%s,%c)", callId, digit);
+        mCallIdMapper.checkValidCallId(callId);
         mHandler.obtainMessage(MSG_PLAY_DTMF_TONE, (int) digit, 0, callId).sendToTarget();
     }
 
@@ -110,6 +124,7 @@ class InCallAdapter extends IInCallAdapter.Stub {
     @Override
     public void stopDtmfTone(String callId) {
         Log.d(this, "stopDtmfTone(%s)", callId);
+        mCallIdMapper.checkValidCallId(callId);
         mHandler.obtainMessage(MSG_STOP_DTMF_TONE, callId).sendToTarget();
     }
 
@@ -117,24 +132,29 @@ class InCallAdapter extends IInCallAdapter.Stub {
     @Override
     public void postDialContinue(String callId) {
         Log.d(this, "postDialContinue(%s)", callId);
+        mCallIdMapper.checkValidCallId(callId);
         mHandler.obtainMessage(MSG_POST_DIAL_CONTINUE, callId).sendToTarget();
     }
 
     /** {@inheritDoc} */
     @Override
     public void disconnectCall(String callId) {
+        Log.v(this, "disconnectCall: %s", callId);
+        mCallIdMapper.checkValidCallId(callId);
         mHandler.obtainMessage(MSG_DISCONNECT_CALL, callId).sendToTarget();
     }
 
     /** {@inheritDoc} */
     @Override
     public void holdCall(String callId) {
+        mCallIdMapper.checkValidCallId(callId);
         mHandler.obtainMessage(MSG_HOLD_CALL, callId).sendToTarget();
     }
 
     /** {@inheritDoc} */
     @Override
     public void unholdCall(String callId) {
+        mCallIdMapper.checkValidCallId(callId);
         mHandler.obtainMessage(MSG_UNHOLD_CALL, callId).sendToTarget();
     }
 

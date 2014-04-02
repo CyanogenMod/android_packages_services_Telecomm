@@ -22,8 +22,9 @@ import android.telecomm.CallService;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
-import java.util.Map;
+import java.util.Set;
 
 /**
  * Used to retrieve details about an incoming call. This is invoked after an incoming call intent.
@@ -31,9 +32,7 @@ import java.util.Map;
 final class IncomingCallsManager {
 
     private final Switchboard mSwitchboard;
-
-    /** Maps call ID to the call. */
-    private final Map<String, Call> mPendingIncomingCalls = Maps.newHashMap();
+    private final Set<Call> mPendingIncomingCalls = Sets.newLinkedHashSet();
 
     /**
      * Persists the specified parameters.
@@ -55,19 +54,18 @@ final class IncomingCallsManager {
         ThreadUtil.checkOnMainThread();
         Log.d(this, "retrieveIncomingCall");
 
-        final String callId = call.getId();
         // Just to be safe, lets make sure we're not already processing this call.
-        Preconditions.checkState(!mPendingIncomingCalls.containsKey(callId));
+        Preconditions.checkState(!mPendingIncomingCalls.contains(call));
 
-        mPendingIncomingCalls.put(callId, call);
+        mPendingIncomingCalls.add(call);
 
         Runnable errorCallback = new Runnable() {
             @Override public void run() {
-                handleFailedIncomingCall(callId);
+                handleFailedIncomingCall(call);
             }
         };
 
-        call.getCallService().setIncomingCallId(callId, extras, errorCallback);
+        call.getCallService().setIncomingCallId(call, extras, errorCallback);
     }
 
     /**
@@ -76,27 +74,25 @@ final class IncomingCallsManager {
      *
      * @param callInfo The details of the call.
      */
-    void handleSuccessfulIncomingCall(CallInfo callInfo) {
+    void handleSuccessfulIncomingCall(Call call, CallInfo callInfo) {
         ThreadUtil.checkOnMainThread();
 
-        Call call = mPendingIncomingCalls.remove(callInfo.getId());
-        if (call != null) {
-            Log.d(this, "Incoming call %s found.", call.getId());
+        if (mPendingIncomingCalls.contains(call)) {
+            Log.d(this, "Incoming call %s found.", call);
+            mPendingIncomingCalls.remove(call);
             mSwitchboard.handleSuccessfulIncomingCall(call, callInfo);
         }
     }
 
     /**
      * Notifies switchboard of the failed incoming call after removing it from the pending list.
-     *
-     * @param callId The ID of the call.
      */
-    void handleFailedIncomingCall(String callId) {
+    void handleFailedIncomingCall(Call call) {
         ThreadUtil.checkOnMainThread();
 
-        Call call = mPendingIncomingCalls.remove(callId);
-        if (call != null) {
+        if (mPendingIncomingCalls.contains(call)) {
             Log.i(this, "Failed to get details for incoming call %s", call);
+            mPendingIncomingCalls.remove(call);
             // The call was found still waiting for details. Consider it failed.
             mSwitchboard.handleFailedIncomingCall(call);
         }

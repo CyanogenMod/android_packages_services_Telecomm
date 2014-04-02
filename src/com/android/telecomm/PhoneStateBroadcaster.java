@@ -46,7 +46,7 @@ final class PhoneStateBroadcaster extends CallsManagerListenerBase {
                 break;
             default:
                 Log.w(this, "Call is in an unknown state (%s), not broadcasting: %s",
-                        newState, call.getId());
+                        newState, call);
                 return;
         }
         sendPhoneStateChangedBroadcast(call, phoneState);
@@ -57,8 +57,6 @@ final class PhoneStateBroadcaster extends CallsManagerListenerBase {
 
         Intent intent = new Intent(TelephonyManager.ACTION_PHONE_STATE_CHANGED);
         intent.putExtra(TelephonyManager.EXTRA_STATE, phoneState);
-        // TODO: See if we can add this (the current API doesn't have a callId).
-        intent.putExtra(TelecommConstants.EXTRA_CALL_ID, call.getId());
 
         // Populate both, since the original API was needlessly complicated.
         String callHandle = call.getHandle().getSchemeSpecificPart();

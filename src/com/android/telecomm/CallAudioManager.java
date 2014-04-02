@@ -304,7 +304,7 @@ final class CallAudioManager extends CallsManagerListenerBase {
     private void updateAudioForForegroundCall() {
         Call call = CallsManager.getInstance().getForegroundCall();
         if (call != null && call.getCallService() != null) {
-            call.getCallService().onAudioStateChanged(call.getId(), mAudioState);
+            call.getCallService().onAudioStateChanged(call, mAudioState);
         }
     }
 }

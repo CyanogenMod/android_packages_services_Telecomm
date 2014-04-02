@@ -26,7 +26,7 @@ import java.util.Set;
 /**
  * Responsible for placing all outgoing calls. For each outgoing call, this class creates an
  * instance of {@link OutgoingCallProcessor} which handles the details of connecting to the
- * appropriate call service and placing the call. This class maintains a mapping from call ID
+ * appropriate call service and placing the call. This class maintains a mapping from call
  * to {@link OutgoingCallProcessor} so that other classes (Switchboard, CallServiceAdapter, etc),
  * can simply call into this class instead of individual OutgoingCallProcessors.
  */
@@ -34,9 +34,9 @@ final class OutgoingCallsManager {
     private final Switchboard mSwitchboard;
 
     /**
-     * Maps call IDs to {@link OutgoingCallProcessor}s.
+     * Maps call to {@link OutgoingCallProcessor}s.
      */
-    private Map<String, OutgoingCallProcessor> mOutgoingCallProcessors = Maps.newHashMap();
+    private Map<Call, OutgoingCallProcessor> mOutgoingCallProcessors = Maps.newHashMap();
 
     /** Persists specified parameters. */
     OutgoingCallsManager(Switchboard switchboard) {
@@ -58,7 +58,7 @@ final class OutgoingCallsManager {
             Set<CallServiceWrapper> callServices,
             Collection<CallServiceSelectorWrapper> selectors) {
 
-        Log.i(this, "Placing an outgoing call (%s)", call.getId());
+        Log.i(this, "Placing an outgoing call: %s", call);
 
         // Create the processor for this (outgoing) call and store it in a map such that call
         // attempts can be aborted etc.
@@ -66,26 +66,24 @@ final class OutgoingCallsManager {
         OutgoingCallProcessor processor =
                 new OutgoingCallProcessor(call, callServices, selectors, this, mSwitchboard);
 
-        mOutgoingCallProcessors.put(call.getId(), processor);
+        mOutgoingCallProcessors.put(call, processor);
         processor.process();
     }
 
     /**
-     * Forwards the compatibility status from the call-service implementation to the corresponding
-     * outgoing-call processor.
+     * Forwards the compatibility status from the call-service to the corresponding outgoing-call
+     * processor.
      *
-     * @param callId The ID of the call.
-     * @param isCompatible True if the call-service is compatible with the corresponding call and
-     *     false otherwise.
+     * @param isCompatible True if the call-service is compatible with the call.
      */
-    void setIsCompatibleWith(String callId, boolean isCompatible) {
-        Log.v(this, "setIsCompatibleWith, callId %s, isCompatible: %b", callId, isCompatible);
-        OutgoingCallProcessor processor = mOutgoingCallProcessors.get(callId);
+    void setIsCompatibleWith(Call call, boolean isCompatible) {
+        Log.v(this, "setIsCompatibleWith, call %s, isCompatible: %b", call, isCompatible);
+        OutgoingCallProcessor processor = mOutgoingCallProcessors.get(call);
         if (processor == null) {
             // Shouldn't happen, so log a wtf if it does.
             Log.wtf(this, "Received unexpected setCompatibleWith notification.");
         } else {
-            processor.setIsCompatibleWith(callId, isCompatible);
+            processor.setIsCompatibleWith(call, isCompatible);
         }
     }
 
@@ -93,12 +91,10 @@ final class OutgoingCallsManager {
      * Removes the outgoing call processor mapping for the successful call and returns execution to
      * the switchboard. This method is invoked from {@link CallServiceAdapter} after a call service
      * has notified Telecomm that it successfully placed the call.
-     *
-     * @param callId The ID of the call.
      */
-    void handleSuccessfulCallAttempt(String callId) {
-        Log.v(this, "handleSuccessfulCallAttempt, callId: %s", callId);
-        OutgoingCallProcessor processor = mOutgoingCallProcessors.remove(callId);
+    void handleSuccessfulCallAttempt(Call call) {
+        Log.v(this, "handleSuccessfulCallAttempt, call: %s", call);
+        OutgoingCallProcessor processor = mOutgoingCallProcessors.remove(call);
 
         if (processor == null) {
             // Shouldn't happen, so log a wtf if it does.
@@ -114,14 +110,12 @@ final class OutgoingCallsManager {
      * service. This method is called from {@link CallServiceAdapter} after a call service has
      * notified Telecomm that it could not place the call.
      *
-     * @param callId The ID of the failed outgoing call.
      * @param reason The call-service supplied reason for the failed call attempt.
      */
-    void handleFailedCallAttempt(String callId, String reason) {
-        Log.v(this, "handleFailedCallAttempt, callId: %s, reason: %s", callId, reason);
-        OutgoingCallProcessor processor = mOutgoingCallProcessors.get(callId);
+    void handleFailedCallAttempt(Call call, String reason) {
+        Log.v(this, "handleFailedCallAttempt, call: %s, reason: %s", call, reason);
+        OutgoingCallProcessor processor = mOutgoingCallProcessors.get(call);
 
-        // TODO(santoscordon): Consider combining the check here and in handleSuccessfulCallAttempt.
         if (processor == null) {
             // Shouldn't happen, so log a wtf if it does.
             Log.wtf(this, "Received an unexpected failed-call notification.");
@@ -142,7 +136,7 @@ final class OutgoingCallsManager {
      */
     void handleFailedOutgoingCall(Call call, boolean isAborted) {
         Log.v(this, "handleFailedOutgoingCall, call: %s", call);
-        mOutgoingCallProcessors.remove(call.getId());
+        mOutgoingCallProcessors.remove(call);
         mSwitchboard.handleFailedOutgoingCall(call, isAborted);
     }
 
@@ -153,7 +147,7 @@ final class OutgoingCallsManager {
      */
     void abort(Call call) {
         Log.v(this, "abort, call: %s", call);
-        OutgoingCallProcessor processor = mOutgoingCallProcessors.remove(call.getId());
+        OutgoingCallProcessor processor = mOutgoingCallProcessors.remove(call);
         if (processor != null) {
             processor.abort();
         }

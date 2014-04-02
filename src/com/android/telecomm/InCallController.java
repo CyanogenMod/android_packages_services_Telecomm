@@ -32,16 +32,12 @@ import com.google.common.collect.ImmutableCollection;
 /**
  * Binds to {@link IInCallService} and provides the service to {@link CallsManager} through which it
  * can send updates to the in-call app. This class is created and owned by CallsManager and retains
- * a binding to the {@link IInCallService} (implemented by the in-call app) until CallsManager
- * explicitly disconnects it. CallsManager starts the connection by calling {@link #connect} and
- * retains the connection as long as it has calls which need UI. When all calls are disconnected,
- * CallsManager will invoke {@link #disconnect} to sever the binding until the in-call UI is needed
- * again.
+ * a binding to the {@link IInCallService} (implemented by the in-call app).
  */
 public final class InCallController extends CallsManagerListenerBase {
     /**
      * Used to bind to the in-call app and triggers the start of communication between
-     * CallsManager and in-call app.
+     * this class and in-call app.
      */
     private class InCallServiceConnection implements ServiceConnection {
         /** {@inheritDoc} */
@@ -75,8 +71,8 @@ public final class InCallController extends CallsManagerListenerBase {
     /** The in-call app implementation, see {@link IInCallService}. */
     private IInCallService mInCallService;
 
-    // TODO(santoscordon): May be better to expose the IInCallService methods directly from this
-    // class as its own method to make the CallsManager code easier to read.
+    private final CallIdMapper mCallIdMapper = new CallIdMapper("InCall");
+
     IInCallService getService() {
         return mInCallService;
     }
@@ -87,10 +83,11 @@ public final class InCallController extends CallsManagerListenerBase {
             bind();
         } else {
             Log.i(this, "Adding call: %s", call);
+            mCallIdMapper.addCall(call);
+            CallInfo callInfo = call.toCallInfo(mCallIdMapper.getCallId(call));
             try {
-                mInCallService.addCall(call.toCallInfo());
+                mInCallService.addCall(callInfo);
             } catch (RemoteException e) {
-                Log.e(this, e, "Exception attempting to addCall.");
             }
         }
     }
@@ -101,6 +98,7 @@ public final class InCallController extends CallsManagerListenerBase {
             // TODO(sail): Wait for all messages to be delivered to the service before unbinding.
             unbind();
         }
+        mCallIdMapper.removeCall(call);
     }
 
     @Override
@@ -109,29 +107,27 @@ public final class InCallController extends CallsManagerListenerBase {
             return;
         }
 
+        String callId = mCallIdMapper.getCallId(call);
         switch (newState) {
             case ACTIVE:
-                Log.i(this, "Mark call as ACTIVE: %s", call.getId());
+                Log.i(this, "Mark call as ACTIVE: %s", callId);
                 try {
-                    mInCallService.setActive(call.getId());
+                    mInCallService.setActive(callId);
                 } catch (RemoteException e) {
-                    Log.e(this, e, "Exception attempting to call setActive.");
                 }
                 break;
             case ON_HOLD:
-                Log.i(this, "Mark call as HOLD: %s", call.getId());
+                Log.i(this, "Mark call as HOLD: %s", callId);
                 try {
-                    mInCallService.setOnHold(call.getId());
+                    mInCallService.setOnHold(callId);
                 } catch (RemoteException e) {
-                    Log.e(this, e, "Exception attempting to call setOnHold.");
                 }
                 break;
             case DISCONNECTED:
-                Log.i(this, "Mark call as DISCONNECTED: %s", call.getId());
+                Log.i(this, "Mark call as DISCONNECTED: %s", callId);
                 try {
-                    mInCallService.setDisconnected(call.getId(), call.getDisconnectCause());
+                    mInCallService.setDisconnected(callId, call.getDisconnectCause());
                 } catch (RemoteException e) {
-                    Log.e(this, e, "Exception attempting to call setDisconnected.");
                 }
                 break;
             default:
@@ -147,7 +143,6 @@ public final class InCallController extends CallsManagerListenerBase {
             try {
                 mInCallService.onAudioStateChanged(newAudioState);
             } catch (RemoteException e) {
-                Log.e(this, e, "Exception attempting to update audio state.");
             }
         }
     }
@@ -189,7 +184,7 @@ public final class InCallController extends CallsManagerListenerBase {
 
     /**
      * Persists the {@link IInCallService} instance and starts the communication between
-     * CallsManager and in-call app by sending the first update to in-call app. This method is
+     * this class and in-call app by sending the first update to in-call app. This method is
      * called after a successful binding connection is established.
      *
      * @param service The {@link IInCallService} implementation.
@@ -199,7 +194,8 @@ public final class InCallController extends CallsManagerListenerBase {
         mInCallService = IInCallService.Stub.asInterface(service);
 
         try {
-            mInCallService.setInCallAdapter(new InCallAdapter(CallsManager.getInstance()));
+            mInCallService.setInCallAdapter(new InCallAdapter(CallsManager.getInstance(),
+                    mCallIdMapper));
         } catch (RemoteException e) {
             Log.e(this, e, "Failed to set the in-call adapter.");
             mInCallService = null;

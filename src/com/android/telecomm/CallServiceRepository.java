@@ -281,9 +281,8 @@ final class CallServiceRepository {
 
         CallServiceWrapper callService = mCallServices.get(callServiceName);
         if (callService == null) {
-            CallServiceAdapter adapter =
-                    new CallServiceAdapter(mOutgoingCallsManager, mIncomingCallsManager);
-            mCallServices.put(callServiceName, new CallServiceWrapper(descriptor, adapter));
+            mCallServices.put(callServiceName, new CallServiceWrapper(descriptor,
+                    mOutgoingCallsManager, mIncomingCallsManager));
         }
     }
 

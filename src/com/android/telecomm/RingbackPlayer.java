@@ -33,9 +33,9 @@ class RingbackPlayer extends CallsManagerListenerBase {
     private final InCallTonePlayer.Factory mPlayerFactory;
 
     /**
-     * The ID of the current call for which the ringback tone is being played.
+     * The current call for which the ringback tone is being played.
      */
-    private String mCallId;
+    private Call mCall;
 
     /**
      * The currently active player.
@@ -83,13 +83,13 @@ class RingbackPlayer extends CallsManagerListenerBase {
         Preconditions.checkState(call.getState() == CallState.DIALING);
         ThreadUtil.checkOnMainThread();
 
-        if (mCallId != null) {
+        if (mCall != null) {
             // We only get here for the foreground call so, there's no reason why there should
-            // exist a current dialing call ID.
+            // exist a current dialing call.
             Log.wtf(this, "Ringback player thinks there are two foreground-dialing calls.");
         }
 
-        mCallId = call.getId();
+        mCall = call;
         if (mTonePlayer == null) {
             Log.d(this, "Playing the ringback tone.");
             mTonePlayer = mPlayerFactory.createPlayer(InCallTonePlayer.TONE_RING_BACK);
@@ -105,10 +105,10 @@ class RingbackPlayer extends CallsManagerListenerBase {
     private void stopRingbackForCall(Call call) {
         ThreadUtil.checkOnMainThread();
 
-        if (mCallId != null && mCallId.equals(call.getId())) {
+        if (mCall == call) {
             // The foreground call is no longer dialing or is no longer the foreground call. In
             // either case, stop the ringback tone.
-            mCallId = null;
+            mCall = null;
 
             if (mTonePlayer == null) {
                 Log.w(this, "No player found to stop.");

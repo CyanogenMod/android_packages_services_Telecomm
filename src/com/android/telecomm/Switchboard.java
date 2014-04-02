@@ -334,7 +334,7 @@ final class Switchboard {
         while (iterator.hasNext()) {
             Call call = iterator.next();
             if (call.getAgeInMilliseconds() >= newCallTimeoutMs) {
-                Log.d(this, "Call %s timed out.", call.getId());
+                Log.d(this, "Call %s timed out.", call);
                 mOutgoingCallsManager.abort(call);
                 calls.remove(call);
 

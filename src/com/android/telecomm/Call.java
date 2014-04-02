@@ -29,7 +29,6 @@ import com.google.common.base.Preconditions;
 import java.util.Date;
 import java.util.Locale;
 import java.util.Set;
-import java.util.UUID;
 
 /**
  *  Encapsulates all aspects of a given phone call throughout its lifecycle, starting
@@ -37,9 +36,6 @@ import java.util.UUID;
  *  connected etc).
  */
 final class Call {
-    /** Unique identifier for the call as a UUID string. */
-    private final String mId;
-
     /** Additional contact information beyond handle above, optional. */
     private final ContactInfo mContactInfo;
 
@@ -96,7 +92,7 @@ final class Call {
     private String mDisconnectMessage;
 
     /**
-     * Creates an empty call object with a unique call ID.
+     * Creates an empty call object.
      *
      * @param isIncoming True if this is an incoming call.
      */
@@ -113,7 +109,6 @@ final class Call {
      * @param isIncoming True if this is an incoming call.
      */
     Call(Uri handle, ContactInfo contactInfo, GatewayInfo gatewayInfo, boolean isIncoming) {
-        mId = UUID.randomUUID().toString();  // UUIDs should provide sufficient uniqueness.
         mState = CallState.NEW;
         setHandle(handle);
         mContactInfo = contactInfo;
@@ -125,13 +120,9 @@ final class Call {
 
     /** {@inheritDoc} */
     @Override public String toString() {
-        return String.format(Locale.US, "[%s, %s, %s, %s]", mId, mState,
+        return String.format(Locale.US, "[%s, %s, %s]", mState,
                 mCallService == null ? "<null>" : mCallService.getComponentName(),
                 Log.pii(mHandle));
-    }
-
-    String getId() {
-        return mId;
     }
 
     CallState getState() {
@@ -237,6 +228,7 @@ final class Call {
 
         callService.incrementAssociatedCallCount();
         mCallService = callService;
+        mCallService.addCall(this);
     }
 
     /**
@@ -245,21 +237,27 @@ final class Call {
     void clearCallService() {
         if (mCallService != null) {
             decrementAssociatedCallCount(mCallService);
-            mCallService.cancelOutgoingCall(getId());
+            mCallService.removeCall(this);
             mCallService = null;
         }
     }
 
     void setCallServiceSelector(CallServiceSelectorWrapper selector) {
         Preconditions.checkNotNull(selector);
+
+        clearCallServiceSelector();
+
         mCallServiceSelector = selector;
+        mCallServiceSelector.addCall(this);
     }
 
     void clearCallServiceSelector() {
-        // TODO(gilad): Un-comment once selectors are converted into wrappers.
-        // decrementAssociatedCallCount(mCallServiceSelector);
-
-        mCallServiceSelector = null;
+        if (mCallServiceSelector != null) {
+            // TODO(sail): Stop leaking selectors.
+            // decrementAssociatedCallCount(mCallServiceSelector);
+            mCallServiceSelector.removeCall(this);
+            mCallServiceSelector = null;
+        }
     }
 
     /**
@@ -295,7 +293,7 @@ final class Call {
     void abort() {
         if (mState == CallState.NEW) {
             if (mCallService != null) {
-                mCallService.abort(mId);
+                mCallService.abort(this);
             }
             clearCallService();
             clearCallServiceSelector();
@@ -309,8 +307,8 @@ final class Call {
         if (mCallService == null) {
             Log.w(this, "playDtmfTone() request on a call without a call service.");
         } else {
-            Log.i(this, "Send playDtmfTone to call service for call with id %s", mId);
-            mCallService.playDtmfTone(mId, digit);
+            Log.i(this, "Send playDtmfTone to call service for call %s", this);
+            mCallService.playDtmfTone(this, digit);
         }
     }
 
@@ -321,8 +319,8 @@ final class Call {
         if (mCallService == null) {
             Log.w(this, "stopDtmfTone() request on a call without a call service.");
         } else {
-            Log.i(this, "Send stopDtmfTone to call service for call with id %s", mId);
-            mCallService.stopDtmfTone(mId);
+            Log.i(this, "Send stopDtmfTone to call service for call %s", this);
+            mCallService.stopDtmfTone(this);
         }
     }
 
@@ -333,11 +331,11 @@ final class Call {
         if (mCallService == null) {
             Log.w(this, "disconnect() request on a call without a call service.");
         } else {
-            Log.i(this, "Send disconnect to call service for call with id %s", mId);
+            Log.i(this, "Send disconnect to call service for call: %s", this);
             // The call isn't officially disconnected until the call service confirms that the call
             // was actually disconnected. Only then is the association between call and call service
             // severed, see {@link CallsManager#markCallAsDisconnected}.
-            mCallService.disconnect(mId);
+            mCallService.disconnect(this);
         }
     }
 
@@ -354,7 +352,7 @@ final class Call {
             // it will work. Instead, we wait until confirmation from the call service that the
             // call is in a non-RINGING state before changing the UI. See
             // {@link CallServiceAdapter#setActive} and other set* methods.
-            mCallService.answer(mId);
+            mCallService.answer(this);
         }
     }
 
@@ -367,7 +365,7 @@ final class Call {
         // Check to verify that the call is still in the ringing state. A call can change states
         // between the time the user hits 'reject' and Telecomm receives the command.
         if (isRinging("reject")) {
-            mCallService.reject(mId);
+            mCallService.reject(this);
         }
     }
 
@@ -378,7 +376,7 @@ final class Call {
         Preconditions.checkNotNull(mCallService);
 
         if (mState == CallState.ACTIVE) {
-            mCallService.hold(mId);
+            mCallService.hold(this);
         }
     }
 
@@ -389,15 +387,15 @@ final class Call {
         Preconditions.checkNotNull(mCallService);
 
         if (mState == CallState.ON_HOLD) {
-            mCallService.unhold(mId);
+            mCallService.unhold(this);
         }
     }
 
     /**
      * @return An object containing read-only information about this call.
      */
-    CallInfo toCallInfo() {
-        return new CallInfo(mId, mState, mHandle, mGatewayInfo);
+    CallInfo toCallInfo(String callId) {
+        return new CallInfo(callId, mState, mHandle, mGatewayInfo);
     }
 
     /** Checks if this is a live call or not. */

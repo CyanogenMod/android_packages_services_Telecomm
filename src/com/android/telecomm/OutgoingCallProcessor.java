@@ -164,15 +164,14 @@ final class OutgoingCallProcessor {
      * TODO(gilad): Consider making this class stateful, potentially rejecting out-of-order/
      * unexpected invocations (i.e. beyond checking for unexpected call IDs).
      *
-     * @param callId The ID of the call.
      * @param isCompatible True if the call-service is compatible with the corresponding call and
      *     false otherwise.
      */
-    void setIsCompatibleWith(String callId, boolean isCompatible) {
-        Log.v(this, "setIsCompatibleWith, callId: %s, isCompatible: %b", callId, isCompatible);
-        if (!callId.equals(mCall.getId())) {
-            Log.wtf(this, "setIsCompatibleWith invoked with unexpected call ID: %s - expected call"
-                  + " ID: %s", callId, mCall.getId());
+    void setIsCompatibleWith(Call call, boolean isCompatible) {
+        Log.v(this, "setIsCompatibleWith, call: %s, isCompatible: %b", call, isCompatible);
+        if (call != mCall) {
+            Log.wtf(this, "setIsCompatibleWith invoked with unexpected call: %s, expected call: %s",
+                    call, mCall);
             return;
         }
 
@@ -180,7 +179,7 @@ final class OutgoingCallProcessor {
             CallServiceWrapper callService = mCall.getCallService();
             if (callService != null) {
                 if (isCompatible) {
-                    callService.call(mCall.toCallInfo(), mNextCallServiceCallback);
+                    callService.call(mCall);
                     return;
                 }
                 mIncompatibleCallServices.add(callService);
@@ -198,6 +197,7 @@ final class OutgoingCallProcessor {
         ThreadUtil.checkOnMainThread();
         if (!mIsAborted) {
             mIsAborted = true;
+            // This will also clear the call's call service and selector.
             mOutgoingCallsManager.handleFailedOutgoingCall(mCall, true /* isAborted */);
         }
     }
@@ -232,9 +232,6 @@ final class OutgoingCallProcessor {
         Log.v(this, "handleFailedCallAttempt");
         if (!mIsAborted) {
             ThreadUtil.checkOnMainThread();
-
-            mCall.clearCallService();
-            mCall.clearCallServiceSelector();
             attemptNextCallService();
         }
     }
@@ -259,10 +256,11 @@ final class OutgoingCallProcessor {
                         processSelectedCallServiceDescriptors(callServices);
                     }
                 };
-            selector.select(mCall.toCallInfo(), mCallServiceDescriptors, responseCallback,
+            selector.select(mCall, mCallServiceDescriptors, responseCallback,
                     mNextSelectorCallback);
         } else {
             Log.v(this, "attemptNextSelector, no more selectors, failing");
+            mCall.clearCallServiceSelector();
             mOutgoingCallsManager.handleFailedOutgoingCall(mCall, false /* isAborted */);
         }
     }
@@ -310,10 +308,11 @@ final class OutgoingCallProcessor {
             } else {
                 mAttemptedCallServices.add(callService);
                 mCall.setCallService(callService);
-                callService.isCompatibleWith(mCall.toCallInfo(), mNextCallServiceCallback);
+                callService.isCompatibleWith(mCall, mNextCallServiceCallback);
             }
         } else {
             mCallServiceDescriptorIterator = null;
+            mCall.clearCallService();
             attemptNextSelector();
         }
     }

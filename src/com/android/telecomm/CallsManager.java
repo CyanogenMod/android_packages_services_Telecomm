@@ -62,12 +62,10 @@ public final class CallsManager {
     private final Switchboard mSwitchboard;
 
     /**
-     * The main call repository. Keeps an instance of all live calls keyed by call ID. New incoming
-     * and outgoing calls are added to the map and removed when the calls move to the disconnected
-     * state.
-     * TODO(santoscordon): Add new CallId class and use it in place of String.
+     * The main call repository. Keeps an instance of all live calls. New incoming and outgoing
+     * calls are added to the map and removed when the calls move to the disconnected state.
      */
-    private final Map<String, Call> mCalls = Maps.newHashMap();
+    private final Set<Call> mCalls = Sets.newLinkedHashSet();
 
     /**
      * The call the user is currently interacting with. This is the call that should have audio
@@ -104,7 +102,7 @@ public final class CallsManager {
     }
 
     ImmutableCollection<Call> getCalls() {
-        return ImmutableList.copyOf(mCalls.values());
+        return ImmutableList.copyOf(mCalls);
     }
 
     Call getForegroundCall() {
@@ -112,7 +110,7 @@ public final class CallsManager {
     }
 
     boolean hasEmergencyCall() {
-        for (Call call : mCalls.values()) {
+        for (Call call : mCalls) {
             if (call.isEmergencyCall()) {
                 return true;
             }
@@ -135,8 +133,8 @@ public final class CallsManager {
     void processIncomingCallIntent(CallServiceDescriptor descriptor, Bundle extras) {
         Log.d(this, "processIncomingCallIntent");
         // Create a call with no handle. Eventually, switchboard will update the call with
-        // additional information from the call service, but for now we just need one to pass around
-        // with a unique call ID.
+        // additional information from the call service, but for now we just need one to pass
+        // around.
         Call call = new Call(true /* isIncoming */);
 
         mSwitchboard.retrieveIncomingCall(call, descriptor, extras);
@@ -238,7 +236,7 @@ public final class CallsManager {
             removeCall(call);
         } else {
             // TODO: Replace disconnect cause with more specific disconnect causes.
-            markCallAsDisconnected(call.getId(), DisconnectCause.ERROR_UNSPECIFIED, null);
+            markCallAsDisconnected(call, DisconnectCause.ERROR_UNSPECIFIED, null);
         }
     }
 
@@ -246,22 +244,17 @@ public final class CallsManager {
      * Instructs Telecomm to answer the specified call. Intended to be invoked by the in-call
      * app through {@link InCallAdapter} after Telecomm notifies it of an incoming call followed by
      * the user opting to answer said call.
-     *
-     * @param callId The ID of the call.
      */
-    void answerCall(String callId) {
-        Call call = mCalls.get(callId);
-        if (call == null) {
-            Log.i(this, "Request to answer a non-existent call %s", callId);
+    void answerCall(Call call) {
+        if (!mCalls.contains(call)) {
+            Log.i(this, "Request to answer a non-existent call %s", call);
         } else {
             for (CallsManagerListener listener : mListeners) {
                 listener.onIncomingCallAnswered(call);
             }
 
             // We do not update the UI until we get confirmation of the answer() through
-            // {@link #markCallAsActive}. However, if we ever change that to look more responsive,
-            // then we need to make sure we add a timeout for the answer() in case the call never
-            // comes out of RINGING.
+            // {@link #markCallAsActive}.
             call.answer();
         }
     }
@@ -270,18 +263,14 @@ public final class CallsManager {
      * Instructs Telecomm to reject the specified call. Intended to be invoked by the in-call
      * app through {@link InCallAdapter} after Telecomm notifies it of an incoming call followed by
      * the user opting to reject said call.
-     *
-     * @param callId The ID of the call.
      */
-    void rejectCall(String callId) {
-        Call call = mCalls.get(callId);
-        if (call == null) {
-            Log.i(this, "Request to reject a non-existent call %s", callId);
+    void rejectCall(Call call) {
+        if (!mCalls.contains(call)) {
+            Log.i(this, "Request to reject a non-existent call %s", call);
         } else {
             for (CallsManagerListener listener : mListeners) {
                 listener.onIncomingCallRejected(call);
             }
-
             call.reject();
         }
     }
@@ -289,13 +278,11 @@ public final class CallsManager {
     /**
      * Instructs Telecomm to play the specified DTMF tone within the specified call.
      *
-     * @param callId The ID of the call.
      * @param digit The DTMF digit to play.
      */
-    void playDtmfTone(String callId, char digit) {
-        Call call = mCalls.get(callId);
-        if (call == null) {
-            Log.i(this, "Request to play DTMF in a non-existent call %s", callId);
+    void playDtmfTone(Call call, char digit) {
+        if (!mCalls.contains(call)) {
+            Log.i(this, "Request to play DTMF in a non-existent call %s", call);
         } else {
             call.playDtmfTone(digit);
         }
@@ -303,13 +290,10 @@ public final class CallsManager {
 
     /**
      * Instructs Telecomm to stop the currently playing DTMF tone, if any.
-     *
-     * @param callId The ID of the call.
      */
-    void stopDtmfTone(String callId) {
-        Call call = mCalls.get(callId);
-        if (call == null) {
-            Log.i(this, "Request to stop DTMF in a non-existent call %s", callId);
+    void stopDtmfTone(Call call) {
+        if (!mCalls.contains(call)) {
+            Log.i(this, "Request to stop DTMF in a non-existent call %s", call);
         } else {
             call.stopDtmfTone();
         }
@@ -317,13 +301,10 @@ public final class CallsManager {
 
     /**
      * Instructs Telecomm to continue the current post-dial DTMF string, if any.
-     *
-     * @param callId The ID of the call.
      */
-    void postDialContinue(String callId) {
-        Call call = mCalls.get(callId);
-        if (call == null) {
-            Log.i(this, "Request to continue post-dial string in a non-existent call %s", callId);
+    void postDialContinue(Call call) {
+        if (!mCalls.contains(call)) {
+            Log.i(this, "Request to continue post-dial string in a non-existent call %s", call);
         } else {
             // TODO(ihab): Implement this from this level on downwards
             // call.postDialContinue();
@@ -335,13 +316,10 @@ public final class CallsManager {
      * Instructs Telecomm to disconnect the specified call. Intended to be invoked by the
      * in-call app through {@link InCallAdapter} for an ongoing call. This is usually triggered by
      * the user hitting the end-call button.
-     *
-     * @param callId The ID of the call.
      */
-    void disconnectCall(String callId) {
-        Call call = mCalls.get(callId);
-        if (call == null) {
-            Log.w(this, "Unknown call (%s) asked to disconnect", callId);
+    void disconnectCall(Call call) {
+        if (!mCalls.contains(call)) {
+            Log.w(this, "Unknown call (%s) asked to disconnect", call);
         } else {
             call.disconnect();
         }
@@ -351,15 +329,12 @@ public final class CallsManager {
      * Instructs Telecomm to put the specified call on hold. Intended to be invoked by the
      * in-call app through {@link InCallAdapter} for an ongoing call. This is usually triggered by
      * the user hitting the hold button during an active call.
-     *
-     * @param callId The ID of the call.
      */
-    void holdCall(String callId) {
-        Call call = mCalls.get(callId);
-        if (call == null) {
-            Log.w(this, "Unknown call (%s) asked to be put on hold", callId);
+    void holdCall(Call call) {
+        if (!mCalls.contains(call)) {
+            Log.w(this, "Unknown call (%s) asked to be put on hold", call);
         } else {
-            Log.d(this, "Putting call on hold: (%s)", callId);
+            Log.d(this, "Putting call on hold: (%s)", call);
             call.hold();
         }
     }
@@ -368,15 +343,12 @@ public final class CallsManager {
      * Instructs Telecomm to release the specified call from hold. Intended to be invoked by
      * the in-call app through {@link InCallAdapter} for an ongoing call. This is usually triggered
      * by the user hitting the hold button during a held call.
-     *
-     * @param callId The ID of the call
      */
-    void unholdCall(String callId) {
-        Call call = mCalls.get(callId);
-        if (call == null) {
-            Log.w(this, "Unknown call (%s) asked to be removed from hold", callId);
+    void unholdCall(Call call) {
+        if (!mCalls.contains(call)) {
+            Log.w(this, "Unknown call (%s) asked to be removed from hold", call);
         } else {
-            Log.d(this, "Removing call from hold: (%s)", callId);
+            Log.d(this, "Removing call from hold: (%s)", call);
             call.unhold();
         }
     }
@@ -402,37 +374,33 @@ public final class CallsManager {
         }
     }
 
-    void markCallAsRinging(String callId) {
-        setCallState(callId, CallState.RINGING);
+    void markCallAsRinging(Call call) {
+        setCallState(call, CallState.RINGING);
     }
 
-    void markCallAsDialing(String callId) {
-        setCallState(callId, CallState.DIALING);
+    void markCallAsDialing(Call call) {
+        setCallState(call, CallState.DIALING);
     }
 
-    void markCallAsActive(String callId) {
-        setCallState(callId, CallState.ACTIVE);
+    void markCallAsActive(Call call) {
+        setCallState(call, CallState.ACTIVE);
     }
 
-    void markCallAsOnHold(String callId) {
-        setCallState(callId, CallState.ON_HOLD);
+    void markCallAsOnHold(Call call) {
+        setCallState(call, CallState.ON_HOLD);
     }
 
     /**
      * Marks the specified call as DISCONNECTED and notifies the in-call app. If this was the last
      * live call, then also disconnect from the in-call controller.
      *
-     * @param callId The ID of the call.
      * @param disconnectCause The disconnect reason, see {@link android.telephony.DisconnectCause}.
      * @param disconnectMessage Optional call-service-provided message about the disconnect.
      */
-    void markCallAsDisconnected(String callId, int disconnectCause, String disconnectMessage) {
-        Call call = mCalls.get(callId);
-        if (call != null) {
-            call.setDisconnectCause(disconnectCause, disconnectMessage);
-            setCallState(callId, CallState.DISCONNECTED);
-            removeCall(call);
-        }
+    void markCallAsDisconnected(Call call, int disconnectCause, String disconnectMessage) {
+        call.setDisconnectCause(disconnectCause, disconnectMessage);
+        setCallState(call, CallState.DISCONNECTED);
+        removeCall(call);
     }
 
     /**
@@ -443,9 +411,9 @@ public final class CallsManager {
      */
     void handleCallServiceDeath(CallServiceWrapper callService) {
         Preconditions.checkNotNull(callService);
-        for (Call call : ImmutableList.copyOf(mCalls.values())) {
+        for (Call call : ImmutableList.copyOf(mCalls)) {
             if (call.getCallService() == callService) {
-                markCallAsDisconnected(call.getId(), DisconnectCause.ERROR_UNSPECIFIED, null);
+                markCallAsDisconnected(call, DisconnectCause.ERROR_UNSPECIFIED, null);
             }
         }
     }
@@ -456,7 +424,7 @@ public final class CallsManager {
      * @param call The call to add.
      */
     private void addCall(Call call) {
-        mCalls.put(call.getId(), call);
+        mCalls.add(call);
         for (CallsManagerListener listener : mListeners) {
             listener.onCallAdded(call);
         }
@@ -464,30 +432,21 @@ public final class CallsManager {
     }
 
     private void removeCall(Call call) {
-        mCalls.remove(call.getId());
         call.clearCallService();
-        for (CallsManagerListener listener : mListeners) {
-            listener.onCallRemoved(call);
+        call.clearCallServiceSelector();
+
+        boolean shouldNotify = false;
+        if (mCalls.contains(call)) {
+            mCalls.remove(call);
+            shouldNotify = true;
         }
-        updateForegroundCall();
-    }
 
-    /**
-     * Sets the specified state on the specified call.
-     *
-     * @param callId The ID of the call to update.
-     * @param newState The new state of the call.
-     */
-    private void setCallState(String callId, CallState newState) {
-        Preconditions.checkState(!Strings.isNullOrEmpty(callId));
-        Preconditions.checkNotNull(newState);
-
-        Call call = mCalls.get(callId);
-        if (call == null) {
-            Log.w(this, "Call %s was not found while attempting to update the state to %s.",
-                    callId, newState );
-        } else {
-            setCallState(call, newState);
+        // Only broadcast changes for calls that are being tracked.
+        if (shouldNotify) {
+            for (CallsManagerListener listener : mListeners) {
+                listener.onCallRemoved(call);
+            }
+            updateForegroundCall();
         }
     }
 
@@ -498,6 +457,7 @@ public final class CallsManager {
      * @param newState The new state of the call.
      */
     private void setCallState(Call call, CallState newState) {
+        Preconditions.checkNotNull(newState);
         CallState oldState = call.getState();
         if (newState != oldState) {
             // Unfortunately, in the telephony world the radio is king. So if the call notifies
@@ -510,7 +470,7 @@ public final class CallsManager {
             call.setState(newState);
 
             // Only broadcast state change for calls that are being tracked.
-            if (mCalls.containsKey(call.getId())) {
+            if (mCalls.contains(call)) {
                 for (CallsManagerListener listener : mListeners) {
                     listener.onCallStateChanged(call, oldState, newState);
                 }
@@ -524,7 +484,7 @@ public final class CallsManager {
      */
     private void updateForegroundCall() {
         Call newForegroundCall = null;
-        for (Call call : mCalls.values()) {
+        for (Call call : mCalls) {
             // Incoming ringing calls have priority.
             if (call.getState() == CallState.RINGING) {
                 newForegroundCall = call;

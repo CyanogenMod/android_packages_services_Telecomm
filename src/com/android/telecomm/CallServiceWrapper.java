@@ -48,18 +48,25 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
     private ICallService mServiceInterface;
 
     private Binder mBinder = new Binder();
+    private final CallIdMapper mCallIdMapper;
 
     /**
-     * Creates a call-service provider for the specified descriptor.
+     * Creates a call-service for the specified descriptor.
      *
      * @param descriptor The call-service descriptor from
      *         {@link ICallServiceProvider#lookupCallServices}.
-     * @param adapter The call-service adapter.
+     * @param outgoingCallsManager Manages the placing of outgoing calls.
+     * @param incomingCallsManager Manages the incoming call initialization flow.
      */
-    CallServiceWrapper(CallServiceDescriptor descriptor, CallServiceAdapter adapter) {
+    CallServiceWrapper(
+            CallServiceDescriptor descriptor,
+            OutgoingCallsManager outgoingCallsManager,
+            IncomingCallsManager incomingCallsManager) {
         super(TelecommConstants.ACTION_CALL_SERVICE, descriptor.getServiceComponent());
         mDescriptor = descriptor;
-        mAdapter = adapter;
+        mCallIdMapper = new CallIdMapper("CallService");
+        mAdapter = new CallServiceAdapter(outgoingCallsManager, incomingCallsManager,
+                mCallIdMapper);
     }
 
     CallServiceDescriptor getDescriptor() {
@@ -67,12 +74,11 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
     }
 
     /** See {@link ICallService#setCallServiceAdapter}. */
-    void setCallServiceAdapter(ICallServiceAdapter callServiceAdapter) {
+    private void setCallServiceAdapter(ICallServiceAdapter callServiceAdapter) {
         if (isServiceValid("setCallServiceAdapter")) {
             try {
                 mServiceInterface.setCallServiceAdapter(callServiceAdapter);
             } catch (RemoteException e) {
-                Log.e(this, e, "Failed to setCallServiceAdapter.");
             }
         }
     }
@@ -82,20 +88,18 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
      * see {@link ICallService#isCompatibleWith}.  Upon failure, the specified error callback is
      * invoked. Can be invoked even when the call service is unbound.
      *
-     * @param callInfo The details of the call.
      * @param errorCallback The callback to invoke upon failure.
      */
-    void isCompatibleWith(final CallInfo callInfo, final Runnable errorCallback) {
-        Log.d(this, "isCompatibleWith(%s) via %s.", callInfo, getComponentName());
+    void isCompatibleWith(final Call call, final Runnable errorCallback) {
+        Log.d(this, "isCompatibleWith(%s) via %s.", call, getComponentName());
         BindCallback callback = new BindCallback() {
             @Override public void onSuccess() {
                 if (isServiceValid("isCompatibleWith")) {
                     try {
-                        mAdapter.addPendingOutgoingCallId(callInfo.getId());
+                        mAdapter.addPendingCall(call);
+                        CallInfo callInfo = call.toCallInfo(mCallIdMapper.getCallId(call));
                         mServiceInterface.isCompatibleWith(callInfo);
                     } catch (RemoteException e) {
-                        mAdapter.removePendingOutgoingCallId(callInfo.getId());
-                        Log.e(CallServiceWrapper.this, e, "Failed checking isCompatibleWith.");
                     }
                 }
             }
@@ -110,72 +114,56 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
     /**
      * Attempts to place the specified call, see {@link ICallService#call}.  Upon failure, the
      * specified error callback is invoked. Can be invoked even when the call service is unbound.
-     *
-     * @param callInfo The details of the call.
-     * @param errorCallback The callback to invoke upon failure.
      */
-    void call(final CallInfo callInfo, final Runnable errorCallback) {
-        Log.d(this, "call(%s) via %s.", callInfo, getComponentName());
-        BindCallback callback = new BindCallback() {
-            @Override public void onSuccess() {
-                String callId = callInfo.getId();
-                if (isServiceValid("call")) {
-                    try {
-                        mServiceInterface.call(callInfo);
-                    } catch (RemoteException e) {
-                        Log.e(CallServiceWrapper.this, e, "Failed to place call %s", callId);
-                    }
-                }
+    void call(Call call) {
+        Log.d(this, "call(%s) via %s.", call, getComponentName());
+        if (isServiceValid("call")) {
+            try {
+                CallInfo callInfo = call.toCallInfo(mCallIdMapper.getCallId(call));
+                mServiceInterface.call(callInfo);
+            } catch (RemoteException e) {
             }
-            @Override public void onFailure() {
-                errorCallback.run();
-            }
-        };
-
-         mBinder.bind(callback);
+        }
     }
 
     /** @see CallService#abort(String) */
-    void abort(String callId) {
-        mAdapter.removePendingOutgoingCallId(callId);
+    void abort(Call call) {
+        mAdapter.removePendingCall(call);
         if (isServiceValid("abort")) {
             try {
-                mServiceInterface.abort(callId);
+                mServiceInterface.abort(mCallIdMapper.getCallId(call));
             } catch (RemoteException e) {
-                Log.e(this, e, "Failed to abort call %s", callId);
             }
         }
     }
 
     /** @see CallService#hold(String) */
-    void hold(String callId) {
+    void hold(Call call) {
         if (isServiceValid("hold")) {
             try {
-                mServiceInterface.hold(callId);
+                mServiceInterface.hold(mCallIdMapper.getCallId(call));
             } catch (RemoteException e) {
-                Log.e(this, e, "Failed to put on hold for call %s", callId);
             }
         }
     }
 
     /** @see CallService#unhold(String) */
-    void unhold(String callId) {
+    void unhold(Call call) {
         if (isServiceValid("unhold")) {
             try {
-                mServiceInterface.unhold(callId);
+                mServiceInterface.unhold(mCallIdMapper.getCallId(call));
             } catch (RemoteException e) {
-                Log.e(this, e, "Failed to remove from hold for call %s", callId);
             }
         }
     }
 
     /** @see CallService#onAudioStateChanged(String,CallAudioState) */
-    void onAudioStateChanged(String activeCallId, CallAudioState audioState) {
+    void onAudioStateChanged(Call activeCall, CallAudioState audioState) {
         if (isServiceValid("onAudioStateChanged")) {
             try {
-                mServiceInterface.onAudioStateChanged(activeCallId, audioState);
+                mServiceInterface.onAudioStateChanged(mCallIdMapper.getCallId(activeCall),
+                        audioState);
             } catch (RemoteException e) {
-                Log.e(this, e, "Failed to update audio state for call %s", activeCallId);
             }
         }
     }
@@ -186,26 +174,20 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
      * is invoked. Can be invoked even when the call service is unbound.
      * See {@link ICallService#setIncomingCallId}.
      *
-     * @param callId The call ID used for the incoming call.
+     * @param call The call used for the incoming call.
      * @param extras The {@link CallService}-provided extras which need to be sent back.
      * @param errorCallback The callback to invoke upon failure.
      */
-    void setIncomingCallId(
-            final String callId,
-            final Bundle extras,
-            final Runnable errorCallback) {
-
-        Log.d(this, "setIncomingCall(%s) via %s.", callId, getComponentName());
+    void setIncomingCallId(final Call call, final Bundle extras, final Runnable errorCallback) {
+        Log.d(this, "setIncomingCall(%s) via %s.", call, getComponentName());
         BindCallback callback = new BindCallback() {
             @Override public void onSuccess() {
                 if (isServiceValid("setIncomingCallId")) {
-                    mAdapter.addPendingIncomingCallId(callId);
+                    mAdapter.addPendingCall(call);
                     try {
-                        mServiceInterface.setIncomingCallId(callId, extras);
+                        mServiceInterface.setIncomingCallId(mCallIdMapper.getCallId(call),
+                                extras);
                     } catch (RemoteException e) {
-                        Log.e(CallServiceWrapper.this, e,
-                                "Failed to setIncomingCallId for call %s", callId);
-                        mAdapter.removePendingIncomingCallId(callId);
                     }
                 }
             }
@@ -218,78 +200,62 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
     }
 
     /** @see CallService#disconnect(String) */
-    void disconnect(String callId) {
+    void disconnect(Call call) {
         if (isServiceValid("disconnect")) {
             try {
-                mServiceInterface.disconnect(callId);
+                mServiceInterface.disconnect(mCallIdMapper.getCallId(call));
             } catch (RemoteException e) {
-                Log.e(this, e, "Failed to disconnect call %s", callId);
             }
         }
     }
 
     /** @see CallService#answer(String) */
-    void answer(String callId) {
+    void answer(Call call) {
         if (isServiceValid("answer")) {
             try {
-                mServiceInterface.answer(callId);
+                mServiceInterface.answer(mCallIdMapper.getCallId(call));
             } catch (RemoteException e) {
-                Log.e(this, e, "Failed to answer call %s", callId);
             }
         }
     }
 
     /** @see CallService#reject(String) */
-    void reject(String callId) {
+    void reject(Call call) {
         if (isServiceValid("reject")) {
             try {
-                mServiceInterface.reject(callId);
+                mServiceInterface.reject(mCallIdMapper.getCallId(call));
             } catch (RemoteException e) {
-                Log.e(this, e, "Failed to reject call %s", callId);
             }
         }
     }
 
     /** @see CallService#playDtmfTone(String,char) */
-    void playDtmfTone(String callId, char digit) {
+    void playDtmfTone(Call call, char digit) {
         if (isServiceValid("playDtmfTone")) {
             try {
-                mServiceInterface.playDtmfTone(callId, digit);
+                mServiceInterface.playDtmfTone(mCallIdMapper.getCallId(call), digit);
             } catch (RemoteException e) {
-                Log.e(this, e, "Failed to play DTMF tone for call %s", callId);
             }
         }
     }
 
     /** @see CallService#stopDtmfTone(String) */
-    void stopDtmfTone(String callId) {
+    void stopDtmfTone(Call call) {
         if (isServiceValid("stopDtmfTone")) {
             try {
-                mServiceInterface.stopDtmfTone(callId);
+                mServiceInterface.stopDtmfTone(mCallIdMapper.getCallId(call));
             } catch (RemoteException e) {
-                Log.e(this, e, "Failed to stop DTMF tone for call %s", callId);
             }
         }
     }
 
-    /**
-     * Cancels the incoming call for the specified call ID.
-     * TODO(santoscordon): This method should be called by IncomingCallsManager when the incoming
-     * call has failed.
-     *
-     * @param callId The ID of the call.
-     */
-    void cancelIncomingCall(String callId) {
-        mAdapter.removePendingIncomingCallId(callId);
+    void addCall(Call call) {
+        mCallIdMapper.addCall(call);
     }
 
-    /**
-     * Cancels the outgoing call for the specified call ID.
-     *
-     * @param callId The ID of the call.
-     */
-    void cancelOutgoingCall(String callId) {
-        mAdapter.removePendingOutgoingCallId(callId);
+    void removeCall(Call call) {
+        mAdapter.removePendingCall(call);
+        mCallIdMapper.removeCall(call);
     }
 
     /** {@inheritDoc} */

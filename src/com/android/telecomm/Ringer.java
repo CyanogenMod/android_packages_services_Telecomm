@@ -34,7 +34,7 @@ final class Ringer extends CallsManagerListenerBase {
      * Used to keep ordering of unanswered incoming calls. There can easily exist multiple incoming
      * calls and explicit ordering is useful for maintaining the proper state of the ringer.
      */
-    private final List<String> mUnansweredCallIds = Lists.newLinkedList();
+    private final List<Call> mUnansweredCalls = Lists.newLinkedList();
 
     private final CallAudioManager mCallAudioManager;
 
@@ -45,11 +45,11 @@ final class Ringer extends CallsManagerListenerBase {
     @Override
     public void onCallAdded(Call call) {
         if (call.isIncoming() && call.getState() == CallState.RINGING) {
-            if (mUnansweredCallIds.contains(call.getId())) {
+            if (mUnansweredCalls.contains(call)) {
                 Log.wtf(this, "New ringing call is already in list of unanswered calls");
             }
-            mUnansweredCallIds.add(call.getId());
-            if (mUnansweredCallIds.size() == 1) {
+            mUnansweredCalls.add(call);
+            if (mUnansweredCalls.size() == 1) {
                 // Start the ringer if we are the top-most incoming call (the only one in this
                 // case).
                 startRinging();
@@ -59,13 +59,13 @@ final class Ringer extends CallsManagerListenerBase {
 
     @Override
     public void onCallRemoved(Call call) {
-        removeFromUnansweredCallIds(call.getId());
+        removeFromUnansweredCall(call);
     }
 
     @Override
     public void onCallStateChanged(Call call, CallState oldState, CallState newState) {
         if (newState != CallState.RINGING) {
-            removeFromUnansweredCallIds(call.getId());
+            removeFromUnansweredCall(call);
         }
     }
 
@@ -81,21 +81,19 @@ final class Ringer extends CallsManagerListenerBase {
 
     private void onRespondedToIncomingCall(Call call) {
         // Only stop the ringer if this call is the top-most incoming call.
-        if (!mUnansweredCallIds.isEmpty() && mUnansweredCallIds.get(0).equals(call.getId())) {
+        if (!mUnansweredCalls.isEmpty() && mUnansweredCalls.get(0) == call) {
             stopRinging();
         }
     }
 
     /**
      * Removes the specified call from the list of unanswered incoming calls and updates the ringer
-     * based on the new state of {@link #mUnansweredCallIds}. Safe to call with a call ID that
-     * is not present in the list of incoming calls.
-     *
-     * @param callId The ID of the call.
+     * based on the new state of {@link #mUnansweredCalls}. Safe to call with a call that is not
+     * present in the list of incoming calls.
      */
-    private void removeFromUnansweredCallIds(String callId) {
-        if (mUnansweredCallIds.remove(callId)) {
-            if (mUnansweredCallIds.isEmpty()) {
+    private void removeFromUnansweredCall(Call call) {
+        if (mUnansweredCalls.remove(call)) {
+            if (mUnansweredCalls.isEmpty()) {
                 stopRinging();
             } else {
                 startRinging();
