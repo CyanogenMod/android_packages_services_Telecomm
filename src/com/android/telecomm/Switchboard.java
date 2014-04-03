@@ -16,12 +16,7 @@
 
 package com.android.telecomm;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableCollection;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-
+import android.content.ComponentName;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -29,18 +24,21 @@ import android.telecomm.CallInfo;
 import android.telecomm.CallServiceDescriptor;
 import android.telecomm.TelecommConstants;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableCollection;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Sets;
+
+import java.util.Collection;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Set;
 
 /**
  * Switchboard is responsible for:
- * <ul>
- * <li> gathering the {@link CallServiceWrapper}s and {@link CallServiceSelectorWrapper}s through which to place
- * outgoing calls
- * <li> starting outgoing calls (via {@link OutgoingCallsManager}
- * <li> switching active calls between call services.
- * </ul>
+ * - gathering the {@link CallServiceWrapper}s and {@link CallServiceSelectorWrapper}s through
+ *       which to place outgoing calls
+ * - starting outgoing calls (via {@link OutgoingCallsManager}
+ * - switching active calls between call services.
  */
 final class Switchboard {
 
@@ -149,7 +147,7 @@ final class Switchboard {
      * @param call The call object.
      * @param descriptor The relevant call-service descriptor.
      * @param extras The optional extras passed via
-     *     {@link TelecommConstants#EXTRA_INCOMING_CALL_EXTRAS}
+     *         {@link TelecommConstants#EXTRA_INCOMING_CALL_EXTRAS}
      */
     void retrieveIncomingCall(Call call, CallServiceDescriptor descriptor, Bundle extras) {
         Log.d(this, "retrieveIncomingCall");
@@ -295,7 +293,33 @@ final class Switchboard {
      * @param call The call to place.
      */
     private void processNewOutgoingCall(Call call) {
-        mOutgoingCallsManager.placeCall(call, mCallServices, mSelectors);
+        Collection<CallServiceSelectorWrapper> selectors = mSelectors;
+
+        boolean useEmergencySelector =
+                EmergencyCallServiceSelector.shouldUseSelector(call.getHandle());
+        Log.d(this, "processNewOutgoingCall, isEmergency=%b", useEmergencySelector);
+
+        if (useEmergencySelector) {
+            // This is potentially an emergency call so add the emergency selector before the
+            // other selectors.
+            ImmutableList.Builder<CallServiceSelectorWrapper> selectorsBuilder =
+                    ImmutableList.builder();
+
+            ComponentName componentName = new ComponentName(
+                    TelecommApp.getInstance(), EmergencyCallServiceSelector.class);
+            CallServiceSelectorWrapper emergencySelector =
+                    new CallServiceSelectorWrapper(
+                            componentName.flattenToShortString(),
+                            componentName,
+                            mCallsManager,
+                            mOutgoingCallsManager);
+
+            selectorsBuilder.add(emergencySelector);
+            selectorsBuilder.addAll(mSelectors);
+            selectors = selectorsBuilder.build();
+        }
+
+        mOutgoingCallsManager.placeCall(call, mCallServices, selectors);
     }
 
     /**

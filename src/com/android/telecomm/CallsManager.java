@@ -188,7 +188,7 @@ public final class CallsManager {
      * @param handle Handle to connect the call with.
      * @param contactInfo Information about the entity being called.
      * @param gatewayInfo Optional gateway information that can be used to route the call to the
-     *     actual dialed handle via a gateway provider. May be null.
+     *         actual dialed handle via a gateway provider. May be null.
      */
     void placeOutgoingCall(Uri handle, ContactInfo contactInfo, GatewayInfo gatewayInfo) {
         for (OutgoingCallValidator validator : mOutgoingCallValidators) {
@@ -207,7 +207,7 @@ public final class CallsManager {
             Log.i(this, "Creating a new outgoing call with gateway handle: %s, original handle: %s",
                     Log.pii(uriHandle), Log.pii(handle));
         }
-        Call call = new Call(uriHandle, contactInfo, gatewayInfo, false /*isIncoming*/);
+        Call call = new Call(uriHandle, contactInfo, gatewayInfo, false /* isIncoming */);
         setCallState(call, CallState.DIALING);
         addCall(call);
         mSwitchboard.placeOutgoingCall(call);

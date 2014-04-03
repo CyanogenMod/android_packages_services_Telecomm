@@ -25,9 +25,10 @@ import android.telecomm.CallServiceDescriptor;
 import android.telecomm.CallServiceSelector;
 import android.telecomm.TelecommConstants;
 
-import com.google.common.base.Preconditions;
+import com.android.internal.telecomm.ICallServiceSelectionResponse;
 import com.android.internal.telecomm.ICallServiceSelector;
 import com.android.internal.telecomm.ICallServiceSelectorAdapter;
+import com.google.common.base.Preconditions;
 
 import java.util.List;
 
@@ -43,15 +44,42 @@ final class CallServiceSelectorWrapper extends ServiceBinder<ICallServiceSelecto
     private final CallServiceSelectorAdapter mAdapter;
 
     /**
-     * Creates a call-service selector for the specified component.
+     * Creates a call-service selector for the specified component using the specified action to
+     * bind to it.
+     *
+     * @param action The action used to bind to the selector.
+     * @param componentName The component name of the service.
+     * @param callsManager The calls manager.
+     * @param outgoingCallsManager The outgoing calls manager.
+     */
+    CallServiceSelectorWrapper(
+            String action,
+            ComponentName componentName,
+            CallsManager callsManager,
+            OutgoingCallsManager outgoingCallsManager) {
+
+        super(action, componentName);
+        mAdapter =
+                new CallServiceSelectorAdapter(callsManager, outgoingCallsManager, mCallIdMapper);
+    }
+
+    /**
+     * Creates a call-service selector for specified component and uses
+     * {@link TelecommConstants#ACTION_CALL_SERVICE_SELECTOR} as the action to bind.
      *
      * @param componentName The component name of the service.
+     * @param callsManager The calls manager.
+     * @param outgoingCallsManager The outgoing calls manager.
      */
-    CallServiceSelectorWrapper(ComponentName componentName, CallsManager callsManager,
+    CallServiceSelectorWrapper(
+            ComponentName componentName,
+            CallsManager callsManager,
             OutgoingCallsManager outgoingCallsManager) {
-        super(TelecommConstants.ACTION_CALL_SERVICE_SELECTOR, componentName);
-        mAdapter = new CallServiceSelectorAdapter(callsManager, outgoingCallsManager,
-                mCallIdMapper);
+
+        this(TelecommConstants.ACTION_CALL_SERVICE_SELECTOR,
+                componentName,
+                callsManager,
+                outgoingCallsManager);
     }
 
     /** See {@link CallServiceSelector#setCallServiceSelectorAdapter}. */

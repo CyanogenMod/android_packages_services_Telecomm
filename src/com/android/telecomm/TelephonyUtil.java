@@ -43,6 +43,17 @@ public final class TelephonyUtil {
         return selector.getComponentName().getPackageName().equals(TELEPHONY_PACKAGE_NAME);
     }
 
+    static boolean isPstnCallService(CallServiceDescriptor descriptor) {
+        ComponentName componentName = descriptor.getServiceComponent();
+        if (TELEPHONY_PACKAGE_NAME.equals(componentName.getPackageName())) {
+            String className = componentName.getClassName();
+            return GSM_CALL_SERVICE_CLASS_NAME.equals(className) ||
+                    CDMA_CALL_SERVICE_CLASS_NAME.equals(className);
+        }
+
+        return false;
+    }
+
     /**
      * Returns whether or not the call is currently connected as a cellular call (through the
      * device's cellular radio).
@@ -57,10 +68,7 @@ public final class TelephonyUtil {
         if (callService == null) {
             return false;
         }
-        CallServiceDescriptor descriptor = callService.getDescriptor();
-        String className = descriptor.getServiceComponent().getClassName();
-        return className.equals(GSM_CALL_SERVICE_CLASS_NAME) ||
-                className.equals(CDMA_CALL_SERVICE_CLASS_NAME);
+        return isPstnCallService(callService.getDescriptor());
     }
 
     private static void verifyCallServiceExists(String serviceName) {
