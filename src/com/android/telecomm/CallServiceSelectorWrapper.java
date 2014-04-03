@@ -17,7 +17,6 @@
 package com.android.telecomm;
 
 import android.content.ComponentName;
-import android.os.Handler;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.telecomm.CallInfo;
@@ -25,10 +24,8 @@ import android.telecomm.CallServiceDescriptor;
 import android.telecomm.CallServiceSelector;
 import android.telecomm.TelecommConstants;
 
-import com.android.internal.telecomm.ICallServiceSelectionResponse;
 import com.android.internal.telecomm.ICallServiceSelector;
 import com.android.internal.telecomm.ICallServiceSelectorAdapter;
-import com.google.common.base.Preconditions;
 
 import java.util.List;
 
@@ -39,7 +36,6 @@ import java.util.List;
 final class CallServiceSelectorWrapper extends ServiceBinder<ICallServiceSelector> {
     private ICallServiceSelector mSelectorInterface;
     private final Binder mBinder = new Binder();
-    private final Handler mHandler = new Handler();
     private final CallIdMapper mCallIdMapper = new CallIdMapper("CallServiceSelector");
     private final CallServiceSelectorAdapter mAdapter;
 
