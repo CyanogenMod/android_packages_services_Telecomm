@@ -49,21 +49,15 @@ public class TestCallService extends CallService {
     private Set<String> mLiveCallIds;
 
     /**
-     * Adapter to call back into CallsManager.
-     */
-    private CallServiceAdapter mTelecommAdapter;
-
-    /**
      * Used to play an audio tone during a call.
      */
     private MediaPlayer mMediaPlayer;
 
     /** {@inheritDoc} */
     @Override
-    public void setCallServiceAdapter(CallServiceAdapter callServiceAdapter) {
+    public void onAdapterAttached(CallServiceAdapter callServiceAdapter) {
         Log.i(TAG, "setCallServiceAdapter()");
 
-        mTelecommAdapter = callServiceAdapter;
         mLiveCallIds = Sets.newHashSet();
 
         mMediaPlayer = createMediaPlayer();
@@ -87,7 +81,7 @@ public class TestCallService extends CallService {
         // Returning positively on setCompatibleWith() doesn't guarantee that we will be chosen
         // to place the call. If we *are* chosen then CallsManager will execute the call()
         // method below.
-        mTelecommAdapter.setIsCompatibleWith(callInfo.getId(), isCompatible);
+        getAdapter().setIsCompatibleWith(callInfo.getId(), isCompatible);
     }
 
     /**
@@ -107,7 +101,7 @@ public class TestCallService extends CallService {
         }
 
         createCall(callInfo.getId());
-        mTelecommAdapter.handleSuccessfulOutgoingCall(callInfo.getId());
+        getAdapter().handleSuccessfulOutgoingCall(callInfo.getId());
     }
 
     /** {@inheritDoc} */
@@ -126,20 +120,20 @@ public class TestCallService extends CallService {
         Uri handle = Uri.fromParts("tel", "5551234", null);
 
         CallInfo callInfo = new CallInfo(callId, CallState.RINGING, handle);
-        mTelecommAdapter.notifyIncomingCall(callInfo);
+        getAdapter().notifyIncomingCall(callInfo);
     }
 
     /** {@inheritDoc} */
     @Override
     public void answer(String callId) {
-        mTelecommAdapter.setActive(callId);
+        getAdapter().setActive(callId);
         createCall(callId);
     }
 
     /** {@inheritDoc} */
     @Override
     public void reject(String callId) {
-        mTelecommAdapter.setDisconnected(callId, DisconnectCause.INCOMING_REJECTED, null);
+        getAdapter().setDisconnected(callId, DisconnectCause.INCOMING_REJECTED, null);
     }
 
     /** {@inheritDoc} */
@@ -148,21 +142,21 @@ public class TestCallService extends CallService {
         Log.i(TAG, "disconnect(" + callId + ")");
 
         destroyCall(callId);
-        mTelecommAdapter.setDisconnected(callId, DisconnectCause.LOCAL, null);
+        getAdapter().setDisconnected(callId, DisconnectCause.LOCAL, null);
     }
 
     /** {@inheritDoc} */
     @Override
     public void hold(String callId) {
         Log.i(TAG, "hold(" + callId + ")");
-        mTelecommAdapter.setOnHold(callId);
+        getAdapter().setOnHold(callId);
     }
 
     /** {@inheritDoc} */
     @Override
     public void unhold(String callId) {
         Log.i(TAG, "unhold(" + callId + ")");
-        mTelecommAdapter.setActive(callId);
+        getAdapter().setActive(callId);
     }
 
     /** {@inheritDoc} */

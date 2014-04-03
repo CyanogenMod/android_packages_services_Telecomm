@@ -36,7 +36,6 @@ import java.util.List;
  * first ones to try to place the call.
  */
 public class EmergencyCallServiceSelector extends CallServiceSelector {
-    CallServiceSelectorAdapter mAdapter = null;
 
     /**
      * Returns true if the handle passed in is to a potential emergency number.
@@ -44,12 +43,6 @@ public class EmergencyCallServiceSelector extends CallServiceSelector {
     static boolean shouldUseSelector(Uri handle) {
         return PhoneNumberUtils.isPotentialLocalEmergencyNumber(
                 handle.getSchemeSpecificPart(), TelecommApp.getInstance());
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    protected void setCallServiceSelectorAdapter(CallServiceSelectorAdapter adapter) {
-        mAdapter = adapter;
     }
 
     /** {@inheritDoc} */
@@ -75,8 +68,6 @@ public class EmergencyCallServiceSelector extends CallServiceSelector {
             }
         }
 
-        if (mAdapter != null) {
-            mAdapter.setSelectedCallServices(callInfo.getId(), selectedDescriptors);
-        }
+        getAdapter().setSelectedCallServices(callInfo.getId(), selectedDescriptors);
     }
 }

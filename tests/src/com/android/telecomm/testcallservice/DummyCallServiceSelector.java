@@ -30,12 +30,6 @@ import java.util.List;
  * was given. Also returns false for every request on switchability.
  */
 public class DummyCallServiceSelector extends CallServiceSelector {
-    private CallServiceSelectorAdapter mAdapter;
-
-    @Override
-    protected void setCallServiceSelectorAdapter(CallServiceSelectorAdapter adapter) {
-        mAdapter = adapter;
-    }
 
     @Override
     protected void select(CallInfo callInfo, List<CallServiceDescriptor> descriptors) {
@@ -49,6 +43,6 @@ public class DummyCallServiceSelector extends CallServiceSelector {
             }
         }
 
-        mAdapter.setSelectedCallServices(callInfo.getId(), orderedList);
+        getAdapter().setSelectedCallServices(callInfo.getId(), orderedList);
     }
 }
