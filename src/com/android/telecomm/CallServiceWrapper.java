@@ -28,6 +28,7 @@ import android.telecomm.TelecommConstants;
 import com.android.internal.telecomm.ICallService;
 import com.android.internal.telecomm.ICallServiceAdapter;
 import com.android.internal.telecomm.ICallServiceProvider;
+import com.google.common.base.Preconditions;
 
 /**
  * Wrapper for {@link ICallService}s, handles binding to {@link ICallService} and keeps track of
@@ -251,6 +252,14 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
 
     void addCall(Call call) {
         mCallIdMapper.addCall(call);
+    }
+
+    /**
+     * Associates newCall with this call service by replacing callToReplace.
+     */
+    void replaceCall(Call newCall, Call callToReplace) {
+        Preconditions.checkState(callToReplace.getCallService() == this);
+        mCallIdMapper.replaceCall(newCall, callToReplace);
     }
 
     void removeCall(Call call) {

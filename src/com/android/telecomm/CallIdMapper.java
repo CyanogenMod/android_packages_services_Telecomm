@@ -30,6 +30,14 @@ class CallIdMapper {
         mCallIdPrefix = callIdPrefix + "@";
     }
 
+    void replaceCall(Call newCall, Call callToReplace) {
+        ThreadUtil.checkOnMainThread();
+
+        // Use the old call's ID for the new call.
+        String callId = getCallId(callToReplace);
+        mCalls.put(callId, newCall);
+    }
+
     void addCall(Call call) {
         ThreadUtil.checkOnMainThread();
         Preconditions.checkNotNull(call);

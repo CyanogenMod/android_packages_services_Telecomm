@@ -237,13 +237,25 @@ final class Call {
     }
 
     void setCallService(CallServiceWrapper callService) {
+        setCallService(callService, null);
+    }
+
+    /**
+     * Changes the call service this call is associated with. If callToReplace is non-null then this
+     * call takes its place within the call service.
+     */
+    void setCallService(CallServiceWrapper callService, Call callToReplace) {
         Preconditions.checkNotNull(callService);
 
         clearCallService();
 
         callService.incrementAssociatedCallCount();
         mCallService = callService;
-        mCallService.addCall(this);
+        if (callToReplace == null) {
+            mCallService.addCall(this);
+        } else {
+            mCallService.replaceCall(this, callToReplace);
+        }
     }
 
     /**
