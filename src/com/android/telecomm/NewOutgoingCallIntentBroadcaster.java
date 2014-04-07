@@ -100,7 +100,7 @@ class NewOutgoingCallIntentBroadcaster {
 
         @Override
         public void onReceive(Context context, Intent intent) {
-            Log.v(this, "doReceive: %s");
+            Log.v(this, "onReceive: %s", intent);
 
             // Once the NEW_OUTGOING_CALL broadcast is finished, the resultData is used as the
             // actual number to call. (If null, no call will be placed.)
