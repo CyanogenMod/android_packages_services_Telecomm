@@ -461,6 +461,17 @@ final class Call {
         }
     }
 
+    boolean isActive() {
+        switch (mState) {
+            case ACTIVE:
+            case POST_DIAL:
+            case POST_DIAL_WAIT:
+                return true;
+            default:
+                return false;
+        }
+    }
+
     Bundle getExtras() {
         return mExtras;
     }

@@ -110,7 +110,8 @@ public final class CallsManager {
         mListeners.add(new CallLogManager(app));
         mListeners.add(new PhoneStateBroadcaster());
         mListeners.add(new InCallController());
-        mListeners.add(new Ringer(mCallAudioManager));
+        mListeners.add(
+                new Ringer(mCallAudioManager, this, playerFactory, TelecommApp.getInstance()));
         mListeners.add(new RingbackPlayer(this, playerFactory));
         mListeners.add(new InCallToneMonitor(playerFactory, this));
         mListeners.add(mCallAudioManager);
@@ -278,6 +279,19 @@ public final class CallsManager {
         if (!mCalls.contains(call)) {
             Log.i(this, "Request to answer a non-existent call %s", call);
         } else {
+            // If the foreground call is not the ringing call and it is currently isActive() or
+            // DIALING, put it on hold before answering the call.
+            if (mForegroundCall != null && mForegroundCall != call &&
+                    (mForegroundCall.isActive() ||
+                     mForegroundCall.getState() == CallState.DIALING)) {
+                Log.v(this, "Holding active/dialing call %s before answering incoming call %s.",
+                        mForegroundCall, call);
+                mForegroundCall.hold();
+                // TODO(santoscordon): Wait until we get confirmation of the active call being
+                // on-hold before answering the new call.
+                // TODO(santoscordon): Import logic from CallManager.acceptCall()
+            }
+
             for (CallsManagerListener listener : mListeners) {
                 listener.onIncomingCallAnswered(call);
             }
@@ -514,6 +528,9 @@ public final class CallsManager {
      */
     private void addCall(Call call) {
         mCalls.add(call);
+
+        // TODO(santoscordon): Update mForegroundCall prior to invoking
+        // onCallAdded for calls which immediately take the foreground (like the first call).
         for (CallsManagerListener listener : mListeners) {
             listener.onCallAdded(call);
         }
@@ -581,18 +598,25 @@ public final class CallsManager {
     private void updateForegroundCall() {
         Call newForegroundCall = null;
         for (Call call : mCalls) {
-            // Incoming ringing calls have priority.
-            if (call.getState() == CallState.RINGING) {
+            // TODO(santoscordon): Foreground-ness needs to be explicitly set. No call, regardless
+            // of its state will be foreground by default and instead the call service should be
+            // notified when its calls enter and exit foreground state. Foreground will mean that
+            // the call should play audio and listen to microphone if it wants.
+
+            // Active calls have priority.
+            if (call.isActive()) {
                 newForegroundCall = call;
                 break;
             }
-            if (call.isAlive()) {
+
+            if (call.isAlive() || call.getState() == CallState.RINGING) {
                 newForegroundCall = call;
-                // Don't break in case there's a ringing call that has priority.
+                // Don't break in case there's an active call that has priority.
             }
         }
 
         if (newForegroundCall != mForegroundCall) {
+            Log.v(this, "Updating foreground call, %s -> %s.", mForegroundCall, newForegroundCall);
             Call oldForegroundCall = mForegroundCall;
             mForegroundCall = newForegroundCall;
 

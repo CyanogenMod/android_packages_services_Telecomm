@@ -127,8 +127,10 @@ public final class InCallTonePlayer extends Thread {
                     // TODO: fill in
                     throw new IllegalStateException("OTA Call ended NYI.");
                 case TONE_CALL_WAITING:
-                    // TODO: fill in.
-                    throw new IllegalStateException("Call waiting NYI.");
+                    toneType = ToneGenerator.TONE_SUP_CALL_WAITING;
+                    toneVolume = RELATIVE_VOLUME_HIPRI;
+                    toneLengthMillis = Integer.MAX_VALUE - TIMEOUT_BUFFER_MILLIS;
+                    break;
                 case TONE_CDMA_DROP:
                     toneType = ToneGenerator.TONE_CDMA_CALLDROP_LITE;
                     toneVolume = RELATIVE_VOLUME_LOPRI;

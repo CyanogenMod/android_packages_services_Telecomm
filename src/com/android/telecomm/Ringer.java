@@ -49,17 +49,29 @@ final class Ringer extends CallsManagerListenerBase {
     private final List<Call> mUnansweredCalls = Lists.newLinkedList();
 
     private final CallAudioManager mCallAudioManager;
-
+    private final CallsManager mCallsManager;
+    private final InCallTonePlayer.Factory mPlayerFactory;
+    private final Context mContext;
     private final Vibrator mVibrator;
+
+    private InCallTonePlayer mCallWaitingPlayer;
 
     /**
      * Used to track the status of {@link #mVibrator} in the case of simultaneous incoming calls.
      */
     private boolean mIsVibrating = false;
 
-    Ringer(CallAudioManager callAudioManager) {
-        mCallAudioManager = callAudioManager;
+    /** Initializes the Ringer. */
+    Ringer(
+            CallAudioManager callAudioManager,
+            CallsManager callsManager,
+            InCallTonePlayer.Factory playerFactory,
+            Context context) {
 
+        mCallAudioManager = callAudioManager;
+        mCallsManager = callsManager;
+        mPlayerFactory = playerFactory;
+        mContext = context;
         // We don't rely on getSystemService(Context.VIBRATOR_SERVICE) to make sure this
         // vibrator object will be isolated from others.
         mVibrator = new SystemVibrator(TelecommApp.getInstance());
@@ -72,13 +84,10 @@ final class Ringer extends CallsManagerListenerBase {
                 Log.wtf(this, "New ringing call is already in list of unanswered calls");
             }
             mUnansweredCalls.add(call);
-            if (mUnansweredCalls.size() == 1) {
-                // Start the ringer if we are the top-most incoming call (the only one in this
-                // case).
-                startRinging();
-            }
+            updateRinging();
         }
     }
+
 
     @Override
     public void onCallRemoved(Call call) {
@@ -102,11 +111,27 @@ final class Ringer extends CallsManagerListenerBase {
         onRespondedToIncomingCall(call);
     }
 
+    @Override
+    public void onForegroundCallChanged(Call oldForegroundCall, Call newForegroundCall) {
+        if (mUnansweredCalls.contains(oldForegroundCall) ||
+                mUnansweredCalls.contains(newForegroundCall)) {
+            updateRinging();
+        }
+    }
+
     private void onRespondedToIncomingCall(Call call) {
         // Only stop the ringer if this call is the top-most incoming call.
-        if (!mUnansweredCalls.isEmpty() && mUnansweredCalls.get(0) == call) {
+        if (getTopMostUnansweredCall() == call) {
             stopRinging();
+            stopCallWaiting();
         }
+
+        // We do not remove the call from mUnansweredCalls until the call state changes from RINGING
+        // or the call is removed. see onCallStateChanged or onCallRemoved.
+    }
+
+    private Call getTopMostUnansweredCall() {
+        return mUnansweredCalls.isEmpty() ? null : mUnansweredCalls.get(0);
     }
 
     /**
@@ -115,43 +140,77 @@ final class Ringer extends CallsManagerListenerBase {
      * present in the list of incoming calls.
      */
     private void removeFromUnansweredCall(Call call) {
-        if (mUnansweredCalls.remove(call)) {
-            if (mUnansweredCalls.isEmpty()) {
-                stopRinging();
-            } else {
-                startRinging();
-            }
+        mUnansweredCalls.remove(call);
+        updateRinging();
+    }
+
+    private void updateRinging() {
+        if (mUnansweredCalls.isEmpty()) {
+            stopRinging();
+            stopCallWaiting();
+        } else {
+            startRingingOrCallWaiting();
         }
     }
 
-    private void startRinging() {
-        AudioManager audioManager = (AudioManager) TelecommApp.getInstance().getSystemService(
-                Context.AUDIO_SERVICE);
-        if (audioManager.getStreamVolume(AudioManager.STREAM_RING) > 0) {
-            Log.v(this, "startRinging");
-            mCallAudioManager.setIsRinging(true);
-            mRingtonePlayer.play();
-        } else {
-            Log.v(this, "startRinging, skipping because volume is 0");
-        }
+    private void startRingingOrCallWaiting() {
+        Call foregroundCall = mCallsManager.getForegroundCall();
+        Log.v(this, "startRingingOrCallWaiting, foregroundCall: %s.", foregroundCall);
 
-        if (shouldVibrate(TelecommApp.getInstance()) && !mIsVibrating) {
-            mVibrator.vibrate(VIBRATION_PATTERN, VIBRATION_PATTERN_REPEAT,
-                    AudioManager.STREAM_RING);
-            mIsVibrating = true;
+        if (mUnansweredCalls.contains(foregroundCall)) {
+            // The foreground call is one of incoming calls so play the ringer out loud.
+            stopCallWaiting();
+
+            AudioManager audioManager =
+                    (AudioManager) mContext.getSystemService(Context.AUDIO_SERVICE);
+            if (audioManager.getStreamVolume(AudioManager.STREAM_RING) > 0) {
+                Log.v(this, "startRingingOrCallWaiting");
+                mCallAudioManager.setIsRinging(true);
+
+                mRingtonePlayer.play();
+
+                if (shouldVibrate(TelecommApp.getInstance()) && !mIsVibrating) {
+                    mVibrator.vibrate(VIBRATION_PATTERN, VIBRATION_PATTERN_REPEAT,
+                            AudioManager.STREAM_RING);
+                    mIsVibrating = true;
+                }
+            } else {
+                Log.v(this, "startRingingOrCallWaiting, skipping because volume is 0");
+            }
+        } else {
+            Log.v(this, "Playing call-waiting tone.");
+
+            // All incoming calls are in background so play call waiting.
+            stopRinging();
+
+            if (mCallWaitingPlayer == null) {
+                mCallWaitingPlayer =
+                        mPlayerFactory.createPlayer(InCallTonePlayer.TONE_CALL_WAITING);
+                mCallWaitingPlayer.startTone();
+            }
         }
     }
 
     private void stopRinging() {
         Log.v(this, "stopRinging");
+
         mRingtonePlayer.stop();
-        // Even though stop is asynchronous it's ok to update the audio manager. Things like audio
-        // focus are voluntary so releasing focus too early is not detrimental.
-        mCallAudioManager.setIsRinging(false);
 
         if (mIsVibrating) {
             mVibrator.cancel();
             mIsVibrating = false;
+        }
+
+        // Even though stop is asynchronous it's ok to update the audio manager. Things like audio
+        // focus are voluntary so releasing focus too early is not detrimental.
+        mCallAudioManager.setIsRinging(false);
+    }
+
+    private void stopCallWaiting() {
+        Log.v(this, "stop call waiting.");
+        if (mCallWaitingPlayer != null) {
+            mCallWaitingPlayer.stopTone();
+            mCallWaitingPlayer = null;
         }
     }
 
