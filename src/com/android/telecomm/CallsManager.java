@@ -582,7 +582,7 @@ public final class CallsManager {
         originalCall.disconnect();
 
         // Synchronize.
-        originalCall.setCallService(handoffCall.getCallService());
+        originalCall.setCallService(handoffCall.getCallService(), handoffCall);
         setCallState(originalCall, handoffCall.getState());
 
         // Remove the transient handoff call object (don't disconnect because the call is still
@@ -606,6 +606,7 @@ public final class CallsManager {
                     handoffCall.setState(CallState.ABORTED);
                 } else {
                     handoffCall.disconnect();
+                    handoffCall.setDisconnectCause(DisconnectCause.ERROR_UNSPECIFIED, null);
                     handoffCall.setState(CallState.DISCONNECTED);
                 }
                 removeCall(handoffCall);
