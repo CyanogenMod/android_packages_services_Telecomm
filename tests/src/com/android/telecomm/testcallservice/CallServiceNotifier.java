@@ -26,12 +26,10 @@ import android.telecomm.TelecommConstants;
 import android.util.Log;
 
 /**
- * Class used to create, update and cancel the notification used to display and update call state for
- * {@link TestCallService}.
+ * Class used to create, update and cancel the notification used to display and update call state
+ * for {@link TestCallService}.
  */
 public class CallServiceNotifier {
-    private static final String TAG = CallServiceNotifier.class.getSimpleName();
-
     private static final CallServiceNotifier INSTANCE = new CallServiceNotifier();
 
     /**
@@ -56,7 +54,7 @@ public class CallServiceNotifier {
      * Updates the notification in the notification pane.
      */
     public void updateNotification(Context context) {
-        Log.i("CallServiceNotifier", "adding the notification ------------");
+        log("adding the notification ------------");
         getNotificationManager(context).notify(CALL_NOTIFICATION_ID, getNotification(context));
     }
 
@@ -64,7 +62,7 @@ public class CallServiceNotifier {
      * Cancels the notification.
      */
     public void cancelNotification(Context context) {
-        Log.i(TAG, "canceling notification");
+        log("canceling notification");
         getNotificationManager(context).cancel(CALL_NOTIFICATION_ID);
     }
 
@@ -110,7 +108,7 @@ public class CallServiceNotifier {
      * Creates the intent to add an incoming call through Telecomm.
      */
     private PendingIntent createIncomingCallIntent(Context context) {
-        Log.i(TAG, "Creating incoming call pending intent.");
+        log("Creating incoming call pending intent.");
         // Build descriptor for TestCallService.
         CallServiceDescriptor.Builder descriptorBuilder = CallServiceDescriptor.newBuilder(context);
         descriptorBuilder.setCallService(TestCallService.class);
@@ -140,5 +138,9 @@ public class CallServiceNotifier {
      */
     private void addExitAction(Notification.Builder builder, Context context) {
         builder.addAction(0, "Exit", createExitIntent(context));
+    }
+
+    private static void log(String msg) {
+        Log.w("testcallservice", "[CallServiceNotifier] " + msg);
     }
 }

@@ -16,33 +16,100 @@
 
 package com.android.telecomm.testcallservice;
 
+import android.net.Uri;
+import android.os.Bundle;
 import android.telecomm.CallInfo;
 import android.telecomm.CallServiceDescriptor;
 import android.telecomm.CallServiceSelector;
 import android.telecomm.CallServiceSelectorAdapter;
+import android.util.Log;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
 import java.util.List;
 
-/**
- * Dummy call-service selector which returns the list of call services in the same order in which it
- * was given. Also returns false for every request on switchability.
- */
+/** Simple selector to exercise Telecomm code. */
 public class DummyCallServiceSelector extends CallServiceSelector {
+    private static DummyCallServiceSelector sInstance;
+    private static final String SCHEME_TEL = "tel";
+    private static final String TELEPHONY_PACKAGE_NAME =
+            "com.android.phone";
+    private static final String CUSTOM_HANDOFF_KEY = "custom_handoff_key";
+    private static final String CUSTOM_HANDOFF_VALUE = "custom_handoff_value";
+
+    public DummyCallServiceSelector() {
+        log("constructor");
+        Preconditions.checkState(sInstance == null);
+        sInstance = this;
+    }
+
+    static DummyCallServiceSelector getInstance() {
+        Preconditions.checkNotNull(sInstance);
+        return sInstance;
+    }
 
     @Override
     protected void select(CallInfo callInfo, List<CallServiceDescriptor> descriptors) {
+        log("select");
         List<CallServiceDescriptor> orderedList = Lists.newLinkedList();
 
-        // Make sure that the test call services are the only ones
+        boolean shouldHandoffToPstn = false;
+        if (callInfo.getCurrentCallServiceDescriptor() != null) {
+            // If the current call service is TestCallService then handoff to PSTN, otherwise
+            // handoff to TestCallService.
+            shouldHandoffToPstn = isTestCallService(callInfo.getCurrentCallServiceDescriptor());
+            String extraValue = callInfo.getExtras().getString(CUSTOM_HANDOFF_KEY);
+            log("handing off, toPstn: " + shouldHandoffToPstn + ", extraValue: " + extraValue);
+            Preconditions.checkState(CUSTOM_HANDOFF_VALUE.equals(extraValue));
+        }
+
         for (CallServiceDescriptor descriptor : descriptors) {
-            String packageName = descriptor.getServiceComponent().getPackageName();
-            if (getPackageName().equals(packageName)) {
+            if (isTestCallService(descriptor) && !shouldHandoffToPstn) {
+                orderedList.add(0, descriptor);
+            } else if (isPstnCallService(descriptor)) {
                 orderedList.add(descriptor);
+            } else {
+                log("skipping call service: " + descriptor.getServiceComponent());
             }
         }
 
         getAdapter().setSelectedCallServices(callInfo.getId(), orderedList);
+    }
+
+    void sendHandoffInfo(Uri remoteHandle, Uri handoffHandle) {
+        log("sendHandoffInfo");
+        String callId = findMatchingCall(remoteHandle);
+        Preconditions.checkNotNull(callId);
+        Bundle extras = new Bundle();
+        extras.putString(CUSTOM_HANDOFF_KEY, CUSTOM_HANDOFF_VALUE);
+        getAdapter().setHandoffInfo(callId, handoffHandle, extras);
+    }
+
+    private String findMatchingCall(Uri remoteHandle) {
+        for (CallInfo callInfo : getCalls()) {
+            if (remoteHandle.equals(callInfo.getOriginalHandle())) {
+                return callInfo.getId();
+            }
+        }
+        return null;
+    }
+
+    private boolean isTestCallService(CallServiceDescriptor descriptor) {
+        if (descriptor == null) {
+            return false;
+        }
+        return getPackageName().equals(descriptor.getServiceComponent().getPackageName());
+    }
+
+    private boolean isPstnCallService(CallServiceDescriptor descriptor) {
+        if (descriptor == null) {
+            return false;
+        }
+        return TELEPHONY_PACKAGE_NAME.equals(descriptor.getServiceComponent().getPackageName());
+    }
+
+    private static void log(String msg) {
+        Log.w("testcallservice", "[DummyCallServiceSelector] " + msg);
     }
 }
