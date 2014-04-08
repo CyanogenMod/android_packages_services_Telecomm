@@ -23,6 +23,7 @@ import android.telecomm.CallInfo;
 import android.telecomm.CallServiceDescriptor;
 import android.telecomm.CallState;
 import android.telecomm.GatewayInfo;
+import android.telecomm.InCallCall;
 import android.telephony.DisconnectCause;
 
 import com.google.common.base.Preconditions;
@@ -51,9 +52,17 @@ public final class CallsManager {
         void onCallAdded(Call call);
         void onCallRemoved(Call call);
         void onCallStateChanged(Call call, CallState oldState, CallState newState);
+        void onCallHandoffHandleChanged(Call call, Uri oldHandle, Uri newHandle);
+        void onCallServiceChanged(
+                Call call,
+                CallServiceWrapper oldCallService,
+                CallServiceWrapper newCallService);
+        void onCallHandoffCallServiceDescriptorChanged(
+                Call call,
+                CallServiceDescriptor oldDescriptor,
+                CallServiceDescriptor newDescriptor);
         void onIncomingCallAnswered(Call call);
         void onIncomingCallRejected(Call call);
-        void onCallHandoffHandleChanged(Call call, Uri oldHandle, Uri newHandle);
         void onForegroundCallChanged(Call oldForegroundCall, Call newForegroundCall);
         void onAudioStateChanged(CallAudioState oldAudioState, CallAudioState newAudioState);
     }
@@ -231,6 +240,14 @@ public final class CallsManager {
      */
     void handleSuccessfulOutgoingCall(Call call) {
         Log.v(this, "handleSuccessfulOutgoingCall, %s", call);
+        if (mCalls.contains(call)) {
+            // The call's CallService has been updated.
+            for (CallsManagerListener listener : mListeners) {
+                listener.onCallServiceChanged(call, null, call.getCallService());
+            }
+        } else if (mPendingHandoffCalls.contains(call)) {
+            updateHandoffCallServiceDescriptor(call.getOriginalCall(), call);
+        }
     }
 
     /**
@@ -421,6 +438,9 @@ public final class CallsManager {
     }
 
     void markCallAsActive(Call call) {
+        if (call.getConnectTimeMillis() == 0) {
+            call.setConnectTimeMillis(System.currentTimeMillis());
+        }
         setCallState(call, CallState.ACTIVE);
 
         if (mPendingHandoffCalls.contains(call)) {
@@ -507,6 +527,7 @@ public final class CallsManager {
         } else if (mPendingHandoffCalls.contains(call)) {
             Log.v(this, "silently removing handoff call %s", call);
             mPendingHandoffCalls.remove(call);
+            updateHandoffCallServiceDescriptor(call.getOriginalCall(), null);
         }
 
         // Only broadcast changes for calls that are being tracked.
@@ -527,6 +548,7 @@ public final class CallsManager {
     private void setCallState(Call call, CallState newState) {
         Preconditions.checkNotNull(newState);
         CallState oldState = call.getState();
+        Log.i(this, "setCallState %s -> %s, call: %s", oldState, newState, call);
         if (newState != oldState) {
             // Unfortunately, in the telephony world the radio is king. So if the call notifies
             // us that the call is in a particular state, we allow it even if it doesn't make
@@ -593,6 +615,8 @@ public final class CallsManager {
         for (CallsManagerListener listener : mListeners) {
             listener.onForegroundCallChanged(mForegroundCall, mForegroundCall);
         }
+
+        updateHandoffCallServiceDescriptor(originalCall, null);
     }
 
     /** Makes sure there are no dangling handoff calls. */
@@ -612,6 +636,35 @@ public final class CallsManager {
                 removeCall(handoffCall);
             }
         }
+    }
+
+    private void updateHandoffCallServiceDescriptor(Call originalCall, Call handoffCall) {
+        Log.v(this, "updateHandoffCallServiceDescriptor, originalCall: %s, handoffCall: %s",
+                originalCall, handoffCall);
+        CallServiceDescriptor oldDescriptor = originalCall.getHandoffCallServiceDescriptor();
+        CallServiceDescriptor newDescriptor = null;
+        if (handoffCall != null && handoffCall.getCallService() != null) {
+            newDescriptor = handoffCall.getCallService().getDescriptor();
+        }
+        Log.v(this, "updateHandoffCallServiceDescriptor, pending descriptor: %s -> %s",
+                oldDescriptor, newDescriptor);
+
+        if (!areDescriptorsEqual(oldDescriptor, newDescriptor)) {
+            originalCall.setHandoffCallServiceDescriptor(newDescriptor);
+            for (CallsManagerListener listener : mListeners) {
+                listener.onCallHandoffCallServiceDescriptorChanged(originalCall, oldDescriptor,
+                        newDescriptor);
+            }
+        }
+    }
+
+    private static boolean areDescriptorsEqual(
+            CallServiceDescriptor descriptor1,
+            CallServiceDescriptor descriptor2) {
+        if (descriptor1 == null) {
+            return descriptor2 == null;
+        }
+        return descriptor1.equals(descriptor2);
     }
 
     private static boolean areUriEqual(Uri handle1, Uri handle2) {

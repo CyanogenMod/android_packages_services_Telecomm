@@ -106,7 +106,7 @@ class MissedCallNotifier extends CallsManagerListenerBase {
         // Create the notification.
         Notification.Builder builder = new Notification.Builder(mContext);
         builder.setSmallIcon(android.R.drawable.stat_notify_missed_call)
-                .setWhen(call.getCreationTimeMs())
+                .setWhen(call.getCreationTimeMillis())
                 .setContentTitle(mContext.getText(titleResId))
                 .setContentText(expandedText)
                 .setContentIntent(createCallLogPendingIntent())

@@ -65,7 +65,7 @@ public final class InCallTonePlayer extends Thread {
 
     // Buffer time (in msec) to add on to the tone timeout value. Needed mainly when the timeout
     // value for a tone is exact duration of the tone itself.
-    private static final int TIMEOUT_BUFFER_MS = 20;
+    private static final int TIMEOUT_BUFFER_MILLIS = 20;
 
     // The tone state.
     private static final int STATE_OFF = 0;
@@ -109,19 +109,19 @@ public final class InCallTonePlayer extends Thread {
 
             final int toneType;  // Passed to ToneGenerator.startTone.
             final int toneVolume;  // Passed to the ToneGenerator constructor.
-            final int toneLengthMs;
+            final int toneLengthMillis;
 
             switch (mToneId) {
                 case TONE_BUSY:
                     // TODO: CDMA-specific tones
                     toneType = ToneGenerator.TONE_SUP_BUSY;
                     toneVolume = RELATIVE_VOLUME_HIPRI;
-                    toneLengthMs = 4000;
+                    toneLengthMillis = 4000;
                     break;
                 case TONE_CALL_ENDED:
                     toneType = ToneGenerator.TONE_PROP_PROMPT;
                     toneVolume = RELATIVE_VOLUME_HIPRI;
-                    toneLengthMs = 4000;
+                    toneLengthMillis = 4000;
                     break;
                 case TONE_OTA_CALL_ENDED:
                     // TODO: fill in
@@ -132,42 +132,42 @@ public final class InCallTonePlayer extends Thread {
                 case TONE_CDMA_DROP:
                     toneType = ToneGenerator.TONE_CDMA_CALLDROP_LITE;
                     toneVolume = RELATIVE_VOLUME_LOPRI;
-                    toneLengthMs = 375;
+                    toneLengthMillis = 375;
                     break;
                 case TONE_CONGESTION:
                     toneType = ToneGenerator.TONE_SUP_CONGESTION;
                     toneVolume = RELATIVE_VOLUME_HIPRI;
-                    toneLengthMs = 4000;
+                    toneLengthMillis = 4000;
                     break;
                 case TONE_INTERCEPT:
                     toneType = ToneGenerator.TONE_CDMA_ABBR_INTERCEPT;
                     toneVolume = RELATIVE_VOLUME_LOPRI;
-                    toneLengthMs = 500;
+                    toneLengthMillis = 500;
                     break;
                 case TONE_OUT_OF_SERVICE:
                     toneType = ToneGenerator.TONE_CDMA_CALLDROP_LITE;
                     toneVolume = RELATIVE_VOLUME_LOPRI;
-                    toneLengthMs = 375;
+                    toneLengthMillis = 375;
                     break;
                 case TONE_REDIAL:
                     toneType = ToneGenerator.TONE_CDMA_ALERT_AUTOREDIAL_LITE;
                     toneVolume = RELATIVE_VOLUME_LOPRI;
-                    toneLengthMs = 5000;
+                    toneLengthMillis = 5000;
                     break;
                 case TONE_REORDER:
                     toneType = ToneGenerator.TONE_CDMA_REORDER;
                     toneVolume = RELATIVE_VOLUME_HIPRI;
-                    toneLengthMs = 5000;
+                    toneLengthMillis = 5000;
                     break;
                 case TONE_RING_BACK:
                     toneType = ToneGenerator.TONE_SUP_RINGTONE;
                     toneVolume = RELATIVE_VOLUME_HIPRI;
-                    toneLengthMs = Integer.MAX_VALUE - TIMEOUT_BUFFER_MS;
+                    toneLengthMillis = Integer.MAX_VALUE - TIMEOUT_BUFFER_MILLIS;
                     break;
                 case TONE_UNOBTAINABLE_NUMBER:
                     toneType = ToneGenerator.TONE_SUP_ERROR;
                     toneVolume = RELATIVE_VOLUME_HIPRI;
-                    toneLengthMs = 4000;
+                    toneLengthMillis = 4000;
                     break;
                 case TONE_VOICE_PRIVACY:
                     // TODO: fill in.
@@ -202,8 +202,8 @@ public final class InCallTonePlayer extends Thread {
                     toneGenerator.startTone(toneType);
                     try {
                         Log.v(this, "Starting tone %d...waiting for %d ms.", mToneId,
-                                toneLengthMs + TIMEOUT_BUFFER_MS);
-                        wait(toneLengthMs + TIMEOUT_BUFFER_MS);
+                                toneLengthMillis + TIMEOUT_BUFFER_MILLIS);
+                        wait(toneLengthMillis + TIMEOUT_BUFFER_MILLIS);
                     } catch (InterruptedException e) {
                         Log.w(this, "wait interrupted", e);
                     }

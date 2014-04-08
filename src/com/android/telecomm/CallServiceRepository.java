@@ -139,7 +139,7 @@ final class CallServiceRepository {
                 mOutstandingProviders.size());
 
         // Schedule a timeout.
-        mHandler.postDelayed(mTimeoutLookupTerminator, Timeouts.getProviderLookupMs());
+        mHandler.postDelayed(mTimeoutLookupTerminator, Timeouts.getProviderLookupMillis());
     }
 
     /**
@@ -168,8 +168,8 @@ final class CallServiceRepository {
 
             // TODO(gilad): Either add ICallService.getActiveCallCount() or have this tracked by the
             // Switchboard if we rather not rely on 3rd-party code to do the bookkeeping for us. If
-            // we prefer the latter, we can also have purgeInactiveCallService(descriptor). Otherwise
-            // this might look something like:
+            // we prefer the latter, we can also have purgeInactiveCallService(descriptor).
+            // Otherwise this might look something like:
             //
             // if (callService.getActiveCallCount() < 1) {
             //     mCallServices.remove(callServiceName);

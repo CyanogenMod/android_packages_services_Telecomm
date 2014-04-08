@@ -18,6 +18,7 @@ package com.android.telecomm;
 
 import android.net.Uri;
 import android.telecomm.CallAudioState;
+import android.telecomm.CallServiceDescriptor;
 import android.telecomm.CallState;
 
 /**
@@ -37,15 +38,29 @@ class CallsManagerListenerBase implements CallsManager.CallsManagerListener {
     }
 
     @Override
+    public void onCallHandoffHandleChanged(Call call, Uri oldHandle, Uri newHandle) {
+    }
+
+    @Override
+    public void onCallServiceChanged(
+            Call call,
+            CallServiceWrapper oldCallServiceWrapper,
+            CallServiceWrapper newCallService) {
+    }
+
+    @Override
+    public void onCallHandoffCallServiceDescriptorChanged(
+            Call call,
+            CallServiceDescriptor oldDescriptor,
+            CallServiceDescriptor newDescriptor) {
+    }
+
+    @Override
     public void onIncomingCallAnswered(Call call) {
     }
 
     @Override
     public void onIncomingCallRejected(Call call) {
-    }
-
-    @Override
-    public void onCallHandoffHandleChanged(Call call, Uri oldHandle, Uri newHandle) {
     }
 
     @Override

@@ -26,7 +26,7 @@ import android.telecomm.CallServiceDescriptor;
  * differently from 3rd party services in some situations (emergency calls, audio focus, etc...).
  */
 public final class TelephonyUtil {
-    private static final String TAG = ThreadUtil.class.getSimpleName();
+    private static final String TAG = TelephonyUtil.class.getSimpleName();
 
     private static final String TELEPHONY_PACKAGE_NAME =
             "com.android.phone";

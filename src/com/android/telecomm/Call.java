@@ -28,7 +28,6 @@ import android.telephony.PhoneNumberUtils;
 import com.google.android.collect.Sets;
 import com.google.common.base.Preconditions;
 
-import java.util.Date;
 import java.util.Locale;
 import java.util.Set;
 
@@ -50,7 +49,9 @@ final class Call {
      * Beyond logging and such, may also be used for bookkeeping and specifically for marking
      * certain call attempts as failed attempts.
      */
-    private final Date mCreationTime;
+    private final long mCreationTimeMillis = System.currentTimeMillis();
+
+    private long mConnectTimeMillis;
 
     /** The state of the call. */
     private CallState mState;
@@ -86,7 +87,7 @@ final class Call {
      * Disconnect cause for the call. Only valid if the state of the call is DISCONNECTED.
      * See {@link android.telephony.DisconnectCause}.
      */
-    private int mDisconnectCause;
+    private int mDisconnectCause = DisconnectCause.NOT_VALID;
 
     /**
      * Additional disconnect information provided by the call service.
@@ -94,7 +95,7 @@ final class Call {
     private String mDisconnectMessage;
 
     /** Info used by the call services. */
-    private Bundle mExtras;
+    private Bundle mExtras = Bundle.EMPTY;
 
     /** The Uri to dial to perform the handoff. If this is null then handoff is not supported. */
     private Uri mHandoffHandle;
@@ -104,6 +105,12 @@ final class Call {
      * that are being used to perform a handoff.
      */
     private Call mOriginalCall;
+
+    /**
+     * The descriptor for the call service that this call is being switched to, null if handoff is
+     * not in progress.
+     */
+    private CallServiceDescriptor mHandoffCallServiceDescriptor;
 
     /**
      * Creates an empty call object.
@@ -128,9 +135,6 @@ final class Call {
         mContactInfo = contactInfo;
         mGatewayInfo = gatewayInfo;
         mIsIncoming = isIncoming;
-        mCreationTime = new Date();
-        mDisconnectCause = DisconnectCause.NOT_VALID;
-        mExtras = Bundle.EMPTY;
     }
 
     /** {@inheritDoc} */
@@ -218,18 +222,27 @@ final class Call {
 
     /**
      * @return The "age" of this call object in milliseconds, which typically also represents the
-     *     period since this call was added to the set pending outgoing calls, see mCreationTime.
+     *     period since this call was added to the set pending outgoing calls, see
+     *     mCreationTimeMillis.
      */
-    long getAgeMs() {
-        return new Date().getTime() - mCreationTime.getTime();
+    long getAgeMillis() {
+        return System.currentTimeMillis() - mCreationTimeMillis;
     }
 
     /**
      * @return The time when this call object was created and added to the set of pending outgoing
      *     calls.
      */
-    long getCreationTimeMs() {
-        return mCreationTime.getTime();
+    long getCreationTimeMillis() {
+        return mCreationTimeMillis;
+    }
+
+    long getConnectTimeMillis() {
+        return mConnectTimeMillis;
+    }
+
+    void setConnectTimeMillis(long connectTimeMillis) {
+        mConnectTimeMillis = connectTimeMillis;
     }
 
     CallServiceWrapper getCallService() {
@@ -470,6 +483,14 @@ final class Call {
 
     void setOriginalCall(Call originalCall) {
         mOriginalCall = originalCall;
+    }
+
+    CallServiceDescriptor getHandoffCallServiceDescriptor() {
+        return mHandoffCallServiceDescriptor;
+    }
+
+    void setHandoffCallServiceDescriptor(CallServiceDescriptor descriptor) {
+        mHandoffCallServiceDescriptor = descriptor;
     }
 
     /**

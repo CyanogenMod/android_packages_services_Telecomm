@@ -24,7 +24,10 @@ import android.net.Uri;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.telecomm.CallAudioState;
-import android.telecomm.CallInfo;
+import android.telecomm.CallCapabilities;
+import android.telecomm.CallServiceDescriptor;
+import android.telecomm.CallState;
+import android.telecomm.InCallCall;
 import android.telecomm.CallState;
 
 import com.android.internal.telecomm.IInCallService;
@@ -85,9 +88,8 @@ public final class InCallController extends CallsManagerListenerBase {
         } else {
             Log.i(this, "Adding call: %s", call);
             mCallIdMapper.addCall(call);
-            CallInfo callInfo = call.toCallInfo(mCallIdMapper.getCallId(call));
             try {
-                mInCallService.addCall(callInfo);
+                mInCallService.addCall(toInCallCall(call));
             } catch (RemoteException e) {
             }
         }
@@ -104,47 +106,28 @@ public final class InCallController extends CallsManagerListenerBase {
 
     @Override
     public void onCallStateChanged(Call call, CallState oldState, CallState newState) {
-        if (mInCallService == null) {
-            return;
-        }
-
-        String callId = mCallIdMapper.getCallId(call);
-        switch (newState) {
-            case ACTIVE:
-                Log.i(this, "Mark call as ACTIVE: %s", callId);
-                try {
-                    mInCallService.setActive(callId);
-                } catch (RemoteException e) {
-                }
-                break;
-            case ON_HOLD:
-                Log.i(this, "Mark call as HOLD: %s", callId);
-                try {
-                    mInCallService.setOnHold(callId);
-                } catch (RemoteException e) {
-                }
-                break;
-            case DISCONNECTED:
-                Log.i(this, "Mark call as DISCONNECTED: %s", callId);
-                try {
-                    mInCallService.setDisconnected(callId, call.getDisconnectCause());
-                } catch (RemoteException e) {
-                }
-                break;
-            default:
-                break;
-        }
+        updateCall(call);
     }
 
     @Override
     public void onCallHandoffHandleChanged(Call call, Uri oldHandle, Uri newHandle) {
-        if (mInCallService != null) {
-            try {
-                mInCallService.setHandoffEnabled(mCallIdMapper.getCallId(call), newHandle != null);
-            } catch (RemoteException e) {
-                Log.e(this, e, "Exception attempting to call setHandoffEnabled.");
-            }
-        }
+        updateCall(call);
+    }
+
+    @Override
+    public void onCallServiceChanged(
+            Call call,
+            CallServiceWrapper oldCallServiceWrapper,
+            CallServiceWrapper newCallService) {
+        updateCall(call);
+    }
+
+    @Override
+    public void onCallHandoffCallServiceDescriptorChanged(
+            Call call,
+            CallServiceDescriptor oldDescriptor,
+            CallServiceDescriptor newDescriptor) {
+        updateCall(call);
     }
 
     @Override
@@ -219,7 +202,6 @@ public final class InCallController extends CallsManagerListenerBase {
         if (!calls.isEmpty()) {
             for (Call call : calls) {
                 onCallAdded(call);
-                onCallHandoffHandleChanged(call, null, call.getHandoffHandle());
             }
             onAudioStateChanged(null, CallsManager.getInstance().getAudioState());
         } else {
@@ -233,5 +215,37 @@ public final class InCallController extends CallsManagerListenerBase {
     private void onDisconnected() {
         ThreadUtil.checkOnMainThread();
         mInCallService = null;
+    }
+
+    private void updateCall(Call call) {
+        if (mInCallService != null) {
+            try {
+                mInCallService.updateCall(toInCallCall(call));
+            } catch (RemoteException e) {
+            }
+        }
+    }
+
+    private InCallCall toInCallCall(Call call) {
+        String callId = mCallIdMapper.getCallId(call);
+        CallServiceDescriptor descriptor =
+                call.getCallService() != null ? call.getCallService().getDescriptor() : null;
+
+        boolean isHandoffCapable = call.getHandoffHandle() != null;
+        int capabilities = CallCapabilities.HOLD | CallCapabilities.MUTE;
+        if (call.getHandoffHandle() != null) {
+            capabilities |= CallCapabilities.CONNECTION_HANDOFF;
+        }
+        CallState state = call.getState();
+        if (state == CallState.ABORTED) {
+            state = CallState.DISCONNECTED;
+        }
+        // TODO(sail): Remove this and replace with final reconnecting code.
+        if (state == CallState.DISCONNECTED && call.getHandoffCallServiceDescriptor() != null) {
+            state = CallState.ACTIVE;
+        }
+        return new InCallCall(callId, state, call.getDisconnectCause(), capabilities,
+                call.getConnectTimeMillis(), call.getHandle(), call.getGatewayInfo(), descriptor,
+                call.getHandoffCallServiceDescriptor());
     }
 }

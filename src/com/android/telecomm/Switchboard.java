@@ -264,7 +264,7 @@ final class Switchboard {
      * Schedules the next tick invocation.
      */
     private void scheduleNextTick() {
-         mHandler.postDelayed(mTicker, Timeouts.getTickMs());
+         mHandler.postDelayed(mTicker, Timeouts.getTickMillis());
     }
 
     /**
@@ -359,11 +359,11 @@ final class Switchboard {
             return;
         }
 
-        final long newCallTimeoutMs = Timeouts.getNewOutgoingCallMs();
+        final long newCallTimeoutMillis = Timeouts.getNewOutgoingCallMillis();
         Iterator<Call> iterator = calls.iterator();
         while (iterator.hasNext()) {
             Call call = iterator.next();
-            if (call.getAgeMs() >= newCallTimeoutMs) {
+            if (call.getAgeMillis() >= newCallTimeoutMillis) {
                 Log.d(this, "Call %s timed out.", call);
                 mOutgoingCallsManager.abort(call);
                 calls.remove(call);
