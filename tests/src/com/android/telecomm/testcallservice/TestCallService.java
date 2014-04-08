@@ -20,6 +20,7 @@ import android.content.Intent;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
 import android.telecomm.CallAudioState;
 import android.telecomm.CallInfo;
 import android.telecomm.CallService;
@@ -31,35 +32,27 @@ import android.util.Log;
 import com.android.telecomm.tests.R;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
-import com.google.common.collect.Sets;
+import com.google.common.collect.Maps;
 
-import java.util.Set;
+import java.util.Map;
 
 /**
  * Service which provides fake calls to test the ICallService interface.
  * TODO(santoscordon): Rename all classes in the directory to Dummy* (e.g., DummyCallService).
  */
 public class TestCallService extends CallService {
-    private static final String TAG = TestCallService.class.getSimpleName();
+    private static final String SCHEME_TEL = "tel";
 
-    /**
-     * Set of call IDs for live (active, ringing, dialing) calls.
-     * TODO(santoscordon): Reference CallState javadoc when available for the different call states.
-     */
-    private Set<String> mLiveCallIds;
+    private final Map<String, CallInfo> mCalls = Maps.newHashMap();
+    private final Handler mHandler = new Handler();
 
-    /**
-     * Used to play an audio tone during a call.
-     */
+    /** Used to play an audio tone during a call. */
     private MediaPlayer mMediaPlayer;
 
     /** {@inheritDoc} */
     @Override
     public void onAdapterAttached(CallServiceAdapter callServiceAdapter) {
-        Log.i(TAG, "setCallServiceAdapter()");
-
-        mLiveCallIds = Sets.newHashSet();
-
+        log("onAdapterAttached");
         mMediaPlayer = createMediaPlayer();
     }
 
@@ -71,75 +64,79 @@ public class TestCallService extends CallService {
      */
     @Override
     public void isCompatibleWith(CallInfo callInfo) {
-        Log.i(TAG, "isCompatibleWith(" + callInfo + ")");
+        log("isCompatibleWith, callInfo: " + callInfo);
         Preconditions.checkNotNull(callInfo.getHandle());
 
         // Is compatible if the handle doesn't start with 7.
         boolean isCompatible = !callInfo.getHandle().getSchemeSpecificPart().startsWith("7");
 
-        // Tell CallsManager whether this call service can place the call (is compatible).
-        // Returning positively on setCompatibleWith() doesn't guarantee that we will be chosen
-        // to place the call. If we *are* chosen then CallsManager will execute the call()
-        // method below.
+        // Tell CallsManager whether this call service can place the call.
         getAdapter().setIsCompatibleWith(callInfo.getId(), isCompatible);
     }
 
     /**
-     * Starts a call by calling into the adapter. For testing purposes this methods acts as if a
-     * call was successfully connected every time.
+     * Starts a call by calling into the adapter.
      *
      * {@inheritDoc}
      */
     @Override
-    public void call(CallInfo callInfo) {
+    public void call(final CallInfo callInfo) {
         String number = callInfo.getHandle().getSchemeSpecificPart();
-        Log.i(TAG, "call(" + number + ")");
+        log("call, number: " + number);
 
         // Crash on 555-DEAD to test call service crashing.
         if ("5550340".equals(number)) {
             throw new RuntimeException("Goodbye, cruel world.");
         }
 
-        createCall(callInfo.getId());
+        mCalls.put(callInfo.getId(), callInfo);
         getAdapter().handleSuccessfulOutgoingCall(callInfo.getId());
+        mHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                activateCall(callInfo.getId());
+            }
+        }, 4000);
     }
 
     /** {@inheritDoc} */
     @Override
     public void abort(String callId) {
-        Log.i(TAG, "abort(" + callId + ")");
+        log("abort, callId: " + callId);
         destroyCall(callId);
     }
 
     /** {@inheritDoc} */
     @Override
     public void setIncomingCallId(String callId, Bundle extras) {
-        Log.i(TAG, "setIncomingCallId(" + callId + ", " + extras + ")");
+        log("setIncomingCallId, callId: " + callId + " extras: " + extras);
 
         // Use dummy number for testing incoming calls.
-        Uri handle = Uri.fromParts("tel", "5551234", null);
+        Uri handle = Uri.fromParts(SCHEME_TEL, "5551234", null);
 
         CallInfo callInfo = new CallInfo(callId, CallState.RINGING, handle);
+        mCalls.put(callInfo.getId(), callInfo);
         getAdapter().notifyIncomingCall(callInfo);
     }
 
     /** {@inheritDoc} */
     @Override
     public void answer(String callId) {
-        getAdapter().setActive(callId);
-        createCall(callId);
+        log("answer, callId: " + callId);
+        activateCall(callId);
     }
 
     /** {@inheritDoc} */
     @Override
     public void reject(String callId) {
+        log("reject, callId: " + callId);
         getAdapter().setDisconnected(callId, DisconnectCause.INCOMING_REJECTED, null);
     }
 
     /** {@inheritDoc} */
     @Override
     public void disconnect(String callId) {
-        Log.i(TAG, "disconnect(" + callId + ")");
+        log("disconnect, callId: " + callId);
 
         destroyCall(callId);
         getAdapter().setDisconnected(callId, DisconnectCause.LOCAL, null);
@@ -148,55 +145,45 @@ public class TestCallService extends CallService {
     /** {@inheritDoc} */
     @Override
     public void hold(String callId) {
-        Log.i(TAG, "hold(" + callId + ")");
+        log("hold, callId: " + callId);
         getAdapter().setOnHold(callId);
     }
 
     /** {@inheritDoc} */
     @Override
     public void unhold(String callId) {
-        Log.i(TAG, "unhold(" + callId + ")");
+        log("unhold, callId: " + callId);
         getAdapter().setActive(callId);
     }
 
     /** {@inheritDoc} */
     @Override
     public void playDtmfTone(String callId, char digit) {
-        Log.i(TAG, "playDtmfTone(" + callId + "," + digit + ")");
-        // TODO(ihab): Implement
+        log("playDtmfTone, callId: " + callId + " digit: " + digit);
     }
 
     /** {@inheritDoc} */
     @Override
     public void stopDtmfTone(String callId) {
-        Log.i(TAG, "stopDtmfTone(" + callId + ")");
-        // TODO(ihab): Implement
+        log("stopDtmfTone, callId: " + callId);
     }
 
     /** {@inheritDoc} */
     @Override
     public void onAudioStateChanged(String callId, CallAudioState audioState) {
+        log("onAudioStateChanged, callId: " + callId + " audioState: " + audioState);
     }
 
     /** {@inheritDoc} */
     @Override
     public boolean onUnbind(Intent intent) {
+        log("onUnbind");
         mMediaPlayer = null;
-
         return super.onUnbind(intent);
     }
 
-    /**
-     * Adds the specified call ID to the set of live call IDs and starts playing audio on the
-     * voice-call stream.
-     *
-     * @param callId The identifier of the call to create.
-     */
-    private void createCall(String callId) {
-        Preconditions.checkState(!Strings.isNullOrEmpty(callId));
-        mLiveCallIds.add(callId);
-
-        // Starts audio if not already started.
+    private void activateCall(String callId) {
+        getAdapter().setActive(callId);
         if (!mMediaPlayer.isPlaying()) {
             mMediaPlayer.start();
         }
@@ -210,10 +197,10 @@ public class TestCallService extends CallService {
      */
     private void destroyCall(String callId) {
         Preconditions.checkState(!Strings.isNullOrEmpty(callId));
-        mLiveCallIds.remove(callId);
+        mCalls.remove(callId);
 
         // Stops audio if there are no more calls.
-        if (mLiveCallIds.isEmpty() && mMediaPlayer.isPlaying()) {
+        if (mCalls.isEmpty() && mMediaPlayer.isPlaying()) {
             mMediaPlayer.stop();
             mMediaPlayer.release();
             mMediaPlayer = createMediaPlayer();
@@ -227,4 +214,7 @@ public class TestCallService extends CallService {
         return mediaPlayer;
     }
 
+    private static void log(String msg) {
+        Log.w("testcallservice", "[TestCallService] " + msg);
+    }
 }

@@ -28,17 +28,19 @@ import com.google.common.collect.Lists;
  * TODO(santoscordon): Build more dummy providers for more CallServiceDescriptor.FLAG_* types.
  */
 public class TestCallServiceProvider extends CallServiceProvider {
-    private static final String TAG = TestCallServiceProvider.class.getSimpleName();
-
     /** {@inheritDoc} */
     @Override
     public void lookupCallServices(CallServiceLookupResponse response) {
-        Log.i(TAG, "lookupCallServices()");
+        log("lookupCallServices");
 
         CallServiceDescriptor.Builder builder = CallServiceDescriptor.newBuilder(this);
         builder.setCallService(TestCallService.class);
         builder.setNetworkType(CallServiceDescriptor.FLAG_WIFI);
 
         response.setCallServiceDescriptors(Lists.newArrayList(builder.build()));
+    }
+
+    private static void log(String msg) {
+        Log.w("testcallservice", "[TestCallServiceProvider] " + msg);
     }
 }
