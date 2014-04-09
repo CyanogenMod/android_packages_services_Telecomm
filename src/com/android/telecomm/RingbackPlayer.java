@@ -54,7 +54,7 @@ class RingbackPlayer extends CallsManagerListenerBase {
         if (mCallsManager.getForegroundCall() == call) {
 
             // Treat as ending or begining dialing based on the state transition.
-            if (newState == CallState.DIALING) {
+            if (shouldStartRinging(call)) {
                 startRingbackForCall(call);
             } else if (oldState == CallState.DIALING) {
                 stopRingbackForCall(call);
@@ -69,8 +69,27 @@ class RingbackPlayer extends CallsManagerListenerBase {
             stopRingbackForCall(oldForegroundCall);
         }
 
-        if (newForegroundCall != null && newForegroundCall.getState() == CallState.DIALING) {
+        if (shouldStartRinging(newForegroundCall)) {
             startRingbackForCall(newForegroundCall);
+        }
+    }
+
+    @Override
+    public void onCallServiceChanged(
+            Call call,
+            CallServiceWrapper oldCallServiceWrapper,
+            CallServiceWrapper newCallService) {
+
+        super.onCallServiceChanged(call, oldCallServiceWrapper, newCallService);
+        // Only operate on the foreground call.
+        if (mCallsManager.getForegroundCall() == call) {
+
+            // Treat as ending or begining dialing based on the state transition.
+            if (shouldStartRinging(call)) {
+                startRingbackForCall(call);
+            } else if (newCallService == null) {
+                stopRingbackForCall(call);
+            }
         }
     }
 
@@ -91,7 +110,7 @@ class RingbackPlayer extends CallsManagerListenerBase {
 
         mCall = call;
         if (mTonePlayer == null) {
-            Log.d(this, "Playing the ringback tone.");
+            Log.d(this, "Playing the ringback tone for %s.", call);
             mTonePlayer = mPlayerFactory.createPlayer(InCallTonePlayer.TONE_RING_BACK);
             mTonePlayer.startTone();
         }
@@ -113,10 +132,16 @@ class RingbackPlayer extends CallsManagerListenerBase {
             if (mTonePlayer == null) {
                 Log.w(this, "No player found to stop.");
             } else {
-                Log.i(this, "Stopping the ringback tone.");
+                Log.i(this, "Stopping the ringback tone for %s.", call);
                 mTonePlayer.stopTone();
                 mTonePlayer = null;
             }
         }
+    }
+
+    private static boolean shouldStartRinging(Call call) {
+        return call != null
+                && call.getState() == CallState.DIALING
+                && call.getCallService() != null;
     }
 }

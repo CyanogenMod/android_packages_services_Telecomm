@@ -110,8 +110,7 @@ public final class CallsManager {
         mListeners.add(new CallLogManager(app));
         mListeners.add(new PhoneStateBroadcaster());
         mListeners.add(new InCallController());
-        mListeners.add(
-                new Ringer(mCallAudioManager, this, playerFactory, TelecommApp.getInstance()));
+        mListeners.add(new Ringer(mCallAudioManager, this, playerFactory, app));
         mListeners.add(new RingbackPlayer(this, playerFactory));
         mListeners.add(new InCallToneMonitor(playerFactory, this));
         mListeners.add(mCallAudioManager);
