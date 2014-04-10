@@ -168,14 +168,14 @@ final class Ringer extends CallsManagerListenerBase {
                 mCallAudioManager.setIsRinging(true);
 
                 mRingtonePlayer.play();
-
-                if (shouldVibrate(TelecommApp.getInstance()) && !mIsVibrating) {
-                    mVibrator.vibrate(VIBRATION_PATTERN, VIBRATION_PATTERN_REPEAT,
-                            AudioManager.STREAM_RING);
-                    mIsVibrating = true;
-                }
             } else {
                 Log.v(this, "startRingingOrCallWaiting, skipping because volume is 0");
+            }
+
+            if (shouldVibrate(TelecommApp.getInstance()) && !mIsVibrating) {
+                mVibrator.vibrate(VIBRATION_PATTERN, VIBRATION_PATTERN_REPEAT,
+                        AudioManager.STREAM_RING);
+                mIsVibrating = true;
             }
         } else {
             Log.v(this, "Playing call-waiting tone.");
