@@ -102,6 +102,11 @@ class RingbackPlayer extends CallsManagerListenerBase {
         Preconditions.checkState(call.getState() == CallState.DIALING);
         ThreadUtil.checkOnMainThread();
 
+        if (mCall == call) {
+            Log.w(this, "Ignoring duplicate requests to ring for %s.", call);
+            return;
+        }
+
         if (mCall != null) {
             // We only get here for the foreground call so, there's no reason why there should
             // exist a current dialing call.
@@ -141,7 +146,6 @@ class RingbackPlayer extends CallsManagerListenerBase {
 
     private static boolean shouldStartRinging(Call call) {
         return call != null
-                && call.getState() == CallState.DIALING
-                && call.getCallService() != null;
+                && call.getState() == CallState.DIALING;
     }
 }

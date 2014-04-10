@@ -228,7 +228,6 @@ public final class CallsManager {
                     Log.pii(uriHandle), Log.pii(handle));
         }
         Call call = new Call(uriHandle, contactInfo, gatewayInfo, false /* isIncoming */);
-        setCallState(call, CallState.DIALING);
         addCall(call);
         mSwitchboard.placeOutgoingCall(call);
     }
