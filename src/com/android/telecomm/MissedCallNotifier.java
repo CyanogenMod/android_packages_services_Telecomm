@@ -130,7 +130,7 @@ class MissedCallNotifier extends CallsManagerListenerBase {
 
             // TODO(santoscordon): Add photo for contact.
         } else {
-            Log.d(this, "Suppress actions. handle: %s, missedCalls: %s." + Log.piiHandle(handle),
+            Log.d(this, "Suppress actions. handle: %s, missedCalls: %d.", Log.piiHandle(handle),
                     mMissedCallCount);
         }
 
