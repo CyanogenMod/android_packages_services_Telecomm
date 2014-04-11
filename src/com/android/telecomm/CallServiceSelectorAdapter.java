@@ -32,9 +32,10 @@ import java.util.List;
  */
 public final class CallServiceSelectorAdapter extends ICallServiceSelectorAdapter.Stub {
     private static final int MSG_SET_SELECTED_CALL_SERVICES = 0;
-    private static final int MSG_SET_HANDOFF_INFO = 1;
+    private static final int MSG_CANCEL_OUTGOING_CALL = 1;
+    private static final int MSG_SET_HANDOFF_INFO = 2;
 
-    private final class CallServiceSelectorAdapaterHandler extends Handler {
+    private final class CallServiceSelectorAdapterHandler extends Handler {
         @Override
         public void handleMessage(Message msg) {
             switch (msg.what) {
@@ -47,10 +48,20 @@ public final class CallServiceSelectorAdapter extends ICallServiceSelectorAdapte
                         if (call != null) {
                             mOutgoingCallsManager.processSelectedCallServices(call, descriptors);
                         } else {
-                            Log.w(this, "Unknown call: %s, id: %s", call, args.arg1);
+                            Log.w(this, "setSelectedCallServices: unknown call: %s, id: %s",
+                                    call, args.arg1);
                         }
                     } finally {
                         args.recycle();
+                    }
+                    break;
+                }
+                case MSG_CANCEL_OUTGOING_CALL: {
+                    Call call = mCallIdMapper.getCall(msg.obj);
+                    if (call != null) {
+                        mOutgoingCallsManager.abort(call);
+                    } else {
+                        Log.w(this, "cancelOutgoingCall: unknown call: %s, id: %s", call, msg.obj);
                     }
                     break;
                 }
@@ -63,7 +74,8 @@ public final class CallServiceSelectorAdapter extends ICallServiceSelectorAdapte
                         if (call != null) {
                             mCallsManager.setHandoffInfo(call, handle, extras);
                         } else {
-                            Log.w(this, "Unknown call: %s, id: %s", call, args.arg1);
+                            Log.w(this, "setHandoffInfo: unknown call: %s, id: %s",
+                                    call, args.arg1);
                         }
                     } finally {
                         args.recycle();
@@ -74,7 +86,7 @@ public final class CallServiceSelectorAdapter extends ICallServiceSelectorAdapte
         }
     }
 
-    private final Handler mHandler = new CallServiceSelectorAdapaterHandler();
+    private final Handler mHandler = new CallServiceSelectorAdapterHandler();
     private final CallsManager mCallsManager;
     private final OutgoingCallsManager mOutgoingCallsManager;
     private final CallIdMapper mCallIdMapper;
@@ -90,7 +102,7 @@ public final class CallServiceSelectorAdapter extends ICallServiceSelectorAdapte
     }
 
     /**
-     * @see CallServiceSelectorAdapater#setSelectedCallServices(String,List<CallServiceDescriptor>)
+     * @see CallServiceSelectorAdapter#setSelectedCallServices(String,List<CallServiceDescriptor>)
      */
     @Override
     public void setSelectedCallServices(String callId, List<CallServiceDescriptor> descriptors) {
@@ -101,7 +113,14 @@ public final class CallServiceSelectorAdapter extends ICallServiceSelectorAdapte
         mHandler.obtainMessage(MSG_SET_SELECTED_CALL_SERVICES, args).sendToTarget();
     }
 
-    /** @see CallServiceSelectorAdapater#setHandoffInfo(String,Uri,Bundle) */
+    /** @see CallServiceSelectorAdapter#cancelOutgoingCall(String) */
+    @Override
+    public void cancelOutgoingCall(String callId) {
+        mCallIdMapper.checkValidCallId(callId);
+        mHandler.obtainMessage(MSG_CANCEL_OUTGOING_CALL, callId).sendToTarget();
+    }
+
+    /** @see CallServiceSelectorAdapter#setHandoffInfo(String,Uri,Bundle) */
     @Override
     public void setHandoffInfo(String callId, Uri handle, Bundle extras) {
         mCallIdMapper.checkValidCallId(callId);
