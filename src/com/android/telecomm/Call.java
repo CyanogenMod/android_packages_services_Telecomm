@@ -139,9 +139,11 @@ final class Call {
 
     /** {@inheritDoc} */
     @Override public String toString() {
-        return String.format(Locale.US, "[%s, %s, %s]", mState,
-                mCallService == null ? "<null>" : mCallService.getComponentName(),
-                Log.piiHandle(mHandle));
+        String component = null;
+        if (mCallService != null && mCallService.getComponentName() != null) {
+            component = mCallService.getComponentName().flattenToShortString();
+        }
+        return String.format(Locale.US, "[%s, %s, %s]", mState, component, Log.piiHandle(mHandle));
     }
 
     CallState getState() {
