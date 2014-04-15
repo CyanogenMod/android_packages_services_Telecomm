@@ -373,7 +373,9 @@ final class Call {
      */
     void disconnect() {
         if (mCallService == null) {
-            Log.w(this, "disconnect() request on a call without a call service.");
+            Log.d(this, "disconnect() request on a call without a call service.");
+            // In case this call is ringing, ensure we abort and clean up right away.
+            CallsManager.getInstance().abortCall(this);
         } else {
             Log.i(this, "Send disconnect to call service for call: %s", this);
             // The call isn't officially disconnected until the call service confirms that the call
