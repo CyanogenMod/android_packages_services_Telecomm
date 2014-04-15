@@ -162,12 +162,17 @@ final class OutgoingCallsManager {
      * Aborts any ongoing attempts to connect the specified (outgoing) call.
      *
      * @param call The call to be aborted.
+     * @return False if the call was not found; True otherwise, indicating that the abort was
+     *         successful.
      */
-    void abort(Call call) {
+    boolean abort(Call call) {
         Log.v(this, "abort, call: %s", call);
         OutgoingCallProcessor processor = mOutgoingCallProcessors.remove(call);
         if (processor != null) {
             processor.abort();
+            return true;
         }
+
+        return false;
     }
 }

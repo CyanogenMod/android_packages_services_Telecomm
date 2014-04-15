@@ -29,6 +29,8 @@ import android.telecomm.TelecommConstants;
 import com.android.internal.telecomm.ICallServiceLookupResponse;
 import com.android.internal.telecomm.ICallServiceProvider;
 import com.google.common.base.Preconditions;
+
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -90,6 +92,11 @@ final class CallServiceRepository {
     private final Map<ComponentName, CallServiceWrapper> mCallServices = Maps.newHashMap();
 
     /**
+     * The set of call-service components found during a single lookup.
+     */
+    private final Set<ComponentName> mFoundCallServices = Sets.newHashSet();
+
+    /**
      * Persists the specified parameters.
      *
      * @param switchboard The switchboard.
@@ -120,6 +127,7 @@ final class CallServiceRepository {
             return;
         }
 
+        mFoundCallServices.clear();
         List<ComponentName> providerNames = getProviderNames();
         if (providerNames.isEmpty()) {
             Log.i(this, "No ICallServiceProvider implementations found, bailing out.");
@@ -153,28 +161,6 @@ final class CallServiceRepository {
         registerCallService(descriptor);
 
         return mCallServices.get(descriptor.getServiceComponent());
-    }
-
-    /**
-     * Iterates through the map of active services and removes the ones that are not associated
-     * with active calls.
-     * TODO(gilad): Invoke this from Switchboard upon resource deallocation cycles.
-     */
-    void purgeInactiveCallServices() {
-        Iterator<ComponentName> iterator = mCallServices.keySet().iterator();
-        while (iterator.hasNext()) {
-            ComponentName callServiceName = iterator.next();
-            CallServiceWrapper callService = mCallServices.get(callServiceName);
-
-            // TODO(gilad): Either add ICallService.getActiveCallCount() or have this tracked by the
-            // Switchboard if we rather not rely on 3rd-party code to do the bookkeeping for us. If
-            // we prefer the latter, we can also have purgeInactiveCallService(descriptor).
-            // Otherwise this might look something like:
-            //
-            // if (callService.getActiveCallCount() < 1) {
-            //     mCallServices.remove(callServiceName);
-            // }
-        }
     }
 
     /**
@@ -258,6 +244,7 @@ final class CallServiceRepository {
         if (mOutstandingProviders.contains(providerName)) {
             // Add all the call services from this provider to the call-service cache.
             for (CallServiceDescriptor descriptor : callServiceDescriptors) {
+                mFoundCallServices.add(descriptor.getServiceComponent());
                 registerCallService(descriptor);
             }
 
@@ -309,6 +296,22 @@ final class CallServiceRepository {
     private void terminateLookup() {
         mHandler.removeCallbacks(mTimeoutLookupTerminator);
         mOutstandingProviders.clear();
+
+        // Clean out any old call services. Since the set of call services can change (app installs,
+        // uninstalls, etc.) between lookups, we need to make sure that we purge our registry
+        // of any old call services (call services which were not found in this lookup). However,
+        // we dont purge any call services that might still have calls associated with them.
+        for (ComponentName component : ImmutableSet.copyOf(mCallServices.keySet().iterator())) {
+            if (!mFoundCallServices.contains(component)) {
+                // This component is registered, but was not found in the latest lookup...so try
+                // to remove it.
+                CallServiceWrapper callService = mCallServices.get(component);
+                if (callService.getAssociatedCallCount() < 1) {
+                    mCallServices.remove(component);
+                }
+            }
+        }
+        mFoundCallServices.clear();
 
         updateSwitchboard();
         mIsLookupInProgress = false;

@@ -17,7 +17,6 @@
 package com.android.telecomm;
 
 import android.content.ComponentName;
-import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
@@ -26,6 +25,7 @@ import android.telecomm.TelecommConstants;
 
 import com.android.internal.telecomm.ICallServiceSelector;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -36,7 +36,7 @@ import java.util.Map;
  * Helper class to retrieve {@link ICallServiceSelector} implementations on the device and
  * asynchronously bind to them.
  */
-final class CallServiceSelectorRepository {
+final class CallServiceSelectorRepository implements ServiceBinder.Listener {
 
     private final Switchboard mSwitchboard;
     private final OutgoingCallsManager mOutgoingCallsManager;
@@ -68,15 +68,57 @@ final class CallServiceSelectorRepository {
         ThreadUtil.checkOnMainThread();
 
         List<ComponentName> selectorNames = getSelectorNames();
+        List<CallServiceSelectorWrapper> foundSelectors = Lists.newLinkedList();
+
+        // Register any new selectors.
         for (ComponentName name : selectorNames) {
-            if (!mCallServiceSelectors.containsKey(name)) {
-                mCallServiceSelectors.put(name, new CallServiceSelectorWrapper(name,
-                        CallsManager.getInstance(), mOutgoingCallsManager));
+            CallServiceSelectorWrapper selector = mCallServiceSelectors.get(name);
+            if (selector == null) {
+                selector = createWrapper(name);
+                mCallServiceSelectors.put(name, selector);
+            }
+
+            if (TelephonyUtil.isTelephonySelector(selector)) {
+                // Add telephony selectors to the end to serve as a fallback.
+                foundSelectors.add(selector);
+            } else {
+                // TODO(sail): Need a way to order selectors.
+                foundSelectors.add(0, selector);
             }
         }
 
         Log.i(this, "Found %d implementations of ICallServiceSelector", selectorNames.size());
-        updateSwitchboard();
+        updateSwitchboard(foundSelectors);
+    }
+
+    /**
+     * Removes the specified selector (as a ServiceBinder) from the map of registered selectors.
+     *
+     * {@inheritDoc}
+     */
+    @SuppressWarnings("rawtypes")
+    @Override
+    public void onUnbind(ServiceBinder serviceBinder) {
+        if (serviceBinder instanceof CallServiceSelectorWrapper) {
+            CallServiceSelectorWrapper selector = (CallServiceSelectorWrapper) serviceBinder;
+            mCallServiceSelectors.remove(selector.getComponentName());
+        } else {
+            Log.wtf(this, "Received unbind notice from non-selector: %s.",
+                    serviceBinder.getComponentName().flattenToShortString());
+        }
+    }
+
+    /**
+     * Creates a wrapper for the specified component name and starts listening to it's unbind event.
+     *
+     * @param componentName The component name of the call-service selector.
+     * @return The wrapper for the selector.
+     */
+    private CallServiceSelectorWrapper createWrapper(ComponentName componentName) {
+        CallServiceSelectorWrapper selector = new CallServiceSelectorWrapper(
+                componentName, CallsManager.getInstance(), mOutgoingCallsManager);
+        selector.addListener(this);
+        return selector;
     }
 
     /**
@@ -104,21 +146,10 @@ final class CallServiceSelectorRepository {
 
     /**
      * Updates the switchboard passing the relevant call services selectors.
+     *
+     * @param selectors The selectors found during lookup.
      */
-    private void updateSwitchboard() {
-        ThreadUtil.checkOnMainThread();
-
-        List<CallServiceSelectorWrapper> selectors = Lists.newLinkedList();
-        for (CallServiceSelectorWrapper selector : mCallServiceSelectors.values()) {
-            if (TelephonyUtil.isTelephonySelector(selector)) {
-                // Add telephony selectors to the end to serve as a fallback.
-                selectors.add(selector);
-            } else {
-                // TODO(sail): Need a way to order selectors.
-                selectors.add(0, selector);
-            }
-        }
-
-        mSwitchboard.setSelectors(ImmutableList.copyOf((selectors)));
+    private void updateSwitchboard(List<CallServiceSelectorWrapper> selectors) {
+        mSwitchboard.setSelectors(ImmutableList.copyOf(selectors));
     }
 }

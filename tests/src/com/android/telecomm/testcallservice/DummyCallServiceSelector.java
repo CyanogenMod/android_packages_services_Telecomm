@@ -33,14 +33,12 @@ import java.util.List;
 public class DummyCallServiceSelector extends CallServiceSelector {
     private static DummyCallServiceSelector sInstance;
     private static final String SCHEME_TEL = "tel";
-    private static final String TELEPHONY_PACKAGE_NAME =
-            "com.android.phone";
+    private static final String TELEPHONY_PACKAGE_NAME = "com.android.phone";
     private static final String CUSTOM_HANDOFF_KEY = "custom_handoff_key";
     private static final String CUSTOM_HANDOFF_VALUE = "custom_handoff_value";
 
     public DummyCallServiceSelector() {
         log("constructor");
-        Preconditions.checkState(sInstance == null);
         sInstance = this;
     }
 

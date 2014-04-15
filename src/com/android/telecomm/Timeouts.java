@@ -54,20 +54,10 @@ public final class Timeouts {
     }
 
     /**
-     * @return How frequently, in milliseconds, to run {@link Switchboard}'s clean-up "tick" cycle.
-     */
-    public static long getTickMillis() {
-        return get("tick_ms", 250);
-    }
-
-    /**
      * Returns the longest period, in milliseconds, each new outgoing call is allowed to wait before
      * being established. If the call does not connect before this time, abort the call.
-     *
-     * @return The longest period, in milliseconds, each new call is allowed to wait before being
-     *     established.
      */
     public static long getNewOutgoingCallMillis() {
-        return get("new_outgoing_call_ms", 5000);
+        return get("new_outgoing_call_ms", 60 * 1000L);
     }
 }

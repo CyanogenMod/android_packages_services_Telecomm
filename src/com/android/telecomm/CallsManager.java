@@ -550,6 +550,7 @@ public final class CallsManager {
     private void removeCall(Call call) {
         // If a handoff is pending then the original call shouldn't be removed.
         Preconditions.checkState(call.getHandoffCallServiceDescriptor() == null);
+        Log.v(this, "removeCall(%s)", call);
 
         call.clearCallService();
         call.clearCallServiceSelector();

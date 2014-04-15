@@ -25,6 +25,8 @@ import android.os.IInterface;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
 import java.util.Set;
@@ -40,8 +42,16 @@ abstract class ServiceBinder<ServiceInterface extends IInterface> {
      * Callback to notify after a binding succeeds or fails.
      */
     interface BindCallback {
-        public void onSuccess();
-        public void onFailure();
+        void onSuccess();
+        void onFailure();
+    }
+
+    /**
+     * Listener for bind events on ServiceBinder.
+     */
+    interface Listener {
+        @SuppressWarnings("rawtypes")
+        void onUnbind(ServiceBinder serviceBinder);
     }
 
     /**
@@ -89,10 +99,12 @@ abstract class ServiceBinder<ServiceInterface extends IInterface> {
         @Override
         public void onServiceConnected(ComponentName componentName, IBinder binder) {
             ThreadUtil.checkOnMainThread();
+            Log.i(this, "Service bound %s", componentName);
 
             // Unbind request was queued so unbind immediately.
             if (mIsBindingAborted) {
                 clearAbort();
+                logServiceDisconnected("onServiceConnected");
                 mContext.unbindService(this);
                 handleFailedConnection();
                 return;
@@ -105,6 +117,8 @@ abstract class ServiceBinder<ServiceInterface extends IInterface> {
 
         @Override
         public void onServiceDisconnected(ComponentName componentName) {
+            logServiceDisconnected("onServiceDisconnected");
+
             mServiceConnection = null;
             clearAbort();
 
@@ -130,7 +144,6 @@ abstract class ServiceBinder<ServiceInterface extends IInterface> {
     /** The binder provided by {@link ServiceConnection#onServiceConnected} */
     private IBinder mBinder;
 
-    /** The number of calls currently associated with this service. */
     private int mAssociatedCallCount = 0;
 
     /**
@@ -138,6 +151,11 @@ abstract class ServiceBinder<ServiceInterface extends IInterface> {
      * successfully connects when this is true, it should be unbound immediately.
      */
     private boolean mIsBindingAborted;
+
+    /**
+     * Set of currently registered listeners.
+     */
+    private Set<Listener> mListeners = Sets.newHashSet();
 
     /**
      * Persists the specified parameters and initializes the new instance.
@@ -156,11 +174,19 @@ abstract class ServiceBinder<ServiceInterface extends IInterface> {
 
     final void incrementAssociatedCallCount() {
         mAssociatedCallCount++;
+        Log.v(this, "Call count increment %d, %s", mAssociatedCallCount,
+                mComponentName.flattenToShortString());
     }
 
     final void decrementAssociatedCallCount() {
         if (mAssociatedCallCount > 0) {
             mAssociatedCallCount--;
+            Log.v(this, "Call count decrement %d, %s", mAssociatedCallCount,
+                    mComponentName.flattenToShortString());
+
+            if (mAssociatedCallCount == 0) {
+                unbind();
+            }
         } else {
             Log.wtf(this, "%s: ignoring a request to decrement mAssociatedCallCount below zero",
                     mComponentName.getClassName());
@@ -181,6 +207,7 @@ abstract class ServiceBinder<ServiceInterface extends IInterface> {
             // We're not yet bound, so queue up an abort request.
             mIsBindingAborted = true;
         } else {
+            logServiceDisconnected("unbind");
             mContext.unbindService(mServiceConnection);
             mServiceConnection = null;
             setBinder(null);
@@ -198,6 +225,26 @@ abstract class ServiceBinder<ServiceInterface extends IInterface> {
         }
 
         return true;
+    }
+
+    final void addListener(Listener listener) {
+        mListeners.add(listener);
+    }
+
+    final void removeListener(Listener listener) {
+        mListeners.remove(listener);
+    }
+
+    /**
+     * Logs a standard message upon service disconnection. This method exists because there is no
+     * single method called whenever the service unbinds and we want to log the same string in all
+     * instances where that occurs.  (Context.unbindService() does not cause onServiceDisconnected
+     * to execute).
+     *
+     * @param sourceTag Tag to disambiguate
+     */
+    private void logServiceDisconnected(String sourceTag) {
+        Log.i(this, "Service unbound %s, from %s.", mComponentName, sourceTag);
     }
 
     /**
@@ -239,8 +286,19 @@ abstract class ServiceBinder<ServiceInterface extends IInterface> {
      * @param binder The new binder value.
      */
     private void setBinder(IBinder binder) {
-        mBinder = binder;
-        setServiceInterface(binder);
+        if (mBinder != binder) {
+            mBinder = binder;
+
+            setServiceInterface(binder);
+
+            if (binder == null) {
+                // Use a copy of the listener list to allow the listeners to unregister themselves
+                // as part of the unbind without causing issues.
+                for (Listener l : ImmutableSet.copyOf(mListeners)) {
+                    l.onUnbind(this);
+                }
+            }
+        }
     }
 
     /**

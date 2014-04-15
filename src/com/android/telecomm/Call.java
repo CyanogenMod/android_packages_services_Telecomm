@@ -278,9 +278,17 @@ final class Call {
      */
     void clearCallService() {
         if (mCallService != null) {
-            decrementAssociatedCallCount(mCallService);
-            mCallService.removeCall(this);
+            CallServiceWrapper callServiceTemp = mCallService;
             mCallService = null;
+            callServiceTemp.removeCall(this);
+
+            // Decrementing the count can cause the service to unbind, which itself can trigger the
+            // service-death code.  Since the service death code tries to clean up any associated
+            // calls, we need to make sure to remove that information (e.g., removeCall()) before
+            // we decrement. Technically, invoking removeCall() prior to decrementing is all that is
+            // necessary, but cleaning up mCallService prior to triggering an unbind is good to do.
+            // If you change this, make sure to update {@link clearCallServiceSelector} as well.
+            decrementAssociatedCallCount(callServiceTemp);
         }
     }
 
@@ -293,16 +301,19 @@ final class Call {
 
         clearCallServiceSelector();
 
+        selector.incrementAssociatedCallCount();
         mCallServiceSelector = selector;
         mCallServiceSelector.addCall(this);
     }
 
     void clearCallServiceSelector() {
         if (mCallServiceSelector != null) {
-            // TODO(sail): Stop leaking selectors.
-            // decrementAssociatedCallCount(mCallServiceSelector);
-            mCallServiceSelector.removeCall(this);
+            CallServiceSelectorWrapper selectorTemp = mCallServiceSelector;
             mCallServiceSelector = null;
+            selectorTemp.removeCall(this);
+
+            // See comment on {@link #clearCallService}.
+            decrementAssociatedCallCount(selectorTemp);
         }
     }
 
