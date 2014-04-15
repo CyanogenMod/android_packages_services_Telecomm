@@ -394,6 +394,18 @@ public final class CallsManager {
         }
     }
 
+    /**
+     * Instructs Telecomm to abort any outgoing state of the specified call.
+     */
+    void abortCall(Call call) {
+        if (!mCalls.contains(call)) {
+            Log.w(this, "Unknown call (%s) asked to be aborted", call);
+        } else {
+            Log.d(this, "Aborting call: (%s)", call);
+            mSwitchboard.abortCall(call);
+        }
+    }
+
     /** Called by the in-call UI to change the mute state. */
     void mute(boolean shouldMute) {
         mCallAudioManager.mute(shouldMute);

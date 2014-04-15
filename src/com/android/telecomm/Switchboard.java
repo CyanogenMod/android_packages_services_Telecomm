@@ -252,6 +252,16 @@ final class Switchboard {
     }
 
     /**
+     * Ensures any state regarding a call is cleaned up.
+     *
+     * @param call The call.
+     */
+    void abortCall(Call call) {
+        Log.d(this, "abortCall");
+        mOutgoingCallsManager.abort(call);
+    }
+
+    /**
      * @return True if ticking should continue (or be resumed) and false otherwise.
      */
     private boolean isTicking() {
