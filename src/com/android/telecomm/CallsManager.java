@@ -89,6 +89,8 @@ public final class CallsManager {
      */
     private Call mForegroundCall;
 
+    private final DtmfLocalTonePlayer mDtmfLocalTonePlayer = new DtmfLocalTonePlayer();
+
     private final CallAudioManager mCallAudioManager;
 
     private final Set<CallsManagerListener> mListeners = Sets.newHashSet();
@@ -115,6 +117,7 @@ public final class CallsManager {
         mListeners.add(new InCallToneMonitor(playerFactory, this));
         mListeners.add(mCallAudioManager);
         mListeners.add(app.getMissedCallNotifier());
+        mListeners.add(mDtmfLocalTonePlayer);
     }
 
     static CallsManager getInstance() {
@@ -326,6 +329,7 @@ public final class CallsManager {
             Log.i(this, "Request to play DTMF in a non-existent call %s", call);
         } else {
             call.playDtmfTone(digit);
+            mDtmfLocalTonePlayer.playTone(call, digit);
         }
     }
 
@@ -337,6 +341,7 @@ public final class CallsManager {
             Log.i(this, "Request to stop DTMF in a non-existent call %s", call);
         } else {
             call.stopDtmfTone();
+            mDtmfLocalTonePlayer.stopTone(call);
         }
     }
 
