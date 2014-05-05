@@ -17,13 +17,18 @@
 package com.android.telecomm;
 
 import android.content.ComponentName;
+
+import android.net.Uri;
+import android.os.Bundle;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Message;
 import android.os.RemoteException;
 import android.telecomm.CallInfo;
 import android.telecomm.CallServiceDescriptor;
-import android.telecomm.CallServiceSelector;
 import android.telecomm.TelecommConstants;
 
+import com.android.internal.os.SomeArgs;
 import com.android.internal.telecomm.ICallServiceSelector;
 import com.android.internal.telecomm.ICallServiceSelectorAdapter;
 
@@ -34,10 +39,100 @@ import java.util.List;
  * safely be unbound.
  */
 final class CallServiceSelectorWrapper extends ServiceBinder<ICallServiceSelector> {
-    private ICallServiceSelector mSelectorInterface;
+
+    private final class Adapter extends ICallServiceSelectorAdapter.Stub {
+        private static final int MSG_SET_SELECTED_CALL_SERVICES = 0;
+        private static final int MSG_CANCEL_OUTGOING_CALL = 1;
+        private static final int MSG_SET_HANDOFF_INFO = 2;
+
+        private final Handler mHandler = new Handler() {
+            @Override
+            public void handleMessage(Message msg) {
+                switch (msg.what) {
+                    case MSG_SET_SELECTED_CALL_SERVICES: {
+                        SomeArgs args = (SomeArgs) msg.obj;
+                        try {
+                            Call call = mCallIdMapper.getCall(args.arg1);
+                            List<CallServiceDescriptor> descriptors =
+                                    (List<CallServiceDescriptor>) args.arg2;
+                            if (call != null) {
+                                mOutgoingCallsManager.processSelectedCallServices(call,
+                                        descriptors);
+                            } else {
+                                Log.w(this, "setSelectedCallServices: unknown call: %s, id: %s",
+                                        call, args.arg1);
+                            }
+                        } finally {
+                            args.recycle();
+                        }
+                        break;
+                    }
+                    case MSG_CANCEL_OUTGOING_CALL: {
+                        Call call = mCallIdMapper.getCall(msg.obj);
+                        if (call != null) {
+                            mOutgoingCallsManager.abort(call);
+                        } else {
+                            Log.w(this, "cancelOutgoingCall: unknown call: %s, id: %s", call,
+                                    msg.obj);
+                        }
+                        break;
+                    }
+                    case MSG_SET_HANDOFF_INFO: {
+                        SomeArgs args = (SomeArgs) msg.obj;
+                        try {
+                            Call call = mCallIdMapper.getCall(args.arg1);
+                            Uri handle = (Uri) args.arg2;
+                            Bundle extras = (Bundle) args.arg3;
+                            if (call != null) {
+                                mCallsManager.setHandoffInfo(call, handle, extras);
+                            } else {
+                                Log.w(this, "setHandoffInfo: unknown call: %s, id: %s",
+                                        call, args.arg1);
+                            }
+                        } finally {
+                            args.recycle();
+                        }
+                        break;
+                    }
+                }
+            }
+        };
+
+        @Override
+        public void setSelectedCallServices(String callId,
+                List<CallServiceDescriptor> descriptors) {
+            mCallIdMapper.checkValidCallId(callId);
+            SomeArgs args = SomeArgs.obtain();
+            args.arg1 = callId;
+            args.arg2 = descriptors;
+            mHandler.obtainMessage(MSG_SET_SELECTED_CALL_SERVICES, args).sendToTarget();
+        }
+
+        @Override
+        public void cancelOutgoingCall(String callId) {
+            mCallIdMapper.checkValidCallId(callId);
+            mHandler.obtainMessage(MSG_CANCEL_OUTGOING_CALL, callId).sendToTarget();
+        }
+
+        @Override
+        public void setHandoffInfo(String callId, Uri handle, Bundle extras) {
+            mCallIdMapper.checkValidCallId(callId);
+            SomeArgs args = SomeArgs.obtain();
+            args.arg1 = callId;
+            args.arg2 = handle;
+            args.arg3 = extras;
+            mHandler.obtainMessage(MSG_SET_HANDOFF_INFO, args).sendToTarget();
+        }
+    }
+
     private final Binder mBinder = new Binder();
     private final CallIdMapper mCallIdMapper = new CallIdMapper("CallServiceSelector");
-    private final CallServiceSelectorAdapter mAdapter;
+    private final Adapter mAdapter = new Adapter();
+
+    private final CallsManager mCallsManager;
+    private final OutgoingCallsManager mOutgoingCallsManager;
+
+    private ICallServiceSelector mSelectorInterface;
 
     /**
      * Creates a call-service selector for the specified component using the specified action to
@@ -55,8 +150,8 @@ final class CallServiceSelectorWrapper extends ServiceBinder<ICallServiceSelecto
             OutgoingCallsManager outgoingCallsManager) {
 
         super(action, componentName);
-        mAdapter =
-                new CallServiceSelectorAdapter(callsManager, outgoingCallsManager, mCallIdMapper);
+        mCallsManager = callsManager;
+        mOutgoingCallsManager = outgoingCallsManager;
     }
 
     /**
@@ -76,16 +171,6 @@ final class CallServiceSelectorWrapper extends ServiceBinder<ICallServiceSelecto
                 componentName,
                 callsManager,
                 outgoingCallsManager);
-    }
-
-    /** See {@link CallServiceSelector#setCallServiceSelectorAdapter}. */
-    private void setCallServiceSelectorAdapter(ICallServiceSelectorAdapter adapter) {
-        if (isServiceValid("setCallServiceSelectorAdapter")) {
-            try {
-                mSelectorInterface.setCallServiceSelectorAdapter(adapter);
-            } catch (RemoteException e) {
-            }
-        }
     }
 
     /**
@@ -120,42 +205,6 @@ final class CallServiceSelectorWrapper extends ServiceBinder<ICallServiceSelecto
         mBinder.bind(callback);
     }
 
-    private void onCallUpdated(final CallInfo callInfo) {
-        BindCallback callback = new BindCallback() {
-            @Override
-            public void onSuccess() {
-                if (isServiceValid("onCallUpdated")) {
-                    try {
-                        mSelectorInterface.onCallUpdated(callInfo);
-                    } catch (RemoteException e) {
-                    }
-                }
-            }
-            @Override
-            public void onFailure() {
-            }
-        };
-        mBinder.bind(callback);
-    }
-
-    private void onCallRemoved(final String callId) {
-        BindCallback callback = new BindCallback() {
-            @Override
-            public void onSuccess() {
-                if (isServiceValid("onCallRemoved")) {
-                    try {
-                        mSelectorInterface.onCallRemoved(callId);
-                    } catch (RemoteException e) {
-                    }
-                }
-            }
-            @Override
-            public void onFailure() {
-            }
-        };
-        mBinder.bind(callback);
-    }
-
     void addCall(Call call) {
         mCallIdMapper.addCall(call);
         onCallUpdated(call.toCallInfo(mCallIdMapper.getCallId(call)));
@@ -176,5 +225,52 @@ final class CallServiceSelectorWrapper extends ServiceBinder<ICallServiceSelecto
             mSelectorInterface = ICallServiceSelector.Stub.asInterface(binder);
             setCallServiceSelectorAdapter(mAdapter);
         }
+    }
+
+    private void setCallServiceSelectorAdapter(ICallServiceSelectorAdapter adapter) {
+        if (isServiceValid("setCallServiceSelectorAdapter")) {
+            try {
+                mSelectorInterface.setCallServiceSelectorAdapter(adapter);
+            } catch (RemoteException e) {
+            }
+        }
+    }
+
+    private void onCallUpdated(final CallInfo callInfo) {
+        BindCallback callback = new BindCallback() {
+            @Override
+            public void onSuccess() {
+                if (isServiceValid("onCallUpdated")) {
+                    try {
+                        mSelectorInterface.onCallUpdated(callInfo);
+                    } catch (RemoteException e) {
+                    }
+                }
+            }
+
+            @Override
+            public void onFailure() {
+            }
+        };
+        mBinder.bind(callback);
+    }
+
+    private void onCallRemoved(final String callId) {
+        BindCallback callback = new BindCallback() {
+            @Override
+            public void onSuccess() {
+                if (isServiceValid("onCallRemoved")) {
+                    try {
+                        mSelectorInterface.onCallRemoved(callId);
+                    } catch (RemoteException e) {
+                    }
+                }
+            }
+
+            @Override
+            public void onFailure() {
+            }
+        };
+        mBinder.bind(callback);
     }
 }
