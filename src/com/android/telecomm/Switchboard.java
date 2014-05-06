@@ -19,8 +19,6 @@ package com.android.telecomm;
 import android.content.ComponentName;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.Looper;
-
 import android.os.Message;
 import android.telecomm.CallInfo;
 import android.telecomm.CallServiceDescriptor;
@@ -32,7 +30,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.Set;
 
 /**
@@ -45,7 +42,7 @@ import java.util.Set;
 final class Switchboard {
     private final static int MSG_EXPIRE_STALE_CALL = 1;
 
-    private final CallsManager mCallsManager;
+    private final static Switchboard sInstance = new Switchboard();
 
     /** Used to place outgoing calls. */
     private final OutgoingCallsManager mOutgoingCallsManager;
@@ -95,13 +92,17 @@ final class Switchboard {
      */
     private int mLookupId = 0;
 
+    /** Singleton accessor. */
+    static Switchboard getInstance() {
+        return sInstance;
+    }
+
     /**
      * Persists the specified parameters and initializes Switchboard.
      */
-    Switchboard(CallsManager callsManager) {
+    private Switchboard() {
         ThreadUtil.checkOnMainThread();
 
-        mCallsManager = callsManager;
         mOutgoingCallsManager = new OutgoingCallsManager(this);
         mIncomingCallsManager = new IncomingCallsManager(this);
         mSelectorRepository = new CallServiceSelectorRepository(this, mOutgoingCallsManager);
@@ -194,8 +195,8 @@ final class Switchboard {
     void handleSuccessfulOutgoingCall(Call call) {
         Log.d(this, "handleSuccessfulOutgoingCall");
 
-        mCallsManager.handleSuccessfulOutgoingCall(call);
         finalizeOutgoingCall(call);
+        call.handleSuccessfulOutgoing();
     }
 
     /**
@@ -205,8 +206,8 @@ final class Switchboard {
     void handleFailedOutgoingCall(Call call, boolean isAborted) {
         Log.d(this, "handleFailedOutgoingCall");
 
-        mCallsManager.handleUnsuccessfulOutgoingCall(call, isAborted);
         finalizeOutgoingCall(call);
+        call.handleFailedOutgoing(isAborted);
     }
 
     /**
@@ -216,8 +217,7 @@ final class Switchboard {
      */
     void handleSuccessfulIncomingCall(Call call, CallInfo callInfo) {
         Log.d(this, "handleSuccessfulIncomingCall");
-
-        mCallsManager.handleSuccessfulIncomingCall(call, callInfo);
+        call.handleSuccessfulIncoming(callInfo);
     }
 
     /**
@@ -231,8 +231,7 @@ final class Switchboard {
 
         // Since we set the call service before calling into incoming-calls manager, we clear it for
         // good measure if an error is reported.
-        call.clearCallService();
-        mCallsManager.handleUnsuccessfulIncomingCall(call);
+        call.handleFailedIncoming();
 
         // At the moment there is nothing more to do if an incoming call is not retrieved. We may at
         // a future date bind to the in-call app optimistically during the incoming-call sequence
@@ -301,7 +300,7 @@ final class Switchboard {
                     new CallServiceSelectorWrapper(
                             componentName.flattenToShortString(),
                             componentName,
-                            mCallsManager,
+                            CallsManager.getInstance(),
                             mOutgoingCallsManager);
 
             selectorsBuilder.add(emergencySelector);

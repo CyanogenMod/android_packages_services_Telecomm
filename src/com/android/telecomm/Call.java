@@ -22,6 +22,7 @@ import android.telecomm.CallInfo;
 import android.telecomm.CallServiceDescriptor;
 import android.telecomm.CallState;
 import android.telecomm.GatewayInfo;
+import android.telecomm.TelecommConstants;
 import android.telephony.DisconnectCause;
 import android.telephony.PhoneNumberUtils;
 
@@ -37,6 +38,17 @@ import java.util.Set;
  *  connected etc).
  */
 final class Call {
+
+    /**
+     * Listener for events on the call.
+     */
+    interface Listener {
+        void onSuccessfulOutgoingCall(Call call);
+        void onFailedOutgoingCall(Call call, boolean isAborted);
+        void onSuccessfulIncomingCall(Call call, CallInfo callInfo);
+        void onFailedIncomingCall(Call call);
+    }
+
     /** Additional contact information beyond handle above, optional. */
     private final ContactInfo mContactInfo;
 
@@ -112,6 +124,9 @@ final class Call {
      */
     private CallServiceDescriptor mHandoffCallServiceDescriptor;
 
+    /** Set of listeners on this call. */
+    private Set<Listener> mListeners = Sets.newHashSet();
+
     /**
      * Creates an empty call object.
      *
@@ -135,6 +150,14 @@ final class Call {
         mContactInfo = contactInfo;
         mGatewayInfo = gatewayInfo;
         mIsIncoming = isIncoming;
+    }
+
+    void addListener(Listener listener) {
+        mListeners.add(listener);
+    }
+
+    void removeListener(Listener listener) {
+        mListeners.remove(listener);
     }
 
     /** {@inheritDoc} */
@@ -318,6 +341,66 @@ final class Call {
     }
 
     /**
+     * Starts the incoming call flow through the switchboard. When switchboard completes, it will
+     * invoke handle[Un]SuccessfulIncomingCall.
+     *
+     * @param descriptor The relevant call-service descriptor.
+     * @param extras The optional extras passed via
+     *         {@link TelecommConstants#EXTRA_INCOMING_CALL_EXTRAS}.
+     */
+    void startIncoming(CallServiceDescriptor descriptor, Bundle extras) {
+        Switchboard.getInstance().retrieveIncomingCall(this, descriptor, extras);
+    }
+
+    void handleSuccessfulIncoming(CallInfo callInfo) {
+        Preconditions.checkState(callInfo.getState() == CallState.RINGING);
+        setHandle(callInfo.getHandle());
+
+        // TODO(santoscordon): Make this class (not CallsManager) responsible for changing the call
+        // state to RINGING.
+
+        // TODO(santoscordon): Replace this with state transitions related to "connecting".
+        for (Listener l : mListeners) {
+            l.onSuccessfulIncomingCall(this, callInfo);
+        }
+    }
+
+    void handleFailedIncoming() {
+        clearCallService();
+
+        // TODO: Needs more specific disconnect error for this case.
+        setDisconnectCause(DisconnectCause.ERROR_UNSPECIFIED, null);
+        setState(CallState.DISCONNECTED);
+
+        // TODO(santoscordon): Replace this with state transitions related to "connecting".
+        for (Listener l : mListeners) {
+            l.onFailedIncomingCall(this);
+        }
+    }
+
+    /**
+     * Starts the outgoing call flow through the switchboard. When switchboard completes, it will
+     * invoke handleSuccessful/FailedOutgoingCall.
+     */
+    void startOutgoing() {
+        Switchboard.getInstance().placeOutgoingCall(this);
+    }
+
+    void handleSuccessfulOutgoing() {
+        // TODO(santoscordon): Replace this with state transitions related to "connecting".
+        for (Listener l : mListeners) {
+            l.onSuccessfulOutgoingCall(this);
+        }
+    }
+
+    void handleFailedOutgoing(boolean isAborted) {
+        // TODO(santoscordon): Replace this with state transitions related to "connecting".
+        for (Listener l : mListeners) {
+            l.onFailedOutgoingCall(this, isAborted);
+        }
+    }
+
+    /**
      * Adds the specified call service to the list of incompatible services.  The set is used when
      * attempting to switch a phone call between call services such that incompatible services can
      * be avoided.
@@ -344,17 +427,17 @@ final class Call {
     }
 
     /**
-     * Aborts ongoing attempts to connect this call. Only applicable to {@link CallState#NEW}
-     * outgoing calls.  See {@link #disconnect} for already-connected calls.
+     * Issues an abort signal to the associated call service and clears the current call service
+     * and call-service selector.
      */
-    void abort() {
-        if (mState == CallState.NEW) {
-            if (mCallService != null) {
-                mCallService.abort(this);
-            }
-            clearCallService();
-            clearCallServiceSelector();
+    void finalizeAbort() {
+        Preconditions.checkState(mState == CallState.NEW);
+
+        if (mCallService != null) {
+            mCallService.abort(this);
         }
+        clearCallService();
+        clearCallServiceSelector();
     }
 
     /**
@@ -385,11 +468,20 @@ final class Call {
      * Attempts to disconnect the call through the call service.
      */
     void disconnect() {
-        if (mCallService == null) {
-            Log.d(this, "disconnect() request on a call without a call service.");
-            // In case this call is ringing, ensure we abort and clean up right away.
-            CallsManager.getInstance().abortCall(this);
+        if (mState == CallState.NEW) {
+            // There is a very strange indirection here. When we are told to disconnect, we issue
+            // an 'abort' to the switchboard if we are still in the NEW (or "connecting") state.
+            // The switchboard will then cancel the outgoing call process and ask this class to
+            // finalize the abort procedure via {@link #finalizeAbort}. The issue is that
+            // Switchboard edits the state of the call as part of the process and then this class
+            // is responsible for undoing it, and that is all kinds of backwards.
+            // TODO(santoscordon): Remove Switchboard's requirement to edit the state of the Call
+            // objects and remove any multi-class shared state of incoming and outgoing call
+            // processing.
+            Switchboard.getInstance().abortCall(this);
         } else {
+            Preconditions.checkNotNull(mCallService);
+
             Log.i(this, "Send disconnect to call service for call: %s", this);
             // The call isn't officially disconnected until the call service confirms that the call
             // was actually disconnected. Only then is the association between call and call service

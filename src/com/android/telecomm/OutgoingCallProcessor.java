@@ -16,15 +16,11 @@
 
 package com.android.telecomm;
 
-import android.os.Handler;
-import android.os.Looper;
-import android.os.RemoteException;
-import android.telecomm.CallState;
 import android.telecomm.CallServiceDescriptor;
 
 import com.google.android.collect.Sets;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 import java.util.Collection;
 import java.util.Iterator;

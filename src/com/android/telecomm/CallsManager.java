@@ -23,19 +23,13 @@ import android.telecomm.CallInfo;
 import android.telecomm.CallServiceDescriptor;
 import android.telecomm.CallState;
 import android.telecomm.GatewayInfo;
-import android.telecomm.InCallCall;
 import android.telephony.DisconnectCause;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 /**
@@ -45,9 +39,9 @@ import java.util.Set;
  * access from other packages specifically refraining from passing the CallsManager instance
  * beyond the com.android.telecomm package boundary.
  */
-public final class CallsManager {
+public final class CallsManager implements Call.Listener {
 
-    // TODO(santoscordon): Consider renaming this CallsManagerPlugin.
+ // TODO(santoscordon): Consider renaming this CallsManagerPlugin.
     interface CallsManagerListener {
         void onCallAdded(Call call);
         void onCallRemoved(Call call);
@@ -68,8 +62,6 @@ public final class CallsManager {
     }
 
     private static final CallsManager INSTANCE = new CallsManager();
-
-    private final Switchboard mSwitchboard;
 
     /**
      * The main call repository. Keeps an instance of all live calls. New incoming and outgoing
@@ -95,9 +87,10 @@ public final class CallsManager {
 
     private final Set<CallsManagerListener> mListeners = Sets.newHashSet();
 
-    private final List<OutgoingCallValidator> mOutgoingCallValidators = Lists.newArrayList();
-
-    private final List<IncomingCallValidator> mIncomingCallValidators = Lists.newArrayList();
+    /** Singleton accessor. */
+    static CallsManager getInstance() {
+        return INSTANCE;
+    }
 
     /**
      * Initializes the required Telecomm components.
@@ -105,7 +98,6 @@ public final class CallsManager {
     private CallsManager() {
         TelecommApp app = TelecommApp.getInstance();
 
-        mSwitchboard = new Switchboard(this);
         mCallAudioManager = new CallAudioManager();
 
         InCallTonePlayer.Factory playerFactory = new InCallTonePlayer.Factory(mCallAudioManager);
@@ -120,8 +112,42 @@ public final class CallsManager {
         mListeners.add(mDtmfLocalTonePlayer);
     }
 
-    static CallsManager getInstance() {
-        return INSTANCE;
+    @Override
+    public void onSuccessfulOutgoingCall(Call call) {
+        Log.v(this, "onSuccessfulOutgoingCall, %s", call);
+        if (mCalls.contains(call)) {
+            // The call's CallService has been updated.
+            for (CallsManagerListener listener : mListeners) {
+                listener.onCallServiceChanged(call, null, call.getCallService());
+            }
+        } else if (mPendingHandoffCalls.contains(call)) {
+            updateHandoffCallServiceDescriptor(call.getOriginalCall(),
+                    call.getCallService().getDescriptor());
+        }
+    }
+
+    @Override
+    public void onFailedOutgoingCall(Call call, boolean isAborted) {
+        Log.v(this, "onFailedOutgoingCall, call: %s, isAborted: %b", call, isAborted);
+        if (isAborted) {
+            setCallState(call, CallState.ABORTED);
+            removeCall(call);
+        } else {
+            // TODO: Replace disconnect cause with more specific disconnect causes.
+            markCallAsDisconnected(call, DisconnectCause.ERROR_UNSPECIFIED, null);
+        }
+    }
+
+    @Override
+    public void onSuccessfulIncomingCall(Call call, CallInfo callInfo) {
+        Log.d(this, "onSuccessfulIncomingCall");
+        setCallState(call, callInfo.getState());
+        addCall(call);
+    }
+
+    @Override
+    public void onFailedIncomingCall(Call call) {
+        call.removeListener(this);
     }
 
     ImmutableCollection<Call> getCalls() {
@@ -148,7 +174,7 @@ public final class CallsManager {
     /**
      * Starts the incoming call sequence by having switchboard gather more information about the
      * specified call; using the specified call service descriptor. Upon success, execution returns
-     * to {@link #handleSuccessfulIncomingCall} to start the in-call UI.
+     * to {@link #onSuccessfulIncomingCall} to start the in-call UI.
      *
      * @param descriptor The descriptor of the call service to use for this incoming call.
      * @param extras The optional extras Bundle passed with the intent used for the incoming call.
@@ -159,50 +185,10 @@ public final class CallsManager {
         // additional information from the call service, but for now we just need one to pass
         // around.
         Call call = new Call(true /* isIncoming */);
+        // TODO(santoscordon): Move this to be a part of addCall()
+        call.addListener(this);
 
-        mSwitchboard.retrieveIncomingCall(call, descriptor, extras);
-    }
-
-    /**
-     * Validates the specified call and, upon no objection to connect it, adds the new call to the
-     * list of live calls. Also notifies the in-call app so the user can answer or reject the call.
-     *
-     * @param call The new incoming call.
-     * @param callInfo The details of the call.
-     */
-    void handleSuccessfulIncomingCall(Call call, CallInfo callInfo) {
-        Log.d(this, "handleSuccessfulIncomingCall");
-        Preconditions.checkState(callInfo.getState() == CallState.RINGING);
-
-        Uri handle = call.getHandle();
-        ContactInfo contactInfo = call.getContactInfo();
-        for (IncomingCallValidator validator : mIncomingCallValidators) {
-            if (!validator.isValid(handle, contactInfo)) {
-                // TODO(gilad): Consider displaying an error message.
-                Log.i(this, "Dropping restricted incoming call");
-                return;
-            }
-        }
-
-        // No objection to accept the incoming call, proceed with potentially connecting it (based
-        // on the user's action, or lack thereof).
-        call.setHandle(callInfo.getHandle());
-        setCallState(call, callInfo.getState());
-        addCall(call);
-    }
-
-    /**
-     * Called when an incoming call was not connected.
-     *
-     * @param call The incoming call.
-     */
-    void handleUnsuccessfulIncomingCall(Call call) {
-        // Incoming calls are not added unless they are successful. We set the state and disconnect
-        // cause just as a matter of good bookkeeping. We do not use the specific methods for
-        // setting those values so that we do not trigger CallsManagerListener events.
-        // TODO: Needs more specific disconnect error for this case.
-        call.setDisconnectCause(DisconnectCause.ERROR_UNSPECIFIED, null);
-        call.setState(CallState.DISCONNECTED);
+        call.startIncoming(descriptor, extras);
     }
 
     /**
@@ -214,14 +200,6 @@ public final class CallsManager {
      *         actual dialed handle via a gateway provider. May be null.
      */
     void placeOutgoingCall(Uri handle, ContactInfo contactInfo, GatewayInfo gatewayInfo) {
-        for (OutgoingCallValidator validator : mOutgoingCallValidators) {
-            if (!validator.isValid(handle, contactInfo)) {
-                // TODO(gilad): Display an error message.
-                Log.i(this, "Dropping restricted outgoing call.");
-                return;
-            }
-        }
-
         final Uri uriHandle = (gatewayInfo == null) ? handle : gatewayInfo.getGatewayHandle();
 
         if (gatewayInfo == null) {
@@ -230,45 +208,14 @@ public final class CallsManager {
             Log.i(this, "Creating a new outgoing call with gateway handle: %s, original handle: %s",
                     Log.pii(uriHandle), Log.pii(handle));
         }
+
         Call call = new Call(uriHandle, contactInfo, gatewayInfo, false /* isIncoming */);
+
+        // TODO(santoscordon): Move this to be a part of addCall()
+        call.addListener(this);
         addCall(call);
-        mSwitchboard.placeOutgoingCall(call);
-    }
 
-    /**
-     * Called when a call service acknowledges that it can place a call.
-     *
-     * @param call The new outgoing call.
-     */
-    void handleSuccessfulOutgoingCall(Call call) {
-        Log.v(this, "handleSuccessfulOutgoingCall, %s", call);
-        if (mCalls.contains(call)) {
-            // The call's CallService has been updated.
-            for (CallsManagerListener listener : mListeners) {
-                listener.onCallServiceChanged(call, null, call.getCallService());
-            }
-        } else if (mPendingHandoffCalls.contains(call)) {
-            updateHandoffCallServiceDescriptor(call.getOriginalCall(),
-                    call.getCallService().getDescriptor());
-        }
-    }
-
-    /**
-     * Called when an outgoing call was not placed.
-     *
-     * @param call The outgoing call.
-     * @param isAborted True if the call was unsuccessful because it was aborted.
-     */
-    void handleUnsuccessfulOutgoingCall(Call call, boolean isAborted) {
-        Log.v(this, "handleAbortedOutgoingCall, call: %s, isAborted: %b", call, isAborted);
-        if (isAborted) {
-            call.abort();
-            setCallState(call, CallState.ABORTED);
-            removeCall(call);
-        } else {
-            // TODO: Replace disconnect cause with more specific disconnect causes.
-            markCallAsDisconnected(call, DisconnectCause.ERROR_UNSPECIFIED, null);
-        }
+        call.startOutgoing();
     }
 
     /**
@@ -399,18 +346,6 @@ public final class CallsManager {
         }
     }
 
-    /**
-     * Instructs Telecomm to abort any outgoing state of the specified call.
-     */
-    void abortCall(Call call) {
-        if (!mCalls.contains(call)) {
-            Log.w(this, "Unknown call (%s) asked to be aborted", call);
-        } else {
-            Log.d(this, "Aborting call: (%s)", call);
-            mSwitchboard.abortCall(call);
-        }
-    }
-
     /** Called by the in-call UI to change the mute state. */
     void mute(boolean shouldMute) {
         mCallAudioManager.mute(shouldMute);
@@ -448,7 +383,7 @@ public final class CallsManager {
         tempCall.setCallServiceSelector(originalCall.getCallServiceSelector());
         mPendingHandoffCalls.add(tempCall);
         Log.d(this, "Placing handoff call");
-        mSwitchboard.placeOutgoingCall(tempCall);
+        tempCall.startOutgoing();
     }
 
     /** Called when the audio state changes. */
@@ -557,6 +492,7 @@ public final class CallsManager {
         Preconditions.checkState(call.getHandoffCallServiceDescriptor() == null);
         Log.v(this, "removeCall(%s)", call);
 
+        call.removeListener(this);
         call.clearCallService();
         call.clearCallServiceSelector();
 

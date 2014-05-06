@@ -184,7 +184,7 @@ public class TestCallService extends CallService {
 
     private void activateCall(String callId) {
         getAdapter().setActive(callId);
-        if (!mMediaPlayer.isPlaying()) {
+        if (mMediaPlayer != null && !mMediaPlayer.isPlaying()) {
             mMediaPlayer.start();
         }
     }
