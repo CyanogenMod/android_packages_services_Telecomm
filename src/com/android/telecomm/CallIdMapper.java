@@ -65,7 +65,7 @@ class CallIdMapper {
         if (objId instanceof String) {
             callId = (String) objId;
         }
-        Preconditions.checkArgument(isValidCallId(callId));
+        checkValidCallId(callId);
 
         return mCalls.get(callId);
     }
@@ -73,8 +73,8 @@ class CallIdMapper {
     void checkValidCallId(String callId) {
         // Note, no need for thread check, this method is thread safe.
         if (!isValidCallId(callId)) {
-            Log.wtf(this, "%s is not a valid call ID", callId);
-            throw new IllegalArgumentException("Invalid call ID.");
+            throw new IllegalArgumentException(
+                    "Invalid call ID for " + mCallIdPrefix + ": " + callId);
         }
     }
 
