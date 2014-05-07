@@ -31,17 +31,7 @@ import java.util.Set;
  */
 final class IncomingCallsManager {
 
-    private final Switchboard mSwitchboard;
     private final Set<Call> mPendingIncomingCalls = Sets.newLinkedHashSet();
-
-    /**
-     * Persists the specified parameters.
-     *
-     * @param switchboard The switchboard.
-     */
-    IncomingCallsManager(Switchboard switchboard) {
-        mSwitchboard = switchboard;
-    }
 
     /**
      * Retrieves details of an incoming call through its associated call service.
@@ -69,7 +59,7 @@ final class IncomingCallsManager {
     }
 
     /**
-     * Notifies the switchboard of a successful incoming call after removing it from the pending
+     * Notifies the incoming call of success after removing it from the pending
      * list.
      *
      * @param callInfo The details of the call.
@@ -80,12 +70,12 @@ final class IncomingCallsManager {
         if (mPendingIncomingCalls.contains(call)) {
             Log.d(this, "Incoming call %s found.", call);
             mPendingIncomingCalls.remove(call);
-            mSwitchboard.handleSuccessfulIncomingCall(call, callInfo);
+            call.handleSuccessfulIncoming(callInfo);
         }
     }
 
     /**
-     * Notifies switchboard of the failed incoming call after removing it from the pending list.
+     * Notifies  incoming call of failure after removing it from the pending list.
      */
     void handleFailedIncomingCall(Call call) {
         ThreadUtil.checkOnMainThread();
@@ -94,7 +84,7 @@ final class IncomingCallsManager {
             Log.i(this, "Failed to get details for incoming call %s", call);
             mPendingIncomingCalls.remove(call);
             // The call was found still waiting for details. Consider it failed.
-            mSwitchboard.handleFailedIncomingCall(call);
+            call.handleFailedIncoming();
         }
     }
 }

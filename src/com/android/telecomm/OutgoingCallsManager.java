@@ -30,21 +30,15 @@ import java.util.Set;
  * Responsible for placing all outgoing calls. For each outgoing call, this class creates an
  * instance of {@link OutgoingCallProcessor} which handles the details of connecting to the
  * appropriate call service and placing the call. This class maintains a mapping from call
- * to {@link OutgoingCallProcessor} so that other classes (Switchboard, CallServiceAdapter, etc),
+ * to {@link OutgoingCallProcessor} so that other classes (CallServiceAdapter, etc),
  * can simply call into this class instead of individual OutgoingCallProcessors.
  */
 final class OutgoingCallsManager {
-    private final Switchboard mSwitchboard;
 
     /**
      * Maps call to {@link OutgoingCallProcessor}s.
      */
     private Map<Call, OutgoingCallProcessor> mOutgoingCallProcessors = Maps.newHashMap();
-
-    /** Persists specified parameters. */
-    OutgoingCallsManager(Switchboard switchboard) {
-        mSwitchboard = switchboard;
-    }
 
     /**
      * Starts the process of placing a call by constructing an outgoing call processor and asking
@@ -53,12 +47,12 @@ final class OutgoingCallsManager {
      * {@link #handleFailedCallAttempt}.
      *
      * @param call The call to place.
-     * @param callServices The set of call services which can potentially place the call.
+     * @param callServices The collection of call services which can potentially place the call.
      * @param selectors The ordered list of selectors used in placing the call.
      */
     void placeCall(
             Call call,
-            Set<CallServiceWrapper> callServices,
+            Collection<CallServiceWrapper> callServices,
             Collection<CallServiceSelectorWrapper> selectors) {
 
         Log.i(this, "Placing an outgoing call: %s", call);
@@ -67,7 +61,7 @@ final class OutgoingCallsManager {
         // attempts can be aborted etc.
         // TODO(gilad): Consider passing mSelector as an immutable set.
         OutgoingCallProcessor processor =
-                new OutgoingCallProcessor(call, callServices, selectors, this, mSwitchboard);
+                new OutgoingCallProcessor(call, callServices, selectors, this);
 
         mOutgoingCallProcessors.put(call, processor);
         processor.process();
@@ -92,7 +86,7 @@ final class OutgoingCallsManager {
 
     /**
      * Removes the outgoing call processor mapping for the successful call and returns execution to
-     * the switchboard. This method is invoked from {@link CallServiceAdapter} after a call service
+     * the call. This method is invoked from {@link CallServiceAdapter} after a call service
      * has notified Telecomm that it successfully placed the call.
      */
     void handleSuccessfulCallAttempt(Call call) {
@@ -129,10 +123,10 @@ final class OutgoingCallsManager {
 
     /**
      * Removes the outgoing call processor mapping for the failed call and returns execution to the
-     * switchboard. In contrast to handleFailedCallAttempt which comes from the call-service and
+     * call. In contrast to handleFailedCallAttempt which comes from the call-service and
      * goes to the outgoing-call processor indicating a single failed call attempt, this method is
      * invoked by the outgoing-call processor to indicate that the entire process has failed and we
-     * should cleanup and notify Switchboard.
+     * should cleanup and notify the call.
      *
      * @param call The failed outgoing call.
      * @param isAborted True if the call timedout and is aborted.
@@ -140,7 +134,7 @@ final class OutgoingCallsManager {
     void handleFailedOutgoingCall(Call call, boolean isAborted) {
         Log.v(this, "handleFailedOutgoingCall, call: %s", call);
         mOutgoingCallProcessors.remove(call);
-        mSwitchboard.handleFailedOutgoingCall(call, isAborted);
+        call.handleFailedOutgoing(isAborted);
     }
 
     /**
@@ -166,9 +160,9 @@ final class OutgoingCallsManager {
      *         successful.
      */
     boolean abort(Call call) {
-        Log.v(this, "abort, call: %s", call);
         OutgoingCallProcessor processor = mOutgoingCallProcessors.remove(call);
         if (processor != null) {
+            Log.v(this, "abort, call: %s", call);
             processor.abort();
             return true;
         }

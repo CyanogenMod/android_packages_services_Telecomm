@@ -24,6 +24,7 @@ import android.telecomm.CallInfo;
 import android.telecomm.CallServiceDescriptor;
 import android.telecomm.TelecommConstants;
 
+import com.android.telecomm.BaseRepository.LookupCallback;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
@@ -37,9 +38,81 @@ import java.util.Set;
  * - gathering the {@link CallServiceWrapper}s and {@link CallServiceSelectorWrapper}s through
  *       which to place outgoing calls
  * - starting outgoing calls (via {@link OutgoingCallsManager}
- * - switching active calls between call services.
  */
 final class Switchboard {
+    /**
+     * Encapsulates a request to place an outgoing call.
+     * TODO(santoscordon): Move this state into Call and remove this class.
+     */
+    private final class OutgoingCallEntry {
+        final Call call;
+
+        private Collection<CallServiceWrapper> mCallServices;
+        private Collection<CallServiceSelectorWrapper> mSelectors;
+        private boolean mIsCallPending = true;
+
+        OutgoingCallEntry(Call call) {
+            this.call = call;
+        }
+
+        /**
+         * Sets the call services to attempt for this outgoing call.
+         *
+         * @param callServices The call services.
+         */
+        void setCallServices(Collection<CallServiceWrapper> callServices) {
+            mCallServices = callServices;
+            onLookupComplete();
+        }
+
+        Collection<CallServiceWrapper> getCallServices() {
+            return mCallServices;
+        }
+
+        /**
+         * Sets the selectors to attemnpt for this outgoing call.
+         *
+         * @param selectors The call-service selectors.
+         */
+        void setSelectors(Collection<CallServiceSelectorWrapper> selectors) {
+            mSelectors = selectors;
+            onLookupComplete();
+        }
+
+        Collection<CallServiceSelectorWrapper> getSelectors() {
+            return mSelectors;
+        }
+
+        /** Expires the pending outgoing call and stops it from being made. */
+        void expire() {
+            // This can be executed in three states:
+            // 1) We are still waiting for the list of CSs (Call Services)
+            // 2) We told outgoing calls manager to place the call using the CSs
+            // 3) Outgoing calls manager already successfully placed the call.
+            if (mIsCallPending) {
+                // Handle state (1), tell the call to clean itself up and shut everything down.
+                mIsCallPending = false;
+                call.handleFailedOutgoing(true /* isAborted */);
+            } else {
+                // Handle states (2) & (3). We can safely call abort() in either case. If the call
+                // is not yet successful, then it will abort.  If the call was already placed, then
+                // outgoing calls manager will do nothing (and return false which we ignore).
+                boolean isAborted = mOutgoingCallsManager.abort(call);
+                Log.v(this, "expire() caused abort: %b", isAborted);
+            }
+        }
+
+        /** Initiates processing of the call once call-services and selectors are set. */
+        private void onLookupComplete() {
+            if (mIsCallPending) {
+                if (mSelectors != null && mCallServices != null) {
+                    mIsCallPending = false;
+                    processNewOutgoingCall(this);
+                }
+            }
+        }
+    }
+
     private final static int MSG_EXPIRE_STALE_CALL = 1;
 
     private final static Switchboard sInstance = new Switchboard();
@@ -60,37 +133,13 @@ final class Switchboard {
         public void handleMessage(Message msg) {
             switch(msg.what) {
                 case MSG_EXPIRE_STALE_CALL:
-                    expireStaleCall((Call) msg.obj);
+                    ((OutgoingCallEntry) msg.obj).expire();
                     break;
                 default:
                     Log.wtf(Switchboard.this, "Unexpected message %d.", msg.what);
             }
         }
     };
-
-    private final Set<Call> mNewOutgoingCalls = Sets.newLinkedHashSet();
-
-    private final Set<Call> mPendingOutgoingCalls = Sets.newLinkedHashSet();
-
-    /**
-     * The set of currently available call-service implementations, see
-     * {@link CallServiceRepository}.  Populated during call-service lookup cycles as part of the
-     * {@link #placeOutgoingCall} flow and cleared upon zero-remaining new/pending outgoing calls.
-     */
-    private final Set<CallServiceWrapper> mCallServices = Sets.newHashSet();
-
-    /**
-     * The set of currently available call-service-selector implementations,
-     * see {@link CallServiceSelectorRepository}.
-     * TODO(gilad): Clear once the active-call count goes to zero.
-     */
-    private ImmutableCollection<CallServiceSelectorWrapper> mSelectors = ImmutableList.of();
-
-    /**
-     * The current lookup-cycle ID used with the repositories. Incremented with each invocation
-     * of {@link #placeOutgoingCall} and passed to the repositories via initiateLookup().
-     */
-    private int mLookupId = 0;
 
     /** Singleton accessor. */
     static Switchboard getInstance() {
@@ -103,11 +152,11 @@ final class Switchboard {
     private Switchboard() {
         ThreadUtil.checkOnMainThread();
 
-        mOutgoingCallsManager = new OutgoingCallsManager(this);
-        mIncomingCallsManager = new IncomingCallsManager(this);
-        mSelectorRepository = new CallServiceSelectorRepository(this, mOutgoingCallsManager);
+        mOutgoingCallsManager = new OutgoingCallsManager();
+        mIncomingCallsManager = new IncomingCallsManager();
+        mSelectorRepository = new CallServiceSelectorRepository(mOutgoingCallsManager);
         mCallServiceRepository =
-                new CallServiceRepository(this, mOutgoingCallsManager, mIncomingCallsManager);
+                new CallServiceRepository(mOutgoingCallsManager, mIncomingCallsManager);
     }
 
     /**
@@ -118,30 +167,30 @@ final class Switchboard {
      * @param call The yet-to-be-connected outgoing-call object.
      */
     void placeOutgoingCall(Call call) {
-        // Reset prior to initiating the next lookup. One case to consider is (1) placeOutgoingCall
-        // is invoked with call A, (2) the call-service lookup completes, but the one for selectors
-        // does not, (3) placeOutgoingCall is invoked again with call B, (4) mCallServices below is
-        // reset, (5) the selector lookup completes but the call-services are missing.  This should
-        // be okay since the call-service lookup completed. Specifically the already-available call
-        // services are cached and will be provided in response to the second lookup cycle.
-        mCallServices.clear();
-        mSelectors = ImmutableList.of();
+        final OutgoingCallEntry callEntry = new OutgoingCallEntry(call);
 
-        mNewOutgoingCalls.add(call);
+        // Lookup call services
+        mCallServiceRepository.lookupServices(new LookupCallback<CallServiceWrapper>() {
+            @Override
+            public void onComplete(Collection<CallServiceWrapper> services) {
+                callEntry.setCallServices(services);
+            }
+        });
 
-        // Initiate a lookup every time to account for newly-installed apps and/or updated settings.
-        mLookupId++;
-        mCallServiceRepository.initiateLookup(mLookupId);
-        mSelectorRepository.initiateLookup(mLookupId);
+        // Lookup selectors
+        mSelectorRepository.lookupServices(new LookupCallback<CallServiceSelectorWrapper>() {
+            @Override
+            public void onComplete(Collection<CallServiceSelectorWrapper> selectors) {
+                callEntry.setSelectors(selectors);
+            }
+        });
 
-        Message msg = mHandler.obtainMessage(MSG_EXPIRE_STALE_CALL, call);
+        Message msg = mHandler.obtainMessage(MSG_EXPIRE_STALE_CALL, callEntry);
         mHandler.sendMessageDelayed(msg, Timeouts.getNewOutgoingCallMillis());
     }
 
     /**
-     * Retrieves details about the incoming call through the incoming call manager. The incoming
-     * call manager will invoke either {@link #handleSuccessfulIncomingCall} or
-     * {@link #handleFailedIncomingCall} depending on the result of the retrieval.
+     * Retrieves details about the incoming call through the incoming call manager.
      *
      * @param call The call object.
      * @param descriptor The relevant call-service descriptor.
@@ -150,93 +199,9 @@ final class Switchboard {
      */
     void retrieveIncomingCall(Call call, CallServiceDescriptor descriptor, Bundle extras) {
         Log.d(this, "retrieveIncomingCall");
-        CallServiceWrapper callService = mCallServiceRepository.getCallService(descriptor);
+        CallServiceWrapper callService = mCallServiceRepository.getService(descriptor);
         call.setCallService(callService);
         mIncomingCallsManager.retrieveIncomingCall(call, extras);
-    }
-
-    /**
-     * Persists the specified set of call services and attempts to place any pending outgoing
-     * calls.  Intended to be invoked by {@link CallServiceRepository} exclusively.
-     *
-     * @param callServices The potentially-partial set of call services.  Partial since the lookup
-     *     process is time-boxed, such that some providers/call-services may be slow to respond and
-     *     hence effectively omitted from the specified list.
-     */
-    void setCallServices(Set<CallServiceWrapper> callServices) {
-        mCallServices.clear();
-        mCallServices.addAll(callServices);
-        processNewOutgoingCalls();
-    }
-
-    /**
-     * Persists the specified list of selectors and attempts to connect any pending outgoing
-     * calls.  Intended to be invoked by {@link CallServiceSelectorRepository} exclusively.
-     *
-     * @param selectors Collection of selectors. The order of the collection determines the order in
-     *     which the selectors are tried.
-     */
-    void setSelectors(ImmutableCollection<CallServiceSelectorWrapper> selectors) {
-        ThreadUtil.checkOnMainThread();
-        Preconditions.checkNotNull(selectors);
-
-        // TODO(gilad): Add logic to include the built-in selectors (e.g. for dealing with
-        // emergency calls) and order the entire set prior to the assignment below. If the
-        // built-in selectors can be implemented in a manner that does not require binding,
-        // that's probably preferred.
-        mSelectors = selectors;
-        processNewOutgoingCalls();
-    }
-
-    /**
-     * Handles the case where an outgoing call has been successfully placed,
-     * see {@link OutgoingCallProcessor}.
-     */
-    void handleSuccessfulOutgoingCall(Call call) {
-        Log.d(this, "handleSuccessfulOutgoingCall");
-
-        finalizeOutgoingCall(call);
-        call.handleSuccessfulOutgoing();
-    }
-
-    /**
-     * Handles the case where an outgoing call could not be proceed by any of the
-     * selector/call-service implementations, see {@link OutgoingCallProcessor}.
-     */
-    void handleFailedOutgoingCall(Call call, boolean isAborted) {
-        Log.d(this, "handleFailedOutgoingCall");
-
-        finalizeOutgoingCall(call);
-        call.handleFailedOutgoing(isAborted);
-    }
-
-    /**
-     * Handles the case where we successfully receive details of an incoming call. Hands the
-     * resulting call to {@link CallsManager} as the final step in the incoming sequence. At that
-     * point, {@link CallsManager} should bring up the incoming-call UI.
-     */
-    void handleSuccessfulIncomingCall(Call call, CallInfo callInfo) {
-        Log.d(this, "handleSuccessfulIncomingCall");
-        call.handleSuccessfulIncoming(callInfo);
-    }
-
-    /**
-     * Handles the case where we failed to retrieve an incoming call after receiving an incoming-call
-     * intent via {@link CallActivity}.
-     *
-     * @param call The call.
-     */
-    void handleFailedIncomingCall(Call call) {
-        Log.d(this, "handleFailedIncomingCall");
-
-        // Since we set the call service before calling into incoming-calls manager, we clear it for
-        // good measure if an error is reported.
-        call.handleFailedIncoming();
-
-        // At the moment there is nothing more to do if an incoming call is not retrieved. We may at
-        // a future date bind to the in-call app optimistically during the incoming-call sequence
-        // and this method could tell {@link CallsManager} to unbind from the in-call app if the
-        // incoming call was not retrieved.
     }
 
     /**
@@ -250,38 +215,19 @@ final class Switchboard {
     }
 
     /**
-     * Attempts to process the next new outgoing calls that have not yet been expired.
-     */
-    private void processNewOutgoingCalls() {
-        if (mCallServices.isEmpty() || mSelectors.isEmpty()) {
-            // At least one call service and one selector are required to process outgoing calls.
-            return;
-        }
-
-        if (!mNewOutgoingCalls.isEmpty()) {
-            Call call = mNewOutgoingCalls.iterator().next();
-            mNewOutgoingCalls.remove(call);
-            mPendingOutgoingCalls.add(call);
-
-            // Specifically only attempt to place one call at a time such that call services
-            // can be freed from needing to deal with concurrent requests.
-            processNewOutgoingCall(call);
-        }
-    }
-
-    /**
      * Attempts to place the specified call.
      *
-     * @param call The call to place.
+     * @param callEntry The call entry to place.
      */
-    private void processNewOutgoingCall(Call call) {
+    private void processNewOutgoingCall(OutgoingCallEntry callEntry) {
         Collection<CallServiceSelectorWrapper> selectors;
+        Call call = callEntry.call;
 
         // Use the call's selector if it's already tied to one. This is the case for handoff calls.
         if (call.getCallServiceSelector() != null) {
             selectors = ImmutableList.of(call.getCallServiceSelector());
         } else {
-            selectors = mSelectors;
+            selectors = callEntry.getSelectors();
         }
 
         boolean useEmergencySelector =
@@ -308,39 +254,6 @@ final class Switchboard {
             selectors = selectorsBuilder.build();
         }
 
-        mOutgoingCallsManager.placeCall(call, mCallServices, selectors);
-    }
-
-    /**
-     * Finalizes the outgoing-call sequence, regardless if it succeeded or failed.
-     */
-    private void finalizeOutgoingCall(Call call) {
-        mPendingOutgoingCalls.remove(call);
-
-        processNewOutgoingCalls();  // Process additional (new) calls, if any.
-    }
-
-    /**
-     * Expires calls which are taking too long to connect.
-     *
-     * @param call The call to expire.
-     */
-    private void expireStaleCall(Call call) {
-        final long newCallTimeoutMillis = Timeouts.getNewOutgoingCallMillis();
-
-        if (call.getAgeMillis() < newCallTimeoutMillis) {
-            Log.wtf(this, "Expiring a call early. Age: %d, Time since attempt: %d",
-                    call.getAgeMillis(), newCallTimeoutMillis);
-        }
-
-        if (mNewOutgoingCalls.remove(call)) {
-            // The call had not yet been processed so all we have to do is report the
-            // failure.
-            handleFailedOutgoingCall(call, true /* isAborted */);
-        } else if (mPendingOutgoingCalls.remove(call)) {
-            if (!mOutgoingCallsManager.abort(call)) {
-                Log.wtf(this, "Pending call failed to abort, call: %s.", call);
-            }
-        }
+        mOutgoingCallsManager.placeCall(call, callEntry.getCallServices(), selectors);
     }
 }

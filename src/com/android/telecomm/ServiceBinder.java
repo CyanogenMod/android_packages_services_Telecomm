@@ -49,9 +49,8 @@ abstract class ServiceBinder<ServiceInterface extends IInterface> {
     /**
      * Listener for bind events on ServiceBinder.
      */
-    interface Listener {
-        @SuppressWarnings("rawtypes")
-        void onUnbind(ServiceBinder serviceBinder);
+    interface Listener<ServiceBinderClass extends ServiceBinder<?>> {
+        void onUnbind(ServiceBinderClass serviceBinder);
     }
 
     /**

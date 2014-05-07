@@ -394,6 +394,10 @@ final class Call {
     }
 
     void handleFailedOutgoing(boolean isAborted) {
+        if (isAborted) {
+            finalizeAbort();
+        }
+
         // TODO(santoscordon): Replace this with state transitions related to "connecting".
         for (Listener l : mListeners) {
             l.onFailedOutgoingCall(this, isAborted);
@@ -479,7 +483,7 @@ final class Call {
             // objects and remove any multi-class shared state of incoming and outgoing call
             // processing.
             Switchboard.getInstance().abortCall(this);
-        } else {
+        } else if (mState != CallState.ABORTED && mState != CallState.DISCONNECTED) {
             Preconditions.checkNotNull(mCallService);
 
             Log.i(this, "Send disconnect to call service for call: %s", this);

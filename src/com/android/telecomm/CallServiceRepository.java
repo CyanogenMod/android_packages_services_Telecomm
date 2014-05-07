@@ -22,308 +22,176 @@ import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.content.pm.ServiceInfo;
 import android.os.Handler;
-import android.os.Looper;
 import android.telecomm.CallServiceDescriptor;
 import android.telecomm.TelecommConstants;
 
 import com.android.internal.telecomm.ICallServiceLookupResponse;
-import com.android.internal.telecomm.ICallServiceProvider;
-import com.google.common.base.Preconditions;
-
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 /**
- * Uses package manager to find all implementations of {@link ICallServiceProvider} and uses them to
- * get the corresponding list of call-service descriptor. Ultimately provides the up-to-date list of
- * call services as {@link CallServiceWrapper}s. The resulting call services may or may not be bound
- * at the time {@link Switchboard#setCallServices} is invoked.
- * TODO(santoscordon): Add performance timing to async calls.
- * TODO(santoscordon): Need to unbind/remove unused call services stored in the cache.
+ * Searches for and returns call services.
  */
-final class CallServiceRepository {
+class CallServiceRepository extends BaseRepository<CallServiceWrapper> {
+    /**
+     * The representation of a single lookup. Maintains lookup state and invokes the "complete"
+     * callback when finished.
+     */
+    private final class CallServiceLookup {
+        final Set<ComponentName> mOutstandingProviders = Sets.newHashSet();
+        final Set<CallServiceWrapper> mServices = Sets.newHashSet();
+        final LookupCallback<CallServiceWrapper> mCallback;
 
-    private final Switchboard mSwitchboard;
+        CallServiceLookup(LookupCallback<CallServiceWrapper> callback) {
+            mCallback = callback;
+        }
+
+        /** Starts the lookup. */
+        void start() {
+            List<ComponentName> providerNames = getProviderNames();
+            if (providerNames.isEmpty()) {
+                finishLookup();
+                return;
+            }
+
+            for (ComponentName name : providerNames) {
+                mOutstandingProviders.add(name);
+                queryProviderForCallServices(name);
+            }
+
+            Log.i(this, "Found %d implementations of ICallServiceProvider.",
+                    mOutstandingProviders.size());
+        }
+
+        /**
+         * Returns the all-inclusive list of call-service-provider names.
+         *
+         * @return The list containing the (component) names of all known ICallServiceProvider
+         *         implementations or the empty list upon no available providers.
+         */
+        private List<ComponentName> getProviderNames() {
+            // The list of provider names to return to the caller, may be populated below.
+            List<ComponentName> providerNames = Lists.newArrayList();
+
+            PackageManager packageManager = TelecommApp.getInstance().getPackageManager();
+            Intent intent = new Intent(TelecommConstants.ACTION_CALL_SERVICE_PROVIDER);
+            for (ResolveInfo entry : packageManager.queryIntentServices(intent, 0)) {
+                ServiceInfo serviceInfo = entry.serviceInfo;
+                if (serviceInfo != null) {
+                    // The entry resolves to a proper service, add it to the list of provider names.
+                    providerNames.add(
+                            new ComponentName(serviceInfo.packageName, serviceInfo.name));
+                }
+            }
+
+            return providerNames;
+        }
+
+        /**
+         * Attempts to obtain call-service descriptors from the specified provider (asynchronously)
+         * and passes the list through to {@link #processCallServices}, which then relinquishes
+         * control back to the switchboard.
+         *
+         * @param providerName The component name of the relevant provider.
+         */
+        private void queryProviderForCallServices(final ComponentName providerName) {
+            final CallServiceProviderWrapper provider = new CallServiceProviderWrapper(
+                    providerName);
+
+            ICallServiceLookupResponse response = new ICallServiceLookupResponse.Stub() {
+                    @Override
+                public void setCallServiceDescriptors(
+                        final List<CallServiceDescriptor> callServiceDescriptors) {
+
+                    mHandler.post(new Runnable() {
+                            @Override
+                        public void run() {
+                            processCallServices(provider, Sets.newHashSet(callServiceDescriptors));
+                        }
+                    });
+                }
+            };
+
+            Runnable errorCallback = new Runnable() {
+                    @Override
+                public void run() {
+                    processCallServices(provider, null);
+                }
+            };
+
+            provider.lookupCallServices(response, errorCallback);
+        }
+
+        /**
+         * Processes the call-service descriptors provided by the specified provider.
+         *
+         * @param provider The call-service provider.
+         * @param callServiceDescriptors The set of descriptors to process.
+         */
+        private void processCallServices(
+                CallServiceProviderWrapper provider,
+                Set<CallServiceDescriptor> callServiceDescriptors) {
+
+            // Descriptor lookup finished, we no longer need the provider.
+            provider.unbind();
+
+            ComponentName providerName = provider.getComponentName();
+            if (mOutstandingProviders.remove(providerName)) {
+                if (callServiceDescriptors != null) {
+                    // Add all the call services from this provider to the call-service cache.
+                    for (CallServiceDescriptor descriptor : callServiceDescriptors) {
+                        mServices.add(getService(descriptor.getServiceComponent(), descriptor));
+                    }
+                }
+
+                if (mOutstandingProviders.isEmpty()) {
+                    finishLookup();
+                }
+            } else {
+                Log.i(this, "Unexpected call services from %s in lookup.", providerName);
+            }
+        }
+
+        void finishLookup() {
+            mCallback.onComplete(mServices);
+        }
+    }
 
     private final OutgoingCallsManager mOutgoingCallsManager;
-
     private final IncomingCallsManager mIncomingCallsManager;
+    private final Handler mHandler = new Handler();
 
-    /** Used to run code (e.g. messages, Runnables) on the main (UI) thread. */
-    private final Handler mHandler = new Handler(Looper.getMainLooper());
-
-    private final Runnable mTimeoutLookupTerminator = new Runnable() {
-        @Override
-        public void run() {
-            Log.d(CallServiceRepository.this, "Timed out processing providers");
-            terminateLookup();
-        }
-    };
-
-    /**
-     * The current lookup-cycle ID, unique per invocation of {@link #initiateLookup}.
-     */
-    private int mLookupId = -1;
-
-    /**
-     * Determines whether or not a lookup cycle is already running.
-     */
-    private boolean mIsLookupInProgress = false;
-
-    /**
-     * Stores the names of the providers to bind to in one lookup cycle. During lookup two things
-     * can happen:
-     *    - lookup can succeed, in this case this set will be empty at the end of the lookup.
-     *    - lookup can timeout, in this case any outstanding providers will be discarded.
-     */
-    private final Set<ComponentName> mOutstandingProviders = Sets.newHashSet();
-
-    /**
-     * The map of call-service wrappers keyed by their ComponentName. This is passed back to the
-     * switchboard once lookup is complete.
-     */
-    private final Map<ComponentName, CallServiceWrapper> mCallServices = Maps.newHashMap();
-
-    /**
-     * The set of call-service components found during a single lookup.
-     */
-    private final Set<ComponentName> mFoundCallServices = Sets.newHashSet();
-
-    /**
-     * Persists the specified parameters.
-     *
-     * @param switchboard The switchboard.
-     * @param outgoingCallsManager Manages the placing of outgoing calls.
-     * @param incomingCallsManager Manages the incoming call initialization flow.
-     */
+    /** Persists specified parameters. */
     CallServiceRepository(
-            Switchboard switchboard,
             OutgoingCallsManager outgoingCallsManager,
             IncomingCallsManager incomingCallsManager) {
 
-        mSwitchboard = switchboard;
         mOutgoingCallsManager = outgoingCallsManager;
         mIncomingCallsManager = incomingCallsManager;
     }
 
     /**
-     * Initiates a lookup cycle for call-service providers. Must be called from the UI thread.
-     * TODO(gilad): Expand this comment to describe the lookup flow in more detail.
-     *
-     * @param lookupId The switchboard-supplied lookup ID.
-     */
-    void initiateLookup(int lookupId) {
-        ThreadUtil.checkOnMainThread();
-
-        if (mIsLookupInProgress) {
-            // At most one active lookup is allowed at any given time, bail out.
-            return;
-        }
-
-        mFoundCallServices.clear();
-        List<ComponentName> providerNames = getProviderNames();
-        if (providerNames.isEmpty()) {
-            Log.i(this, "No ICallServiceProvider implementations found, bailing out.");
-            return;
-        }
-
-        mLookupId = lookupId;
-        mIsLookupInProgress = true;
-
-        mOutstandingProviders.clear();
-        for (ComponentName name : providerNames) {
-            mOutstandingProviders.add(name);
-            lookupCallServices(name);
-        }
-
-        Log.i(this, "Found %d implementations of ICallServiceProvider.",
-                mOutstandingProviders.size());
-
-        // Schedule a timeout.
-        mHandler.postDelayed(mTimeoutLookupTerminator, Timeouts.getProviderLookupMillis());
-    }
-
-    /**
-     * Creates the requested call service or pulls the previously-created entry from memory.
-     *
-     * @param descriptor The call service descriptor.
-     * @return The corresponding call-service wrapper or null upon failure to retrieve it.
-     */
-    CallServiceWrapper getCallService(CallServiceDescriptor descriptor) {
-        // Create the new call-service wrapper and update {@link #mCallServices}.
-        registerCallService(descriptor);
-
-        return mCallServices.get(descriptor.getServiceComponent());
-    }
-
-    /**
-     * Returns the all-inclusive list of call-service-provider names.
-     *
-     * @return The list containing the (component) names of all known ICallServiceProvider
-     *     implementations or the empty list upon no available providers.
-     */
-    private List<ComponentName> getProviderNames() {
-        // The list of provider names to return to the caller, may be populated below.
-        List<ComponentName> providerNames = Lists.newArrayList();
-
-        PackageManager packageManager = TelecommApp.getInstance().getPackageManager();
-        Intent intent = new Intent(TelecommConstants.ACTION_CALL_SERVICE_PROVIDER);
-        for (ResolveInfo entry : packageManager.queryIntentServices(intent, 0)) {
-            ServiceInfo serviceInfo = entry.serviceInfo;
-            if (serviceInfo != null) {
-                // The entry resolves to a proper service, add it to the list of provider names.
-                providerNames.add(
-                        new ComponentName(serviceInfo.packageName, serviceInfo.name));
-            }
-        }
-
-        return providerNames;
-    }
-
-    /**
-     * Attempts to obtain call-service descriptors from the specified provider (asynchronously) and
-     * passes the list through to {@link #processCallServices}, which then relinquishes control back
-     * to the switchboard.
-     *
-     * @param providerName The component name of the relevant provider.
-     */
-    private void lookupCallServices(final ComponentName providerName) {
-        final CallServiceProviderWrapper provider = new CallServiceProviderWrapper(providerName);
-
-        ICallServiceLookupResponse response = new ICallServiceLookupResponse.Stub() {
-            @Override
-            public void setCallServiceDescriptors(
-                    final List<CallServiceDescriptor> callServiceDescriptors) {
-
-                // TODO(santoscordon): Do we need Binder.clear/restoreCallingIdentity()?
-                mHandler.post(new Runnable() {
-                    @Override public void run() {
-                        if (mIsLookupInProgress) {
-                            processCallServices(provider, Sets.newHashSet(callServiceDescriptors));
-                        }
-                    }
-                });
-            }
-        };
-
-        Runnable errorCallback = new Runnable() {
-            @Override public void run() {
-                removeOutstandingProvider(providerName);
-            }
-        };
-
-        provider.lookupCallServices(response, errorCallback);
-    }
-
-    /**
-     * Creates {@link CallServiceWrapper}s from the given {@link CallServiceDescriptor}s.
-     *
-     * @param provider The provider associated with call services.
-     * @param callServiceDescriptors The set of call service descriptors to process.
-     */
-    private void processCallServices(
-            CallServiceProviderWrapper provider,
-            Set<CallServiceDescriptor> callServiceDescriptors) {
-
-        ThreadUtil.checkOnMainThread();
-
-        Preconditions.checkNotNull(provider);
-        Preconditions.checkNotNull(callServiceDescriptors);
-
-        // The set of call-service descriptors is available, unbind the provider.
-        provider.unbind();
-
-        ComponentName providerName = provider.getComponentName();
-        if (mOutstandingProviders.contains(providerName)) {
-            // Add all the call services from this provider to the call-service cache.
-            for (CallServiceDescriptor descriptor : callServiceDescriptors) {
-                mFoundCallServices.add(descriptor.getServiceComponent());
-                registerCallService(descriptor);
-            }
-
-            removeOutstandingProvider(providerName);
-        } else {
-            Log.i(this, "Unexpected call services from %s in lookup %s", providerName, mLookupId);
-        }
-    }
-
-    /**
-     * Creates a call-service wrapper from the given call-service descriptor if no cached instance
-     * exists.
+     * Returns the call service implementation specified by the descriptor.
      *
      * @param descriptor The call-service descriptor.
      */
-    private void registerCallService(CallServiceDescriptor descriptor) {
-        Preconditions.checkNotNull(descriptor);
-
-        // TODO(santoscordon): Rename getServiceComponent to getComponentName.
-        ComponentName callServiceName = descriptor.getServiceComponent();
-
-        CallServiceWrapper callService = mCallServices.get(callServiceName);
-        if (callService == null) {
-            mCallServices.put(callServiceName, new CallServiceWrapper(descriptor,
-                    mOutgoingCallsManager, mIncomingCallsManager));
-        }
+    CallServiceWrapper getService(CallServiceDescriptor descriptor) {
+        return getService(descriptor.getServiceComponent(), descriptor);
     }
 
-    /**
-     * Removes an entry from the set of outstanding providers. When the final outstanding
-     * provider is removed, terminates the lookup.
-     *
-     * @param providerName The component name of the relevant provider.
-     */
-    private void removeOutstandingProvider(ComponentName providerName) {
-        ThreadUtil.checkOnMainThread();
-
-        if (mIsLookupInProgress) {
-            mOutstandingProviders.remove(providerName);
-            if (mOutstandingProviders.size() < 1) {
-                terminateLookup();  // No other providers to wait for.
-            }
-        }
+    /** {@inheritDoc} */
+    @Override
+    protected void onLookupServices(LookupCallback<CallServiceWrapper> callback) {
+        new CallServiceLookup(callback).start();
     }
 
-    /**
-     * Terminates the current lookup cycle, either due to a timeout or completed lookup.
-     */
-    private void terminateLookup() {
-        mHandler.removeCallbacks(mTimeoutLookupTerminator);
-        mOutstandingProviders.clear();
-
-        // Clean out any old call services. Since the set of call services can change (app installs,
-        // uninstalls, etc.) between lookups, we need to make sure that we purge our registry
-        // of any old call services (call services which were not found in this lookup). However,
-        // we dont purge any call services that might still have calls associated with them.
-        for (ComponentName component : ImmutableSet.copyOf(mCallServices.keySet().iterator())) {
-            if (!mFoundCallServices.contains(component)) {
-                // This component is registered, but was not found in the latest lookup...so try
-                // to remove it.
-                CallServiceWrapper callService = mCallServices.get(component);
-                if (callService.getAssociatedCallCount() < 1) {
-                    mCallServices.remove(component);
-                }
-            }
-        }
-        mFoundCallServices.clear();
-
-        updateSwitchboard();
-        mIsLookupInProgress = false;
-    }
-
-    /**
-     * Updates the switchboard with the call services from the latest lookup.
-     */
-    private void updateSwitchboard() {
-        ThreadUtil.checkOnMainThread();
-
-        Set<CallServiceWrapper> callServices = Sets.newHashSet(mCallServices.values());
-        mSwitchboard.setCallServices(callServices);
+    @Override
+    protected CallServiceWrapper onCreateNewServiceWrapper(ComponentName componentName,
+            Object param) {
+        return new CallServiceWrapper(
+                (CallServiceDescriptor) param, mOutgoingCallsManager, mIncomingCallsManager);
     }
 }

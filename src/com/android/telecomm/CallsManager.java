@@ -41,7 +41,7 @@ import java.util.Set;
  */
 public final class CallsManager implements Call.Listener {
 
- // TODO(santoscordon): Consider renaming this CallsManagerPlugin.
+    // TODO(santoscordon): Consider renaming this CallsManagerPlugin.
     interface CallsManagerListener {
         void onCallAdded(Call call);
         void onCallRemoved(Call call);

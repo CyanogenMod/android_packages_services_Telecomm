@@ -33,10 +33,9 @@ import java.util.Set;
  * Iterates through the selectors and gets a sorted list of supported call-service descriptors
  * for each selector. Upon receiving each sorted list (one list per selector), each of the
  * corresponding call services is then attempted until either the outgoing call is placed, the
- * attempted call is aborted (by the switchboard), or the list is exhausted -- whichever occurs
- * first.
+ * attempted call is aborted, or the list is exhausted -- whichever occurs first.
  *
- * Except for the abort case, all other scenarios should terminate with the switchboard notified
+ * Except for the abort case, all other scenarios should terminate with the call notified
  * of the result.
  *
  * NOTE(gilad): Currently operating under the assumption that we'll have one timeout per (outgoing)
@@ -79,8 +78,6 @@ final class OutgoingCallProcessor {
     /** Manages all outgoing call processors. */
     private final OutgoingCallsManager mOutgoingCallsManager;
 
-    private final Switchboard mSwitchboard;
-
     private final Runnable mNextCallServiceCallback = new Runnable() {
         @Override public void run() {
             attemptNextCallService();
@@ -113,21 +110,18 @@ final class OutgoingCallProcessor {
      * @param callServices The available call-service implementations.
      * @param selectors The available call-service selector implementations.
      * @param outgoingCallsManager Manager of all outgoing call processors.
-     * @param switchboard The switchboard.
      */
     OutgoingCallProcessor(
             Call call,
-            Set<CallServiceWrapper> callServices,
+            Collection<CallServiceWrapper> callServices,
             Collection<CallServiceSelectorWrapper> selectors,
-            OutgoingCallsManager outgoingCallsManager,
-            Switchboard switchboard) {
+            OutgoingCallsManager outgoingCallsManager) {
 
         ThreadUtil.checkOnMainThread();
 
         mCall = call;
         mSelectors = selectors;
         mOutgoingCallsManager = outgoingCallsManager;
-        mSwitchboard = switchboard;
 
         // Populate the list and map of call-service descriptors.  The list is needed since
         // it's being passed down to selectors.
@@ -214,7 +208,7 @@ final class OutgoingCallProcessor {
         for (CallServiceWrapper callService : mIncompatibleCallServices) {
             mCall.addIncompatibleCallService(callService);
         }
-        mSwitchboard.handleSuccessfulOutgoingCall(mCall);
+        mCall.handleSuccessfulOutgoing();
     }
 
     /**

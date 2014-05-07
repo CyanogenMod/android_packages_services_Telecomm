@@ -36,9 +36,8 @@ import java.util.Map;
  * Helper class to retrieve {@link ICallServiceSelector} implementations on the device and
  * asynchronously bind to them.
  */
-final class CallServiceSelectorRepository implements ServiceBinder.Listener {
+final class CallServiceSelectorRepository extends BaseRepository<CallServiceSelectorWrapper> {
 
-    private final Switchboard mSwitchboard;
     private final OutgoingCallsManager mOutgoingCallsManager;
 
     /**
@@ -50,21 +49,15 @@ final class CallServiceSelectorRepository implements ServiceBinder.Listener {
     /**
      * Persists the specified parameters and initializes the new instance.
      *
-     * @param switchboard The switchboard for this finer to work against.
+     * @param outgoingCallsManager The outgoing calls manager.
      */
-    CallServiceSelectorRepository(
-            Switchboard switchboard,
-            OutgoingCallsManager outgoingCallsManager) {
-        mSwitchboard = switchboard;
+    CallServiceSelectorRepository(OutgoingCallsManager outgoingCallsManager) {
         mOutgoingCallsManager = outgoingCallsManager;
     }
 
-    /**
-     * Initiates a lookup cycle for call-service selectors. Must be called from the UI thread.
-     *
-     * @param lookupId The switchboard-supplied lookup ID.
-     */
-    void initiateLookup(int lookupId) {
+    /** {@inheritDoc} */
+    @Override
+    protected void onLookupServices(LookupCallback<CallServiceSelectorWrapper> callback) {
         ThreadUtil.checkOnMainThread();
 
         List<ComponentName> selectorNames = getSelectorNames();
@@ -72,11 +65,7 @@ final class CallServiceSelectorRepository implements ServiceBinder.Listener {
 
         // Register any new selectors.
         for (ComponentName name : selectorNames) {
-            CallServiceSelectorWrapper selector = mCallServiceSelectors.get(name);
-            if (selector == null) {
-                selector = createWrapper(name);
-                mCallServiceSelectors.put(name, selector);
-            }
+            CallServiceSelectorWrapper selector = getService(name, null);
 
             if (TelephonyUtil.isTelephonySelector(selector)) {
                 // Add telephony selectors to the end to serve as a fallback.
@@ -86,26 +75,17 @@ final class CallServiceSelectorRepository implements ServiceBinder.Listener {
                 foundSelectors.add(0, selector);
             }
         }
-
         Log.i(this, "Found %d implementations of ICallServiceSelector", selectorNames.size());
-        updateSwitchboard(foundSelectors);
+        callback.onComplete(foundSelectors);
     }
 
-    /**
-     * Removes the specified selector (as a ServiceBinder) from the map of registered selectors.
-     *
-     * {@inheritDoc}
-     */
-    @SuppressWarnings("rawtypes")
+    /** {@inheritDoc} */
     @Override
-    public void onUnbind(ServiceBinder serviceBinder) {
-        if (serviceBinder instanceof CallServiceSelectorWrapper) {
-            CallServiceSelectorWrapper selector = (CallServiceSelectorWrapper) serviceBinder;
-            mCallServiceSelectors.remove(selector.getComponentName());
-        } else {
-            Log.wtf(this, "Received unbind notice from non-selector: %s.",
-                    serviceBinder.getComponentName().flattenToShortString());
-        }
+    protected CallServiceSelectorWrapper onCreateNewServiceWrapper(
+            ComponentName componentName, Object param) {
+
+        return new CallServiceSelectorWrapper(
+                componentName, CallsManager.getInstance(), mOutgoingCallsManager);
     }
 
     /**
@@ -117,13 +97,12 @@ final class CallServiceSelectorRepository implements ServiceBinder.Listener {
     private CallServiceSelectorWrapper createWrapper(ComponentName componentName) {
         CallServiceSelectorWrapper selector = new CallServiceSelectorWrapper(
                 componentName, CallsManager.getInstance(), mOutgoingCallsManager);
-        selector.addListener(this);
         return selector;
     }
 
     /**
-     * @return The list containing the (component) names of all known ICallServiceSelector
-     *     implementations or the empty list upon no available selectors.
+     * Returns the list containing the (component) names of all known ICallServiceSelector
+     * implementations or the empty list upon no available selectors.
      */
     private List<ComponentName> getSelectorNames() {
         // The list of selector names to return to the caller, may be populated below.
@@ -142,14 +121,5 @@ final class CallServiceSelectorRepository implements ServiceBinder.Listener {
         }
 
         return selectorNames;
-    }
-
-    /**
-     * Updates the switchboard passing the relevant call services selectors.
-     *
-     * @param selectors The selectors found during lookup.
-     */
-    private void updateSwitchboard(List<CallServiceSelectorWrapper> selectors) {
-        mSwitchboard.setSelectors(ImmutableList.copyOf(selectors));
     }
 }
