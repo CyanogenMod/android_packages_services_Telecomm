@@ -32,10 +32,10 @@ public final class TelephonyUtil {
             "com.android.phone";
 
     private static final String GSM_CALL_SERVICE_CLASS_NAME =
-            "com.android.services.telephony.GsmCallService";
+            "com.android.services.telephony.GsmConnectionService";
 
     private static final String CDMA_CALL_SERVICE_CLASS_NAME =
-            "com.android.services.telephony.CdmaCallService";
+            "com.android.services.telephony.CdmaConnectionService";
 
     private TelephonyUtil() {}
 
