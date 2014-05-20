@@ -36,6 +36,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -46,7 +48,6 @@ import java.util.Set;
 final class CallServiceWrapper extends ServiceBinder<ICallService> {
 
     private final class Adapter extends ICallServiceAdapter.Stub {
-        private static final int MSG_SET_IS_COMPATIBLE_WITH = 0;
         private static final int MSG_NOTIFY_INCOMING_CALL = 1;
         private static final int MSG_HANDLE_SUCCESSFUL_OUTGOING_CALL = 2;
         private static final int MSG_HANDLE_FAILED_OUTGOING_CALL = 3;
@@ -61,20 +62,11 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
             public void handleMessage(Message msg) {
                 Call call;
                 switch (msg.what) {
-                    case MSG_SET_IS_COMPATIBLE_WITH:
-                        call = mCallIdMapper.getCall(msg.obj);
-                        if (call != null && !call.isIncoming()) {
-                            mOutgoingCallsManager.setIsCompatibleWith(call,
-                                    msg.arg1 == 1 ? true : false);
-                        } else {
-                            Log.w(this, "setIsCompatibleWith, unknown call: %s, id: %s", call,
-                                    msg.obj);
-                        }
-                        break;
                     case MSG_NOTIFY_INCOMING_CALL:
                         CallInfo clientCallInfo = (CallInfo) msg.obj;
                         call = mCallIdMapper.getCall(clientCallInfo.getId());
-                        if (call != null && mPendingCalls.remove(call) && call.isIncoming()) {
+                        if (call != null && mPendingIncomingCalls.remove(call) &&
+                                call.isIncoming()) {
                             CallInfo callInfo = new CallInfo(null, clientCallInfo.getState(),
                                     clientCallInfo.getHandle());
                             mIncomingCallsManager.handleSuccessfulIncomingCall(call, callInfo);
@@ -84,28 +76,27 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
                                     clientCallInfo.getId());
                         }
                         break;
-                    case MSG_HANDLE_SUCCESSFUL_OUTGOING_CALL:
-                        call = mCallIdMapper.getCall(msg.obj);
-                        if (call != null && mPendingCalls.remove(call) && !call.isIncoming()) {
-                            mOutgoingCallsManager.handleSuccessfulCallAttempt(call);
+                    case MSG_HANDLE_SUCCESSFUL_OUTGOING_CALL: {
+                        String callId = (String) msg.obj;
+                        if (mPendingOutgoingCalls.containsKey(callId)) {
+                            mPendingOutgoingCalls.remove(callId).onResult(true);
                         } else {
-                            // TODO(gilad): Figure out how to wire up the callService.abort() call.
-                            Log.w(this,
-                                    "handleSuccessfulOutgoingCall, unknown call: %s, id: %s",
-                                    call, msg.obj);
+                            Log.w(this, "handleSuccessfulOutgoingCall, unknown call: %s", callId);
                         }
                         break;
+                    }
                     case MSG_HANDLE_FAILED_OUTGOING_CALL: {
                         SomeArgs args = (SomeArgs) msg.obj;
                         try {
-                            call = mCallIdMapper.getCall(args.arg1);
+                            String callId = (String) args.arg1;
                             String reason = (String) args.arg2;
-                            if (call != null && mPendingCalls.remove(call) && !call.isIncoming()) {
-                                mOutgoingCallsManager.handleFailedCallAttempt(call, reason);
+                            // TODO(santoscordon): Do something with 'reason' or get rid of it.
+
+                            if (mPendingOutgoingCalls.containsKey(callId)) {
+                                mPendingOutgoingCalls.remove(callId).onResult(false);
+                                mCallIdMapper.removeCall(callId);
                             } else {
-                                Log.w(this,
-                                        "handleFailedOutgoingCall, unknown call: %s, id: %s",
-                                        call, args.arg1);
+                                Log.w(this, "handleFailedOutgoingCall, unknown call: %s", callId);
                             }
                         } finally {
                             args.recycle();
@@ -168,10 +159,7 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
         /** {@inheritDoc} */
         @Override
         public void setIsCompatibleWith(String callId, boolean isCompatible) {
-            Log.v(this, "setIsCompatibleWith id: %s, isCompatible: %b", callId, isCompatible);
-            mCallIdMapper.checkValidCallId(callId);
-            mHandler.obtainMessage(MSG_SET_IS_COMPATIBLE_WITH, isCompatible ? 1 : 0, 0, callId).
-                    sendToTarget();
+            Log.wtf(this, "Not expected.");
         }
 
         /** {@inheritDoc} */
@@ -184,6 +172,7 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
         /** {@inheritDoc} */
         @Override
         public void handleSuccessfulOutgoingCall(String callId) {
+            Log.d(this, "handleSuccessfulOutgoingCall %s", callId);
             mCallIdMapper.checkValidCallId(callId);
             mHandler.obtainMessage(MSG_HANDLE_SUCCESSFUL_OUTGOING_CALL, callId).sendToTarget();
         }
@@ -192,6 +181,7 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
         @Override
         public void handleFailedOutgoingCall(String callId, String reason) {
             mCallIdMapper.checkValidCallId(callId);
+            Log.d(this, "handleFailedOutgoingCall %d", callId);
             SomeArgs args = SomeArgs.obtain();
             args.arg1 = callId;
             args.arg2 = reason;
@@ -241,11 +231,11 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
 
     private final Adapter mAdapter = new Adapter();
     private final CallsManager mCallsManager = CallsManager.getInstance();
-    private final Set<Call> mPendingCalls = Sets.newHashSet();
+    private final Set<Call> mPendingIncomingCalls = Sets.newHashSet();
     private final CallServiceDescriptor mDescriptor;
     private final CallIdMapper mCallIdMapper = new CallIdMapper("CallService");
-    private final OutgoingCallsManager mOutgoingCallsManager;
     private final IncomingCallsManager mIncomingCallsManager;
+    private final Map<String, AsyncResultCallback<Boolean>> mPendingOutgoingCalls = new HashMap<>();
 
     private Binder mBinder = new Binder();
     private ICallService mServiceInterface;
@@ -255,17 +245,14 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
      *
      * @param descriptor The call-service descriptor from
      *            {@link ICallServiceProvider#lookupCallServices}.
-     * @param outgoingCallsManager Manages the placing of outgoing calls.
      * @param incomingCallsManager Manages the incoming call initialization flow.
      */
     CallServiceWrapper(
             CallServiceDescriptor descriptor,
-            OutgoingCallsManager outgoingCallsManager,
             IncomingCallsManager incomingCallsManager) {
         super(TelecommConstants.ACTION_CALL_SERVICE, descriptor.getServiceComponent());
         mDescriptor = descriptor;
         mIncomingCallsManager = incomingCallsManager;
-        mOutgoingCallsManager = outgoingCallsManager;
     }
 
     CallServiceDescriptor getDescriptor() {
@@ -283,60 +270,48 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
     }
 
     /**
-     * Checks whether or not the specified call is compatible with this call-service implementation,
-     * see {@link ICallService#isCompatibleWith}. Upon failure, the specified error callback is
-     * invoked. Can be invoked even when the call service is unbound.
-     *
-     * @param errorCallback The callback to invoke upon failure.
+     * Attempts to place the specified call, see {@link ICallService#call}. Returns the result
+     * asynchronously through the specified callback.
      */
-    void isCompatibleWith(final Call call, final Runnable errorCallback) {
-        Log.d(this, "isCompatibleWith(%s) via %s.", call, getComponentName());
+    void call(final Call call, final AsyncResultCallback<Boolean> resultCallback) {
+        Log.d(this, "call(%s) via %s.", call, getComponentName());
         BindCallback callback = new BindCallback() {
             @Override
             public void onSuccess() {
-                if (isServiceValid("isCompatibleWith")) {
-                    try {
-                        mPendingCalls.add(call);
-                        CallInfo callInfo = call.toCallInfo(mCallIdMapper.getCallId(call));
-                        mServiceInterface.isCompatibleWith(callInfo);
-                    } catch (RemoteException e) {
-                    }
+                String callId = mCallIdMapper.getCallId(call);
+                mPendingOutgoingCalls.put(callId, resultCallback);
+
+                try {
+                    CallInfo callInfo = call.toCallInfo(callId);
+                    mServiceInterface.call(callInfo);
+                } catch (RemoteException e) {
+                    mPendingOutgoingCalls.remove(callId).onResult(false);
                 }
             }
 
             @Override
             public void onFailure() {
-                errorCallback.run();
+                resultCallback.onResult(false);
             }
         };
 
         mBinder.bind(callback);
     }
 
-    /**
-     * Attempts to place the specified call, see {@link ICallService#call}. Upon failure, the
-     * specified error callback is invoked. Can be invoked even when the call service is unbound.
-     */
-    void call(Call call) {
-        Log.d(this, "call(%s) via %s.", call, getComponentName());
-        if (isServiceValid("call")) {
-            try {
-                CallInfo callInfo = call.toCallInfo(mCallIdMapper.getCallId(call));
-                mServiceInterface.call(callInfo);
-            } catch (RemoteException e) {
-            }
-        }
-    }
-
     /** @see CallService#abort(String) */
     void abort(Call call) {
-        mPendingCalls.remove(call);
+        // Clear out any pending outgoing call data
+        String callId = mCallIdMapper.getCallId(call);
+
+        // If still bound, tell the call service to abort.
         if (isServiceValid("abort")) {
             try {
-                mServiceInterface.abort(mCallIdMapper.getCallId(call));
+                mServiceInterface.abort(callId);
             } catch (RemoteException e) {
             }
         }
+
+        removeCall(call);
     }
 
     /** @see CallService#hold(String) */
@@ -386,7 +361,7 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
             @Override
             public void onSuccess() {
                 if (isServiceValid("setIncomingCallId")) {
-                    mPendingCalls.add(call);
+                    mPendingIncomingCalls.add(call);
                     try {
                         mServiceInterface.setIncomingCallId(mCallIdMapper.getCallId(call),
                                 extras);
@@ -467,7 +442,14 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
     }
 
     void removeCall(Call call) {
-        mPendingCalls.remove(call);
+        mPendingIncomingCalls.remove(call);
+
+        AsyncResultCallback<Boolean> outgoingResultCallback =
+            mPendingOutgoingCalls.remove(mCallIdMapper.getCallId(call));
+        if (outgoingResultCallback != null) {
+            outgoingResultCallback.onResult(false);
+        }
+
         mCallIdMapper.removeCall(call);
     }
 
@@ -492,22 +474,27 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
      * Called when the associated call service dies.
      */
     private void handleCallServiceDeath() {
-        if (!mPendingCalls.isEmpty()) {
+        if (!mPendingOutgoingCalls.isEmpty()) {
+            for (AsyncResultCallback<Boolean> callback : mPendingOutgoingCalls.values()) {
+                callback.onResult(false);
+            }
+            mPendingOutgoingCalls.clear();
+        }
+
+        if (!mPendingIncomingCalls.isEmpty()) {
             // Iterate through a copy because the code inside the loop will modify the original
             // list.
-            for (Call call : ImmutableList.copyOf(mPendingCalls)) {
-                if (call.isIncoming()) {
-                    mIncomingCallsManager.handleFailedIncomingCall(call);
-                } else {
-                    mOutgoingCallsManager.handleFailedCallAttempt(call,
-                            "Call service disconnected.");
-                }
+            for (Call call : ImmutableList.copyOf(mPendingIncomingCalls)) {
+                Preconditions.checkState(call.isIncoming());
+                mIncomingCallsManager.handleFailedIncomingCall(call);
             }
 
-            if (!mPendingCalls.isEmpty()) {
+            if (!mPendingIncomingCalls.isEmpty()) {
                 Log.wtf(this, "Pending calls did not get cleared.");
-                mPendingCalls.clear();
+                mPendingIncomingCalls.clear();
             }
         }
+
+        mCallIdMapper.clear();
     }
 }

@@ -160,16 +160,11 @@ class CallServiceRepository extends BaseRepository<CallServiceWrapper> {
         }
     }
 
-    private final OutgoingCallsManager mOutgoingCallsManager;
     private final IncomingCallsManager mIncomingCallsManager;
     private final Handler mHandler = new Handler();
 
     /** Persists specified parameters. */
-    CallServiceRepository(
-            OutgoingCallsManager outgoingCallsManager,
-            IncomingCallsManager incomingCallsManager) {
-
-        mOutgoingCallsManager = outgoingCallsManager;
+    CallServiceRepository(IncomingCallsManager incomingCallsManager) {
         mIncomingCallsManager = incomingCallsManager;
     }
 
@@ -191,7 +186,6 @@ class CallServiceRepository extends BaseRepository<CallServiceWrapper> {
     @Override
     protected CallServiceWrapper onCreateNewServiceWrapper(ComponentName componentName,
             Object param) {
-        return new CallServiceWrapper(
-                (CallServiceDescriptor) param, mOutgoingCallsManager, mIncomingCallsManager);
+        return new CallServiceWrapper((CallServiceDescriptor) param, mIncomingCallsManager);
     }
 }

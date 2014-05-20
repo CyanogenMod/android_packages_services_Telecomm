@@ -32,7 +32,9 @@ import com.android.internal.os.SomeArgs;
 import com.android.internal.telecomm.ICallServiceSelector;
 import com.android.internal.telecomm.ICallServiceSelectorAdapter;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Wrapper for {@link ICallServiceSelector}s, handles binding and keeps track of when the object can
@@ -52,15 +54,17 @@ final class CallServiceSelectorWrapper extends ServiceBinder<ICallServiceSelecto
                     case MSG_SET_SELECTED_CALL_SERVICES: {
                         SomeArgs args = (SomeArgs) msg.obj;
                         try {
-                            Call call = mCallIdMapper.getCall(args.arg1);
-                            List<CallServiceDescriptor> descriptors =
-                                    (List<CallServiceDescriptor>) args.arg2;
-                            if (call != null) {
-                                mOutgoingCallsManager.processSelectedCallServices(call,
-                                        descriptors);
+                            String callId = (String) args.arg1;
+                            if (mPendingSelects.containsKey(callId)) {
+                                @SuppressWarnings("unchecked")
+                                List<CallServiceDescriptor> descriptors =
+                                        (List<CallServiceDescriptor>) args.arg2;
+
+                                mCallIdMapper.removeCall(callId);
+                                mPendingSelects.remove(callId).onResult(descriptors);
                             } else {
                                 Log.w(this, "setSelectedCallServices: unknown call: %s, id: %s",
-                                        call, args.arg1);
+                                        callId, args.arg1);
                             }
                         } finally {
                             args.recycle();
@@ -70,7 +74,7 @@ final class CallServiceSelectorWrapper extends ServiceBinder<ICallServiceSelecto
                     case MSG_CANCEL_OUTGOING_CALL: {
                         Call call = mCallIdMapper.getCall(msg.obj);
                         if (call != null) {
-                            mOutgoingCallsManager.abort(call);
+                            call.abort();
                         } else {
                             Log.w(this, "cancelOutgoingCall: unknown call: %s, id: %s", call,
                                     msg.obj);
@@ -128,9 +132,9 @@ final class CallServiceSelectorWrapper extends ServiceBinder<ICallServiceSelecto
     private final Binder mBinder = new Binder();
     private final CallIdMapper mCallIdMapper = new CallIdMapper("CallServiceSelector");
     private final Adapter mAdapter = new Adapter();
-
     private final CallsManager mCallsManager;
-    private final OutgoingCallsManager mOutgoingCallsManager;
+    private final Map<String, AsyncResultCallback<List<CallServiceDescriptor>>> mPendingSelects =
+            new HashMap<>();
 
     private ICallServiceSelector mSelectorInterface;
 
@@ -141,17 +145,12 @@ final class CallServiceSelectorWrapper extends ServiceBinder<ICallServiceSelecto
      * @param action The action used to bind to the selector.
      * @param componentName The component name of the service.
      * @param callsManager The calls manager.
-     * @param outgoingCallsManager The outgoing calls manager.
      */
     CallServiceSelectorWrapper(
-            String action,
-            ComponentName componentName,
-            CallsManager callsManager,
-            OutgoingCallsManager outgoingCallsManager) {
+            String action, ComponentName componentName, CallsManager callsManager) {
 
         super(action, componentName);
         mCallsManager = callsManager;
-        mOutgoingCallsManager = outgoingCallsManager;
     }
 
     /**
@@ -160,17 +159,9 @@ final class CallServiceSelectorWrapper extends ServiceBinder<ICallServiceSelecto
      *
      * @param componentName The component name of the service.
      * @param callsManager The calls manager.
-     * @param outgoingCallsManager The outgoing calls manager.
      */
-    CallServiceSelectorWrapper(
-            ComponentName componentName,
-            CallsManager callsManager,
-            OutgoingCallsManager outgoingCallsManager) {
-
-        this(TelecommConstants.ACTION_CALL_SERVICE_SELECTOR,
-                componentName,
-                callsManager,
-                outgoingCallsManager);
+    CallServiceSelectorWrapper(ComponentName componentName, CallsManager callsManager) {
+        this(TelecommConstants.ACTION_CALL_SERVICE_SELECTOR, componentName, callsManager);
     }
 
     /**
@@ -180,25 +171,31 @@ final class CallServiceSelectorWrapper extends ServiceBinder<ICallServiceSelecto
      * @param call The call being placed using the {@link CallService}s.
      * @param descriptors The descriptors of the available {@link CallService}s with which to place
      *            the call.
-     * @param errorCallback The callback to invoke upon failure.
+     * @param resultCallback The callback on which to return the result.
      */
-    void select(final Call call, final List<CallServiceDescriptor> descriptors,
-            final Runnable errorCallback) {
+    void select(
+            final Call call,
+            final List<CallServiceDescriptor> descriptors,
+            final AsyncResultCallback<List<CallServiceDescriptor>> resultCallback) {
+
         BindCallback callback = new BindCallback() {
             @Override
             public void onSuccess() {
-                if (isServiceValid("select")) {
-                    try {
-                        CallInfo callInfo = call.toCallInfo(mCallIdMapper.getCallId(call));
-                        mSelectorInterface.select(callInfo, descriptors);
-                    } catch (RemoteException e) {
-                    }
+                String callId = mCallIdMapper.getCallId(call);
+                mPendingSelects.put(callId, resultCallback);
+
+                try {
+                    CallInfo callInfo = call.toCallInfo(mCallIdMapper.getCallId(call));
+                    mSelectorInterface.select(callInfo, descriptors);
+                } catch (RemoteException e) {
+                    mCallIdMapper.removeCall(call);
+                    mPendingSelects.get(callId).onResult(null);
                 }
             }
 
             @Override
             public void onFailure() {
-                errorCallback.run();
+                resultCallback.onResult(null);
             }
         };
 

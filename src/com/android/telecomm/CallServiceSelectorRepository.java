@@ -38,23 +38,6 @@ import java.util.Map;
  */
 final class CallServiceSelectorRepository extends BaseRepository<CallServiceSelectorWrapper> {
 
-    private final OutgoingCallsManager mOutgoingCallsManager;
-
-    /**
-     * The set of call-service selectors. Only populated via initiateLookup scenarios.
-     */
-    private final Map<ComponentName, CallServiceSelectorWrapper> mCallServiceSelectors =
-            Maps.newHashMap();
-
-    /**
-     * Persists the specified parameters and initializes the new instance.
-     *
-     * @param outgoingCallsManager The outgoing calls manager.
-     */
-    CallServiceSelectorRepository(OutgoingCallsManager outgoingCallsManager) {
-        mOutgoingCallsManager = outgoingCallsManager;
-    }
-
     /** {@inheritDoc} */
     @Override
     protected void onLookupServices(LookupCallback<CallServiceSelectorWrapper> callback) {
@@ -84,20 +67,7 @@ final class CallServiceSelectorRepository extends BaseRepository<CallServiceSele
     protected CallServiceSelectorWrapper onCreateNewServiceWrapper(
             ComponentName componentName, Object param) {
 
-        return new CallServiceSelectorWrapper(
-                componentName, CallsManager.getInstance(), mOutgoingCallsManager);
-    }
-
-    /**
-     * Creates a wrapper for the specified component name and starts listening to it's unbind event.
-     *
-     * @param componentName The component name of the call-service selector.
-     * @return The wrapper for the selector.
-     */
-    private CallServiceSelectorWrapper createWrapper(ComponentName componentName) {
-        CallServiceSelectorWrapper selector = new CallServiceSelectorWrapper(
-                componentName, CallsManager.getInstance(), mOutgoingCallsManager);
-        return selector;
+        return new CallServiceSelectorWrapper(componentName, CallsManager.getInstance());
     }
 
     /**

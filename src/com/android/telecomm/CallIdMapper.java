@@ -52,6 +52,11 @@ class CallIdMapper {
         mCalls.inverse().remove(call);
     }
 
+    void removeCall(String callId) {
+        ThreadUtil.checkOnMainThread();
+        mCalls.remove(callId);
+    }
+
     String getCallId(Call call) {
         ThreadUtil.checkOnMainThread();
         Preconditions.checkNotNull(call);
@@ -68,6 +73,10 @@ class CallIdMapper {
         checkValidCallId(callId);
 
         return mCalls.get(callId);
+    }
+
+    void clear() {
+        mCalls.clear();
     }
 
     void checkValidCallId(String callId) {

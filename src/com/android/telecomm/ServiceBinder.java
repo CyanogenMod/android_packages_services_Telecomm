@@ -219,7 +219,7 @@ abstract class ServiceBinder<ServiceInterface extends IInterface> {
 
     final boolean isServiceValid(String actionName) {
         if (mBinder == null) {
-            Log.wtf(this, "%s invoked while service is unbound", actionName);
+            Log.w(this, "%s invoked while service is unbound", actionName);
             return false;
         }
 

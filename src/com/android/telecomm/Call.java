@@ -127,6 +127,12 @@ final class Call {
     /** Set of listeners on this call. */
     private Set<Listener> mListeners = Sets.newHashSet();
 
+    private OutgoingCallProcessor mOutgoingCallProcessor;
+
+    // TODO(santoscordon): The repositories should be changed into singleton types.
+    private CallServiceRepository mCallServiceRepository;
+    private CallServiceSelectorRepository mSelectorRepository;
+
     /**
      * Creates an empty call object.
      *
@@ -379,14 +385,33 @@ final class Call {
     }
 
     /**
-     * Starts the outgoing call flow through the switchboard. When switchboard completes, it will
-     * invoke handleSuccessful/FailedOutgoingCall.
+     * Starts the outgoing call sequence.  Upon completion, there should exist an active connection
+     * through a call service (or the call will have failed).
      */
     void startOutgoing() {
-        Switchboard.getInstance().placeOutgoingCall(this);
+        Preconditions.checkState(mOutgoingCallProcessor == null);
+
+        mOutgoingCallProcessor = new OutgoingCallProcessor(
+                this,
+                Switchboard.getInstance().getCallServiceRepository(),
+                Switchboard.getInstance().getSelectorRepository(),
+                new AsyncResultCallback<Boolean>() {
+                    @Override
+                    public void onResult(Boolean wasCallPlaced) {
+                        if (wasCallPlaced) {
+                            handleSuccessfulOutgoing();
+                        } else {
+                            handleFailedOutgoing(mOutgoingCallProcessor.isAborted());
+                        }
+                        mOutgoingCallProcessor = null;
+                    }
+                });
+        mOutgoingCallProcessor.process();
     }
 
     void handleSuccessfulOutgoing() {
+        setState(CallState.DIALING);
+
         // TODO(santoscordon): Replace this with state transitions related to "connecting".
         for (Listener l : mListeners) {
             l.onSuccessfulOutgoingCall(this);
@@ -394,14 +419,13 @@ final class Call {
     }
 
     void handleFailedOutgoing(boolean isAborted) {
-        if (isAborted) {
-            finalizeAbort();
-        }
-
         // TODO(santoscordon): Replace this with state transitions related to "connecting".
         for (Listener l : mListeners) {
             l.onFailedOutgoingCall(this, isAborted);
         }
+
+        clearCallService();
+        clearCallServiceSelector();
     }
 
     /**
@@ -428,20 +452,6 @@ final class Call {
     boolean isIncompatibleCallService(CallServiceWrapper callService) {
         return mIncompatibleCallServices != null &&
                 mIncompatibleCallServices.contains(callService);
-    }
-
-    /**
-     * Issues an abort signal to the associated call service and clears the current call service
-     * and call-service selector.
-     */
-    void finalizeAbort() {
-        Preconditions.checkState(mState == CallState.NEW);
-
-        if (mCallService != null) {
-            mCallService.abort(this);
-        }
-        clearCallService();
-        clearCallServiceSelector();
     }
 
     /**
@@ -473,16 +483,8 @@ final class Call {
      */
     void disconnect() {
         if (mState == CallState.NEW) {
-            // There is a very strange indirection here. When we are told to disconnect, we issue
-            // an 'abort' to the switchboard if we are still in the NEW (or "connecting") state.
-            // The switchboard will then cancel the outgoing call process and ask this class to
-            // finalize the abort procedure via {@link #finalizeAbort}. The issue is that
-            // Switchboard edits the state of the call as part of the process and then this class
-            // is responsible for undoing it, and that is all kinds of backwards.
-            // TODO(santoscordon): Remove Switchboard's requirement to edit the state of the Call
-            // objects and remove any multi-class shared state of incoming and outgoing call
-            // processing.
-            Switchboard.getInstance().abortCall(this);
+            Log.v(this, "Aborting call %s", this);
+            abort();
         } else if (mState != CallState.ABORTED && mState != CallState.DISCONNECTED) {
             Preconditions.checkNotNull(mCallService);
 
@@ -491,6 +493,12 @@ final class Call {
             // was actually disconnected. Only then is the association between call and call service
             // severed, see {@link CallsManager#markCallAsDisconnected}.
             mCallService.disconnect(this);
+        }
+    }
+
+    void abort() {
+        if (mOutgoingCallProcessor != null) {
+            mOutgoingCallProcessor.abort();
         }
     }
 

@@ -16,12 +16,17 @@
 
 package com.android.telecomm;
 
+import android.content.ComponentName;
+import android.os.Handler;
+import android.os.Message;
 import android.telecomm.CallServiceDescriptor;
 
+import com.android.telecomm.BaseRepository.LookupCallback;
 import com.google.android.collect.Sets;
-import com.google.common.collect.Lists;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -44,15 +49,12 @@ import java.util.Set;
  */
 final class OutgoingCallProcessor {
 
+    private final static int MSG_EXPIRE = 1;
+
     /**
      * The outgoing call this processor is tasked with placing.
      */
     private final Call mCall;
-
-    /**
-     * The duplicate-free list of currently-available call-service descriptors.
-     */
-    private final List<CallServiceDescriptor> mCallServiceDescriptors = Lists.newArrayList();
 
     /**
      * The map of currently-available call-service implementations keyed by call-service ID.
@@ -65,37 +67,39 @@ final class OutgoingCallProcessor {
      */
     private final Set<CallServiceWrapper> mAttemptedCallServices = Sets.newHashSet();
 
-    /**
-     * The set of incompatible call services, used to suppress unnecessary call switching attempts.
-     */
-    private final Set<CallServiceWrapper> mIncompatibleCallServices = Sets.newHashSet();
+    private final CallServiceRepository mCallServiceRepository;
 
-    /**
-     * The list of currently-available call-service selector implementations.
-     */
-    private final Collection<CallServiceSelectorWrapper> mSelectors;
+    private final CallServiceSelectorRepository mSelectorRepository;
 
-    /** Manages all outgoing call processors. */
-    private final OutgoingCallsManager mOutgoingCallsManager;
-
-    private final Runnable mNextCallServiceCallback = new Runnable() {
-        @Override public void run() {
-            attemptNextCallService();
+    private final Handler mHandler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what) {
+                case MSG_EXPIRE:
+                    abort();
+                    break;
+            }
         }
     };
 
-    private final Runnable mNextSelectorCallback = new Runnable() {
-        @Override public void run() {
-            attemptNextSelector();
-        }
-    };
+    /**
+     * The duplicate-free list of currently-available call-service descriptors.
+     */
+    private List<CallServiceDescriptor> mCallServiceDescriptors;
 
     /**
      * The iterator over the currently-selected ordered list of call-service descriptors.
      */
     private Iterator<CallServiceDescriptor> mCallServiceDescriptorIterator;
 
+    /**
+     * The list of currently-available call-service selector implementations.
+     */
+    private Collection<CallServiceSelectorWrapper> mSelectors;
+
     private Iterator<CallServiceSelectorWrapper> mSelectorIterator;
+
+    private AsyncResultCallback<Boolean> mResultCallback;
 
     private boolean mIsAborted = false;
 
@@ -107,29 +111,22 @@ final class OutgoingCallProcessor {
      * in turn call the abort method of this processor via {@link OutgoingCallsManager}.
      *
      * @param call The call to place.
-     * @param callServices The available call-service implementations.
-     * @param selectors The available call-service selector implementations.
-     * @param outgoingCallsManager Manager of all outgoing call processors.
+     * @param callServiceRepository
+     * @param selectorRepository
+     * @param resultCallback The callback on which to return the result.
      */
     OutgoingCallProcessor(
             Call call,
-            Collection<CallServiceWrapper> callServices,
-            Collection<CallServiceSelectorWrapper> selectors,
-            OutgoingCallsManager outgoingCallsManager) {
+            CallServiceRepository callServiceRepository,
+            CallServiceSelectorRepository selectorRepository,
+            AsyncResultCallback<Boolean> resultCallback) {
 
         ThreadUtil.checkOnMainThread();
 
         mCall = call;
-        mSelectors = selectors;
-        mOutgoingCallsManager = outgoingCallsManager;
-
-        // Populate the list and map of call-service descriptors.  The list is needed since
-        // it's being passed down to selectors.
-        for (CallServiceWrapper callService : callServices) {
-            CallServiceDescriptor descriptor = callService.getDescriptor();
-            mCallServiceDescriptors.add(descriptor);
-            mCallServicesById.put(descriptor.getCallServiceId(), callService);
-        }
+        mResultCallback = resultCallback;
+        mCallServiceRepository = callServiceRepository;
+        mSelectorRepository = selectorRepository;
     }
 
     /**
@@ -138,42 +135,30 @@ final class OutgoingCallProcessor {
     void process() {
         Log.v(this, "process, mIsAborted: %b", mIsAborted);
         if (!mIsAborted) {
-            // Only process un-aborted calls.
-            ThreadUtil.checkOnMainThread();
+            // Start the expiration timeout.
+            mHandler.sendEmptyMessageDelayed(MSG_EXPIRE, Timeouts.getNewOutgoingCallMillis());
 
-            if (mSelectorIterator == null) {
-                mSelectorIterator = mSelectors.iterator();
-                attemptNextSelector();
-            }
-        }
-    }
-
-    /**
-     * Handles the specified compatibility status from the call-service implementation.
-     * TODO(gilad): Consider making this class stateful, potentially rejecting out-of-order/
-     * unexpected invocations (i.e. beyond checking for unexpected call IDs).
-     *
-     * @param isCompatible True if the call-service is compatible with the corresponding call and
-     *     false otherwise.
-     */
-    void setIsCompatibleWith(Call call, boolean isCompatible) {
-        Log.v(this, "setIsCompatibleWith, call: %s, isCompatible: %b", call, isCompatible);
-        if (call != mCall) {
-            Log.wtf(this, "setIsCompatibleWith invoked with unexpected call: %s, expected call: %s",
-                    call, mCall);
-            return;
-        }
-
-        if (!mIsAborted) {
-            CallServiceWrapper callService = mCall.getCallService();
-            if (callService != null) {
-                if (isCompatible) {
-                    callService.call(mCall);
-                    return;
+            // Lookup call services
+            mCallServiceRepository.lookupServices(new LookupCallback<CallServiceWrapper>() {
+                @Override
+                public void onComplete(Collection<CallServiceWrapper> services) {
+                    setCallServices(services);
                 }
-                mIncompatibleCallServices.add(callService);
+            });
+
+            if (mCall.getCallServiceSelector() == null) {
+                // Lookup selectors
+                mSelectorRepository.lookupServices(
+                        new LookupCallback<CallServiceSelectorWrapper>() {
+                            @Override
+                            public void onComplete(
+                                    Collection<CallServiceSelectorWrapper> selectors) {
+                                setSelectors(selectors);
+                            }
+                        });
+            } else {
+                setSelectors(ImmutableList.of(mCall.getCallServiceSelector()));
             }
-            attemptNextCallService();
         }
     }
 
@@ -184,11 +169,25 @@ final class OutgoingCallProcessor {
     void abort() {
         Log.v(this, "abort");
         ThreadUtil.checkOnMainThread();
-        if (!mIsAborted) {
+        if (!mIsAborted && mResultCallback != null) {
             mIsAborted = true;
-            // This will also clear the call's call service and selector.
-            mOutgoingCallsManager.handleFailedOutgoingCall(mCall, true /* isAborted */);
+
+            // On an abort, we need to check if we already told the call service to place the
+            // call. If so, we need to tell it to abort.
+            // TODO(santoscordon): The call service is saved with the call and so we have to query
+            // the call to get it, which is a bit backwards.  Ideally, the call service would be
+            // saved inside this class until the whole thing is complete and then set on the call.
+            CallServiceWrapper callService = mCall.getCallService();
+            if (callService != null) {
+                callService.abort(mCall);
+            }
+
+            sendResult(false);
         }
+    }
+
+    boolean isAborted() {
+        return mIsAborted;
     }
 
     /**
@@ -196,19 +195,17 @@ final class OutgoingCallProcessor {
      * invoked when the call service adapter receives positive confirmation that the call service
      * placed the call.
      */
-    void handleSuccessfulCallAttempt() {
+    void handleSuccessfulCallAttempt(CallServiceWrapper callService) {
         Log.v(this, "handleSuccessfulCallAttempt");
         ThreadUtil.checkOnMainThread();
 
         if (mIsAborted) {
             // TODO(gilad): Ask the call service to drop the call?
+            callService.abort(mCall);
             return;
         }
 
-        for (CallServiceWrapper callService : mIncompatibleCallServices) {
-            mCall.addIncompatibleCallService(callService);
-        }
-        mCall.handleSuccessfulOutgoing();
+        sendResult(true);
     }
 
     /**
@@ -243,6 +240,78 @@ final class OutgoingCallProcessor {
     }
 
     /**
+     * Sets the call services to attempt for this outgoing call.
+     *
+     * @param callServices The call services.
+     */
+    private void setCallServices(Collection<CallServiceWrapper> callServices) {
+        mCallServiceDescriptors = new ArrayList<>();
+
+        // Populate the list and map of call-service descriptors.  The list is needed since
+        // it's being passed down to selectors.
+        for (CallServiceWrapper callService : callServices) {
+            CallServiceDescriptor descriptor = callService.getDescriptor();
+            mCallServiceDescriptors.add(descriptor);
+            mCallServicesById.put(descriptor.getCallServiceId(), callService);
+        }
+
+        onLookupComplete();
+    }
+
+    /**
+     * Sets the selectors to attemnpt for this outgoing call.
+     *
+     * @param selectors The call-service selectors.
+     */
+    private void setSelectors(Collection<CallServiceSelectorWrapper> selectors) {
+        mSelectors = adjustForEmergencyCalls(selectors);
+        onLookupComplete();
+    }
+
+    private void onLookupComplete() {
+        if (!mIsAborted && mSelectors != null && mCallServiceDescriptors != null) {
+            if (mSelectorIterator == null) {
+                mSelectorIterator = mSelectors.iterator();
+                attemptNextSelector();
+            }
+        }
+    }
+
+    /**
+     * Updates the specified collection of selectors to accomodate for emergency calls and any
+     * preferred selectors specified in the call object.
+     *
+     * @param selectors The selectors found through the selector repository.
+     */
+    private Collection<CallServiceSelectorWrapper> adjustForEmergencyCalls(
+            Collection<CallServiceSelectorWrapper> selectors) {
+        boolean useEmergencySelector =
+                EmergencyCallServiceSelector.shouldUseSelector(mCall.getHandle());
+        Log.d(this, "processNewOutgoingCall, isEmergency=%b", useEmergencySelector);
+
+        if (useEmergencySelector) {
+            // This is potentially an emergency call so add the emergency selector before the
+            // other selectors.
+            ImmutableList.Builder<CallServiceSelectorWrapper> selectorsBuilder =
+                    ImmutableList.builder();
+
+            ComponentName componentName = new ComponentName(
+                    TelecommApp.getInstance(), EmergencyCallServiceSelector.class);
+            CallServiceSelectorWrapper emergencySelector =
+                    new CallServiceSelectorWrapper(
+                            componentName.flattenToShortString(),
+                            componentName,
+                            CallsManager.getInstance());
+
+            selectorsBuilder.add(emergencySelector);
+            selectorsBuilder.addAll(selectors);
+            selectors = selectorsBuilder.build();
+        }
+
+        return selectors;
+    }
+
+    /**
      * Attempts to place the call using the next selector, no-op if no other selectors
      * are available.
      */
@@ -255,11 +324,17 @@ final class OutgoingCallProcessor {
         if (mSelectorIterator.hasNext()) {
             CallServiceSelectorWrapper selector = mSelectorIterator.next();
             mCall.setCallServiceSelector(selector);
-            selector.select(mCall, mCallServiceDescriptors, mNextSelectorCallback);
+            selector.select(mCall, mCallServiceDescriptors,
+                    new AsyncResultCallback<List<CallServiceDescriptor>>() {
+                        @Override
+                        public void onResult(List<CallServiceDescriptor> descriptors) {
+                            processSelectedCallServices(descriptors);
+                        }
+                    });
         } else {
             Log.v(this, "attemptNextSelector, no more selectors, failing");
             mCall.clearCallServiceSelector();
-            mOutgoingCallsManager.handleFailedOutgoingCall(mCall, false /* isAborted */);
+            sendResult(false);
         }
     }
 
@@ -287,12 +362,41 @@ final class OutgoingCallProcessor {
             } else {
                 mAttemptedCallServices.add(callService);
                 mCall.setCallService(callService);
-                callService.isCompatibleWith(mCall, mNextCallServiceCallback);
+
+                // Increment the associated call count until we get a result. This prevents the call
+                // service from unbinding while we are using it.
+                callService.incrementAssociatedCallCount();
+
+                callService.call(mCall, new AsyncResultCallback<Boolean>() {
+                    @Override
+                    public void onResult(Boolean wasCallPlaced) {
+                        if (wasCallPlaced) {
+                            handleSuccessfulCallAttempt(callService);
+                        } else {
+                            handleFailedCallAttempt("call failed.");
+                        }
+
+                        // If successful, the call should not have it's own association to keep
+                        // the call service bound.
+                        callService.decrementAssociatedCallCount();
+                    }
+                });
             }
         } else {
             mCallServiceDescriptorIterator = null;
             mCall.clearCallService();
             attemptNextSelector();
+        }
+    }
+
+    private void sendResult(boolean wasCallPlaced) {
+        if (mResultCallback != null) {
+            mResultCallback.onResult(wasCallPlaced);
+            mResultCallback = null;
+
+            mHandler.removeMessages(MSG_EXPIRE);
+        } else {
+            Log.wtf(this, "Attempting to return outgoing result twice for call %s", mCall);
         }
     }
 }

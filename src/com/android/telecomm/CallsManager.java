@@ -311,6 +311,8 @@ public final class CallsManager implements Call.Listener {
      * the user hitting the end-call button.
      */
     void disconnectCall(Call call) {
+        Log.v(this, "disconnectCall %s", call);
+
         if (!mCalls.contains(call)) {
             Log.w(this, "Unknown call (%s) asked to disconnect", call);
         } else {
