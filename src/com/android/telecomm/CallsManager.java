@@ -343,7 +343,7 @@ public final class CallsManager implements Call.Listener {
         if (!mCalls.contains(call)) {
             Log.w(this, "Unknown call (%s) asked to be removed from hold", call);
         } else {
-            Log.d(this, "Removing call from hold: (%s)", call);
+            Log.d(this, "unholding call: (%s)", call);
             call.unhold();
         }
     }
@@ -471,6 +471,25 @@ public final class CallsManager implements Call.Listener {
                 markCallAsDisconnected(call, DisconnectCause.ERROR_UNSPECIFIED, null);
             }
         }
+    }
+
+    boolean hasActiveOrHoldingCall() {
+        for (Call call : mCalls) {
+            CallState state = call.getState();
+            if (state == CallState.ACTIVE || state == CallState.ON_HOLD) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    boolean hasRingingCall() {
+        for (Call call : mCalls) {
+            if (call.getState() == CallState.RINGING) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
