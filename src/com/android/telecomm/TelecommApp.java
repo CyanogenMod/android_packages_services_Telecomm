@@ -36,7 +36,9 @@ public final class TelecommApp extends Application {
     @Override public void onCreate() {
         super.onCreate();
         sInstance = this;
+
         mMissedCallNotifier = new MissedCallNotifier(this);
+        TelecommServiceImpl.init();
     }
 
     public static TelecommApp getInstance() {
