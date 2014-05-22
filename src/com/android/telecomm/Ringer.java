@@ -46,7 +46,7 @@ final class Ringer extends CallsManagerListenerBase {
      * Used to keep ordering of unanswered incoming calls. There can easily exist multiple incoming
      * calls and explicit ordering is useful for maintaining the proper state of the ringer.
      */
-    private final List<Call> mUnansweredCalls = Lists.newLinkedList();
+    private final List<Call> mRingingCalls = Lists.newLinkedList();
 
     private final CallAudioManager mCallAudioManager;
     private final CallsManager mCallsManager;
@@ -80,10 +80,10 @@ final class Ringer extends CallsManagerListenerBase {
     @Override
     public void onCallAdded(Call call) {
         if (call.isIncoming() && call.getState() == CallState.RINGING) {
-            if (mUnansweredCalls.contains(call)) {
+            if (mRingingCalls.contains(call)) {
                 Log.wtf(this, "New ringing call is already in list of unanswered calls");
             }
-            mUnansweredCalls.add(call);
+            mRingingCalls.add(call);
             updateRinging();
         }
     }
@@ -113,10 +113,19 @@ final class Ringer extends CallsManagerListenerBase {
 
     @Override
     public void onForegroundCallChanged(Call oldForegroundCall, Call newForegroundCall) {
-        if (mUnansweredCalls.contains(oldForegroundCall) ||
-                mUnansweredCalls.contains(newForegroundCall)) {
+        if (mRingingCalls.contains(oldForegroundCall) ||
+                mRingingCalls.contains(newForegroundCall)) {
             updateRinging();
         }
+    }
+
+    /**
+     * Silences the ringer for any actively ringing calls.
+     */
+    void silence() {
+        // Remove all calls from the "ringing" set and then update the ringer.
+        mRingingCalls.clear();
+        updateRinging();
     }
 
     private void onRespondedToIncomingCall(Call call) {
@@ -126,26 +135,26 @@ final class Ringer extends CallsManagerListenerBase {
             stopCallWaiting();
         }
 
-        // We do not remove the call from mUnansweredCalls until the call state changes from RINGING
+        // We do not remove the call from mRingingCalls until the call state changes from RINGING
         // or the call is removed. see onCallStateChanged or onCallRemoved.
     }
 
     private Call getTopMostUnansweredCall() {
-        return mUnansweredCalls.isEmpty() ? null : mUnansweredCalls.get(0);
+        return mRingingCalls.isEmpty() ? null : mRingingCalls.get(0);
     }
 
     /**
      * Removes the specified call from the list of unanswered incoming calls and updates the ringer
-     * based on the new state of {@link #mUnansweredCalls}. Safe to call with a call that is not
+     * based on the new state of {@link #mRingingCalls}. Safe to call with a call that is not
      * present in the list of incoming calls.
      */
     private void removeFromUnansweredCall(Call call) {
-        mUnansweredCalls.remove(call);
+        mRingingCalls.remove(call);
         updateRinging();
     }
 
     private void updateRinging() {
-        if (mUnansweredCalls.isEmpty()) {
+        if (mRingingCalls.isEmpty()) {
             stopRinging();
             stopCallWaiting();
         } else {
@@ -157,7 +166,7 @@ final class Ringer extends CallsManagerListenerBase {
         Call foregroundCall = mCallsManager.getForegroundCall();
         Log.v(this, "startRingingOrCallWaiting, foregroundCall: %s.", foregroundCall);
 
-        if (mUnansweredCalls.contains(foregroundCall)) {
+        if (mRingingCalls.contains(foregroundCall)) {
             // The foreground call is one of incoming calls so play the ringer out loud.
             stopCallWaiting();
 

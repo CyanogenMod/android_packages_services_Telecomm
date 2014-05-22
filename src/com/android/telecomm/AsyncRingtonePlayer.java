@@ -16,6 +16,7 @@
 
 package com.android.telecomm;
 
+import android.media.AudioManager;
 import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.os.Handler;
@@ -149,7 +150,9 @@ class AsyncRingtonePlayer {
 
     private Ringtone getCurrentRingtone() {
         // TODO: Needs support for custom ringtones.
-        return RingtoneManager.getRingtone(
+        Ringtone ringtone = RingtoneManager.getRingtone(
                 TelecommApp.getInstance(), Settings.System.DEFAULT_RINGTONE_URI);
+        ringtone.setStreamType(AudioManager.STREAM_RING);
+        return ringtone;
     }
 }
