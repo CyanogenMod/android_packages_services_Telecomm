@@ -23,6 +23,7 @@ import android.content.ServiceConnection;
 import android.net.Uri;
 import android.os.IBinder;
 import android.os.RemoteException;
+import android.os.UserHandle;
 import android.telecomm.CallAudioState;
 import android.telecomm.CallCapabilities;
 import android.telecomm.CallServiceDescriptor;
@@ -169,7 +170,8 @@ public final class InCallController extends CallsManagerListenerBase {
             serviceIntent.setComponent(component);
 
             Context context = TelecommApp.getInstance();
-            if (!context.bindService(serviceIntent, mConnection, Context.BIND_AUTO_CREATE)) {
+            if (!context.bindServiceAsUser(serviceIntent, mConnection, Context.BIND_AUTO_CREATE,
+                    UserHandle.CURRENT)) {
                 Log.w(this, "Could not connect to the in-call app (%s)", component);
 
                 // TODO(santoscordon): Implement retry or fall-back-to-default logic.
