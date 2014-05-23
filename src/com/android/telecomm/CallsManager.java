@@ -126,7 +126,12 @@ public final class CallsManager implements Call.Listener {
         } else if (mPendingHandoffCalls.contains(call)) {
             updateHandoffCallServiceDescriptor(call.getOriginalCall(),
                     call.getCallService().getDescriptor());
+        } else {
+            Log.wtf(this, "unexpected successful call notification: %s", call);
+            return;
         }
+
+        markCallAsDialing(call);
     }
 
     @Override
@@ -391,6 +396,8 @@ public final class CallsManager implements Call.Listener {
         tempCall.setExtras(originalCall.getExtras());
         tempCall.setCallServiceSelector(originalCall.getCallServiceSelector());
         mPendingHandoffCalls.add(tempCall);
+        tempCall.addListener(this);
+
         Log.d(this, "Placing handoff call");
         tempCall.startOutgoing();
     }
@@ -595,6 +602,7 @@ public final class CallsManager implements Call.Listener {
         // Remove the transient handoff call object (don't disconnect because the call could still
         // be live).
         mPendingHandoffCalls.remove(handoffCall);
+        handoffCall.removeListener(this);
 
         if (wasSuccessful) {
             // Disconnect.
