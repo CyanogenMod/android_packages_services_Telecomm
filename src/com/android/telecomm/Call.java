@@ -410,8 +410,6 @@ final class Call {
     }
 
     void handleSuccessfulOutgoing() {
-        setState(CallState.DIALING);
-
         // TODO(santoscordon): Replace this with state transitions related to "connecting".
         for (Listener l : mListeners) {
             l.onSuccessfulOutgoingCall(this);
