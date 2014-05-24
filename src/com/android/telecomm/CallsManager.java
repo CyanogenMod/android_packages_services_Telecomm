@@ -605,8 +605,9 @@ public final class CallsManager implements Call.Listener {
         handoffCall.removeListener(this);
 
         if (wasSuccessful) {
-            // Disconnect.
-            originalCall.disconnect();
+            if (TelephonyUtil.isCurrentlyPSTNCall(originalCall)) {
+                originalCall.disconnect();
+            }
 
             // Synchronize.
             originalCall.setCallService(handoffCall.getCallService(), handoffCall);
