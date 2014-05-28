@@ -56,6 +56,7 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
         private static final int MSG_SET_DIALING = 6;
         private static final int MSG_SET_DISCONNECTED = 7;
         private static final int MSG_SET_ON_HOLD = 8;
+        private static final int MSG_SET_REQUESTING_RINGBACK = 9;
 
         private final Handler mHandler = new Handler() {
             @Override
@@ -152,6 +153,20 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
                             Log.w(this, "setOnHold, unknown call id: %s", msg.obj);
                         }
                         break;
+                    case MSG_SET_REQUESTING_RINGBACK:
+                        SomeArgs args = (SomeArgs) msg.obj;
+                        try {
+                            call = mCallIdMapper.getCall(args.arg1);
+                            boolean ringback = (boolean) args.arg2;
+                            if (call != null) {
+                                call.setRequestingRingback(ringback);
+                            } else {
+                                Log.w(this, "setRingback, unknown call id: %s", args.arg1);
+                            }
+                        } finally {
+                            args.recycle();
+                        }
+                        break;
                 }
             }
         };
@@ -226,6 +241,16 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
         public void setOnHold(String callId) {
             mCallIdMapper.checkValidCallId(callId);
             mHandler.obtainMessage(MSG_SET_ON_HOLD, callId).sendToTarget();
+        }
+
+        /** {@inheritDoc} */
+        @Override
+        public void setRequestingRingback(String callId, boolean ringback) {
+            mCallIdMapper.checkValidCallId(callId);
+            SomeArgs args = SomeArgs.obtain();
+            args.arg1 = callId;
+            args.arg2 = ringback;
+            mHandler.obtainMessage(MSG_SET_REQUESTING_RINGBACK, args).sendToTarget();
         }
     }
 
