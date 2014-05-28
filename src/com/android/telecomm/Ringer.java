@@ -176,7 +176,12 @@ final class Ringer extends CallsManagerListenerBase {
                 Log.v(this, "startRingingOrCallWaiting");
                 mCallAudioManager.setIsRinging(true);
 
-                mRingtonePlayer.play();
+                // Only play ringtone if a bluetooth device is not available. When a BT device
+                // is available, then we send it a signal to do its own ringtone and we dont need
+                // to play the ringtone on the device.
+                if (!mCallAudioManager.isBluetoothDeviceAvailable()) {
+                    mRingtonePlayer.play();
+                }
             } else {
                 Log.v(this, "startRingingOrCallWaiting, skipping because volume is 0");
             }

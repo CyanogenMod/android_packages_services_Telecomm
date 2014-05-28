@@ -31,6 +31,7 @@ final class CallAudioManager extends CallsManagerListenerBase {
 
     private final AudioManager mAudioManager;
     private final WiredHeadsetManager mWiredHeadsetManager;
+    private final BluetoothManager mBluetoothManager;
     private CallAudioState mAudioState;
     private int mAudioFocusStreamType;
     private boolean mIsRinging;
@@ -41,7 +42,8 @@ final class CallAudioManager extends CallsManagerListenerBase {
         Context context = TelecommApp.getInstance();
         mAudioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
         mWiredHeadsetManager = new WiredHeadsetManager(this);
-        mAudioState = getInitialAudioState();
+        mBluetoothManager = new BluetoothManager(context, this);
+        mAudioState = getInitialAudioState(null);
         mAudioFocusStreamType = STREAM_NONE;
     }
 
@@ -54,7 +56,7 @@ final class CallAudioManager extends CallsManagerListenerBase {
         updateAudioStreamAndMode();
         if (CallsManager.getInstance().getCalls().size() == 1) {
             Log.v(this, "first call added, reseting system audio to default state");
-            setInitialAudioState();
+            setInitialAudioState(call);
         } else if (!call.isIncoming()) {
             // Unmute new outgoing call.
             setSystemAudioState(false, mAudioState.route, mAudioState.supportedRouteMask);
@@ -65,7 +67,7 @@ final class CallAudioManager extends CallsManagerListenerBase {
     public void onCallRemoved(Call call) {
         if (CallsManager.getInstance().getCalls().isEmpty()) {
             Log.v(this, "all calls removed, reseting system audio to default state");
-            setInitialAudioState();
+            setInitialAudioState(null);
         }
         updateAudioStreamAndMode();
     }
@@ -77,8 +79,18 @@ final class CallAudioManager extends CallsManagerListenerBase {
 
     @Override
     public void onIncomingCallAnswered(Call call) {
-        // Unmute new incoming call.
-        setSystemAudioState(false, mAudioState.route, mAudioState.supportedRouteMask);
+        int route = mAudioState.route;
+
+        // We do two things:
+        // (1) If this is the first call, then we can to turn on bluetooth if available.
+        // (2) Unmute the audio for the new incoming call.
+        boolean isOnlyCall = CallsManager.getInstance().getCalls().size() == 1;
+        if (isOnlyCall && mBluetoothManager.isBluetoothAvailable()) {
+            mBluetoothManager.connectBluetoothAudio();
+            route = CallAudioState.ROUTE_BLUETOOTH;
+        }
+
+        setSystemAudioState(false /* isMute */, route, mAudioState.supportedRouteMask);
     }
 
     @Override
@@ -170,6 +182,30 @@ final class CallAudioManager extends CallsManagerListenerBase {
         setSystemAudioState(mAudioState.isMuted, newRoute, calculateSupportedRoutes());
     }
 
+    /**
+     * Updates the audio routing according to the bluetooth state.
+     */
+    void onBluetoothStateChange(BluetoothManager bluetoothManager) {
+        int newRoute = mAudioState.route;
+        if (bluetoothManager.isBluetoothAudioConnectedOrPending()) {
+            newRoute = CallAudioState.ROUTE_BLUETOOTH;
+        } else if (mAudioState.route == CallAudioState.ROUTE_BLUETOOTH) {
+            newRoute = CallAudioState.ROUTE_WIRED_OR_EARPIECE;
+            // Do not switch to speaker when bluetooth disconnects.
+            mWasSpeakerOn = false;
+        }
+
+        setSystemAudioState(mAudioState.isMuted, newRoute, calculateSupportedRoutes());
+    }
+
+    boolean isBluetoothAudioOn() {
+        return mBluetoothManager.isBluetoothAudioConnected();
+    }
+
+    boolean isBluetoothDeviceAvailable() {
+        return mBluetoothManager.isBluetoothAvailable();
+    }
+
     private void setSystemAudioState(boolean isMuted, int route, int supportedRouteMask) {
         CallAudioState oldAudioState = mAudioState;
         mAudioState = new CallAudioState(isMuted, route, supportedRouteMask);
@@ -182,23 +218,42 @@ final class CallAudioManager extends CallsManagerListenerBase {
         }
 
         // Audio route.
-        if (mAudioState.route == CallAudioState.ROUTE_SPEAKER) {
-            if (!mAudioManager.isSpeakerphoneOn()) {
-                Log.i(this, "turning speaker phone on");
-                mAudioManager.setSpeakerphoneOn(true);
-            }
+        if (mAudioState.route == CallAudioState.ROUTE_BLUETOOTH) {
+            turnOnSpeaker(false);
+            turnOnBluetooth(true);
+        } else if (mAudioState.route == CallAudioState.ROUTE_SPEAKER) {
+            turnOnBluetooth(false);
+            turnOnSpeaker(true);
         } else if (mAudioState.route == CallAudioState.ROUTE_EARPIECE ||
                 mAudioState.route == CallAudioState.ROUTE_WIRED_HEADSET) {
-            // Wired headset and earpiece work the same way
-            if (mAudioManager.isSpeakerphoneOn()) {
-                Log.i(this, "turning speaker phone off");
-                mAudioManager.setSpeakerphoneOn(false);
-            }
+            turnOnBluetooth(false);
+            turnOnSpeaker(false);
         }
 
         if (!oldAudioState.equals(mAudioState)) {
             CallsManager.getInstance().onAudioStateChanged(oldAudioState, mAudioState);
             updateAudioForForegroundCall();
+        }
+    }
+
+    private void turnOnSpeaker(boolean on) {
+        // Wired headset and earpiece work the same way
+        if (mAudioManager.isSpeakerphoneOn() != on) {
+            Log.i(this, "turning speaker phone off");
+            mAudioManager.setSpeakerphoneOn(on);
+        }
+    }
+
+    private void turnOnBluetooth(boolean on) {
+        if (mBluetoothManager.isBluetoothAvailable()) {
+            boolean isAlreadyOn = mBluetoothManager.isBluetoothAudioConnected();
+            if (on != isAlreadyOn) {
+                if (on) {
+                    mBluetoothManager.connectBluetoothAudio();
+                } else {
+                    mBluetoothManager.disconnectBluetoothAudio();
+                }
+            }
         }
     }
 
@@ -286,18 +341,45 @@ final class CallAudioManager extends CallsManagerListenerBase {
             routeMask |= CallAudioState.ROUTE_EARPIECE;
         }
 
+        if (mBluetoothManager.isBluetoothAvailable()) {
+            routeMask |=  CallAudioState.ROUTE_BLUETOOTH;
+        }
+
         return routeMask;
     }
 
-    private CallAudioState getInitialAudioState() {
+    private CallAudioState getInitialAudioState(Call call) {
         int supportedRouteMask = calculateSupportedRoutes();
-        return new CallAudioState(false,
-                selectWiredOrEarpiece(CallAudioState.ROUTE_WIRED_OR_EARPIECE, supportedRouteMask),
-                supportedRouteMask);
+        int route = selectWiredOrEarpiece(
+                CallAudioState.ROUTE_WIRED_OR_EARPIECE, supportedRouteMask);
+
+        // We want the UI to indicate that "bluetooth is in use" in two slightly different cases:
+        // (a) The obvious case: if a bluetooth headset is currently in use for an ongoing call.
+        // (b) The not-so-obvious case: if an incoming call is ringing, and we expect that audio
+        //     *will* be routed to a bluetooth headset once the call is answered. In this case, just
+        //     check if the headset is available. Note this only applies when we are dealing with
+        //     the first call.
+        if (call != null && mBluetoothManager.isBluetoothAvailable()) {
+            switch(call.getState()) {
+                case ACTIVE:
+                case ON_HOLD:
+                    if (mBluetoothManager.isBluetoothAudioConnectedOrPending()) {
+                        route = CallAudioState.ROUTE_BLUETOOTH;
+                    }
+                    break;
+                case RINGING:
+                    route = CallAudioState.ROUTE_BLUETOOTH;
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        return new CallAudioState(false, route, supportedRouteMask);
     }
 
-    private void setInitialAudioState() {
-        CallAudioState audioState = getInitialAudioState();
+    private void setInitialAudioState(Call call) {
+        CallAudioState audioState = getInitialAudioState(call);
         setSystemAudioState(audioState.isMuted, audioState.route, audioState.supportedRouteMask);
     }
 

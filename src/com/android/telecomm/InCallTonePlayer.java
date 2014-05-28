@@ -178,9 +178,10 @@ public final class InCallTonePlayer extends Thread {
                     throw new IllegalStateException("Bad toneId: " + mToneId);
             }
 
-            // TODO(santoscordon): Bluetooth should be set manually (STREAM_BLUETOOTH_SCO) for tone
-            // generator.
             int stream = AudioManager.STREAM_VOICE_CALL;
+            if (mCallAudioManager.isBluetoothAudioOn()) {
+                stream = AudioManager.STREAM_BLUETOOTH_SCO;
+            }
 
             // If the ToneGenerator creation fails, just continue without it. It is a local audio
             // signal, and is not as important.
