@@ -221,7 +221,7 @@ public final class CallsManager implements Call.Listener {
                     Log.pii(uriHandle), Log.pii(handle));
         }
 
-        Call call = new Call(uriHandle, contactInfo, gatewayInfo, false /* isIncoming */);
+        Call call = new Call(uriHandle, gatewayInfo, false /* isIncoming */);
 
         // TODO(santoscordon): Move this to be a part of addCall()
         call.addListener(this);
@@ -390,8 +390,8 @@ public final class CallsManager implements Call.Listener {
         // original call will live on but its state will be updated to the new call's state. In
         // particular the original call's call service will be updated to the new call's call
         // service.
-        Call tempCall = new Call(originalCall.getHandoffHandle(), originalCall.getContactInfo(),
-                originalCall.getGatewayInfo(), false);
+        Call tempCall =
+                new Call(originalCall.getHandoffHandle(), originalCall.getGatewayInfo(), false);
         tempCall.setOriginalCall(originalCall);
         tempCall.setExtras(originalCall.getExtras());
         tempCall.setCallServiceSelector(originalCall.getCallServiceSelector());
