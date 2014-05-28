@@ -85,6 +85,8 @@ public final class CallsManager implements Call.Listener {
 
     private final CallAudioManager mCallAudioManager;
 
+    private final Ringer mRinger;
+
     private final Set<CallsManagerListener> mListeners = Sets.newHashSet();
 
     /** Singleton accessor. */
@@ -99,12 +101,13 @@ public final class CallsManager implements Call.Listener {
         TelecommApp app = TelecommApp.getInstance();
 
         mCallAudioManager = new CallAudioManager();
-
         InCallTonePlayer.Factory playerFactory = new InCallTonePlayer.Factory(mCallAudioManager);
+        mRinger = new Ringer(mCallAudioManager, this, playerFactory, app);
+
         mListeners.add(new CallLogManager(app));
         mListeners.add(new PhoneStateBroadcaster());
         mListeners.add(new InCallController());
-        mListeners.add(new Ringer(mCallAudioManager, this, playerFactory, app));
+        mListeners.add(mRinger);
         mListeners.add(new RingbackPlayer(this, playerFactory));
         mListeners.add(new InCallToneMonitor(playerFactory, this));
         mListeners.add(mCallAudioManager);
@@ -161,6 +164,10 @@ public final class CallsManager implements Call.Listener {
 
     Call getForegroundCall() {
         return mForegroundCall;
+    }
+
+    Ringer getRinger() {
+        return mRinger;
     }
 
     boolean hasEmergencyCall() {
