@@ -59,6 +59,7 @@ public final class CallsManager implements Call.Listener {
         void onIncomingCallRejected(Call call);
         void onForegroundCallChanged(Call oldForegroundCall, Call newForegroundCall);
         void onAudioStateChanged(CallAudioState oldAudioState, CallAudioState newAudioState);
+        void onRequestingRingback(Call call, boolean ringback);
     }
 
     private static final CallsManager INSTANCE = new CallsManager();
@@ -156,6 +157,13 @@ public final class CallsManager implements Call.Listener {
     @Override
     public void onFailedIncomingCall(Call call) {
         call.removeListener(this);
+    }
+
+    @Override
+    public void onRequestingRingback(Call call, boolean ringback) {
+        for (CallsManagerListener listener : mListeners) {
+            listener.onRequestingRingback(call, ringback);
+        }
     }
 
     ImmutableCollection<Call> getCalls() {
