@@ -32,7 +32,7 @@ public class Log {
     // Generic tag for all In Call logging
     private static final String TAG = "Telecomm";
 
-    public static final boolean FORCE_LOGGING = true; /* STOP SHIP if true */
+    public static final boolean FORCE_LOGGING = false; /* STOP SHIP if true */
     public static final boolean DEBUG = isLoggable(android.util.Log.DEBUG);
     public static final boolean INFO = isLoggable(android.util.Log.INFO);
     public static final boolean VERBOSE = isLoggable(android.util.Log.VERBOSE);
@@ -201,7 +201,7 @@ public class Log {
             msg = (args == null || args.length == 0) ? format
                     : String.format(Locale.US, format, args);
         } catch (IllegalFormatException ife) {
-            wtf("Log", ife, "IllegalFormatException: formatString='%s' numArgs=%d", format,
+            e("Log", ife, "IllegalFormatException: formatString='%s' numArgs=%d", format,
                     args.length);
             msg = format + " (An error occurred while formatting the message.)";
         }

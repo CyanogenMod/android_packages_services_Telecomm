@@ -181,7 +181,7 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
         @Override
         public void handleFailedOutgoingCall(String callId, String reason) {
             mCallIdMapper.checkValidCallId(callId);
-            Log.d(this, "handleFailedOutgoingCall %d", callId);
+            Log.d(this, "handleFailedOutgoingCall %s", callId);
             SomeArgs args = SomeArgs.obtain();
             args.arg1 = callId;
             args.arg2 = reason;
