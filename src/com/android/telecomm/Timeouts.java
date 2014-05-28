@@ -18,7 +18,6 @@ package com.android.telecomm;
 
 import android.provider.Settings;
 import android.telecomm.CallServiceProvider;
-import android.telecomm.CallServiceSelector;
 
 /**
  * A helper class which serves only to make it easier to lookup timeout values. This class should

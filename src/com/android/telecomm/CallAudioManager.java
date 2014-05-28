@@ -173,7 +173,7 @@ final class CallAudioManager extends CallsManagerListenerBase {
         if (newIsPluggedIn) {
             newRoute = CallAudioState.ROUTE_WIRED_HEADSET;
         } else if (mWasSpeakerOn) {
-            Call call = CallsManager.getInstance().getForegroundCall();
+            Call call = getForegroundCall();
             if (call != null && call.isAlive()) {
                 // Restore the speaker state.
                 newRoute = CallAudioState.ROUTE_SPEAKER;
@@ -263,7 +263,7 @@ final class CallAudioManager extends CallsManagerListenerBase {
         if (mIsRinging) {
             requestAudioFocusAndSetMode(AudioManager.STREAM_RING, AudioManager.MODE_RINGTONE);
         } else {
-            Call call = CallsManager.getInstance().getForegroundCall();
+            Call call = getForegroundCall();
             if (call != null) {
                 int mode = TelephonyUtil.isCurrentlyPSTNCall(call) ?
                         AudioManager.MODE_IN_CALL : AudioManager.MODE_IN_COMMUNICATION;
@@ -282,10 +282,9 @@ final class CallAudioManager extends CallsManagerListenerBase {
         Log.v(this, "setSystemAudioStreamAndMode, stream: %d -> %d", mAudioFocusStreamType, stream);
         Preconditions.checkState(stream != STREAM_NONE);
 
-        // Only request audio focus once. If the stream type changes there's no need to abandon
-        // and re-request audio focus.  The system doesn't really care about the stream we requested
-        // focus for so just silently switch.
-        if (mAudioFocusStreamType == STREAM_NONE) {
+        // Even if we already have focus, if the stream is different we update audio manager to give
+        // it a hint about the purpose of our focus.
+        if (mAudioFocusStreamType != stream) {
             Log.v(this, "requesting audio focus for stream: %d", stream);
             mAudioManager.requestAudioFocusForCall(stream,
                     AudioManager.AUDIOFOCUS_GAIN_TRANSIENT);
@@ -388,5 +387,19 @@ final class CallAudioManager extends CallsManagerListenerBase {
         if (call != null && call.getCallService() != null) {
             call.getCallService().onAudioStateChanged(call, mAudioState);
         }
+    }
+
+    /**
+     * Returns the current foreground call in order to properly set the audio mode.
+     */
+    private Call getForegroundCall() {
+        Call call = CallsManager.getInstance().getForegroundCall();
+
+        // We ignore any foreground call that is in the ringing state because we deal with ringing
+        // calls exclusively through the mIsRinging variable set by {@link Ringer}.
+        if (call != null && call.getState() == CallState.RINGING) {
+            call = null;
+        }
+        return call;
     }
 }
