@@ -23,6 +23,9 @@ import android.app.TaskStackBuilder;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.provider.CallLog;
 import android.provider.CallLog.Calls;
@@ -128,7 +131,15 @@ class MissedCallNotifier extends CallsManagerListenerBase {
                     mContext.getString(R.string.notification_missedCall_message),
                     createSendSmsFromNotificationPendingIntent(handleUri));
 
-            // TODO(santoscordon): Add photo for contact.
+            Bitmap photoIcon = call.getPhotoIcon();
+            if (photoIcon != null) {
+                builder.setLargeIcon(photoIcon);
+            } else {
+                Drawable photo = call.getPhoto();
+                if (photo != null && photo instanceof BitmapDrawable) {
+                    builder.setLargeIcon(((BitmapDrawable) photo).getBitmap());
+                }
+            }
         } else {
             Log.d(this, "Suppress actions. handle: %s, missedCalls: %d.", Log.piiHandle(handle),
                     mMissedCallCount);
@@ -136,6 +147,8 @@ class MissedCallNotifier extends CallsManagerListenerBase {
 
         Notification notification = builder.build();
         configureLedOnNotification(notification);
+
+        Log.i(this, "Adding missed call notification for %s.", call);
         mNotificationManager.notify(MISSED_CALL_NOTIFICATION_ID, notification);
     }
 
@@ -150,10 +163,12 @@ class MissedCallNotifier extends CallsManagerListenerBase {
      * Returns the name to use in the missed call notification.
      */
     private String getNameForCall(Call call) {
-        // TODO(santoscordon): Get detailed caller information.
-
         String handle = call.getHandle().getSchemeSpecificPart();
-        if (!TextUtils.isEmpty(handle)) {
+        String name = call.getName();
+
+        if (!TextUtils.isEmpty(name) && TextUtils.isGraphic(name)) {
+            return name;
+        } else if (!TextUtils.isEmpty(handle)) {
             // A handle should always be displayed LTR using {@link BidiFormatter} regardless of the
             // content of the rest of the notification.
             // TODO(santoscordon): Does this apply to SIP addresses?
