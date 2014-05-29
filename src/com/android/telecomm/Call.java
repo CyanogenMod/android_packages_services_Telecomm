@@ -100,6 +100,8 @@ final class Call {
      * service. */
     private final GatewayInfo mGatewayInfo;
 
+    private final Handler mHandler = new Handler();
+
     private long mConnectTimeMillis;
 
     /** The state of the call. */
@@ -169,6 +171,9 @@ final class Call {
 
     /** The latest token used with a contact info query. */
     private int mQueryToken = 0;
+
+    /** Incoming call-info to use when direct-to-voicemail query finishes. */
+    private CallInfo mPendingDirectToVoicemailCallInfo;
 
     /**
      * Creates an empty call object.
@@ -404,16 +409,53 @@ final class Call {
         Switchboard.getInstance().retrieveIncomingCall(this, descriptor, extras);
     }
 
-    void handleSuccessfulIncoming(CallInfo callInfo) {
+    /**
+     * Takes a verified incoming call and uses the handle to lookup direct-to-voicemail property
+     * from the contacts provider. The call is not yet exposed to the user at this point and
+     * the result of the query will determine if the call is rejected or passed through to the
+     * in-call UI.
+     */
+    void handleVerifiedIncoming(CallInfo callInfo) {
         Preconditions.checkState(callInfo.getState() == CallState.RINGING);
+
+        // We do not handle incoming calls immediately when they are verified by the call service.
+        // We allow the caller-info-query code to execute first so that we can read the
+        // direct-to-voicemail property before deciding if we want to show the incoming call to the
+        // user or if we want to reject the call.
+        mPendingDirectToVoicemailCallInfo = callInfo;
+
+        // Setting the handle triggers the caller info lookup code.
         setHandle(callInfo.getHandle());
 
-        // TODO(santoscordon): Make this class (not CallsManager) responsible for changing the call
-        // state to RINGING.
+        // Timeout the direct-to-voicemail lookup execution so that we dont wait too long before
+        // showing the user the incoming call screen.
+        mHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                processDirectToVoicemail();
+            }
+        }, Timeouts.getDirectToVoicemail());
+    }
 
-        // TODO(santoscordon): Replace this with state transitions related to "connecting".
-        for (Listener l : mListeners) {
-            l.onSuccessfulIncomingCall(this, callInfo);
+    void processDirectToVoicemail() {
+        if (mPendingDirectToVoicemailCallInfo != null) {
+            if (mCallerInfo != null && mCallerInfo.shouldSendToVoicemail) {
+                Log.i(this, "Directing call to voicemail: %s.", this);
+                // TODO(santoscordon): Once we move State handling from CallsManager to Call, we
+                // will not need to set RINGING state prior to calling reject.
+                setState(CallState.RINGING);
+                reject();
+            } else {
+                // TODO(santoscordon): Make this class (not CallsManager) responsible for changing
+                // the call state to RINGING.
+
+                // TODO(santoscordon): Replace this with state transition to RINGING.
+                for (Listener l : mListeners) {
+                    l.onSuccessfulIncomingCall(this, mPendingDirectToVoicemailCallInfo);
+                }
+            }
+
+            mPendingDirectToVoicemailCallInfo = null;
         }
     }
 
@@ -728,6 +770,8 @@ final class Call {
                         sPhotoLoadListener,
                         this);
             }
+
+            processDirectToVoicemail();
         }
     }
 

@@ -70,7 +70,7 @@ final class IncomingCallsManager {
         if (mPendingIncomingCalls.contains(call)) {
             Log.d(this, "Incoming call %s found.", call);
             mPendingIncomingCalls.remove(call);
-            call.handleSuccessfulIncoming(callInfo);
+            call.handleVerifiedIncoming(callInfo);
         }
     }
 
