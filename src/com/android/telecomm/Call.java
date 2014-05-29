@@ -18,6 +18,7 @@ package com.android.telecomm;
 
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
 import android.telecomm.CallInfo;
 import android.telecomm.CallServiceDescriptor;
 import android.telecomm.CallState;
@@ -25,7 +26,11 @@ import android.telecomm.GatewayInfo;
 import android.telecomm.TelecommConstants;
 import android.telephony.DisconnectCause;
 import android.telephony.PhoneNumberUtils;
+import android.text.TextUtils;
 
+import com.android.internal.telephony.CallerInfo;
+import com.android.internal.telephony.CallerInfoAsyncQuery;
+import com.android.internal.telephony.CallerInfoAsyncQuery.OnQueryCompleteListener;
 import com.google.android.collect.Sets;
 import com.google.common.base.Preconditions;
 
@@ -49,8 +54,16 @@ final class Call {
         void onFailedIncomingCall(Call call);
     }
 
-    /** Additional contact information beyond handle above, optional. */
-    private final ContactInfo mContactInfo;
+    private static final OnQueryCompleteListener sCallerInfoQueryListener =
+        new OnQueryCompleteListener() {
+            /** ${inheritDoc} */
+            @Override
+            public void onQueryComplete(int token, Object cookie, CallerInfo callerInfo) {
+                if (cookie != null) {
+                    ((Call) cookie).setCallerInfo(callerInfo, token);
+                }
+            }
+        };
 
     /** True if this is an incoming call. */
     private final boolean mIsIncoming;
@@ -63,6 +76,14 @@ final class Call {
      */
     private final long mCreationTimeMillis = System.currentTimeMillis();
 
+    /** The gateway information associated with this call. This stores the original call handle
+     * that the user is attempting to connect to via the gateway, the actual handle to dial in
+     * order to connect the call via the gateway, as well as the package name of the gateway
+     * service. */
+    private final GatewayInfo mGatewayInfo;
+
+    private final Handler mHandler = new Handler();
+
     private long mConnectTimeMillis;
 
     /** The state of the call. */
@@ -70,12 +91,6 @@ final class Call {
 
     /** The handle with which to establish this call. */
     private Uri mHandle;
-
-    /** The gateway information associated with this call. This stores the original call handle
-     * that the user is attempting to connect to via the gateway, the actual handle to dial in
-     * order to connect the call via the gateway, as well as the package name of the gateway
-     * service. */
-    private final GatewayInfo mGatewayInfo;
 
     /**
      * The call service which is attempted or already connecting this call.
@@ -133,27 +148,31 @@ final class Call {
     private CallServiceRepository mCallServiceRepository;
     private CallServiceSelectorRepository mSelectorRepository;
 
+    /** Caller information retrieved from the latest contact query. */
+    private CallerInfo mCallerInfo;
+
+    /** The latest token used with a contact info query. */
+    private int mQueryToken = 0;
+
     /**
      * Creates an empty call object.
      *
      * @param isIncoming True if this is an incoming call.
      */
     Call(boolean isIncoming) {
-        this(null, null, null, isIncoming);
+        this(null, null, isIncoming);
     }
 
     /**
      * Persists the specified parameters and initializes the new instance.
      *
      * @param handle The handle to dial.
-     * @param contactInfo Information about the entity being called.
      * @param gatewayInfo Gateway information to use for the call.
      * @param isIncoming True if this is an incoming call.
      */
-    Call(Uri handle, ContactInfo contactInfo, GatewayInfo gatewayInfo, boolean isIncoming) {
+    Call(Uri handle, GatewayInfo gatewayInfo, boolean isIncoming) {
         mState = CallState.NEW;
         setHandle(handle);
-        mContactInfo = contactInfo;
         mGatewayInfo = gatewayInfo;
         mIsIncoming = isIncoming;
     }
@@ -199,9 +218,12 @@ final class Call {
     }
 
     void setHandle(Uri handle) {
-        mHandle = handle;
-        mIsEmergencyCall = mHandle != null && PhoneNumberUtils.isLocalEmergencyNumber(
-                mHandle.getSchemeSpecificPart(), TelecommApp.getInstance());
+        if ((mHandle == null && handle != null) || (mHandle != null && !mHandle.equals(handle))) {
+            mHandle = handle;
+            mIsEmergencyCall = mHandle != null && PhoneNumberUtils.isLocalEmergencyNumber(
+                    mHandle.getSchemeSpecificPart(), TelecommApp.getInstance());
+            startCallerInfoLookup();
+        }
     }
 
     /**
@@ -241,10 +263,6 @@ final class Call {
 
     GatewayInfo getGatewayInfo() {
         return mGatewayInfo;
-    }
-
-    ContactInfo getContactInfo() {
-        return mContactInfo;
     }
 
     boolean isIncoming() {
@@ -637,6 +655,37 @@ final class Call {
     private void decrementAssociatedCallCount(ServiceBinder binder) {
         if (binder != null) {
             binder.decrementAssociatedCallCount();
+        }
+    }
+
+    /**
+     * Looks up contact information based on the current handle.
+     */
+    private void startCallerInfoLookup() {
+        String number = mHandle == null ? null : mHandle.getSchemeSpecificPart();
+
+        mQueryToken++;  // Updated so that previous queries can no longer set the information.
+        mCallerInfo = null;
+        if (!TextUtils.isEmpty(number)) {
+            CallerInfoAsyncQuery.startQuery(
+                    mQueryToken,
+                    TelecommApp.getInstance(),
+                    number,
+                    sCallerInfoQueryListener,
+                    this);
+        }
+    }
+
+    /**
+     * Saved the specified caller info if the specified token matches that of the last query
+     * that was made.
+     *
+     * @param callerInfo The new caller information to set.
+     * @param token The token used with this query.
+     */
+    private void setCallerInfo(CallerInfo callerInfo, int token) {
+        if (mQueryToken == token) {
+            mCallerInfo = callerInfo;
         }
     }
 }

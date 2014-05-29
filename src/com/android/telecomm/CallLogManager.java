@@ -104,7 +104,8 @@ final class CallLogManager extends CallsManagerListenerBase {
         final long creationTime = call.getCreationTimeMillis();
         final long age = call.getAgeMillis();
 
-        final ContactInfo contactInfo = call.getContactInfo();  // May be null.
+        // TODO(santoscordon): Replace with use of call.getCallerInfo() or similar.
+        final ContactInfo contactInfo = null;
         final String logNumber = getLogNumber(call);
 
         Log.d(TAG, "logNumber set to: %s", Log.pii(logNumber));
