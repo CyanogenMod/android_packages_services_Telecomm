@@ -159,7 +159,9 @@ class NewOutgoingCallIntentBroadcaster {
             return;
         }
 
-        if (!PhoneNumberUtils.isUriNumber(handle)) {
+        boolean isUriNumber = PhoneNumberUtils.isUriNumber(handle);
+
+        if (!isUriNumber) {
             handle = PhoneNumberUtils.convertKeypadLettersToDigits(handle);
             handle = PhoneNumberUtils.stripSeparators(handle);
         }
@@ -195,7 +197,9 @@ class NewOutgoingCallIntentBroadcaster {
         if (callImmediately) {
             Log.i(this, "Placing call immediately instead of waiting for "
                     + " OutgoingCallBroadcastReceiver: %s", intent);
-            mCallsManager.placeOutgoingCall(Uri.parse(handle), mContactInfo, null);
+            String scheme = isUriNumber ? SCHEME_SIP : SCHEME_TEL;
+            mCallsManager.placeOutgoingCall(
+                    Uri.fromParts(scheme, handle, null), mContactInfo, null);
 
             // Don't return but instead continue and send the ACTION_NEW_OUTGOING_CALL broadcast
             // so that third parties can still inspect (but not intercept) the outgoing call. When

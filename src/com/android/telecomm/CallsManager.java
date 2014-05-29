@@ -215,7 +215,7 @@ public final class CallsManager implements Call.Listener {
         final Uri uriHandle = (gatewayInfo == null) ? handle : gatewayInfo.getGatewayHandle();
 
         if (gatewayInfo == null) {
-            Log.i(this, "Creating a new outgoing call with handle: %s", Log.pii(uriHandle));
+            Log.i(this, "Creating a new outgoing call with handle: %s", Log.piiHandle(uriHandle));
         } else {
             Log.i(this, "Creating a new outgoing call with gateway handle: %s, original handle: %s",
                     Log.pii(uriHandle), Log.pii(handle));
