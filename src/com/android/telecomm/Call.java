@@ -16,9 +16,13 @@
 
 package com.android.telecomm;
 
+import android.content.ContentUris;
+import android.graphics.Bitmap;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
+import android.provider.ContactsContract.Contacts;
 import android.telecomm.CallInfo;
 import android.telecomm.CallServiceDescriptor;
 import android.telecomm.CallState;
@@ -31,6 +35,8 @@ import android.text.TextUtils;
 import com.android.internal.telephony.CallerInfo;
 import com.android.internal.telephony.CallerInfoAsyncQuery;
 import com.android.internal.telephony.CallerInfoAsyncQuery.OnQueryCompleteListener;
+
+import com.android.telecomm.ContactsAsyncHelper.OnImageLoadCompleteListener;
 import com.google.android.collect.Sets;
 import com.google.common.base.Preconditions;
 
@@ -55,15 +61,27 @@ final class Call {
     }
 
     private static final OnQueryCompleteListener sCallerInfoQueryListener =
-        new OnQueryCompleteListener() {
-            /** ${inheritDoc} */
-            @Override
-            public void onQueryComplete(int token, Object cookie, CallerInfo callerInfo) {
-                if (cookie != null) {
-                    ((Call) cookie).setCallerInfo(callerInfo, token);
+            new OnQueryCompleteListener() {
+                /** ${inheritDoc} */
+                @Override
+                public void onQueryComplete(int token, Object cookie, CallerInfo callerInfo) {
+                    if (cookie != null) {
+                        ((Call) cookie).setCallerInfo(callerInfo, token);
+                    }
                 }
-            }
-        };
+            };
+
+    private static final OnImageLoadCompleteListener sPhotoLoadListener =
+            new OnImageLoadCompleteListener() {
+                /** ${inheritDoc} */
+                @Override
+                public void onImageLoadComplete(
+                        int token, Drawable photo, Bitmap photoIcon, Object cookie) {
+                    if (cookie != null) {
+                        ((Call) cookie).setPhoto(photo, photoIcon, token);
+                    }
+                }
+            };
 
     /** True if this is an incoming call. */
     private final boolean mIsIncoming;
@@ -81,8 +99,6 @@ final class Call {
      * order to connect the call via the gateway, as well as the package name of the gateway
      * service. */
     private final GatewayInfo mGatewayInfo;
-
-    private final Handler mHandler = new Handler();
 
     private long mConnectTimeMillis;
 
@@ -224,6 +240,18 @@ final class Call {
                     mHandle.getSchemeSpecificPart(), TelecommApp.getInstance());
             startCallerInfoLookup();
         }
+    }
+
+    String getName() {
+        return mCallerInfo == null ? null : mCallerInfo.name;
+    }
+
+    Bitmap getPhotoIcon() {
+        return mCallerInfo == null ? null : mCallerInfo.cachedPhotoIcon;
+    }
+
+    Drawable getPhoto() {
+        return mCallerInfo == null ? null : mCallerInfo.cachedPhoto;
     }
 
     /**
@@ -677,15 +705,43 @@ final class Call {
     }
 
     /**
-     * Saved the specified caller info if the specified token matches that of the last query
+     * Saves the specified caller info if the specified token matches that of the last query
      * that was made.
      *
      * @param callerInfo The new caller information to set.
      * @param token The token used with this query.
      */
     private void setCallerInfo(CallerInfo callerInfo, int token) {
+        Preconditions.checkNotNull(callerInfo);
+
         if (mQueryToken == token) {
             mCallerInfo = callerInfo;
+
+            if (mCallerInfo.person_id != 0) {
+                Uri personUri =
+                        ContentUris.withAppendedId(Contacts.CONTENT_URI, mCallerInfo.person_id);
+                Log.d(this, "Searching person uri %s for call %s", personUri, this);
+                ContactsAsyncHelper.startObtainPhotoAsync(
+                        token,
+                        TelecommApp.getInstance(),
+                        personUri,
+                        sPhotoLoadListener,
+                        this);
+            }
+        }
+    }
+
+    /**
+     * Saves the specified photo information if the specified token matches that of the last query.
+     *
+     * @param photo The photo as a drawable.
+     * @param photoIcon The photo as a small icon.
+     * @param token The token used with this query.
+     */
+    private void setPhoto(Drawable photo, Bitmap photoIcon, int token) {
+        if (mQueryToken == token) {
+            mCallerInfo.cachedPhoto = photo;
+            mCallerInfo.cachedPhotoIcon = photoIcon;
         }
     }
 }
