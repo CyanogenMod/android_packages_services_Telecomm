@@ -90,7 +90,7 @@ public final class InCallController extends CallsManagerListenerBase {
             mCallIdMapper.addCall(call);
             try {
                 mInCallService.addCall(toInCallCall(call));
-            } catch (RemoteException e) {
+            } catch (RemoteException ignored) {
             }
         }
     }
@@ -137,8 +137,19 @@ public final class InCallController extends CallsManagerListenerBase {
                     newAudioState);
             try {
                 mInCallService.onAudioStateChanged(newAudioState);
-            } catch (RemoteException e) {
+            } catch (RemoteException ignored) {
             }
+        }
+    }
+
+    void bringToForeground(boolean showDialpad) {
+        if (mInCallService != null) {
+            try {
+                mInCallService.bringToForeground(showDialpad);
+            } catch (RemoteException ignored) {
+            }
+        } else {
+            Log.w(this, "Asking to bring unbound in-call UI to foreground.");
         }
     }
 
@@ -221,7 +232,7 @@ public final class InCallController extends CallsManagerListenerBase {
         if (mInCallService != null) {
             try {
                 mInCallService.updateCall(toInCallCall(call));
-            } catch (RemoteException e) {
+            } catch (RemoteException ignored) {
             }
         }
     }

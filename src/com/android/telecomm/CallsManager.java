@@ -28,8 +28,9 @@ import android.telephony.DisconnectCause;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Sets;
 
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Set;
 
 /**
@@ -67,27 +68,26 @@ public final class CallsManager implements Call.Listener {
      * The main call repository. Keeps an instance of all live calls. New incoming and outgoing
      * calls are added to the map and removed when the calls move to the disconnected state.
      */
-    private final Set<Call> mCalls = Sets.newLinkedHashSet();
+    private final Set<Call> mCalls = new LinkedHashSet<>();
 
     /**
      * Set of new calls created to perform a handoff. The calls are added when handoff is initiated
      * and removed when hadnoff is complete.
      */
-    private final Set<Call> mPendingHandoffCalls = Sets.newLinkedHashSet();
+    private final Set<Call> mPendingHandoffCalls = new LinkedHashSet<>();
+
+
+    private final DtmfLocalTonePlayer mDtmfLocalTonePlayer = new DtmfLocalTonePlayer();
+    private final InCallController mInCallController = new InCallController();
+    private final CallAudioManager mCallAudioManager;
+    private final Ringer mRinger;
+    private final Set<CallsManagerListener> mListeners = new HashSet<>();
 
     /**
      * The call the user is currently interacting with. This is the call that should have audio
      * focus and be visible in the in-call UI.
      */
     private Call mForegroundCall;
-
-    private final DtmfLocalTonePlayer mDtmfLocalTonePlayer = new DtmfLocalTonePlayer();
-
-    private final CallAudioManager mCallAudioManager;
-
-    private final Ringer mRinger;
-
-    private final Set<CallsManagerListener> mListeners = Sets.newHashSet();
 
     /** Singleton accessor. */
     static CallsManager getInstance() {
@@ -106,7 +106,7 @@ public final class CallsManager implements Call.Listener {
 
         mListeners.add(new CallLogManager(app));
         mListeners.add(new PhoneStateBroadcaster());
-        mListeners.add(new InCallController());
+        mListeners.add(mInCallController);
         mListeners.add(mRinger);
         mListeners.add(new RingbackPlayer(this, playerFactory));
         mListeners.add(new InCallToneMonitor(playerFactory, this));
@@ -168,6 +168,10 @@ public final class CallsManager implements Call.Listener {
 
     Ringer getRinger() {
         return mRinger;
+    }
+
+    InCallController getInCallController() {
+        return mInCallController;
     }
 
     boolean hasEmergencyCall() {
