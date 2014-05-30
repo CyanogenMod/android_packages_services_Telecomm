@@ -709,6 +709,10 @@ final class Call {
         mHandoffCallServiceDescriptor = descriptor;
     }
 
+    Uri getRingtone() {
+        return mCallerInfo == null ? null : mCallerInfo.contactRingtoneUri;
+    }
+
     /**
      * @return True if the call is ringing, else logs the action name.
      */
@@ -737,6 +741,7 @@ final class Call {
         mQueryToken++;  // Updated so that previous queries can no longer set the information.
         mCallerInfo = null;
         if (!TextUtils.isEmpty(number)) {
+            Log.v(this, "Looking up information for: %s.", Log.piiHandle(number));
             CallerInfoAsyncQuery.startQuery(
                     mQueryToken,
                     TelecommApp.getInstance(),
@@ -758,6 +763,7 @@ final class Call {
 
         if (mQueryToken == token) {
             mCallerInfo = callerInfo;
+            Log.i(this, "CallerInfo received for %s: %s", Log.piiHandle(mHandle), callerInfo);
 
             if (mCallerInfo.person_id != 0) {
                 Uri personUri =

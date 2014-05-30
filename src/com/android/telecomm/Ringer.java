@@ -23,8 +23,7 @@ import android.os.Vibrator;
 import android.provider.Settings;
 import android.telecomm.CallState;
 
-import com.google.common.collect.Lists;
-
+import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -46,7 +45,7 @@ final class Ringer extends CallsManagerListenerBase {
      * Used to keep ordering of unanswered incoming calls. There can easily exist multiple incoming
      * calls and explicit ordering is useful for maintaining the proper state of the ringer.
      */
-    private final List<Call> mRingingCalls = Lists.newLinkedList();
+    private final List<Call> mRingingCalls = new LinkedList<>();
 
     private final CallAudioManager mCallAudioManager;
     private final CallsManager mCallsManager;
@@ -78,7 +77,7 @@ final class Ringer extends CallsManagerListenerBase {
     }
 
     @Override
-    public void onCallAdded(Call call) {
+    public void onCallAdded(final Call call) {
         if (call.isIncoming() && call.getState() == CallState.RINGING) {
             if (mRingingCalls.contains(call)) {
                 Log.wtf(this, "New ringing call is already in list of unanswered calls");
@@ -87,7 +86,6 @@ final class Ringer extends CallsManagerListenerBase {
             updateRinging();
         }
     }
-
 
     @Override
     public void onCallRemoved(Call call) {
@@ -180,7 +178,11 @@ final class Ringer extends CallsManagerListenerBase {
                 // is available, then we send it a signal to do its own ringtone and we dont need
                 // to play the ringtone on the device.
                 if (!mCallAudioManager.isBluetoothDeviceAvailable()) {
-                    mRingtonePlayer.play();
+                    // Because we wait until a contact info query to complete before processing a
+                    // call (for the purposes of direct-to-voicemail), the information about custom
+                    // ringtones should be available by the time this code executes. We can safely
+                    // request the custom ringtone from the call and expect it to be current.
+                    mRingtonePlayer.play(foregroundCall.getRingtone());
                 }
             } else {
                 Log.v(this, "startRingingOrCallWaiting, skipping because volume is 0");
