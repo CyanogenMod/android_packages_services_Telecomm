@@ -17,6 +17,7 @@
 package com.android.telecomm;
 
 import android.app.Application;
+import android.os.UserHandle;
 
 /**
  * Top-level Application class for Telecomm.
@@ -38,7 +39,9 @@ public final class TelecommApp extends Application {
         sInstance = this;
 
         mMissedCallNotifier = new MissedCallNotifier(this);
-        TelecommServiceImpl.init();
+        if (UserHandle.myUserId() == UserHandle.USER_OWNER) {
+            TelecommServiceImpl.init();
+        }
     }
 
     public static TelecommApp getInstance() {
