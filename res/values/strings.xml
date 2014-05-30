@@ -41,4 +41,12 @@
          The user will be able to send text messages using the phone number.
          [CHAR LIMIT=60] -->
     <string name="notification_missedCall_message">Message</string>
+
+    <!-- Content description of the call muted notification icon for
+         accessibility (not shown on the screen). [CHAR LIMIT=NONE] -->
+    <string name="accessibility_call_muted">Call muted.</string>
+
+    <!-- Content description of the speakerphone enabled notification icon for
+         accessibility (not shown on the screen). [CHAR LIMIT=NONE] -->
+    <string name="accessibility_speakerphone_enabled">Speakerphone enabled.</string>
 </resources>

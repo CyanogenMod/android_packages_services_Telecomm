@@ -83,6 +83,7 @@ public final class CallsManager implements Call.Listener {
     private final CallAudioManager mCallAudioManager;
     private final Ringer mRinger;
     private final Set<CallsManagerListener> mListeners = new HashSet<>();
+    private final HeadsetMediaButton mHeadsetMediaButton;
 
     /**
      * The call the user is currently interacting with. This is the call that should have audio
@@ -101,10 +102,13 @@ public final class CallsManager implements Call.Listener {
     private CallsManager() {
         TelecommApp app = TelecommApp.getInstance();
 
-        mCallAudioManager = new CallAudioManager();
+        StatusBarNotifier statusBarNotifier = new StatusBarNotifier(app, this);
+        mCallAudioManager = new CallAudioManager(app, statusBarNotifier);
         InCallTonePlayer.Factory playerFactory = new InCallTonePlayer.Factory(mCallAudioManager);
         mRinger = new Ringer(mCallAudioManager, this, playerFactory, app);
+        mHeadsetMediaButton = new HeadsetMediaButton(app, this);
 
+        mListeners.add(statusBarNotifier);
         mListeners.add(new CallLogManager(app));
         mListeners.add(new PhoneStateBroadcaster());
         mListeners.add(mInCallController);
@@ -499,6 +503,10 @@ public final class CallsManager implements Call.Listener {
         }
     }
 
+    boolean hasAnyCalls() {
+        return !mCalls.isEmpty();
+    }
+
     boolean hasActiveOrHoldingCall() {
         for (Call call : mCalls) {
             CallState state = call.getState();
@@ -516,6 +524,46 @@ public final class CallsManager implements Call.Listener {
             }
         }
         return false;
+    }
+
+    boolean onMediaButton(int type) {
+        if (hasAnyCalls()) {
+            if (HeadsetMediaButton.SHORT_PRESS == type) {
+                Call ringingCall = getFirstCallWithState(CallState.RINGING);
+                if (ringingCall == null) {
+                    mCallAudioManager.toggleMute();
+                    return true;
+                } else {
+                    ringingCall.answer();
+                    return true;
+                }
+            } else if (HeadsetMediaButton.LONG_PRESS == type) {
+                Log.d(this, "handleHeadsetHook: longpress -> hangup");
+                Call callToHangup = getFirstCallWithState(
+                        CallState.RINGING, CallState.DIALING, CallState.ACTIVE, CallState.ON_HOLD);
+                if (callToHangup != null) {
+                    callToHangup.disconnect();
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Returns the first call that it finds with the given states. The states are treated as having
+     * priority order so that any call with the first state will be returned before any call with
+     * states listed later in the parameter list.
+     */
+    private Call getFirstCallWithState(CallState... states) {
+        for (CallState currentState : states) {
+            for (Call call : mCalls) {
+                if (currentState == call.getState()) {
+                    return call;
+                }
+            }
+        }
+        return null;
     }
 
     /**
