@@ -31,6 +31,7 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
     private static final String SERVICE_NAME = "telecomm";
 
     private static final int MSG_SILENCE_RINGER = 1;
+    private static final int MSG_SHOW_CALL_SCREEN = 2;
 
     /** The singleton instance. */
     private static TelecommServiceImpl sInstance;
@@ -46,6 +47,9 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
             switch (msg.what) {
                 case MSG_SILENCE_RINGER:
                     silenceRingerInternal();
+                    break;
+                case MSG_SHOW_CALL_SCREEN:
+                    showCallScreenInternal(msg.arg1 == 1);
                     break;
             }
         }
@@ -105,5 +109,14 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
     private void enforceModifyPermission() {
         TelecommApp.getInstance().enforceCallingOrSelfPermission(
                 android.Manifest.permission.MODIFY_PHONE_STATE, null);
+    }
+
+    @Override
+    public void showCallScreen(boolean showDialpad) {
+        mHandler.obtainMessage(MSG_SHOW_CALL_SCREEN, showDialpad ? 1 : 0, 0).sendToTarget();
+    }
+
+    private void showCallScreenInternal(boolean showDialpad) {
+        CallsManager.getInstance().getInCallController().bringToForeground(showDialpad);
     }
 }
