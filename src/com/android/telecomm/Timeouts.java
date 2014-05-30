@@ -60,4 +60,13 @@ public final class Timeouts {
     public static long getNewOutgoingCallMillis() {
         return get("new_outgoing_call_ms", 60 * 1000L);
     }
+
+    /**
+     * Returns the longest period, in milliseconds, to wait for the query for direct-to-voicemail
+     * to complete. If the query goes beyond this timeout, the incoming call screen is shown to the
+     * user.
+     */
+    public static long getDirectToVoicemail() {
+        return get("direct_to_voicemail_ms", 500L);
+    }
 }
