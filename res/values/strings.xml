@@ -15,9 +15,10 @@
 -->
 
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <!-- Official label of the Telecomm app, as seen in "Manage Applications"
-         and other settings UIs. -->
-    <string name="telecommAppLabel" product="default">Telecomm</string>
+    <!-- Official label of the Telecomm/Phone app, as seen in "Manage Applications"
+         and other settings UIs. This is the "app name" used in notification, recents,
+         and app info screens. -->
+    <string name="telecommAppLabel" product="default">Phone</string>
 
     <!-- Name for an "unknown" caller. -->
     <string name="unknown">Unknown</string>
