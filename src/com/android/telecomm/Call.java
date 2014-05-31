@@ -58,6 +58,7 @@ final class Call {
         void onFailedOutgoingCall(Call call, boolean isAborted);
         void onSuccessfulIncomingCall(Call call, CallInfo callInfo);
         void onFailedIncomingCall(Call call);
+        void onRequestingRingback(Call call, boolean requestingRingback);
     }
 
     private static final OnQueryCompleteListener sCallerInfoQueryListener =
@@ -172,6 +173,9 @@ final class Call {
     /** The latest token used with a contact info query. */
     private int mQueryToken = 0;
 
+    /** Whether this call is requesting that Telecomm play the ringback tone on its behalf. */
+    private boolean mRequestingRingback = false;
+
     /** Incoming call-info to use when direct-to-voicemail query finishes. */
     private CallInfo mPendingDirectToVoicemailCallInfo;
 
@@ -232,6 +236,17 @@ final class Call {
             Log.v(this, "setState %s -> %s", mState, newState);
             mState = newState;
         }
+    }
+
+    void setRequestingRingback(boolean requestingRingback) {
+        mRequestingRingback = requestingRingback;
+        for (Listener l : mListeners) {
+            l.onRequestingRingback(this, mRequestingRingback);
+        }
+    }
+
+    boolean isRequestingRingback() {
+        return mRequestingRingback;
     }
 
     Uri getHandle() {

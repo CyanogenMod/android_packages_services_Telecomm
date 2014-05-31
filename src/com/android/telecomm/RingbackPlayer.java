@@ -49,21 +49,6 @@ class RingbackPlayer extends CallsManagerListenerBase {
 
     /** {@inheritDoc} */
     @Override
-    public void onCallStateChanged(Call call, CallState oldState, CallState newState) {
-        // Only operate on the foreground call.
-        if (mCallsManager.getForegroundCall() == call) {
-
-            // Treat as ending or begining dialing based on the state transition.
-            if (shouldStartRinging(call)) {
-                startRingbackForCall(call);
-            } else if (oldState == CallState.DIALING) {
-                stopRingbackForCall(call);
-            }
-        }
-    }
-
-    /** {@inheritDoc} */
-    @Override
     public void onForegroundCallChanged(Call oldForegroundCall, Call newForegroundCall) {
         if (oldForegroundCall != null) {
             stopRingbackForCall(oldForegroundCall);
@@ -81,15 +66,20 @@ class RingbackPlayer extends CallsManagerListenerBase {
             CallServiceWrapper newCallService) {
 
         super.onCallServiceChanged(call, oldCallServiceWrapper, newCallService);
-        // Only operate on the foreground call.
-        if (mCallsManager.getForegroundCall() == call) {
+        // Treat as ending or begining dialing based on the state transition.
+        if (shouldStartRinging(call)) {
+            startRingbackForCall(call);
+        } else if (newCallService == null) {
+            stopRingbackForCall(call);
+        }
+    }
 
-            // Treat as ending or begining dialing based on the state transition.
-            if (shouldStartRinging(call)) {
-                startRingbackForCall(call);
-            } else if (newCallService == null) {
-                stopRingbackForCall(call);
-            }
+    @Override
+    public void onRequestingRingback(Call call, boolean ignored) {
+        if (shouldStartRinging(call)) {
+            startRingbackForCall(call);
+        } else {
+            stopRingbackForCall(call);
         }
     }
 
@@ -144,8 +134,10 @@ class RingbackPlayer extends CallsManagerListenerBase {
         }
     }
 
-    private static boolean shouldStartRinging(Call call) {
+    private boolean shouldStartRinging(Call call) {
         return call != null
-                && call.getState() == CallState.DIALING;
+                && mCallsManager.getForegroundCall() == call
+                && call.getState() == CallState.DIALING
+                && call.isRequestingRingback();
     }
 }

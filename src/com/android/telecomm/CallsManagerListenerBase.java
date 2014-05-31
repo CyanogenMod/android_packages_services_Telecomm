@@ -70,4 +70,8 @@ class CallsManagerListenerBase implements CallsManager.CallsManagerListener {
     @Override
     public void onAudioStateChanged(CallAudioState oldAudioState, CallAudioState newAudioState) {
     }
+
+    @Override
+    public void onRequestingRingback(Call call, boolean ringback) {
+    }
 }
