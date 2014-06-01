@@ -29,21 +29,23 @@ import com.google.common.base.Preconditions;
 final class CallAudioManager extends CallsManagerListenerBase {
     private static final int STREAM_NONE = -1;
 
+    private final StatusBarNotifier mStatusBarNotifier;
     private final AudioManager mAudioManager;
     private final WiredHeadsetManager mWiredHeadsetManager;
     private final BluetoothManager mBluetoothManager;
+
     private CallAudioState mAudioState;
     private int mAudioFocusStreamType;
     private boolean mIsRinging;
     private boolean mIsTonePlaying;
     private boolean mWasSpeakerOn;
 
-    CallAudioManager() {
-        Context context = TelecommApp.getInstance();
+    CallAudioManager(Context context, StatusBarNotifier statusBarNotifier) {
+        mStatusBarNotifier = statusBarNotifier;
         mAudioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
         mWiredHeadsetManager = new WiredHeadsetManager(this);
         mBluetoothManager = new BluetoothManager(context, this);
-        mAudioState = getInitialAudioState(null);
+        saveAudioState(getInitialAudioState(null));
         mAudioFocusStreamType = STREAM_NONE;
     }
 
@@ -98,6 +100,10 @@ final class CallAudioManager extends CallsManagerListenerBase {
         updateAudioStreamAndMode();
         // Ensure that the foreground call knows about the latest audio state.
         updateAudioForForegroundCall();
+    }
+
+    void toggleMute() {
+        mute(!mAudioState.isMuted);
     }
 
     void mute(boolean shouldMute) {
@@ -206,9 +212,15 @@ final class CallAudioManager extends CallsManagerListenerBase {
         return mBluetoothManager.isBluetoothAvailable();
     }
 
+    private void saveAudioState(CallAudioState audioState) {
+        mAudioState = audioState;
+        mStatusBarNotifier.notifyMute(mAudioState.isMuted);
+        mStatusBarNotifier.notifySpeakerphone(mAudioState.route == CallAudioState.ROUTE_SPEAKER);
+    }
+
     private void setSystemAudioState(boolean isMuted, int route, int supportedRouteMask) {
         CallAudioState oldAudioState = mAudioState;
-        mAudioState = new CallAudioState(isMuted, route, supportedRouteMask);
+        saveAudioState(new CallAudioState(isMuted, route, supportedRouteMask));
         Log.i(this, "changing audio state from %s to %s", oldAudioState, mAudioState);
 
         // Mute.
