@@ -180,4 +180,14 @@ class InCallAdapter extends IInCallAdapter.Stub {
     public void setAudioRoute(int route) {
         mHandler.obtainMessage(MSG_SET_AUDIO_ROUTE, route, 0).sendToTarget();
     }
+
+    /** ${inheritDoc} */
+    @Override
+    public void conferenceWith(String arg0, String arg1) {
+    }
+
+    /** ${inheritDoc} */
+    @Override
+    public void splitFromConference(String arg0) {
+    }
 }

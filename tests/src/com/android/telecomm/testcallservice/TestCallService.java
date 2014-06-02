@@ -34,6 +34,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -180,6 +181,16 @@ public class TestCallService extends CallService {
         log("onUnbind");
         mMediaPlayer = null;
         return super.onUnbind(intent);
+    }
+
+    /** ${inheritDoc} */
+    @Override
+    public void addToConference(String conferenceCallId, List<String> callIds) {
+    }
+
+    /** ${inheritDoc} */
+    @Override
+    public void splitFromConference(String conferenceCallId, String callId) {
     }
 
     private void activateCall(String callId) {
