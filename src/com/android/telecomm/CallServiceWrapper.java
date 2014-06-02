@@ -17,7 +17,6 @@
 package com.android.telecomm;
 
 import android.os.Bundle;
-
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
@@ -37,6 +36,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Sets;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -251,6 +251,21 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
             args.arg1 = callId;
             args.arg2 = ringback;
             mHandler.obtainMessage(MSG_SET_REQUESTING_RINGBACK, args).sendToTarget();
+        }
+
+        /** ${inheritDoc} */
+        @Override
+        public void removeCall(String callId) {
+        }
+
+        /** ${inheritDoc} */
+        @Override
+        public void setCanConferenceWith(String callId, List<String> conferenceCapableCallIds) {
+        }
+
+        /** ${inheritDoc} */
+        @Override
+        public void setIsConferenced(String conferenceCallId, String callId, boolean isConferenced) {
         }
     }
 
@@ -514,12 +529,12 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
                 mIncomingCallsManager.handleFailedIncomingCall(call);
             }
 
-            if (!mPendingIncomingCalls.isEmpty()) {
-                Log.wtf(this, "Pending calls did not get cleared.");
-                mPendingIncomingCalls.clear();
-            }
-        }
-
-        mCallIdMapper.clear();
+      if (!mPendingIncomingCalls.isEmpty()) {
+        Log.wtf(this, "Pending calls did not get cleared.");
+        mPendingIncomingCalls.clear();
+      }
     }
+
+    mCallIdMapper.clear();
+  }
 }
