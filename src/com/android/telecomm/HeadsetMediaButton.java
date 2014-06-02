@@ -114,6 +114,7 @@ final class HeadsetMediaButton {
         mSession.addCallback(mSessionCallback);
         mSession.setFlags(MediaSession.FLAG_EXCLUSIVE_GLOBAL_PRIORITY
                 | MediaSession.FLAG_HANDLES_MEDIA_BUTTONS);
+        mSession.setPlaybackToLocal(AudioManager.STREAM_VOICE_CALL);
     }
 
     /**
