@@ -118,6 +118,7 @@ public final class CallsManager implements Call.Listener {
         mListeners.add(mCallAudioManager);
         mListeners.add(app.getMissedCallNotifier());
         mListeners.add(mDtmfLocalTonePlayer);
+        mListeners.add(mHeadsetMediaButton);
     }
 
     @Override

@@ -29,7 +29,7 @@ import android.view.KeyEvent;
 /**
  * Static class to handle listening to the headset media buttons.
  */
-final class HeadsetMediaButton {
+final class HeadsetMediaButton extends CallsManagerListenerBase {
 
     /**
      * Broadcast receiver for the ACTION_MEDIA_BUTTON broadcast intent.
@@ -132,5 +132,23 @@ final class HeadsetMediaButton {
         }
 
         return true;
+    }
+
+    /** ${inheritDoc} */
+    @Override
+    public void onCallAdded(Call call) {
+        if (!mSession.isActive()) {
+            mSession.setActive(true);
+        }
+    }
+
+    /** ${inheritDoc} */
+    @Override
+    public void onCallRemoved(Call call) {
+        if (!mCallsManager.hasAnyCalls()) {
+            if (mSession.isActive()) {
+                mSession.setActive(false);
+            }
+        }
     }
 }
