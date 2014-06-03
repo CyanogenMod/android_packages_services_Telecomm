@@ -59,6 +59,7 @@ final class Call {
         void onSuccessfulIncomingCall(Call call, CallInfo callInfo);
         void onFailedIncomingCall(Call call);
         void onRequestingRingback(Call call, boolean requestingRingback);
+        void onPostDialWait(Call call, String remaining);
     }
 
     private static final OnQueryCompleteListener sCallerInfoQueryListener =
@@ -726,6 +727,16 @@ final class Call {
 
     Uri getRingtone() {
         return mCallerInfo == null ? null : mCallerInfo.contactRingtoneUri;
+    }
+
+    void onPostDialWait(String remaining) {
+        for (Listener l : mListeners) {
+            l.onPostDialWait(this, remaining);
+        }
+    }
+
+    void postDialContinue(boolean proceed) {
+        getCallService().onPostDialContinue(this, proceed);
     }
 
     /**

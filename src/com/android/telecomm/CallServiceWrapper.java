@@ -57,6 +57,7 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
         private static final int MSG_SET_DISCONNECTED = 7;
         private static final int MSG_SET_ON_HOLD = 8;
         private static final int MSG_SET_REQUESTING_RINGBACK = 9;
+        private static final int MSG_ON_POST_DIAL_WAIT = 10;
 
         private final Handler mHandler = new Handler() {
             @Override
@@ -153,7 +154,7 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
                             Log.w(this, "setOnHold, unknown call id: %s", msg.obj);
                         }
                         break;
-                    case MSG_SET_REQUESTING_RINGBACK:
+                    case MSG_SET_REQUESTING_RINGBACK: {
                         SomeArgs args = (SomeArgs) msg.obj;
                         try {
                             call = mCallIdMapper.getCall(args.arg1);
@@ -167,6 +168,20 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
                             args.recycle();
                         }
                         break;
+                    }
+                    case MSG_ON_POST_DIAL_WAIT:
+                        SomeArgs args = (SomeArgs) msg.obj;
+                        try {
+                            call = mCallIdMapper.getCall(args.arg1);
+                            if (call != null) {
+                                String remaining = (String) args.arg2;
+                                call.onPostDialWait(remaining);
+                            } else {
+                                Log.w(this, "onPostDialWait, unknown call id: %s", args.arg1);
+                            }
+                        } finally {
+                            args.recycle();
+                        }
                 }
             }
         };
@@ -266,6 +281,15 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
         /** ${inheritDoc} */
         @Override
         public void setIsConferenced(String conferenceCallId, String callId, boolean isConferenced) {
+        }
+
+        @Override
+        public void onPostDialWait(String callId, String remaining) throws RemoteException {
+            mCallIdMapper.checkValidCallId(callId);
+            SomeArgs args = SomeArgs.obtain();
+            args.arg1 = callId;
+            args.arg2 = remaining;
+            mHandler.obtainMessage(MSG_ON_POST_DIAL_WAIT, args).sendToTarget();
         }
     }
 
@@ -491,6 +515,15 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
         }
 
         mCallIdMapper.removeCall(call);
+    }
+
+    void onPostDialContinue(Call call, boolean proceed) {
+        if (isServiceValid("onPostDialContinue")) {
+            try {
+                mServiceInterface.onPostDialContinue(mCallIdMapper.getCallId(call), proceed);
+            } catch (RemoteException ignored) {
+            }
+        }
     }
 
     /** {@inheritDoc} */

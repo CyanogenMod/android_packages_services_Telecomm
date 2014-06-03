@@ -142,6 +142,16 @@ public final class InCallController extends CallsManagerListenerBase {
         }
     }
 
+    void onPostDialWait(Call call, String remaining) {
+        if (mInCallService != null) {
+            Log.i(this, "Calling onPostDialWait, remaining = %s", remaining);
+            try {
+                mInCallService.setPostDialWait(mCallIdMapper.getCallId(call), remaining);
+            } catch (RemoteException ignored) {
+            }
+        }
+    }
+
     void bringToForeground(boolean showDialpad) {
         if (mInCallService != null) {
             try {
