@@ -27,6 +27,7 @@ import android.os.RemoteException;
 import android.telecomm.CallInfo;
 import android.telecomm.CallServiceDescriptor;
 import android.telecomm.TelecommConstants;
+import android.telephony.DisconnectCause;
 
 import com.android.internal.os.SomeArgs;
 import com.android.internal.telecomm.ICallServiceSelector;
@@ -61,7 +62,7 @@ final class CallServiceSelectorWrapper extends ServiceBinder<ICallServiceSelecto
                                         (List<CallServiceDescriptor>) args.arg2;
 
                                 mCallIdMapper.removeCall(callId);
-                                mPendingSelects.remove(callId).onResult(descriptors);
+                                mPendingSelects.remove(callId).onResult(descriptors, 0, null);
                             } else {
                                 Log.w(this, "setSelectedCallServices: unknown call: %s, id: %s",
                                         callId, args.arg1);
@@ -189,13 +190,14 @@ final class CallServiceSelectorWrapper extends ServiceBinder<ICallServiceSelecto
                     mSelectorInterface.select(callInfo, descriptors);
                 } catch (RemoteException e) {
                     mCallIdMapper.removeCall(call);
-                    mPendingSelects.get(callId).onResult(null);
+                    mPendingSelects.get(callId).onResult(
+                            null, DisconnectCause.ERROR_UNSPECIFIED, e.toString());
                 }
             }
 
             @Override
             public void onFailure() {
-                resultCallback.onResult(null);
+                resultCallback.onResult(null, DisconnectCause.ERROR_UNSPECIFIED, null);
             }
         };
 

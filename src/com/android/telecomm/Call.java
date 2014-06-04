@@ -55,7 +55,7 @@ final class Call {
      */
     interface Listener {
         void onSuccessfulOutgoingCall(Call call);
-        void onFailedOutgoingCall(Call call, boolean isAborted);
+        void onFailedOutgoingCall(Call call, boolean isAborted, int errorCode, String errorMsg);
         void onSuccessfulIncomingCall(Call call, CallInfo callInfo);
         void onFailedIncomingCall(Call call);
         void onRequestingRingback(Call call, boolean requestingRingback);
@@ -500,11 +500,12 @@ final class Call {
                 Switchboard.getInstance().getSelectorRepository(),
                 new AsyncResultCallback<Boolean>() {
                     @Override
-                    public void onResult(Boolean wasCallPlaced) {
+                    public void onResult(Boolean wasCallPlaced, int errorCode, String errorMsg) {
                         if (wasCallPlaced) {
                             handleSuccessfulOutgoing();
                         } else {
-                            handleFailedOutgoing(mOutgoingCallProcessor.isAborted());
+                            handleFailedOutgoing(
+                                    mOutgoingCallProcessor.isAborted(), errorCode, errorMsg);
                         }
                         mOutgoingCallProcessor = null;
                     }
@@ -519,10 +520,10 @@ final class Call {
         }
     }
 
-    void handleFailedOutgoing(boolean isAborted) {
+    void handleFailedOutgoing(boolean isAborted, int errorCode, String errorMsg) {
         // TODO(santoscordon): Replace this with state transitions related to "connecting".
         for (Listener l : mListeners) {
-            l.onFailedOutgoingCall(this, isAborted);
+            l.onFailedOutgoingCall(this, isAborted, errorCode, errorMsg);
         }
 
         clearCallService();
