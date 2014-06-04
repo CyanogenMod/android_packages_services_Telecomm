@@ -20,4 +20,13 @@
 
     <!-- String for the TestCallActivity -->
     <string name="testCallActivityLabel">Test CallService App</string>
+
+    <!-- String for the TestDialerActivity -->
+    <string name="testDialerActivityLabel">Test Dialer</string>
+
+    <!-- String for button in TestDialerActivity that reassigns the default Dialer -->
+    <string name="defaultDialerButton">Default dialer request</string>
+
+    <!-- String for button in TestDialerActivity that places a test call -->
+    <string name="placeCallButton">Place call</string>
 </resources>

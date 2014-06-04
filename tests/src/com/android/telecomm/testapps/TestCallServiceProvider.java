@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.android.telecomm.testcallservice;
+package com.android.telecomm.testapps;
 
 import android.telecomm.CallServiceDescriptor;
 import android.telecomm.CallServiceLookupResponse;
