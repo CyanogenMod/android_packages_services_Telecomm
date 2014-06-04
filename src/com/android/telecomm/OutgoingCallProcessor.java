@@ -20,6 +20,7 @@ import android.content.ComponentName;
 import android.os.Handler;
 import android.os.Message;
 import android.telecomm.CallServiceDescriptor;
+import android.telephony.DisconnectCause;
 
 import com.android.telecomm.BaseRepository.LookupCallback;
 import com.google.android.collect.Sets;
@@ -103,6 +104,10 @@ final class OutgoingCallProcessor {
 
     private boolean mIsAborted = false;
 
+    private int mLastErrorCode = 0;
+
+    private String mLastErrorMsg = null;
+
     /**
      * Persists the specified parameters and iterates through the prioritized list of selectors
      * passing to each selector (read-only versions of) the call object and all available call-
@@ -182,7 +187,9 @@ final class OutgoingCallProcessor {
                 callService.abort(mCall);
             }
 
-            sendResult(false);
+            // We consider a deliberate abort to be a "normal" disconnect, not
+            // requiring special reporting.
+            sendResult(false, DisconnectCause.LOCAL, null);
         }
     }
 
@@ -205,17 +212,22 @@ final class OutgoingCallProcessor {
             return;
         }
 
-        sendResult(true);
+        sendResult(true, DisconnectCause.NOT_DISCONNECTED, null);
     }
 
     /**
      * Attempts the next call service if the specified call service is the one currently being
      * attempted.
      *
-     * @param reason The call-service supplied reason for the failed call attempt.
+     * @param errorCode The reason for the failure, one of {@link DisconnectCause}.
+     * @param errorMsg Optional text reason for the failure.
      */
-    void handleFailedCallAttempt(String reason) {
-        Log.v(this, "handleFailedCallAttempt");
+    void handleFailedCallAttempt(int errorCode, String errorMsg) {
+        Log.v(this, "handleFailedCallAttempt %s %s", DisconnectCause.toString(errorCode), errorMsg);
+        // Store latest error code and message. If this is our last available attempt at placing
+        // a call, these error details will be considered "the" cause of the failure.
+        mLastErrorCode = errorCode;
+        mLastErrorMsg = errorMsg;
         if (!mIsAborted) {
             ThreadUtil.checkOnMainThread();
             attemptNextCallService();
@@ -327,14 +339,16 @@ final class OutgoingCallProcessor {
             selector.select(mCall, mCallServiceDescriptors,
                     new AsyncResultCallback<List<CallServiceDescriptor>>() {
                         @Override
-                        public void onResult(List<CallServiceDescriptor> descriptors) {
+                        public void onResult(
+                                List<CallServiceDescriptor> descriptors,
+                                int errorCode, String errorMsg) {
                             processSelectedCallServices(descriptors);
                         }
                     });
         } else {
             Log.v(this, "attemptNextSelector, no more selectors, failing");
             mCall.clearCallServiceSelector();
-            sendResult(false);
+            sendResult(false, mLastErrorCode, mLastErrorMsg);
         }
     }
 
@@ -369,11 +383,11 @@ final class OutgoingCallProcessor {
 
                 callService.call(mCall, new AsyncResultCallback<Boolean>() {
                     @Override
-                    public void onResult(Boolean wasCallPlaced) {
+                    public void onResult(Boolean wasCallPlaced, int errorCode, String errorMsg) {
                         if (wasCallPlaced) {
                             handleSuccessfulCallAttempt(callService);
                         } else {
-                            handleFailedCallAttempt("call failed.");
+                            handleFailedCallAttempt(errorCode, errorMsg);
                         }
 
                         // If successful, the call should not have it's own association to keep
@@ -389,9 +403,9 @@ final class OutgoingCallProcessor {
         }
     }
 
-    private void sendResult(boolean wasCallPlaced) {
+    private void sendResult(boolean wasCallPlaced, int errorCode, String errorMsg) {
         if (mResultCallback != null) {
-            mResultCallback.onResult(wasCallPlaced);
+            mResultCallback.onResult(wasCallPlaced, errorCode, errorMsg);
             mResultCallback = null;
 
             mHandler.removeMessages(MSG_EXPIRE);
