@@ -185,12 +185,12 @@ public class TestCallService extends CallService {
 
     /** ${inheritDoc} */
     @Override
-    public void addToConference(String conferenceCallId, List<String> callIds) {
+    public void conference(String conferenceCallId, String callId) {
     }
 
     /** ${inheritDoc} */
     @Override
-    public void splitFromConference(String conferenceCallId, String callId) {
+    public void splitFromConference(String callId) {
     }
 
     private void activateCall(String callId) {

@@ -35,11 +35,11 @@ import com.android.internal.telecomm.ICallServiceAdapter;
 import com.android.internal.telecomm.ICallServiceProvider;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Sets;
 
 import org.apache.http.conn.ClientConnectionRequest;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -50,6 +50,7 @@ import java.util.Set;
  * and instead should use this class to invoke methods of {@link ICallService}.
  */
 final class CallServiceWrapper extends ServiceBinder<ICallService> {
+    private static final String TAG = CallServiceWrapper.class.getSimpleName();
 
     private final class Adapter extends ICallServiceAdapter.Stub {
         private static final int MSG_NOTIFY_INCOMING_CALL = 1;
@@ -62,7 +63,10 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
         private static final int MSG_SET_ON_HOLD = 8;
         private static final int MSG_SET_REQUESTING_RINGBACK = 9;
         private static final int MSG_ON_POST_DIAL_WAIT = 10;
-        private static final int MSG_HANDOFF_CALL = 11;
+        private static final int MSG_CAN_CONFERENCE = 11;
+        private static final int MSG_SET_IS_CONFERENCED = 12;
+        private static final int MSG_ADD_CONFERENCE_CALL = 13;
+        private static final int MSG_HANDOFF_CALL = 14;
 
         private final Handler mHandler = new Handler() {
             @Override
@@ -79,8 +83,7 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
                             mIncomingCallsManager.handleSuccessfulIncomingCall(call, callInfo);
                         } else {
                             Log.w(this, "notifyIncomingCall, unknown incoming call: %s, id: %s",
-                                    call,
-                                    clientCallInfo.getId());
+                                    call, clientCallInfo.getId());
                         }
                         break;
                     case MSG_HANDLE_SUCCESSFUL_OUTGOING_CALL: {
@@ -176,7 +179,7 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
                         }
                         break;
                     }
-                    case MSG_ON_POST_DIAL_WAIT:
+                    case MSG_ON_POST_DIAL_WAIT: {
                         SomeArgs args = (SomeArgs) msg.obj;
                         try {
                             call = mCallIdMapper.getCall(args.arg1);
@@ -189,6 +192,8 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
                         } finally {
                             args.recycle();
                         }
+                        break;
+                    }
                     case MSG_HANDOFF_CALL:
                         call = mCallIdMapper.getCall(msg.obj);
                         if (call != null) {
@@ -197,6 +202,63 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
                             Log.w(this, "handoffCall, unknown call id: %s", msg.obj);
                         }
                         break;
+                    case MSG_CAN_CONFERENCE: {
+                        call = mCallIdMapper.getCall(msg.obj);
+                        if (call != null) {
+                            call.setIsConferenceCapable(msg.arg1 == 1);
+                        } else {
+                            Log.w(CallServiceWrapper.this, "canConference, unknown call id: %s",
+                                    msg.obj);
+                        }
+                        break;
+                    }
+                    case MSG_SET_IS_CONFERENCED: {
+                        SomeArgs args = (SomeArgs) msg.obj;
+                        try {
+                            Call childCall = mCallIdMapper.getCall(args.arg1);
+                            if (childCall != null) {
+                                String conferenceCallId = (String) args.arg2;
+                                Log.d(this, "setIsConferenced %s, %s", childCall, conferenceCallId);
+
+                                if (conferenceCallId == null) {
+                                    childCall.setParentCall(null);
+                                } else {
+                                    Call conferenceCall = mCallIdMapper.getCall(conferenceCallId);
+                                    if (conferenceCall != null &&
+                                            !mPendingConferenceCalls.contains(conferenceCall)) {
+                                        childCall.setParentCall(conferenceCall);
+                                    } else {
+                                        Log.w(this, "setIsConferenced, unknown conference id %s",
+                                                conferenceCallId);
+                                    }
+                                }
+                            } else {
+                                Log.w(this, "setIsConferenced, unknown call id: %s", args.arg1);
+                            }
+                        } finally {
+                            args.recycle();
+                        }
+                        break;
+                    }
+                    case MSG_ADD_CONFERENCE_CALL: {
+                        SomeArgs args = (SomeArgs) msg.obj;
+                        try {
+                            String callId = (String) args.arg1;
+                            Log.d(this, "addConferenceCall attempt %s, %s",
+                                    callId, mPendingConferenceCalls);
+
+                            Call conferenceCall = mCallIdMapper.getCall(callId);
+                            if (mPendingConferenceCalls.remove(conferenceCall)) {
+                                Log.v(this, "confirming conf call %s", conferenceCall);
+                                conferenceCall.confirmConference();
+                            } else {
+                                Log.w(this, "addConference, unknown call id: %s", callId);
+                            }
+                        } finally {
+                            args.recycle();
+                        }
+                        break;
+                    }
                 }
             }
         };
@@ -294,12 +356,29 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
 
         /** ${inheritDoc} */
         @Override
-        public void setCanConferenceWith(String callId, List<String> conferenceCapableCallIds) {
+        public void setCanConference(String callId, boolean canConference) {
+            Log.d(this, "setCanConference(%s, %b)", callId, canConference);
+            mHandler.obtainMessage(MSG_CAN_CONFERENCE, canConference ? 1 : 0, 0, callId)
+                    .sendToTarget();
         }
 
         /** ${inheritDoc} */
         @Override
-        public void setIsConferenced(String conferenceCallId, String callId, boolean isConferenced) {
+        public void setIsConferenced(String callId, String conferenceCallId) {
+            SomeArgs args = SomeArgs.obtain();
+            args.arg1 = callId;
+            args.arg2 = conferenceCallId;
+            mHandler.obtainMessage(MSG_SET_IS_CONFERENCED, args).sendToTarget();
+        }
+
+        /** ${InheritDoc} */
+        @Override
+        public void addConferenceCall(String callId, CallInfo callInfo) {
+            mCallIdMapper.checkValidCallId(callId);
+            SomeArgs args = SomeArgs.obtain();
+            args.arg1 = callId;
+            args.arg2 = callInfo;
+            mHandler.obtainMessage(MSG_ADD_CONFERENCE_CALL, args).sendToTarget();
         }
 
         @Override
@@ -321,11 +400,13 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
 
     private final Adapter mAdapter = new Adapter();
     private final CallsManager mCallsManager = CallsManager.getInstance();
-    private final Set<Call> mPendingIncomingCalls = Sets.newHashSet();
+    private final Set<Call> mPendingIncomingCalls = new HashSet<>();
+    private final Set<Call> mPendingConferenceCalls = new HashSet<>();
     private final CallServiceDescriptor mDescriptor;
     private final CallIdMapper mCallIdMapper = new CallIdMapper("CallService");
     private final IncomingCallsManager mIncomingCallsManager;
     private final Map<String, AsyncResultCallback<Boolean>> mPendingOutgoingCalls = new HashMap<>();
+    private final Handler mHandler = new Handler();
 
     private Binder mBinder = new Binder();
     private ICallService mServiceInterface;
@@ -521,7 +602,9 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
     }
 
     void addCall(Call call) {
-        mCallIdMapper.addCall(call);
+        if (mCallIdMapper.getCallId(call) == null) {
+            mCallIdMapper.addCall(call);
+        }
     }
 
     /**
@@ -548,6 +631,37 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
         if (isServiceValid("onPostDialContinue")) {
             try {
                 mServiceInterface.onPostDialContinue(mCallIdMapper.getCallId(call), proceed);
+            } catch (RemoteException ignored) {
+            }
+        }
+    }
+
+    void conference(final Call conferenceCall, Call call) {
+        if (isServiceValid("conference")) {
+            try {
+                conferenceCall.setCallService(this);
+                mPendingConferenceCalls.add(conferenceCall);
+                mHandler.postDelayed(new Runnable() {
+                    @Override public void run() {
+                        if (mPendingConferenceCalls.remove(conferenceCall)) {
+                            conferenceCall.expireConference();
+                            Log.i(this, "Conference call expired: %s", conferenceCall);
+                        }
+                    }
+                }, Timeouts.getConferenceCallExpireMillis());
+
+                mServiceInterface.conference(
+                        mCallIdMapper.getCallId(conferenceCall),
+                        mCallIdMapper.getCallId(call));
+            } catch (RemoteException ignored) {
+            }
+        }
+    }
+
+    void splitFromConference(Call call) {
+        if (isServiceValid("splitFromConference")) {
+            try {
+                mServiceInterface.splitFromConference(mCallIdMapper.getCallId(call));
             } catch (RemoteException ignored) {
             }
         }
@@ -589,12 +703,12 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
                 mIncomingCallsManager.handleFailedIncomingCall(call);
             }
 
-      if (!mPendingIncomingCalls.isEmpty()) {
-        Log.wtf(this, "Pending calls did not get cleared.");
-        mPendingIncomingCalls.clear();
-      }
-    }
+            if (!mPendingIncomingCalls.isEmpty()) {
+                Log.wtf(this, "Pending calls did not get cleared.");
+                mPendingIncomingCalls.clear();
+            }
+        }
 
-    mCallIdMapper.clear();
-  }
+        mCallIdMapper.clear();
+    }
 }

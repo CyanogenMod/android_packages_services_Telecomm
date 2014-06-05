@@ -40,6 +40,9 @@ import com.android.telecomm.ContactsAsyncHelper.OnImageLoadCompleteListener;
 import com.google.android.collect.Sets;
 import com.google.common.base.Preconditions;
 
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
@@ -60,6 +63,11 @@ final class Call {
         void onFailedIncomingCall(Call call);
         void onRequestingRingback(Call call, boolean requestingRingback);
         void onPostDialWait(Call call, String remaining);
+        void onIsConferenceCapableChanged(Call call, boolean isConferenceCapable);
+        void onExpiredConferenceCall(Call call);
+        void onConfirmedConferenceCall(Call call);
+        void onParentChanged(Call call);
+        void onChildrenChanged(Call call);
     }
 
     private static final OnQueryCompleteListener sCallerInfoQueryListener =
@@ -180,13 +188,21 @@ final class Call {
     /** Incoming call-info to use when direct-to-voicemail query finishes. */
     private CallInfo mPendingDirectToVoicemailCallInfo;
 
+    private boolean mIsConferenceCapable = false;
+
+    private boolean mIsConference = false;
+
+    private Call mParentCall = null;
+
+    private List<Call> mChildCalls = new LinkedList<>();
+
     /**
      * Creates an empty call object.
      *
      * @param isIncoming True if this is an incoming call.
      */
-    Call(boolean isIncoming) {
-        this(null, null, isIncoming);
+    Call(boolean isIncoming, boolean isConference) {
+        this(null, null, isIncoming, isConference);
     }
 
     /**
@@ -196,11 +212,12 @@ final class Call {
      * @param gatewayInfo Gateway information to use for the call.
      * @param isIncoming True if this is an incoming call.
      */
-    Call(Uri handle, GatewayInfo gatewayInfo, boolean isIncoming) {
-        mState = CallState.NEW;
+    Call(Uri handle, GatewayInfo gatewayInfo, boolean isIncoming, boolean isConference) {
+        mState = isConference ? CallState.ACTIVE : CallState.NEW;
         setHandle(handle);
         mGatewayInfo = gatewayInfo;
         mIsIncoming = isIncoming;
+        mIsConference = isConference;
     }
 
     void addListener(Listener listener) {
@@ -221,7 +238,15 @@ final class Call {
     }
 
     CallState getState() {
-        return mState;
+        if (mIsConference) {
+            if (!mChildCalls.isEmpty()) {
+                // If we have child calls, just return the child call.
+                return mChildCalls.get(0).getState();
+            }
+            return CallState.ACTIVE;
+        } else {
+            return mState;
+        }
     }
 
     /**
@@ -343,6 +368,27 @@ final class Call {
         mConnectTimeMillis = connectTimeMillis;
     }
 
+    boolean isConferenceCapable() {
+        return mIsConferenceCapable;
+    }
+
+    void setIsConferenceCapable(boolean isConferenceCapable) {
+        if (mIsConferenceCapable != isConferenceCapable) {
+            mIsConferenceCapable = isConferenceCapable;
+            for (Listener l : mListeners) {
+                l.onIsConferenceCapableChanged(this, mIsConferenceCapable);
+            }
+        }
+    }
+
+    Call getParentCall() {
+        return mParentCall;
+    }
+
+    List<Call> getChildCalls() {
+        return mChildCalls;
+    }
+
     CallServiceWrapper getCallService() {
         return mCallService;
     }
@@ -450,7 +496,7 @@ final class Call {
             public void run() {
                 processDirectToVoicemail();
             }
-        }, Timeouts.getDirectToVoicemail());
+        }, Timeouts.getDirectToVoicemailMillis());
     }
 
     void processDirectToVoicemail() {
@@ -738,6 +784,73 @@ final class Call {
 
     void postDialContinue(boolean proceed) {
         getCallService().onPostDialContinue(this, proceed);
+    }
+
+    void conferenceInto(Call conferenceCall) {
+        if (mCallService == null) {
+            Log.w(this, "conference requested on a call without a call service.");
+        } else {
+            mCallService.conference(conferenceCall, this);
+        }
+    }
+
+    void expireConference() {
+        // The conference call expired before we got a confirmation of the conference from the
+        // call service...so start shutting down.
+        clearCallService();
+        for (Listener l : mListeners) {
+            l.onExpiredConferenceCall(this);
+        }
+    }
+
+    void confirmConference() {
+        Log.v(this, "confirming Conf call %s", mListeners);
+        for (Listener l : mListeners) {
+            l.onConfirmedConferenceCall(this);
+        }
+    }
+
+    void splitFromConference() {
+        // TODO(santoscordon): todo
+    }
+
+    void setParentCall(Call parentCall) {
+        if (parentCall == this) {
+            Log.e(this, new Exception(), "setting the parent to self");
+            return;
+        }
+        Preconditions.checkState(parentCall == null || mParentCall == null);
+
+        Call oldParent = mParentCall;
+        if (mParentCall != null) {
+            mParentCall.removeChildCall(this);
+        }
+        mParentCall = parentCall;
+        if (mParentCall != null) {
+            mParentCall.addChildCall(this);
+        }
+
+        for (Listener l : mListeners) {
+            l.onParentChanged(this);
+        }
+    }
+
+    private void addChildCall(Call call) {
+        if (!mChildCalls.contains(call)) {
+            mChildCalls.add(call);
+
+            for (Listener l : mListeners) {
+                l.onChildrenChanged(this);
+            }
+        }
+    }
+
+    private void removeChildCall(Call call) {
+        if (mChildCalls.remove(call)) {
+            for (Listener l : mListeners) {
+                l.onChildrenChanged(this);
+            }
+        }
     }
 
     /**

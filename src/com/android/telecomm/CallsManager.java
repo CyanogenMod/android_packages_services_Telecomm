@@ -61,6 +61,8 @@ public final class CallsManager implements Call.Listener {
         void onForegroundCallChanged(Call oldForegroundCall, Call newForegroundCall);
         void onAudioStateChanged(CallAudioState oldAudioState, CallAudioState newAudioState);
         void onRequestingRingback(Call call, boolean ringback);
+        void onIsConferenceCapableChanged(Call call, boolean isConferenceCapable);
+        void onIsConferencedChanged(Call call);
     }
 
     private static final CallsManager INSTANCE = new CallsManager();
@@ -165,6 +167,13 @@ public final class CallsManager implements Call.Listener {
     }
 
     @Override
+    public void onIsConferenceCapableChanged(Call call, boolean isConferenceCapable) {
+        for (CallsManagerListener listener : mListeners) {
+            listener.onIsConferenceCapableChanged(call, isConferenceCapable);
+        }
+    }
+
+    @Override
     public void onRequestingRingback(Call call, boolean ringback) {
         for (CallsManagerListener listener : mListeners) {
             listener.onRequestingRingback(call, ringback);
@@ -174,6 +183,34 @@ public final class CallsManager implements Call.Listener {
     @Override
     public void onPostDialWait(Call call, String remaining) {
         mInCallController.onPostDialWait(call, remaining);
+    }
+
+    @Override
+    public void onExpiredConferenceCall(Call call) {
+        call.removeListener(this);
+    }
+
+    @Override
+    public void onConfirmedConferenceCall(Call call) {
+        addCall(call);
+        Log.v(this, "confirming Conf call %s", call);
+        for (CallsManagerListener listener : mListeners) {
+            listener.onIsConferencedChanged(call);
+        }
+    }
+
+    @Override
+    public void onParentChanged(Call call) {
+        for (CallsManagerListener listener : mListeners) {
+            listener.onIsConferencedChanged(call);
+        }
+    }
+
+    @Override
+    public void onChildrenChanged(Call call) {
+        for (CallsManagerListener listener : mListeners) {
+            listener.onIsConferencedChanged(call);
+        }
     }
 
     ImmutableCollection<Call> getCalls() {
@@ -218,7 +255,7 @@ public final class CallsManager implements Call.Listener {
         // Create a call with no handle. Eventually, switchboard will update the call with
         // additional information from the call service, but for now we just need one to pass
         // around.
-        Call call = new Call(true /* isIncoming */);
+        Call call = new Call(true /* isIncoming */, false /* isConference */);
         // TODO(santoscordon): Move this to be a part of addCall()
         call.addListener(this);
 
@@ -243,13 +280,25 @@ public final class CallsManager implements Call.Listener {
                     Log.pii(uriHandle), Log.pii(handle));
         }
 
-        Call call = new Call(uriHandle, gatewayInfo, false /* isIncoming */);
+        Call call = new Call(
+                uriHandle, gatewayInfo, false /* isIncoming */, false /* isConference */);
 
         // TODO(santoscordon): Move this to be a part of addCall()
         call.addListener(this);
         addCall(call);
 
         call.startOutgoing();
+    }
+
+    /**
+     * Attempts to start a conference call for the specified call.
+     *
+     * @param call The call to conference with.
+     */
+    void conference(Call call) {
+        Call conferenceCall = new Call(false, true);
+        conferenceCall.addListener(this);
+        call.conferenceInto(conferenceCall);
     }
 
     /**
@@ -410,8 +459,8 @@ public final class CallsManager implements Call.Listener {
         // original call will live on but its state will be updated to the new call's state. In
         // particular the original call's call service will be updated to the new call's call
         // service.
-        Call tempCall =
-                new Call(originalCall.getHandoffHandle(), originalCall.getGatewayInfo(), false);
+        Call tempCall = new Call(
+                originalCall.getHandoffHandle(), originalCall.getGatewayInfo(), false, false);
         tempCall.setOriginalCall(originalCall);
         tempCall.setExtras(originalCall.getExtras());
         tempCall.setCallServiceSelector(originalCall.getCallServiceSelector());

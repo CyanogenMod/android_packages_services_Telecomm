@@ -34,6 +34,10 @@ import android.telecomm.CallState;
 import com.android.internal.telecomm.IInCallService;
 import com.google.common.collect.ImmutableCollection;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
 /**
  * Binds to {@link IInCallService} and provides the service to {@link CallsManager} through which it
  * can send updates to the in-call app. This class is created and owned by CallsManager and retains
@@ -153,6 +157,17 @@ public final class InCallController extends CallsManagerListenerBase {
         }
     }
 
+    @Override
+    public void onIsConferenceCapableChanged(Call call, boolean isConferenceCapable) {
+        updateCall(call);
+    }
+
+    @Override
+    public void onIsConferencedChanged(Call call) {
+        Log.v(this, "onIsConferencedChanged %s", call);
+        updateCall(call);
+    }
+
     void bringToForeground(boolean showDialpad) {
         if (mInCallService != null) {
             try {
@@ -243,7 +258,9 @@ public final class InCallController extends CallsManagerListenerBase {
     private void updateCall(Call call) {
         if (mInCallService != null) {
             try {
-                mInCallService.updateCall(toInCallCall(call));
+                InCallCall inCallCall = toInCallCall(call);
+                Log.v(this, "updateCall %s ==> %s", call, inCallCall);
+                mInCallService.updateCall(inCallCall);
             } catch (RemoteException ignored) {
             }
         }
@@ -262,6 +279,9 @@ public final class InCallController extends CallsManagerListenerBase {
         if (CallsManager.getInstance().isAddCallCapable(call)) {
             capabilities |= CallCapabilities.ADD_CALL;
         }
+        if (call.isConferenceCapable()) {
+            capabilities |= CallCapabilities.MERGE_CALLS;
+        }
         CallState state = call.getState();
         if (state == CallState.ABORTED) {
             state = CallState.DISCONNECTED;
@@ -270,9 +290,27 @@ public final class InCallController extends CallsManagerListenerBase {
         if (state == CallState.DISCONNECTED && call.getHandoffCallServiceDescriptor() != null) {
             state = CallState.ACTIVE;
         }
+
+        String parentCallId = null;
+        Call parentCall = call.getParentCall();
+        if (parentCall != null) {
+            parentCallId = mCallIdMapper.getCallId(parentCall);
+        }
+
+        long connectTimeMillis = call.getConnectTimeMillis();
+        List<Call> childCalls = call.getChildCalls();
+        List<String> childCallIds = new ArrayList<>();
+        if (!childCalls.isEmpty()) {
+            connectTimeMillis = Long.MAX_VALUE;
+            for (Call child : childCalls) {
+                connectTimeMillis = Math.min(child.getConnectTimeMillis(), connectTimeMillis);
+                childCallIds.add(mCallIdMapper.getCallId(child));
+            }
+        }
+
         return new InCallCall(callId, state, call.getDisconnectCause(), call.getDisconnectMessage(),
-                capabilities, call.getConnectTimeMillis(), call.getHandle(), call.getGatewayInfo(),
-                descriptor, call.getHandoffCallServiceDescriptor());
+                capabilities, connectTimeMillis, call.getHandle(), call.getGatewayInfo(),
+                descriptor, call.getHandoffCallServiceDescriptor(), parentCallId, childCallIds);
     }
 
 }
