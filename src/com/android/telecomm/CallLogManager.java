@@ -132,7 +132,7 @@ final class CallLogManager extends CallsManagerListenerBase {
             int callType,
             long start,
             long duration) {
-        boolean isEmergencyNumber = PhoneNumberUtils.isLocalEmergencyNumber(number, mContext);
+        boolean isEmergencyNumber = PhoneNumberUtils.isLocalEmergencyNumber(mContext, number);
 
         // On some devices, to avoid accidental redialing of emergency numbers, we *never* log
         // emergency calls to the Call Log.  (This behavior is set on a per-product basis, based
