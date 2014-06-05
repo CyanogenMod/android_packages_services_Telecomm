@@ -38,12 +38,15 @@ class CallIdMapper {
         mCalls.put(callId, newCall);
     }
 
+    void addCall(Call call, String id) {
+        Preconditions.checkNotNull(call);
+        ThreadUtil.checkOnMainThread();
+        mCalls.put(id, call);
+    }
+
     void addCall(Call call) {
         ThreadUtil.checkOnMainThread();
-        Preconditions.checkNotNull(call);
-        sIdCount++;
-        String callId = mCallIdPrefix + sIdCount;
-        mCalls.put(callId, call);
+        addCall(call, getNewId());
     }
 
     void removeCall(Call call) {
@@ -90,5 +93,10 @@ class CallIdMapper {
     boolean isValidCallId(String callId) {
         // Note, no need for thread check, this method is thread safe.
         return callId != null && callId.startsWith(mCallIdPrefix);
+    }
+
+    String getNewId() {
+        sIdCount++;
+        return mCallIdPrefix + sIdCount;
     }
 }

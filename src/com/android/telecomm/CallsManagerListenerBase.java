@@ -74,4 +74,12 @@ class CallsManagerListenerBase implements CallsManager.CallsManagerListener {
     @Override
     public void onRequestingRingback(Call call, boolean ringback) {
     }
+
+    @Override
+    public void onIsConferenceCapableChanged(Call call, boolean isConferenceCapable) {
+    }
+
+    @Override
+    public void onIsConferencedChanged(Call call) {
+    }
 }

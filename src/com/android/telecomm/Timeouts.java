@@ -65,7 +65,14 @@ public final class Timeouts {
      * to complete. If the query goes beyond this timeout, the incoming call screen is shown to the
      * user.
      */
-    public static long getDirectToVoicemail() {
+    public static long getDirectToVoicemailMillis() {
         return get("direct_to_voicemail_ms", 500L);
+    }
+
+    /**
+     * Returns the amount of time that a connection service has to respond to a "conference" action.
+     */
+    public static long getConferenceCallExpireMillis() {
+        return get("conference_call_expire_ms", 15 * 1000L);
     }
 }

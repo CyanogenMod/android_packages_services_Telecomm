@@ -39,6 +39,8 @@ class InCallAdapter extends IInCallAdapter.Stub {
     private static final int MSG_HANDOFF_CALL = 8;
     private static final int MSG_MUTE = 9;
     private static final int MSG_SET_AUDIO_ROUTE = 10;
+    private static final int MSG_CONFERENCE = 11;
+    private static final int MSG_SPLIT_FROM_CONFERENCE = 12;
 
     private final class InCallAdapterHandler extends Handler {
         @Override
@@ -85,6 +87,12 @@ class InCallAdapter extends IInCallAdapter.Stub {
                     break;
                 case MSG_SET_AUDIO_ROUTE:
                     mCallsManager.setAudioRoute(msg.arg1);
+                    break;
+                case MSG_CONFERENCE:
+                    mCallsManager.conference(call);
+                    break;
+                case MSG_SPLIT_FROM_CONFERENCE:
+                    call.splitFromConference();
                     break;
             }
         }
@@ -184,11 +192,13 @@ class InCallAdapter extends IInCallAdapter.Stub {
 
     /** ${inheritDoc} */
     @Override
-    public void conferenceWith(String arg0, String arg1) {
+    public void conference(String callId) {
+        mHandler.obtainMessage(MSG_CONFERENCE, callId).sendToTarget();
     }
 
     /** ${inheritDoc} */
     @Override
-    public void splitFromConference(String arg0) {
+    public void splitFromConference(String callId) {
+        mHandler.obtainMessage(MSG_SPLIT_FROM_CONFERENCE, callId).sendToTarget();
     }
 }
