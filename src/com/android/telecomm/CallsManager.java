@@ -171,6 +171,11 @@ public final class CallsManager implements Call.Listener {
         }
     }
 
+    @Override
+    public void onPostDialWait(Call call, String remaining) {
+        mInCallController.onPostDialWait(call, remaining);
+    }
+
     ImmutableCollection<Call> getCalls() {
         return ImmutableList.copyOf(mCalls);
     }
@@ -322,15 +327,13 @@ public final class CallsManager implements Call.Listener {
     }
 
     /**
-     * Instructs Telecomm to continue the current post-dial DTMF string, if any.
+     * Instructs Telecomm to continue (or not) the current post-dial DTMF string, if any.
      */
-    void postDialContinue(Call call) {
+    void postDialContinue(Call call, boolean proceed) {
         if (!mCalls.contains(call)) {
             Log.i(this, "Request to continue post-dial string in a non-existent call %s", call);
         } else {
-            // TODO(ihab): Implement this from this level on downwards
-            // call.postDialContinue();
-            // Must play tones locally -- see DTMFTonePlayer.java in Telephony
+            call.postDialContinue(proceed);
         }
     }
 

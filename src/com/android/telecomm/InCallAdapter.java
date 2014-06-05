@@ -19,6 +19,7 @@ package com.android.telecomm;
 import android.os.Handler;
 import android.os.Message;
 
+import com.android.internal.os.SomeArgs;
 import com.android.internal.telecomm.IInCallAdapter;
 
 /**
@@ -65,7 +66,7 @@ class InCallAdapter extends IInCallAdapter.Stub {
                     mCallsManager.stopDtmfTone(call);
                     break;
                 case MSG_POST_DIAL_CONTINUE:
-                    mCallsManager.postDialContinue(call);
+                    mCallsManager.postDialContinue(call, msg.arg1 == 1);
                     break;
                 case MSG_DISCONNECT_CALL:
                     mCallsManager.disconnectCall(call);
@@ -134,10 +135,10 @@ class InCallAdapter extends IInCallAdapter.Stub {
 
     /** {@inheritDoc} */
     @Override
-    public void postDialContinue(String callId) {
+    public void postDialContinue(String callId, boolean proceed) {
         Log.d(this, "postDialContinue(%s)", callId);
         mCallIdMapper.checkValidCallId(callId);
-        mHandler.obtainMessage(MSG_POST_DIAL_CONTINUE, callId).sendToTarget();
+        mHandler.obtainMessage(MSG_POST_DIAL_CONTINUE, proceed ? 1 : 0, 0, callId).sendToTarget();
     }
 
     /** {@inheritDoc} */
