@@ -20,5 +20,5 @@ package com.android.telecomm;
  * Generic result interface for use with async method callback.
  */
 interface AsyncResultCallback<T> {
-    void onResult(T param1);
+    void onResult(T result, int errorCode, String errorMsg);
 }

@@ -257,8 +257,8 @@ public final class InCallController extends CallsManagerListenerBase {
         if (state == CallState.DISCONNECTED && call.getHandoffCallServiceDescriptor() != null) {
             state = CallState.ACTIVE;
         }
-        return new InCallCall(callId, state, call.getDisconnectCause(), capabilities,
-                call.getConnectTimeMillis(), call.getHandle(), call.getGatewayInfo(), descriptor,
-                call.getHandoffCallServiceDescriptor());
+        return new InCallCall(callId, state, call.getDisconnectCause(), call.getDisconnectMessage(),
+                capabilities, call.getConnectTimeMillis(), call.getHandle(), call.getGatewayInfo(),
+                descriptor, call.getHandoffCallServiceDescriptor());
     }
 }
