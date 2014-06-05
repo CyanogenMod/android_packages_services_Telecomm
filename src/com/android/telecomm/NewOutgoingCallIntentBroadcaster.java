@@ -110,7 +110,7 @@ class NewOutgoingCallIntentBroadcaster {
             if (resultHandle == null) {
                 Log.v(this, "Call cancelled (null number), returning...");
                 return;
-            } else if (PhoneNumberUtils.isPotentialLocalEmergencyNumber(resultHandle, context)) {
+            } else if (PhoneNumberUtils.isPotentialLocalEmergencyNumber(context, resultHandle)) {
                 Log.w(this, "Cannot modify outgoing call to emergency number %s.", resultHandle);
                 return;
             }
@@ -341,7 +341,7 @@ class NewOutgoingCallIntentBroadcaster {
      */
     private boolean isPotentialEmergencyNumber(Context context, String handle) {
         Log.v(this, "Checking restrictions for number : %s", Log.pii(handle));
-        return (handle != null) && PhoneNumberUtils.isPotentialLocalEmergencyNumber(handle,context);
+        return (handle != null) && PhoneNumberUtils.isPotentialLocalEmergencyNumber(context,handle);
     }
 
     /**

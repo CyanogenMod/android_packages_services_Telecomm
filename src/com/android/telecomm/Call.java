@@ -257,7 +257,7 @@ final class Call {
         if ((mHandle == null && handle != null) || (mHandle != null && !mHandle.equals(handle))) {
             mHandle = handle;
             mIsEmergencyCall = mHandle != null && PhoneNumberUtils.isLocalEmergencyNumber(
-                    mHandle.getSchemeSpecificPart(), TelecommApp.getInstance());
+                    TelecommApp.getInstance(), mHandle.getSchemeSpecificPart());
             startCallerInfoLookup();
         }
     }

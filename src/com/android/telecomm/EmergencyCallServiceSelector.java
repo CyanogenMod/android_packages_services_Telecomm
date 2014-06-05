@@ -42,7 +42,7 @@ public class EmergencyCallServiceSelector extends CallServiceSelector {
      */
     static boolean shouldUseSelector(Uri handle) {
         return PhoneNumberUtils.isPotentialLocalEmergencyNumber(
-                handle.getSchemeSpecificPart(), TelecommApp.getInstance());
+                TelecommApp.getInstance(), handle.getSchemeSpecificPart());
     }
 
     /** {@inheritDoc} */
