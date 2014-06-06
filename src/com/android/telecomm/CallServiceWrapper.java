@@ -62,6 +62,7 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
         private static final int MSG_SET_ON_HOLD = 8;
         private static final int MSG_SET_REQUESTING_RINGBACK = 9;
         private static final int MSG_ON_POST_DIAL_WAIT = 10;
+        private static final int MSG_HANDOFF_CALL = 11;
 
         private final Handler mHandler = new Handler() {
             @Override
@@ -188,6 +189,14 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
                         } finally {
                             args.recycle();
                         }
+                    case MSG_HANDOFF_CALL:
+                        call = mCallIdMapper.getCall(msg.obj);
+                        if (call != null) {
+                            mCallsManager.startHandoffForCall(call);
+                        } else {
+                            Log.w(this, "handoffCall, unknown call id: %s", msg.obj);
+                        }
+                        break;
                 }
             }
         };
@@ -300,6 +309,13 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
             args.arg1 = callId;
             args.arg2 = remaining;
             mHandler.obtainMessage(MSG_ON_POST_DIAL_WAIT, args).sendToTarget();
+        }
+
+        /** {@inheritDoc} */
+        @Override
+        public void handoffCall(String callId) {
+            mCallIdMapper.checkValidCallId(callId);
+            mHandler.obtainMessage(MSG_HANDOFF_CALL, callId).sendToTarget();
         }
     }
 

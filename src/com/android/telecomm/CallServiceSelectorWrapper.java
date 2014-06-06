@@ -60,8 +60,6 @@ final class CallServiceSelectorWrapper extends ServiceBinder<ICallServiceSelecto
                                 @SuppressWarnings("unchecked")
                                 List<CallServiceDescriptor> descriptors =
                                         (List<CallServiceDescriptor>) args.arg2;
-
-                                mCallIdMapper.removeCall(callId);
                                 mPendingSelects.remove(callId).onResult(descriptors, 0, null);
                             } else {
                                 Log.w(this, "setSelectedCallServices: unknown call: %s, id: %s",
