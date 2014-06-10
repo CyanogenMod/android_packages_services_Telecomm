@@ -27,6 +27,7 @@ import android.telecomm.CallInfo;
 import android.telecomm.CallServiceDescriptor;
 import android.telecomm.CallState;
 import android.telecomm.GatewayInfo;
+import android.telecomm.Response;
 import android.telecomm.TelecommConstants;
 import android.telephony.DisconnectCause;
 import android.telephony.PhoneNumberUtils;
@@ -36,11 +37,12 @@ import com.android.internal.telephony.CallerInfo;
 import com.android.internal.telephony.CallerInfoAsyncQuery;
 import com.android.internal.telephony.CallerInfoAsyncQuery.OnQueryCompleteListener;
 
+import com.android.internal.telephony.SmsApplication;
 import com.android.telecomm.ContactsAsyncHelper.OnImageLoadCompleteListener;
-import com.google.android.collect.Sets;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Sets;
 
-import java.util.HashSet;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
@@ -68,6 +70,7 @@ final class Call {
         void onConfirmedConferenceCall(Call call);
         void onParentChanged(Call call);
         void onChildrenChanged(Call call);
+        void onCannedSmsResponsesLoaded(Call call);
     }
 
     private static final OnQueryCompleteListener sCallerInfoQueryListener =
@@ -196,6 +199,12 @@ final class Call {
 
     private List<Call> mChildCalls = new LinkedList<>();
 
+    /** Set of text message responses allowed for this call, if applicable. */
+    private List<String> mCannedSmsResponses = Collections.EMPTY_LIST;
+
+    /** Whether an attempt has been made to load the text message responses. */
+    private boolean mCannedSmsResponsesLoadingStarted = false;
+
     /**
      * Creates an empty call object.
      *
@@ -218,6 +227,7 @@ final class Call {
         mGatewayInfo = gatewayInfo;
         mIsIncoming = isIncoming;
         mIsConference = isConference;
+        maybeLoadCannedSmsResponses();
     }
 
     void addListener(Listener listener) {
@@ -261,6 +271,7 @@ final class Call {
         if (mState != newState) {
             Log.v(this, "setState %s -> %s", mState, newState);
             mState = newState;
+            maybeLoadCannedSmsResponses();
         }
     }
 
@@ -506,7 +517,7 @@ final class Call {
                 // TODO(santoscordon): Once we move State handling from CallsManager to Call, we
                 // will not need to set RINGING state prior to calling reject.
                 setState(CallState.RINGING);
-                reject();
+                reject(false, null);
             } else {
                 // TODO(santoscordon): Make this class (not CallsManager) responsible for changing
                 // the call state to RINGING.
@@ -670,8 +681,11 @@ final class Call {
 
     /**
      * Rejects the call if it is ringing.
+     *
+     * @param rejectWithMessage Whether to send a text message as part of the call rejection.
+     * @param textMessage An optional text message to send as part of the rejection.
      */
-    void reject() {
+    void reject(boolean rejectWithMessage, String textMessage) {
         Preconditions.checkNotNull(mCallService);
 
         // Check to verify that the call is still in the ringing state. A call can change states
@@ -854,6 +868,66 @@ final class Call {
     }
 
     /**
+     * Return whether the user can respond to this {@code Call} via an SMS message.
+     *
+     * @return true if the "Respond via SMS" feature should be enabled
+     * for this incoming call.
+     *
+     * The general rule is that we *do* allow "Respond via SMS" except for
+     * the few (relatively rare) cases where we know for sure it won't
+     * work, namely:
+     *   - a bogus or blank incoming number
+     *   - a call from a SIP address
+     *   - a "call presentation" that doesn't allow the number to be revealed
+     *
+     * In all other cases, we allow the user to respond via SMS.
+     *
+     * Note that this behavior isn't perfect; for example we have no way
+     * to detect whether the incoming call is from a landline (with most
+     * networks at least), so we still enable this feature even though
+     * SMSes to that number will silently fail.
+     */
+    boolean isRespondViaSmsCapable() {
+        if (mState != CallState.RINGING) {
+            return false;
+        }
+
+        if (getHandle() == null) {
+            // No incoming number known or call presentation is "PRESENTATION_RESTRICTED", in
+            // other words, the user should not be able to see the incoming phone number.
+            return false;
+        }
+
+        if (PhoneNumberUtils.isUriNumber(getHandle().toString())) {
+            // The incoming number is actually a URI (i.e. a SIP address),
+            // not a regular PSTN phone number, and we can't send SMSes to
+            // SIP addresses.
+            // (TODO: That might still be possible eventually, though. Is
+            // there some SIP-specific equivalent to sending a text message?)
+            return false;
+        }
+
+        // Is there a valid SMS application on the phone?
+        if (SmsApplication.getDefaultRespondViaMessageApplication(TelecommApp.getInstance(),
+                true /*updateIfNeeded*/) == null) {
+            return false;
+        }
+
+        // TODO: with some carriers (in certain countries) you *can* actually
+        // tell whether a given number is a mobile phone or not. So in that
+        // case we could potentially return false here if the incoming call is
+        // from a land line.
+
+        // If none of the above special cases apply, it's OK to enable the
+        // "Respond via SMS" feature.
+        return true;
+    }
+
+    List<String> getCannedSmsResponses() {
+        return mCannedSmsResponses;
+    }
+
+    /**
      * @return True if the call is ringing, else logs the action name.
      */
     private boolean isRinging(String actionName) {
@@ -932,6 +1006,35 @@ final class Call {
         if (mQueryToken == token) {
             mCallerInfo.cachedPhoto = photo;
             mCallerInfo.cachedPhotoIcon = photoIcon;
+        }
+    }
+
+    private void maybeLoadCannedSmsResponses() {
+        if (mIsIncoming && isRespondViaSmsCapable() && !mCannedSmsResponsesLoadingStarted) {
+            Log.d(this, "maybeLoadCannedSmsResponses: starting task to load messages");
+            mCannedSmsResponsesLoadingStarted = true;
+            RespondViaSmsManager.getInstance().loadCannedTextMessages(
+                    new Response<Void, List<String>>() {
+                        @Override
+                        public void onResult(Void request, List<String>... result) {
+                            if (result.length > 0) {
+                                Log.d(this, "maybeLoadCannedSmsResponses: got %s", result[0]);
+                                mCannedSmsResponses = result[0];
+                                for (Listener l : mListeners) {
+                                    l.onCannedSmsResponsesLoaded(Call.this);
+                                }
+                            }
+                        }
+
+                        @Override
+                        public void onError(Void request, int code, String msg) {
+                            Log.w(Call.this, "Error obtaining canned SMS responses: %d %s", code,
+                                    msg);
+                        }
+                    }
+            );
+        } else {
+            Log.d(this, "maybeLoadCannedSmsResponses: doing nothing");
         }
     }
 }

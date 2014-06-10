@@ -57,12 +57,13 @@ public final class CallsManager implements Call.Listener {
                 CallServiceDescriptor oldDescriptor,
                 CallServiceDescriptor newDescriptor);
         void onIncomingCallAnswered(Call call);
-        void onIncomingCallRejected(Call call);
+        void onIncomingCallRejected(Call call, boolean rejectWithMessage, String textMessage);
         void onForegroundCallChanged(Call oldForegroundCall, Call newForegroundCall);
         void onAudioStateChanged(CallAudioState oldAudioState, CallAudioState newAudioState);
         void onRequestingRingback(Call call, boolean ringback);
         void onIsConferenceCapableChanged(Call call, boolean isConferenceCapable);
         void onIsConferencedChanged(Call call);
+        void onCannedSmsResponsesLoaded(Call call);
     }
 
     private static final CallsManager INSTANCE = new CallsManager();
@@ -121,6 +122,7 @@ public final class CallsManager implements Call.Listener {
         mListeners.add(app.getMissedCallNotifier());
         mListeners.add(mDtmfLocalTonePlayer);
         mListeners.add(mHeadsetMediaButton);
+        mListeners.add(RespondViaSmsManager.getInstance());
     }
 
     @Override
@@ -210,6 +212,13 @@ public final class CallsManager implements Call.Listener {
     public void onChildrenChanged(Call call) {
         for (CallsManagerListener listener : mListeners) {
             listener.onIsConferencedChanged(call);
+        }
+    }
+
+    @Override
+    public void onCannedSmsResponsesLoaded(Call call) {
+        for (CallsManagerListener listener : mListeners) {
+            listener.onCannedSmsResponsesLoaded(call);
         }
     }
 
@@ -338,14 +347,14 @@ public final class CallsManager implements Call.Listener {
      * app through {@link InCallAdapter} after Telecomm notifies it of an incoming call followed by
      * the user opting to reject said call.
      */
-    void rejectCall(Call call) {
+    void rejectCall(Call call, boolean rejectWithMessage, String textMessage) {
         if (!mCalls.contains(call)) {
             Log.i(this, "Request to reject a non-existent call %s", call);
         } else {
             for (CallsManagerListener listener : mListeners) {
-                listener.onIncomingCallRejected(call);
+                listener.onIncomingCallRejected(call, rejectWithMessage, textMessage);
             }
-            call.reject();
+            call.reject(rejectWithMessage, textMessage);
         }
     }
 

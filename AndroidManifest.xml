@@ -177,5 +177,12 @@
             </intent-filter>
         </receiver>
 
+        <activity android:name=".RespondViaSmsSettings$Settings"
+                  android:label="@string/respond_via_sms_setting_title"
+                  android:configChanges="orientation|screenSize|keyboardHidden">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+            </intent-filter>
+        </activity>
     </application>
 </manifest>

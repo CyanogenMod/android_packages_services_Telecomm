@@ -29,14 +29,13 @@ import android.telecomm.CallCapabilities;
 import android.telecomm.CallServiceDescriptor;
 import android.telecomm.CallState;
 import android.telecomm.InCallCall;
-import android.telecomm.CallState;
 
 import com.android.internal.telecomm.IInCallService;
 import com.google.common.collect.ImmutableCollection;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 
 /**
  * Binds to {@link IInCallService} and provides the service to {@link CallsManager} through which it
@@ -92,10 +91,12 @@ public final class InCallController extends CallsManagerListenerBase {
             bind();
         } else {
             Log.i(this, "Adding call: %s", call);
-            mCallIdMapper.addCall(call);
-            try {
-                mInCallService.addCall(toInCallCall(call));
-            } catch (RemoteException ignored) {
+            if (mCallIdMapper.getCallId(call) == null) {
+                mCallIdMapper.addCall(call);
+                try {
+                    mInCallService.addCall(toInCallCall(call));
+                } catch (RemoteException ignored) {
+                }
             }
         }
     }
@@ -165,6 +166,11 @@ public final class InCallController extends CallsManagerListenerBase {
     @Override
     public void onIsConferencedChanged(Call call) {
         Log.v(this, "onIsConferencedChanged %s", call);
+        updateCall(call);
+    }
+
+    @Override
+    public void onCannedSmsResponsesLoaded(Call call) {
         updateCall(call);
     }
 
@@ -308,9 +314,14 @@ public final class InCallController extends CallsManagerListenerBase {
             }
         }
 
+        if (call.isRespondViaSmsCapable()) {
+            capabilities |= CallCapabilities.RESPOND_VIA_TEXT;
+        }
+
         return new InCallCall(callId, state, call.getDisconnectCause(), call.getDisconnectMessage(),
-                capabilities, connectTimeMillis, call.getHandle(), call.getGatewayInfo(),
-                descriptor, call.getHandoffCallServiceDescriptor(), parentCallId, childCallIds);
+                call.getCannedSmsResponses(), capabilities, connectTimeMillis, call.getHandle(),
+                call.getGatewayInfo(), descriptor, call.getHandoffCallServiceDescriptor(),
+                parentCallId, childCallIds);
     }
 
 }
