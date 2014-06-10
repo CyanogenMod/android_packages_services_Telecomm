@@ -105,7 +105,7 @@ final class Ringer extends CallsManagerListenerBase {
     }
 
     @Override
-    public void onIncomingCallRejected(Call call) {
+    public void onIncomingCallRejected(Call call, boolean rejectWithMessage, String textMessage) {
         onRespondedToIncomingCall(call);
     }
 

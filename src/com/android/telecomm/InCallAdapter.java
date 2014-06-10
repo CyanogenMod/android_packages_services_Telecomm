@@ -45,54 +45,111 @@ class InCallAdapter extends IInCallAdapter.Stub {
     private final class InCallAdapterHandler extends Handler {
         @Override
         public void handleMessage(Message msg) {
-            Call call = null;
-            if (msg.obj != null) {
-                call = mCallIdMapper.getCall(msg.obj);
-                if (call == null) {
-                    Log.w(this, "Unknown call id: %s, msg: %d", msg.obj, msg.what);
-                    return;
-                }
-            }
-
+            Call call;
             switch (msg.what) {
                 case MSG_ANSWER_CALL:
-                    mCallsManager.answerCall(call);
+                    call = mCallIdMapper.getCall(msg.obj);
+                    if (call != null) {
+                        mCallsManager.answerCall(call);
+                    } else {
+                        Log.w(this, "answerCall, unknown call id: %s", msg.obj);
+                    }
                     break;
                 case MSG_REJECT_CALL:
-                    mCallsManager.rejectCall(call);
+                    SomeArgs args = (SomeArgs) msg.obj;
+                    try {
+                        call = mCallIdMapper.getCall(args.arg1);
+                        boolean rejectWithMessage = args.argi1 == 1;
+                        String textMessage = (String) args.arg2;
+                        if (call != null) {
+                            mCallsManager.rejectCall(call, rejectWithMessage, textMessage);
+                        } else {
+                            Log.w(this, "setRingback, unknown call id: %s", args.arg1);
+                        }
+                    } finally {
+                        args.recycle();
+                    }
                     break;
                 case MSG_PLAY_DTMF_TONE:
-                    mCallsManager.playDtmfTone(call, (char) msg.arg1);
+                    call = mCallIdMapper.getCall(msg.obj);
+                    if (call != null) {
+                        mCallsManager.playDtmfTone(call, (char) msg.arg1);
+                    } else {
+                        Log.w(this, "playDtmfTone, unknown call id: %s", msg.obj);
+                    }
                     break;
                 case MSG_STOP_DTMF_TONE:
-                    mCallsManager.stopDtmfTone(call);
+                    call = mCallIdMapper.getCall(msg.obj);
+                    if (call != null) {
+                        mCallsManager.stopDtmfTone(call);
+                    } else {
+                        Log.w(this, "stopDtmfTone, unknown call id: %s", msg.obj);
+                    }
                     break;
                 case MSG_POST_DIAL_CONTINUE:
+                    call = mCallIdMapper.getCall(msg.obj);
                     mCallsManager.postDialContinue(call, msg.arg1 == 1);
+                    call = mCallIdMapper.getCall(msg.obj);
+                    if (call != null) {
+                        mCallsManager.postDialContinue(call, msg.arg1 == 1);
+                    } else {
+                        Log.w(this, "postDialContinue, unknown call id: %s", msg.obj);
+                    }
                     break;
                 case MSG_DISCONNECT_CALL:
-                    mCallsManager.disconnectCall(call);
+                    call = mCallIdMapper.getCall(msg.obj);
+                    if (call != null) {
+                        mCallsManager.disconnectCall(call);
+                    } else {
+                        Log.w(this, "disconnectCall, unknown call id: %s", msg.obj);
+                    }
                     break;
                 case MSG_HOLD_CALL:
-                    mCallsManager.holdCall(call);
+                    call = mCallIdMapper.getCall(msg.obj);
+                    if (call != null) {
+                        mCallsManager.holdCall(call);
+                    } else {
+                        Log.w(this, "holdCall, unknown call id: %s", msg.obj);
+                    }
                     break;
                 case MSG_UNHOLD_CALL:
-                    mCallsManager.unholdCall(call);
+                    call = mCallIdMapper.getCall(msg.obj);
+                    if (call != null) {
+                        mCallsManager.unholdCall(call);
+                    } else {
+                        Log.w(this, "unholdCall, unknown call id: %s", msg.obj);
+                    }
                     break;
                 case MSG_HANDOFF_CALL:
-                    mCallsManager.startHandoffForCall(call);
+                    call = mCallIdMapper.getCall(msg.obj);
+                    if (call != null) {
+                        mCallsManager.startHandoffForCall(call);
+                    } else {
+                        Log.w(this, "startHandoffForCall, unknown call id: %s", msg.obj);
+                    }
                     break;
                 case MSG_MUTE:
-                    mCallsManager.mute(msg.arg1 == 1 ? true : false);
+                    mCallsManager.mute(msg.arg1 == 1);
                     break;
                 case MSG_SET_AUDIO_ROUTE:
                     mCallsManager.setAudioRoute(msg.arg1);
                     break;
                 case MSG_CONFERENCE:
-                    mCallsManager.conference(call);
+                    call = mCallIdMapper.getCall(msg.obj);
+                    if (call != null) {
+                        mCallsManager.conference(call);
+                    } else {
+                        Log.w(this, "conference, unknown call id: %s", msg.obj);
+                    }
+
                     break;
                 case MSG_SPLIT_FROM_CONFERENCE:
-                    call.splitFromConference();
+                    call = mCallIdMapper.getCall(msg.obj);
+                    if (call != null) {
+                        call.splitFromConference();
+                    } else {
+                        Log.w(this, "splitFromConference, unknown call id: %s", msg.obj);
+                    }
                     break;
             }
         }
@@ -119,10 +176,14 @@ class InCallAdapter extends IInCallAdapter.Stub {
 
     /** {@inheritDoc} */
     @Override
-    public void rejectCall(String callId) {
-        Log.d(this, "rejectCall(%s)", callId);
+    public void rejectCall(String callId, boolean rejectWithMessage, String textMessage) {
+        Log.d(this, "rejectCall(%s,%b,%s)", callId, rejectWithMessage, textMessage);
         mCallIdMapper.checkValidCallId(callId);
-        mHandler.obtainMessage(MSG_REJECT_CALL, callId).sendToTarget();
+        SomeArgs args = SomeArgs.obtain();
+        args.arg1 = callId;
+        args.argi1 = rejectWithMessage ? 1 : 0;
+        args.arg2 = textMessage;
+        mHandler.obtainMessage(MSG_REJECT_CALL, args).sendToTarget();
     }
 
     /** {@inheritDoc} */
