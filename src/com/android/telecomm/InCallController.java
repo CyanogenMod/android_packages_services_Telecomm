@@ -259,6 +259,9 @@ public final class InCallController extends CallsManagerListenerBase {
         if (call.getHandoffHandle() != null) {
             capabilities |= CallCapabilities.CONNECTION_HANDOFF;
         }
+        if (CallsManager.getInstance().isAddCallCapable(call)) {
+            capabilities |= CallCapabilities.ADD_CALL;
+        }
         CallState state = call.getState();
         if (state == CallState.ABORTED) {
             state = CallState.DISCONNECTED;
@@ -271,4 +274,5 @@ public final class InCallController extends CallsManagerListenerBase {
                 capabilities, call.getConnectTimeMillis(), call.getHandle(), call.getGatewayInfo(),
                 descriptor, call.getHandoffCallServiceDescriptor());
     }
+
 }
