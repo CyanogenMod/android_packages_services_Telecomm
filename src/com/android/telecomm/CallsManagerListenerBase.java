@@ -60,7 +60,7 @@ class CallsManagerListenerBase implements CallsManager.CallsManagerListener {
     }
 
     @Override
-    public void onIncomingCallRejected(Call call) {
+    public void onIncomingCallRejected(Call call, boolean rejectWithMessage, String textMessage) {
     }
 
     @Override
@@ -81,5 +81,9 @@ class CallsManagerListenerBase implements CallsManager.CallsManagerListener {
 
     @Override
     public void onIsConferencedChanged(Call call) {
+    }
+
+    @Override
+    public void onCannedSmsResponsesLoaded(Call call) {
     }
 }
