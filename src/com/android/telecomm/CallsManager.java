@@ -604,6 +604,29 @@ public final class CallsManager implements Call.Listener {
     }
 
     /**
+     * Checks to see if the specified call is the only high-level call and if so, enable the
+     * "Add-call" button. We allow you to add a second call but not a third or beyond.
+     *
+     * @param call The call to test for add-call.
+     * @return Whether the add-call feature should be enabled for the call.
+     */
+    protected boolean isAddCallCapable(Call call) {
+        if (call.getParentCall() != null) {
+            // Never true for child calls.
+            return false;
+        }
+
+        // Loop through all the other calls and there exists a top level (has no parent) call
+        // that is not the specified call, return false.
+        for (Call otherCall : mCalls) {
+            if (call != otherCall && otherCall.getParentCall() == null) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
      * Returns the first call that it finds with the given states. The states are treated as having
      * priority order so that any call with the first state will be returned before any call with
      * states listed later in the parameter list.

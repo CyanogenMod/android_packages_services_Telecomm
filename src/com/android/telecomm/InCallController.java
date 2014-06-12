@@ -277,6 +277,9 @@ public final class InCallController extends CallsManagerListenerBase {
         if (call.isConferenceCapable()) {
             capabilities |= CallCapabilities.MERGE_CALLS;
         }
+        if (CallsManager.getInstance().isAddCallCapable(call)) {
+            capabilities |= CallCapabilities.ADD_CALL;
+        }
         CallState state = call.getState();
         if (state == CallState.ABORTED) {
             state = CallState.DISCONNECTED;
@@ -307,4 +310,5 @@ public final class InCallController extends CallsManagerListenerBase {
                 capabilities, connectTimeMillis, call.getHandle(), call.getGatewayInfo(),
                 descriptor, call.getHandoffCallServiceDescriptor(), parentCallId, childCallIds);
     }
+
 }
