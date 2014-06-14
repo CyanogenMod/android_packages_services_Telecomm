@@ -16,15 +16,20 @@
 
 package com.android.telecomm;
 
+import com.google.android.collect.Lists;
+
+import com.android.internal.telecomm.ITelecommService;
+
 import android.content.ComponentName;
-import android.content.Context;
 import android.content.res.Resources;
+import android.net.Uri;
 import android.os.Handler;
 import android.os.Message;
 import android.os.ServiceManager;
+import android.telecomm.Subscription;
 import android.text.TextUtils;
 
-import com.android.internal.telecomm.ITelecommService;
+import java.util.List;
 
 /**
  * Implementation of the ITelecomm interface.
@@ -135,5 +140,69 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
         }
 
         return new ComponentName(packageName, className);
+    }
+
+    // TODO (STOPSHIP): Static list of Subscriptions for testing and UX work only.
+
+    private  static final ComponentName sComponentName = new ComponentName(
+            "com.android.telecomm",
+            TelecommServiceImpl.class.getName());  // This field is a no-op
+
+    private static final List<Subscription> sSubscriptions = Lists.newArrayList(
+            new Subscription(
+                    sComponentName,
+                    "subscription0",
+                    Uri.parse("tel:999-555-1212"),
+                    R.string.test_subscription_0_label,
+                    R.string.test_subscription_0_short_description,
+                    R.drawable.q_mobile,
+                    true,
+                    true),
+            new Subscription(
+                    sComponentName,
+                    "subscription1",
+                    Uri.parse("tel:333-111-2222"),
+                    R.string.test_subscription_1_label,
+                    R.string.test_subscription_1_short_description,
+                    R.drawable.market_wireless,
+                    true,
+                    false),
+            new Subscription(
+                    sComponentName,
+                    "subscription2",
+                    Uri.parse("mailto:two@example.com"),
+                    R.string.test_subscription_2_label,
+                    R.string.test_subscription_2_short_description,
+                    R.drawable.talk_to_your_circles,
+                    true,
+                    false),
+            new Subscription(
+                    sComponentName,
+                    "subscription3",
+                    Uri.parse("mailto:three@example.com"),
+                    R.string.test_subscription_3_label,
+                    R.string.test_subscription_3_short_description,
+                    R.drawable.chat_with_others,
+                    true,
+                    false)
+    );
+
+
+
+    @Override
+    public List<Subscription> getSubscriptions() {
+        return sSubscriptions;
+    }
+
+    @Override
+    public void setEnabled(Subscription subscription, boolean enabled) {
+        // Enforce MODIFY_PHONE_STATE ?
+        // TODO
+    }
+
+    @Override
+    public void setSystemDefault(Subscription subscription) {
+        // Enforce MODIFY_PHONE_STATE ?
+        // TODO
     }
 }
