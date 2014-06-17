@@ -278,8 +278,10 @@ public final class CallsManager implements Call.Listener {
      * @param contactInfo Information about the entity being called.
      * @param gatewayInfo Optional gateway information that can be used to route the call to the
      *         actual dialed handle via a gateway provider. May be null.
+     * @param speakerphoneOn Whether or not to turn the speakerphone on once the call connects.
      */
-    void placeOutgoingCall(Uri handle, ContactInfo contactInfo, GatewayInfo gatewayInfo) {
+    void placeOutgoingCall(Uri handle, ContactInfo contactInfo, GatewayInfo gatewayInfo,
+            boolean speakerphoneOn) {
         final Uri uriHandle = (gatewayInfo == null) ? handle : gatewayInfo.getGatewayHandle();
 
         if (gatewayInfo == null) {
@@ -291,6 +293,7 @@ public final class CallsManager implements Call.Listener {
 
         Call call = new Call(
                 uriHandle, gatewayInfo, false /* isIncoming */, false /* isConference */);
+        call.setStartWithSpeakerphoneOn(speakerphoneOn);
 
         // TODO(santoscordon): Move this to be a part of addCall()
         call.addListener(this);
@@ -504,6 +507,9 @@ public final class CallsManager implements Call.Listener {
 
         if (mPendingHandoffCalls.contains(call)) {
             completeHandoff(call, true);
+        }
+        if (call.getStartWithSpeakerphoneOn()) {
+            setAudioRoute(CallAudioState.ROUTE_SPEAKER);
         }
     }
 

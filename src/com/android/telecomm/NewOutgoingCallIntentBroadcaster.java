@@ -132,7 +132,9 @@ class NewOutgoingCallIntentBroadcaster {
             }
 
             GatewayInfo gatewayInfo = getGateWayInfoFromIntent(intent, resultHandleUri);
-            mCallsManager.placeOutgoingCall(resultHandleUri, mContactInfo, gatewayInfo);
+            mCallsManager.placeOutgoingCall(resultHandleUri, mContactInfo, gatewayInfo,
+                    mIntent.getBooleanExtra(TelecommConstants.EXTRA_START_CALL_WITH_SPEAKERPHONE,
+                            false));
         }
     }
 
@@ -199,7 +201,9 @@ class NewOutgoingCallIntentBroadcaster {
                     + " OutgoingCallBroadcastReceiver: %s", intent);
             String scheme = isUriNumber ? SCHEME_SIP : SCHEME_TEL;
             mCallsManager.placeOutgoingCall(
-                    Uri.fromParts(scheme, handle, null), mContactInfo, null);
+                    Uri.fromParts(scheme, handle, null), mContactInfo, null,
+                    mIntent.getBooleanExtra(TelecommConstants.EXTRA_START_CALL_WITH_SPEAKERPHONE,
+                            false));
 
             // Don't return but instead continue and send the ACTION_NEW_OUTGOING_CALL broadcast
             // so that third parties can still inspect (but not intercept) the outgoing call. When

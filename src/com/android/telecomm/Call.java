@@ -141,6 +141,8 @@ final class Call {
 
     private boolean mIsEmergencyCall;
 
+    private boolean mSpeakerphoneOn;
+
     /**
      * Disconnect cause for the call. Only valid if the state of the call is DISCONNECTED.
      * See {@link android.telephony.DisconnectCause}.
@@ -1036,5 +1038,21 @@ final class Call {
         } else {
             Log.d(this, "maybeLoadCannedSmsResponses: doing nothing");
         }
+    }
+
+    /**
+     * Sets speakerphone option on when call begins.
+     */
+    public void setStartWithSpeakerphoneOn(boolean startWithSpeakerphone) {
+        mSpeakerphoneOn = startWithSpeakerphone;
+    }
+
+    /**
+     * Returns speakerphone option.
+     *
+     * @return Whether or not speakerphone should be set automatically when call begins.
+     */
+    public boolean getStartWithSpeakerphoneOn() {
+        return mSpeakerphoneOn;
     }
 }
