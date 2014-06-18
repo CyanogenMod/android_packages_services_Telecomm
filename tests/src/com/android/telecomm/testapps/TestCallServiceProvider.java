@@ -34,7 +34,7 @@ public class TestCallServiceProvider extends CallServiceProvider {
         log("lookupCallServices");
 
         CallServiceDescriptor.Builder builder = CallServiceDescriptor.newBuilder(this);
-        builder.setCallService(TestCallService.class);
+        builder.setCallService(TestConnectionService.class);
         builder.setNetworkType(CallServiceDescriptor.FLAG_WIFI);
 
         response.setCallServiceDescriptors(Lists.newArrayList(builder.build()));

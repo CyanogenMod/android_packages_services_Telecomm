@@ -29,7 +29,7 @@
             </intent-filter>
         </service>
 
-        <service android:name="com.android.telecomm.testapps.TestCallService">
+        <service android:name="com.android.telecomm.testapps.TestConnectionService">
             <intent-filter>
                 <action android:name="android.telecomm.CallService" />
             </intent-filter>

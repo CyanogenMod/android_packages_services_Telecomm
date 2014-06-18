@@ -186,6 +186,6 @@ class CallServiceRepository extends BaseRepository<CallServiceWrapper> {
     @Override
     protected CallServiceWrapper onCreateNewServiceWrapper(ComponentName componentName,
             Object param) {
-        return new CallServiceWrapper((CallServiceDescriptor) param, mIncomingCallsManager);
+        return new CallServiceWrapper((CallServiceDescriptor) param, mIncomingCallsManager, this);
     }
 }

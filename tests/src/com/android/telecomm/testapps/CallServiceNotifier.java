@@ -27,7 +27,7 @@ import android.util.Log;
 
 /**
  * Class used to create, update and cancel the notification used to display and update call state
- * for {@link TestCallService}.
+ * for {@link TestConnectionService}.
  */
 public class CallServiceNotifier {
     private static final CallServiceNotifier INSTANCE = new CallServiceNotifier();
@@ -86,7 +86,7 @@ public class CallServiceNotifier {
 
         builder.setSmallIcon(android.R.drawable.stat_sys_phone_call);
         builder.setContentText("Test calls via CallService API");
-        builder.setContentTitle("TestCallService");
+        builder.setContentTitle("TestConnectionService");
 
         addAddCallAction(builder, context);
         addExitAction(builder, context);
@@ -109,9 +109,9 @@ public class CallServiceNotifier {
      */
     private PendingIntent createIncomingCallIntent(Context context) {
         log("Creating incoming call pending intent.");
-        // Build descriptor for TestCallService.
+        // Build descriptor for TestConnectionService.
         CallServiceDescriptor.Builder descriptorBuilder = CallServiceDescriptor.newBuilder(context);
-        descriptorBuilder.setCallService(TestCallService.class);
+        descriptorBuilder.setCallService(TestConnectionService.class);
         descriptorBuilder.setNetworkType(CallServiceDescriptor.FLAG_WIFI);
 
         // Create intent for adding an incoming call.
