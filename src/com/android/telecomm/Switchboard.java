@@ -34,8 +34,7 @@ import java.util.Collection;
 import java.util.Set;
 
 /**
- * Switchboard is responsible for:
- * - gathering the {@link CallServiceWrapper}s and {@link CallServiceSelectorWrapper}s through
+ * Switchboard is responsible for gathering the {@link CallServiceWrapper}s through
  *       which to place outgoing calls
  */
 final class Switchboard {
@@ -45,8 +44,6 @@ final class Switchboard {
     private final IncomingCallsManager mIncomingCallsManager;
 
     private final CallServiceRepository mCallServiceRepository;
-
-    private final CallServiceSelectorRepository mSelectorRepository;
 
     /** Singleton accessor. */
     static Switchboard getInstance() {
@@ -60,17 +57,12 @@ final class Switchboard {
         ThreadUtil.checkOnMainThread();
 
         mIncomingCallsManager = new IncomingCallsManager();
-        mSelectorRepository = new CallServiceSelectorRepository();
         mCallServiceRepository =
                 new CallServiceRepository(mIncomingCallsManager);
     }
 
     CallServiceRepository getCallServiceRepository() {
         return mCallServiceRepository;
-    }
-
-    CallServiceSelectorRepository getSelectorRepository() {
-        return mSelectorRepository;
     }
 
     /**

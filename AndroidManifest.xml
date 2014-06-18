@@ -166,9 +166,6 @@
             </intent-filter>
         </activity-alias>
 
-        <!-- Selects call services to place emergency calls. -->
-        <service android:name="EmergencyCallServiceSelector" android:exported="false" />
-
         <receiver android:name="TelecommBroadcastReceiver" android:exported="false">
             <intent-filter>
                 <action android:name="com.android.telecomm.ACTION_CALL_BACK_FROM_NOTIFICATION" />

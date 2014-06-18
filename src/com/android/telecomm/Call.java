@@ -129,11 +129,6 @@ final class Call {
     private CallServiceWrapper mCallService;
 
     /**
-     * The call-service selector for this call.
-     */
-    private CallServiceSelectorWrapper mCallServiceSelector;
-
-    /**
      * The set of call services that were attempted in the process of placing/switching this call
      * but turned out unsuitable.  Only used in the context of call switching.
      */
@@ -179,7 +174,6 @@ final class Call {
 
     // TODO(santoscordon): The repositories should be changed into singleton types.
     private CallServiceRepository mCallServiceRepository;
-    private CallServiceSelectorRepository mSelectorRepository;
 
     /** Caller information retrieved from the latest contact query. */
     private CallerInfo mCallerInfo;
@@ -447,31 +441,6 @@ final class Call {
         }
     }
 
-    CallServiceSelectorWrapper getCallServiceSelector() {
-        return mCallServiceSelector;
-    }
-
-    void setCallServiceSelector(CallServiceSelectorWrapper selector) {
-        Preconditions.checkNotNull(selector);
-
-        clearCallServiceSelector();
-
-        selector.incrementAssociatedCallCount();
-        mCallServiceSelector = selector;
-        mCallServiceSelector.addCall(this);
-    }
-
-    void clearCallServiceSelector() {
-        if (mCallServiceSelector != null) {
-            CallServiceSelectorWrapper selectorTemp = mCallServiceSelector;
-            mCallServiceSelector = null;
-            selectorTemp.removeCall(this);
-
-            // See comment on {@link #clearCallService}.
-            decrementAssociatedCallCount(selectorTemp);
-        }
-    }
-
     /**
      * Starts the incoming call flow through the switchboard. When switchboard completes, it will
      * invoke handle[Un]SuccessfulIncomingCall.
@@ -557,7 +526,6 @@ final class Call {
         mOutgoingCallProcessor = new OutgoingCallProcessor(
                 this,
                 Switchboard.getInstance().getCallServiceRepository(),
-                Switchboard.getInstance().getSelectorRepository(),
                 new AsyncResultCallback<Boolean>() {
                     @Override
                     public void onResult(Boolean wasCallPlaced, int errorCode, String errorMsg) {
@@ -587,7 +555,6 @@ final class Call {
         }
 
         clearCallService();
-        clearCallServiceSelector();
     }
 
     /**

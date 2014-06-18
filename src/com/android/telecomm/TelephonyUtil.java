@@ -31,24 +31,16 @@ public final class TelephonyUtil {
     private static final String TELEPHONY_PACKAGE_NAME =
             "com.android.phone";
 
-    private static final String GSM_CALL_SERVICE_CLASS_NAME =
-            "com.android.services.telephony.GsmConnectionService";
-
-    private static final String CDMA_CALL_SERVICE_CLASS_NAME =
-            "com.android.services.telephony.CdmaConnectionService";
+    private static final String PSTN_CALL_SERVICE_CLASS_NAME =
+            "com.android.services.telephony.PstnConnectionService";
 
     private TelephonyUtil() {}
-
-    static boolean isTelephonySelector(CallServiceSelectorWrapper selector) {
-        return selector.getComponentName().getPackageName().equals(TELEPHONY_PACKAGE_NAME);
-    }
 
     static boolean isPstnCallService(CallServiceDescriptor descriptor) {
         ComponentName componentName = descriptor.getServiceComponent();
         if (TELEPHONY_PACKAGE_NAME.equals(componentName.getPackageName())) {
             String className = componentName.getClassName();
-            return GSM_CALL_SERVICE_CLASS_NAME.equals(className) ||
-                    CDMA_CALL_SERVICE_CLASS_NAME.equals(className);
+            return PSTN_CALL_SERVICE_CLASS_NAME.equals(className);
         }
 
         return false;
@@ -60,8 +52,7 @@ public final class TelephonyUtil {
      */
     static boolean isCurrentlyPSTNCall(Call call) {
         if (Log.DEBUG) {
-            verifyCallServiceExists(GSM_CALL_SERVICE_CLASS_NAME);
-            verifyCallServiceExists(CDMA_CALL_SERVICE_CLASS_NAME);
+            verifyCallServiceExists(PSTN_CALL_SERVICE_CLASS_NAME);
         }
 
         CallServiceWrapper callService = call.getCallService();

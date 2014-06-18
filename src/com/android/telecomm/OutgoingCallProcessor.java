@@ -16,15 +16,15 @@
 
 package com.android.telecomm;
 
-import android.content.ComponentName;
+import android.net.Uri;
 import android.os.Handler;
 import android.os.Message;
 import android.telecomm.CallServiceDescriptor;
 import android.telephony.DisconnectCause;
+import android.telephony.PhoneNumberUtils;
 
 import com.android.telecomm.BaseRepository.LookupCallback;
 import com.google.android.collect.Sets;
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 
 import java.util.ArrayList;
@@ -70,8 +70,6 @@ final class OutgoingCallProcessor {
 
     private final CallServiceRepository mCallServiceRepository;
 
-    private final CallServiceSelectorRepository mSelectorRepository;
-
     private final Handler mHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
@@ -93,13 +91,6 @@ final class OutgoingCallProcessor {
      */
     private Iterator<CallServiceDescriptor> mCallServiceDescriptorIterator;
 
-    /**
-     * The list of currently-available call-service selector implementations.
-     */
-    private Collection<CallServiceSelectorWrapper> mSelectors;
-
-    private Iterator<CallServiceSelectorWrapper> mSelectorIterator;
-
     private AsyncResultCallback<Boolean> mResultCallback;
 
     private boolean mIsAborted = false;
@@ -109,21 +100,17 @@ final class OutgoingCallProcessor {
     private String mLastErrorMsg = null;
 
     /**
-     * Persists the specified parameters and iterates through the prioritized list of selectors
-     * passing to each selector (read-only versions of) the call object and all available call-
-     * service descriptors.  Stops once a matching selector is found.  Calls with no matching
-     * selectors will eventually be killed by the cleanup/monitor switchboard handler, which will
-     * in turn call the abort method of this processor via {@link OutgoingCallsManager}.
+     * Persists the specified parameters and iterates through the prioritized list of call
+     * services. Stops once a matching call service is found. Calls with no matching
+     * call service will eventually be killed by the cleanup/monitor switchboard handler.
      *
      * @param call The call to place.
      * @param callServiceRepository
-     * @param selectorRepository
      * @param resultCallback The callback on which to return the result.
      */
     OutgoingCallProcessor(
             Call call,
             CallServiceRepository callServiceRepository,
-            CallServiceSelectorRepository selectorRepository,
             AsyncResultCallback<Boolean> resultCallback) {
 
         ThreadUtil.checkOnMainThread();
@@ -131,7 +118,6 @@ final class OutgoingCallProcessor {
         mCall = call;
         mResultCallback = resultCallback;
         mCallServiceRepository = callServiceRepository;
-        mSelectorRepository = selectorRepository;
     }
 
     /**
@@ -150,20 +136,6 @@ final class OutgoingCallProcessor {
                     setCallServices(services);
                 }
             });
-
-            if (mCall.getCallServiceSelector() == null) {
-                // Lookup selectors
-                mSelectorRepository.lookupServices(
-                        new LookupCallback<CallServiceSelectorWrapper>() {
-                            @Override
-                            public void onComplete(
-                                    Collection<CallServiceSelectorWrapper> selectors) {
-                                setSelectors(selectors);
-                            }
-                        });
-            } else {
-                setSelectors(ImmutableList.of(mCall.getCallServiceSelector()));
-            }
         }
     }
 
@@ -235,23 +207,6 @@ final class OutgoingCallProcessor {
     }
 
     /**
-     * Persists the ordered-list of call-service descriptor as selected by the current selector and
-     * starts iterating through the corresponding call services continuing the attempt to place the
-     * call.
-     *
-     * @param descriptors The (ordered) list of call-service descriptor.
-     */
-    void processSelectedCallServices(List<CallServiceDescriptor> descriptors) {
-        Log.v(this, "processSelectedCallServices");
-        if (descriptors == null || descriptors.isEmpty()) {
-            attemptNextSelector();
-        } else if (mCallServiceDescriptorIterator == null) {
-            mCallServiceDescriptorIterator = descriptors.iterator();
-            attemptNextCallService();
-        }
-    }
-
-    /**
      * Sets the call services to attempt for this outgoing call.
      *
      * @param callServices The call services.
@@ -267,96 +222,15 @@ final class OutgoingCallProcessor {
             mCallServicesById.put(descriptor.getCallServiceId(), callService);
         }
 
-        onLookupComplete();
-    }
+        adjustCallServiceDescriptorsForEmergency();
 
-    /**
-     * Sets the selectors to attemnpt for this outgoing call.
-     *
-     * @param selectors The call-service selectors.
-     */
-    private void setSelectors(Collection<CallServiceSelectorWrapper> selectors) {
-        mSelectors = adjustForEmergencyCalls(selectors);
-        onLookupComplete();
-    }
-
-    private void onLookupComplete() {
-        if (!mIsAborted && mSelectors != null && mCallServiceDescriptors != null) {
-            if (mSelectorIterator == null) {
-                mSelectorIterator = mSelectors.iterator();
-                attemptNextSelector();
-            }
-        }
-    }
-
-    /**
-     * Updates the specified collection of selectors to accomodate for emergency calls and any
-     * preferred selectors specified in the call object.
-     *
-     * @param selectors The selectors found through the selector repository.
-     */
-    private Collection<CallServiceSelectorWrapper> adjustForEmergencyCalls(
-            Collection<CallServiceSelectorWrapper> selectors) {
-        boolean useEmergencySelector =
-                EmergencyCallServiceSelector.shouldUseSelector(mCall.getHandle());
-        Log.d(this, "processNewOutgoingCall, isEmergency=%b", useEmergencySelector);
-
-        if (useEmergencySelector) {
-            // This is potentially an emergency call so add the emergency selector before the
-            // other selectors.
-            ImmutableList.Builder<CallServiceSelectorWrapper> selectorsBuilder =
-                    ImmutableList.builder();
-
-            ComponentName componentName = new ComponentName(
-                    TelecommApp.getInstance(), EmergencyCallServiceSelector.class);
-            CallServiceSelectorWrapper emergencySelector =
-                    new CallServiceSelectorWrapper(
-                            componentName.flattenToShortString(),
-                            componentName,
-                            CallsManager.getInstance());
-
-            selectorsBuilder.add(emergencySelector);
-            selectorsBuilder.addAll(selectors);
-            selectors = selectorsBuilder.build();
-        }
-
-        return selectors;
-    }
-
-    /**
-     * Attempts to place the call using the next selector, no-op if no other selectors
-     * are available.
-     */
-    private void attemptNextSelector() {
-        Log.v(this, "attemptNextSelector, mIsAborted: %b", mIsAborted);
-        if (mIsAborted) {
-            return;
-        }
-
-        if (mSelectorIterator.hasNext()) {
-            CallServiceSelectorWrapper selector = mSelectorIterator.next();
-            mCall.setCallServiceSelector(selector);
-            selector.select(mCall, mCallServiceDescriptors,
-                    new AsyncResultCallback<List<CallServiceDescriptor>>() {
-                        @Override
-                        public void onResult(
-                                List<CallServiceDescriptor> descriptors,
-                                int errorCode, String errorMsg) {
-                            processSelectedCallServices(descriptors);
-                        }
-                    });
-        } else {
-            Log.v(this, "attemptNextSelector, no more selectors, failing");
-            mCall.clearCallServiceSelector();
-            sendResult(false, mLastErrorCode, mLastErrorMsg);
-        }
+        mCallServiceDescriptorIterator = mCallServiceDescriptors.iterator();
+        attemptNextCallService();
     }
 
     /**
      * Attempts to place the call using the call service specified by the next call-service
-     * descriptor of mCallServiceDescriptorIterator.  If there are no more call services to
-     * attempt, the process continues to the next call-service selector via
-     * {@link #attemptNextSelector}.
+     * descriptor of mCallServiceDescriptorIterator.
      */
     private void attemptNextCallService() {
         Log.v(this, "attemptNextCallService, mIsAborted: %b", mIsAborted);
@@ -397,9 +271,10 @@ final class OutgoingCallProcessor {
                 });
             }
         } else {
+            Log.v(this, "attemptNextCallService, no more service descriptors, failing");
             mCallServiceDescriptorIterator = null;
             mCall.clearCallService();
-            attemptNextSelector();
+            sendResult(false, mLastErrorCode, mLastErrorMsg);
         }
     }
 
@@ -412,5 +287,23 @@ final class OutgoingCallProcessor {
         } else {
             Log.wtf(this, "Attempting to return outgoing result twice for call %s", mCall);
         }
+    }
+
+    // If we are possibly attempting to call a local emergency number, ensure that the
+    // plain PSTN call service, if it exists, is attempted first.
+    private void adjustCallServiceDescriptorsForEmergency()  {
+        if (shouldProcessAsEmergency(mCall.getHandle())) {
+            for (int i = 0; i < mCallServiceDescriptors.size(); i++) {
+                if (TelephonyUtil.isPstnCallService(mCallServiceDescriptors.get(i))) {
+                    mCallServiceDescriptors.add(0, mCallServiceDescriptors.remove(i));
+                    return;
+                }
+            }
+        }
+    }
+
+    private boolean shouldProcessAsEmergency(Uri handle) {
+        return PhoneNumberUtils.isPotentialLocalEmergencyNumber(
+                TelecommApp.getInstance(), handle.getSchemeSpecificPart());
     }
 }

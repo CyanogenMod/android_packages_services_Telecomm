@@ -58,24 +58,6 @@ public class TestCallService extends CallService {
     }
 
     /**
-     * Responds as compatible for all calls except those starting with the number 7 (arbitrarily
-     * chosen for testing purposes).
-     *
-     * {@inheritDoc}
-     */
-    @Override
-    public void isCompatibleWith(CallInfo callInfo) {
-        log("isCompatibleWith, callInfo: " + callInfo);
-        Preconditions.checkNotNull(callInfo.getHandle());
-
-        // Is compatible if the handle doesn't start with 7.
-        boolean isCompatible = !callInfo.getHandle().getSchemeSpecificPart().startsWith("7");
-
-        // Tell CallsManager whether this call service can place the call.
-        getAdapter().setIsCompatibleWith(callInfo.getId(), isCompatible);
-    }
-
-    /**
      * Starts a call by calling into the adapter.
      *
      * {@inheritDoc}

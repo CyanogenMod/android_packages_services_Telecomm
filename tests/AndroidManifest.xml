@@ -35,12 +35,6 @@
             </intent-filter>
         </service>
 
-        <service android:name="com.android.telecomm.testapps.DummyCallServiceSelector">
-            <intent-filter>
-                <action android:name="android.telecomm.CallServiceSelector" />
-            </intent-filter>
-        </service>
-
         <activity android:name="com.android.telecomm.testapps.TestCallActivity"
                 android:label="@string/testCallActivityLabel">
             <intent-filter>

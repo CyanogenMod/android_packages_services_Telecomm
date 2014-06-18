@@ -475,7 +475,6 @@ public final class CallsManager implements Call.Listener {
                 originalCall.getHandoffHandle(), originalCall.getGatewayInfo(), false, false);
         tempCall.setOriginalCall(originalCall);
         tempCall.setExtras(originalCall.getExtras());
-        tempCall.setCallServiceSelector(originalCall.getCallServiceSelector());
         mPendingHandoffCalls.add(tempCall);
         tempCall.addListener(this);
 
@@ -680,7 +679,6 @@ public final class CallsManager implements Call.Listener {
 
         call.removeListener(this);
         call.clearCallService();
-        call.clearCallServiceSelector();
 
         boolean shouldNotify = false;
         if (mCalls.contains(call)) {
