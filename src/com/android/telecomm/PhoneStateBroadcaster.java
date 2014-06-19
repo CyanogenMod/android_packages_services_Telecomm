@@ -60,10 +60,12 @@ final class PhoneStateBroadcaster extends CallsManagerListenerBase {
         intent.putExtra(TelephonyManager.EXTRA_STATE, phoneState);
 
         // Populate both, since the original API was needlessly complicated.
-        String callHandle = call.getHandle().getSchemeSpecificPart();
-        intent.putExtra(TelephonyManager.EXTRA_INCOMING_NUMBER, callHandle);
-        // TODO: See if we can add this (the current API only sets this on NEW_OUTGOING_CALL).
-        intent.putExtra(Intent.EXTRA_PHONE_NUMBER, callHandle);
+        if (call.getHandle() != null) {
+            String callHandle = call.getHandle().getSchemeSpecificPart();
+            intent.putExtra(TelephonyManager.EXTRA_INCOMING_NUMBER, callHandle);
+            // TODO: See if we can add this (the current API only sets this on NEW_OUTGOING_CALL).
+            intent.putExtra(Intent.EXTRA_PHONE_NUMBER, callHandle);
+        }
 
         // TODO: Replace these with real constants once this API has been vetted.
         CallServiceWrapper callService = call.getCallService();
