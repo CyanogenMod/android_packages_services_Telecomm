@@ -3,7 +3,6 @@ package com.android.telecomm.testapps;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
-import android.telecomm.TelecommConstants;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.EditText;
@@ -48,9 +47,7 @@ public class TestDialerActivity extends Activity {
     }
 
     private void setDefault() {
-        final Intent intent = new Intent(TelecommConstants.ACTION_CHANGE_DEFAULT_PHONE);
-        intent.putExtra(TelecommConstants.EXTRA_PACKAGE_NAME, this.getBasePackageName());
-        startActivity(intent);
+        // TODO: Send a request to become the default dialer application
     }
 
     private void placeCall() {
