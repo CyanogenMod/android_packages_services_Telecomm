@@ -17,18 +17,31 @@
 package com.android.telecomm;
 
 import android.app.Activity;
+import android.content.ComponentName;
 import android.content.Intent;
 import android.content.res.Configuration;
 import android.os.Bundle;
 import android.telecomm.CallServiceDescriptor;
+import android.telecomm.PhoneApplication;
 import android.telecomm.TelecommConstants;
+import android.telecomm.TelecommManager;
+import android.text.TextUtils;
 
 /**
  * Activity that handles system CALL actions and forwards them to {@link CallsManager}.
  * Handles all three CALL action types: CALL, CALL_PRIVILEGED, and CALL_EMERGENCY.
+ *
+ * Pre-L, only the system dialer was allowed to make outgoing emergency calls via the
+ * CALL_PRIVILEGED action (which requires the system only CALL_PRIVILEGED permission).
+ *
+ * In L, the system dialer can continue to make outgoing emergency calls via CALL_PRIVILEGED.
+ * Also, the user-selected default dialer and the system dialer will be granted the ability to make
+ * emergency outgoing calls using the CALL action. In order to do this, they must call
+ * startActivityForResult on the CALL intent to allow their package name to be passed to
+ * {@link CallActivity}. Calling startActivity will continue to work on all non-emergency numbers
+ * just like it did pre-L.
  */
 public class CallActivity extends Activity {
-
     private CallsManager mCallsManager = CallsManager.getInstance();
 
     /**
@@ -92,8 +105,10 @@ public class CallActivity extends Activity {
     private void processOutgoingCallIntent(Intent intent) {
         ContactInfo contactInfo = null;
         NewOutgoingCallIntentBroadcaster broadcaster =
-                new NewOutgoingCallIntentBroadcaster(mCallsManager, contactInfo, intent);
-        broadcaster.processIntent();
+                new NewOutgoingCallIntentBroadcaster(mCallsManager, contactInfo, intent,
+                        isDefaultOrSystemDialer());
+        final boolean success = broadcaster.processIntent();
+        setResult(success ? RESULT_OK : RESULT_CANCELED);
     }
 
     /**
@@ -117,5 +132,27 @@ public class CallActivity extends Activity {
 
         Log.d(this, "Processing incoming call from call service [%s]", descriptor);
         mCallsManager.processIncomingCallIntent(descriptor, clientExtras);
+    }
+
+    private boolean isDefaultOrSystemDialer() {
+        final String packageName = getCallingPackage();
+        if (TextUtils.isEmpty(packageName)) {
+            return false;
+        }
+
+        final ComponentName defaultPhoneApp = PhoneApplication.getDefaultPhoneApplication(this);
+        if (defaultPhoneApp != null) {
+            if (TextUtils.equals(defaultPhoneApp.getPackageName(), packageName)) {
+                return true;
+            }
+        }
+
+        TelecommManager telecommManager = (TelecommManager) getSystemService(TELECOMM_SERVICE);
+        final ComponentName systemPhoneApp = telecommManager.getSystemPhoneApplication();
+        if (systemPhoneApp != null) {
+            return TextUtils.equals(systemPhoneApp.getPackageName(), packageName);
+        } else {
+            return false;
+        }
     }
 }
