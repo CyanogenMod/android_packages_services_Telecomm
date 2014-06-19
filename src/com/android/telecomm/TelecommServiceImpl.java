@@ -129,19 +129,6 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
         CallsManager.getInstance().getInCallController().bringToForeground(showDialpad);
     }
 
-    @Override
-    public ComponentName getSystemPhoneApplication() {
-        final Resources resources = TelecommApp.getInstance().getResources();
-        final String packageName = resources.getString(R.string.ui_default_package);
-        final String className = resources.getString(R.string.dialer_default_class);
-
-        if (TextUtils.isEmpty(packageName) || TextUtils.isEmpty(className)) {
-            return null;
-        }
-
-        return new ComponentName(packageName, className);
-    }
-
     // TODO (STOPSHIP): Static list of Subscriptions for testing and UX work only.
 
     private  static final ComponentName sComponentName = new ComponentName(
