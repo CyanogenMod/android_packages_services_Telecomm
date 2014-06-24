@@ -86,4 +86,9 @@ class CallsManagerListenerBase implements CallsManager.CallsManagerListener {
     @Override
     public void onCannedSmsResponsesLoaded(Call call) {
     }
+
+    @Override
+    public void onCallVideoProviderChanged(Call call) {
+
+    }
 }

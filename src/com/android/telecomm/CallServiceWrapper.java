@@ -287,8 +287,9 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
                         SomeArgs args = (SomeArgs) msg.obj;
                         try {
                             call = mCallIdMapper.getCall(args.arg1);
+                            ICallVideoProvider callVideoProvider = (ICallVideoProvider) args.arg2;
                             if (call != null) {
-                                call.setCallVideoProvider();
+                                call.setCallVideoProvider(callVideoProvider);
                             }
                         } finally {
                             args.recycle();
