@@ -38,6 +38,7 @@ import android.os.SystemProperties;
 import android.os.UserHandle;
 import android.provider.ContactsContract;
 import android.telecomm.GatewayInfo;
+import android.telecomm.Subscription;
 import android.telecomm.TelecommConstants;
 import android.telephony.PhoneNumberUtils;
 import android.telephony.TelephonyManager;
@@ -134,7 +135,9 @@ class NewOutgoingCallIntentBroadcaster {
             }
 
             GatewayInfo gatewayInfo = getGateWayInfoFromIntent(intent, resultHandleUri);
+            Subscription subscription = getSubscriptionFromIntent(intent);
             mCallsManager.placeOutgoingCall(resultHandleUri, mContactInfo, gatewayInfo,
+                    subscription,
                     mIntent.getBooleanExtra(TelecommConstants.EXTRA_START_CALL_WITH_SPEAKERPHONE,
                             false));
         }
@@ -203,7 +206,7 @@ class NewOutgoingCallIntentBroadcaster {
                     + " OutgoingCallBroadcastReceiver: %s", intent);
             String scheme = isUriNumber ? SCHEME_SIP : SCHEME_TEL;
             mCallsManager.placeOutgoingCall(
-                    Uri.fromParts(scheme, handle, null), mContactInfo, null,
+                    Uri.fromParts(scheme, handle, null), mContactInfo, null, null,
                     mIntent.getBooleanExtra(TelecommConstants.EXTRA_START_CALL_WITH_SPEAKERPHONE,
                             false));
 
@@ -241,7 +244,7 @@ class NewOutgoingCallIntentBroadcaster {
         broadcastIntent.addFlags(Intent.FLAG_RECEIVER_FOREGROUND);
         Log.v(this, "Broadcasting intent: %s.", broadcastIntent);
 
-        checkAndCopyGatewayProviderExtras(originalCallIntent, broadcastIntent);
+        checkAndCopyProviderExtras(originalCallIntent, broadcastIntent);
 
         context.sendOrderedBroadcastAsUser(
                 broadcastIntent,
@@ -261,7 +264,10 @@ class NewOutgoingCallIntentBroadcaster {
      * @param src Intent which may contain the provider's extras.
      * @param dst Intent where a copy of the extras will be added if applicable.
      */
-    public void checkAndCopyGatewayProviderExtras(Intent src, Intent dst) {
+    public void checkAndCopyProviderExtras(Intent src, Intent dst) {
+        if (src == null) {
+            return;
+        }
         if (hasGatewayProviderExtras(src)) {
             dst.putExtra(EXTRA_GATEWAY_PROVIDER_PACKAGE,
                     src.getStringExtra(EXTRA_GATEWAY_PROVIDER_PACKAGE));
@@ -270,8 +276,14 @@ class NewOutgoingCallIntentBroadcaster {
             Log.d(this, "Found and copied gateway provider extras to broadcast intent.");
             return;
         }
+        Subscription extraSubscription = src.getParcelableExtra(
+                TelephonyManager.EXTRA_SUBSCRIPTION);
+        if (extraSubscription != null) {
+            dst.putExtra(TelephonyManager.EXTRA_SUBSCRIPTION, extraSubscription);
+            Log.d(this, "Found and copied subscription extra to broadcast intent.");
+        }
 
-        Log.d(this, "No gateway provider extras found in call intent.");
+        Log.d(this, "No provider extras found in call intent.");
     }
 
     /**
@@ -281,9 +293,6 @@ class NewOutgoingCallIntentBroadcaster {
      * @return true if the intent has all the gateway information extras needed.
      */
     private boolean hasGatewayProviderExtras(Intent intent) {
-        if (intent == null) {
-            return false;
-        }
         final String name = intent.getStringExtra(EXTRA_GATEWAY_PROVIDER_PACKAGE);
         final String uriString = intent.getStringExtra(EXTRA_GATEWAY_URI);
 
@@ -315,6 +324,20 @@ class NewOutgoingCallIntentBroadcaster {
         }
 
         return null;
+    }
+
+    /**
+     * Extracts subscription/connection provider information from a provided intent..
+     *
+     * @param intent to extract subscription information from.
+     * @return Subscription object containing extracted subscription information
+     */
+    public static Subscription getSubscriptionFromIntent(Intent intent) {
+        if (intent == null) {
+            return null;
+        }
+
+        return intent.getParcelableExtra(TelephonyManager.EXTRA_SUBSCRIPTION);
     }
 
     private void launchSystemDialer(Context context, Uri handle) {

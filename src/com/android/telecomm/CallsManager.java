@@ -23,6 +23,7 @@ import android.telecomm.CallInfo;
 import android.telecomm.CallServiceDescriptor;
 import android.telecomm.CallState;
 import android.telecomm.GatewayInfo;
+import android.telecomm.Subscription;
 import android.telephony.DisconnectCause;
 
 import com.google.common.base.Preconditions;
@@ -283,7 +284,7 @@ public final class CallsManager implements Call.Listener {
      * @param speakerphoneOn Whether or not to turn the speakerphone on once the call connects.
      */
     void placeOutgoingCall(Uri handle, ContactInfo contactInfo, GatewayInfo gatewayInfo,
-            boolean speakerphoneOn) {
+            Subscription subscription, boolean speakerphoneOn) {
         final Uri uriHandle = (gatewayInfo == null) ? handle : gatewayInfo.getGatewayHandle();
 
         if (gatewayInfo == null) {
@@ -294,7 +295,8 @@ public final class CallsManager implements Call.Listener {
         }
 
         Call call = new Call(
-                uriHandle, gatewayInfo, false /* isIncoming */, false /* isConference */);
+                uriHandle, gatewayInfo, subscription,
+                false /* isIncoming */, false /* isConference */);
         call.setStartWithSpeakerphoneOn(speakerphoneOn);
 
         // TODO(santoscordon): Move this to be a part of addCall()
@@ -474,7 +476,8 @@ public final class CallsManager implements Call.Listener {
         // particular the original call's call service will be updated to the new call's call
         // service.
         Call tempCall = new Call(
-                originalCall.getHandoffHandle(), originalCall.getGatewayInfo(), false, false);
+                originalCall.getHandoffHandle(), originalCall.getGatewayInfo(),
+                originalCall.getSubscription(), false, false);
         tempCall.setOriginalCall(originalCall);
         tempCall.setExtras(originalCall.getExtras());
         mPendingHandoffCalls.add(tempCall);

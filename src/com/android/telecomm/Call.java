@@ -29,6 +29,7 @@ import android.telecomm.CallState;
 import android.telecomm.GatewayInfo;
 import android.telecomm.InCallService;
 import android.telecomm.Response;
+import android.telecomm.Subscription;
 import android.telecomm.TelecommConstants;
 import android.telephony.DisconnectCause;
 import android.telephony.PhoneNumberUtils;
@@ -114,6 +115,8 @@ final class Call implements OutgoingCallResponse {
      * order to connect the call via the gateway, as well as the package name of the gateway
      * service. */
     private final GatewayInfo mGatewayInfo;
+
+    private final Subscription mSubscription;
 
     private final Handler mHandler = new Handler();
 
@@ -209,7 +212,7 @@ final class Call implements OutgoingCallResponse {
      * @param isIncoming True if this is an incoming call.
      */
     Call(boolean isIncoming, boolean isConference) {
-        this(null, null, isIncoming, isConference);
+        this(null, null, null, isIncoming, isConference);
     }
 
     /**
@@ -217,12 +220,15 @@ final class Call implements OutgoingCallResponse {
      *
      * @param handle The handle to dial.
      * @param gatewayInfo Gateway information to use for the call.
+     * @param subscription Subscription information to use for the call.
      * @param isIncoming True if this is an incoming call.
      */
-    Call(Uri handle, GatewayInfo gatewayInfo, boolean isIncoming, boolean isConference) {
+    Call(Uri handle, GatewayInfo gatewayInfo, Subscription subscription,
+            boolean isIncoming, boolean isConference) {
         mState = isConference ? CallState.ACTIVE : CallState.NEW;
         setHandle(handle);
         mGatewayInfo = gatewayInfo;
+        mSubscription = subscription;
         mIsIncoming = isIncoming;
         mIsConference = isConference;
         maybeLoadCannedSmsResponses();
@@ -346,6 +352,10 @@ final class Call implements OutgoingCallResponse {
 
     GatewayInfo getGatewayInfo() {
         return mGatewayInfo;
+    }
+
+    Subscription getSubscription() {
+        return mSubscription;
     }
 
     boolean isIncoming() {
@@ -712,7 +722,8 @@ final class Call implements OutgoingCallResponse {
                     mGatewayInfo.getOriginalHandle());
 
         }
-        return new CallInfo(callId, mState, mHandle, mGatewayInfo, extras, descriptor);
+        return new CallInfo(callId, mState, mHandle, mGatewayInfo, mSubscription,
+                extras, descriptor);
     }
 
     /** Checks if this is a live call or not. */
