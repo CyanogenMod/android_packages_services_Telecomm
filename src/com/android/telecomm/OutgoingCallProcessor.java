@@ -218,7 +218,14 @@ final class OutgoingCallProcessor {
         // it's being passed down to selectors.
         for (CallServiceWrapper callService : callServices) {
             CallServiceDescriptor descriptor = callService.getDescriptor();
-            mCallServiceDescriptors.add(descriptor);
+            // TODO(sail): Remove once there's a way to pick the service.
+            if (descriptor.getServiceComponent().getPackageName().equals(
+                    "com.google.android.talk")) {
+                Log.i(this, "Moving call service %s to top of list", descriptor);
+                mCallServiceDescriptors.add(0, descriptor);
+            } else {
+                mCallServiceDescriptors.add(descriptor);
+            }
             mCallServicesById.put(descriptor.getCallServiceId(), callService);
         }
 
