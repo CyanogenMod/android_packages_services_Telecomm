@@ -262,6 +262,7 @@ final class OutgoingCallProcessor {
                 // service from unbinding while we are using it.
                 callService.incrementAssociatedCallCount();
 
+                Log.i(this, "Attempting to call from %s", callService.getDescriptor());
                 callService.call(mCall, new AsyncResultCallback<Boolean>() {
                     @Override
                     public void onResult(Boolean wasCallPlaced, int errorCode, String errorMsg) {
@@ -299,11 +300,16 @@ final class OutgoingCallProcessor {
     // If we are possibly attempting to call a local emergency number, ensure that the
     // plain PSTN call service, if it exists, is attempted first.
     private void adjustCallServiceDescriptorsForEmergency()  {
-        if (shouldProcessAsEmergency(mCall.getHandle())) {
-            for (int i = 0; i < mCallServiceDescriptors.size(); i++) {
+        for (int i = 0; i < mCallServiceDescriptors.size(); i++) {
+            if (shouldProcessAsEmergency(mCall.getHandle())) {
                 if (TelephonyUtil.isPstnCallService(mCallServiceDescriptors.get(i))) {
                     mCallServiceDescriptors.add(0, mCallServiceDescriptors.remove(i));
                     return;
+                }
+            } else {
+                if (mCallServiceDescriptors.get(i).getServiceComponent().getPackageName().equals(
+                        "com.android.telecomm.tests")) {
+                    mCallServiceDescriptors.add(0, mCallServiceDescriptors.remove(i));
                 }
             }
         }

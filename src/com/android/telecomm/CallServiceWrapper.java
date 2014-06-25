@@ -16,6 +16,7 @@
 
 package com.android.telecomm;
 
+import android.content.ComponentName;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
@@ -33,11 +34,15 @@ import com.android.internal.os.SomeArgs;
 import com.android.internal.telecomm.ICallService;
 import com.android.internal.telecomm.ICallServiceAdapter;
 import com.android.internal.telecomm.ICallServiceProvider;
+import com.android.internal.telecomm.RemoteServiceCallback;
+import com.android.telecomm.BaseRepository.LookupCallback;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
 import org.apache.http.conn.ClientConnectionRequest;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -67,6 +72,7 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
         private static final int MSG_SET_IS_CONFERENCED = 12;
         private static final int MSG_ADD_CONFERENCE_CALL = 13;
         private static final int MSG_HANDOFF_CALL = 14;
+        private static final int MSG_QUERY_REMOTE_CALL_SERVICES = 15;
 
         private final Handler mHandler = new Handler() {
             @Override
@@ -82,8 +88,13 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
                                     clientCallInfo.getHandle());
                             mIncomingCallsManager.handleSuccessfulIncomingCall(call, callInfo);
                         } else {
-                            Log.w(this, "notifyIncomingCall, unknown incoming call: %s, id: %s",
-                                    call, clientCallInfo.getId());
+                            // TODO(santoscordon): For this an the other commented logging, we need
+                            // to reenable it.  At the moment all CallServiceAdapters receive
+                            // notification of changes to all calls, even calls which it may not own
+                            // (ala remote connections). We need to fix that and then uncomment the
+                            // logging calls here.
+                            //Log.w(this, "notifyIncomingCall, unknown incoming call: %s, id: %s",
+                            //        call, clientCallInfo.getId());
                         }
                         break;
                     case MSG_HANDLE_SUCCESSFUL_OUTGOING_CALL: {
@@ -91,7 +102,7 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
                         if (mPendingOutgoingCalls.containsKey(callId)) {
                             mPendingOutgoingCalls.remove(callId).onResult(true, 0, null);
                         } else {
-                            Log.w(this, "handleSuccessfulOutgoingCall, unknown call: %s", callId);
+                            //Log.w(this, "handleSuccessfulOutgoingCall, unknown call: %s", callId);
                         }
                         break;
                     }
@@ -108,7 +119,7 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
                                         false, statusCode, statusMsg);
                                 mCallIdMapper.removeCall(callId);
                             } else {
-                                Log.w(this, "handleFailedOutgoingCall, unknown call: %s", callId);
+                                //Log.w(this, "handleFailedOutgoingCall, unknown call: %s", callId);
                             }
                         } finally {
                             args.recycle();
@@ -120,7 +131,7 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
                         if (call != null) {
                             mCallsManager.markCallAsActive(call);
                         } else {
-                            Log.w(this, "setActive, unknown call id: %s", msg.obj);
+                            //Log.w(this, "setActive, unknown call id: %s", msg.obj);
                         }
                         break;
                     case MSG_SET_RINGING:
@@ -128,7 +139,7 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
                         if (call != null) {
                             mCallsManager.markCallAsRinging(call);
                         } else {
-                            Log.w(this, "setRinging, unknown call id: %s", msg.obj);
+                            //Log.w(this, "setRinging, unknown call id: %s", msg.obj);
                         }
                         break;
                     case MSG_SET_DIALING:
@@ -136,7 +147,7 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
                         if (call != null) {
                             mCallsManager.markCallAsDialing(call);
                         } else {
-                            Log.w(this, "setDialing, unknown call id: %s", msg.obj);
+                            //Log.w(this, "setDialing, unknown call id: %s", msg.obj);
                         }
                         break;
                     case MSG_SET_DISCONNECTED: {
@@ -149,7 +160,7 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
                                 mCallsManager.markCallAsDisconnected(call, disconnectCause,
                                         disconnectMessage);
                             } else {
-                                Log.w(this, "setDisconnected, unknown call id: %s", args.arg1);
+                                //Log.w(this, "setDisconnected, unknown call id: %s", args.arg1);
                             }
                         } finally {
                             args.recycle();
@@ -161,7 +172,7 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
                         if (call != null) {
                             mCallsManager.markCallAsOnHold(call);
                         } else {
-                            Log.w(this, "setOnHold, unknown call id: %s", msg.obj);
+                            //Log.w(this, "setOnHold, unknown call id: %s", msg.obj);
                         }
                         break;
                     case MSG_SET_REQUESTING_RINGBACK: {
@@ -172,7 +183,7 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
                             if (call != null) {
                                 call.setRequestingRingback(ringback);
                             } else {
-                                Log.w(this, "setRingback, unknown call id: %s", args.arg1);
+                                //Log.w(this, "setRingback, unknown call id: %s", args.arg1);
                             }
                         } finally {
                             args.recycle();
@@ -187,7 +198,7 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
                                 String remaining = (String) args.arg2;
                                 call.onPostDialWait(remaining);
                             } else {
-                                Log.w(this, "onPostDialWait, unknown call id: %s", args.arg1);
+                                //Log.w(this, "onPostDialWait, unknown call id: %s", args.arg1);
                             }
                         } finally {
                             args.recycle();
@@ -199,7 +210,7 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
                         if (call != null) {
                             mCallsManager.startHandoffForCall(call);
                         } else {
-                            Log.w(this, "handoffCall, unknown call id: %s", msg.obj);
+                            //Log.w(this, "handoffCall, unknown call id: %s", msg.obj);
                         }
                         break;
                     case MSG_CAN_CONFERENCE: {
@@ -207,8 +218,8 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
                         if (call != null) {
                             call.setIsConferenceCapable(msg.arg1 == 1);
                         } else {
-                            Log.w(CallServiceWrapper.this, "canConference, unknown call id: %s",
-                                    msg.obj);
+                            //Log.w(CallServiceWrapper.this, "canConference, unknown call id: %s",
+                            //        msg.obj);
                         }
                         break;
                     }
@@ -226,12 +237,12 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
                                             !mPendingConferenceCalls.contains(conferenceCall)) {
                                         childCall.setParentCall(conferenceCall);
                                     } else {
-                                        Log.w(this, "setIsConferenced, unknown conference id %s",
-                                                conferenceCallId);
+                                        //Log.w(this, "setIsConferenced, unknown conference id %s",
+                                        //        conferenceCallId);
                                     }
                                 }
                             } else {
-                                Log.w(this, "setIsConferenced, unknown call id: %s", args.arg1);
+                                //Log.w(this, "setIsConferenced, unknown call id: %s", args.arg1);
                             }
                         } finally {
                             args.recycle();
@@ -247,12 +258,16 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
                                 Log.v(this, "confirming conf call %s", conferenceCall);
                                 conferenceCall.confirmConference();
                             } else {
-                                Log.w(this, "addConference, unknown call id: %s", callId);
+                                //Log.w(this, "addConference, unknown call id: %s", callId);
                             }
                         } finally {
                             args.recycle();
                         }
                         break;
+                    }
+                    case MSG_QUERY_REMOTE_CALL_SERVICES: {
+                        CallServiceWrapper.this.queryRemoteConnectionServices(
+                                (RemoteServiceCallback) msg.obj);
                     }
                 }
             }
@@ -397,6 +412,13 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
             mCallIdMapper.checkValidCallId(callId);
             mHandler.obtainMessage(MSG_HANDOFF_CALL, callId).sendToTarget();
         }
+
+        /** ${inheritDoc} */
+        @Override
+        public void queryRemoteConnectionServices(RemoteServiceCallback callback) {
+            logIncoming("queryRemoteCSs");
+            mHandler.obtainMessage(MSG_QUERY_REMOTE_CALL_SERVICES, callback).sendToTarget();
+        }
     }
 
     private final Adapter mAdapter = new Adapter();
@@ -411,6 +433,7 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
 
     private Binder mBinder = new Binder();
     private ICallService mServiceInterface;
+    private final CallServiceRepository mCallServiceRepository;
 
     /**
      * Creates a call-service for the specified descriptor.
@@ -418,13 +441,16 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
      * @param descriptor The call-service descriptor from
      *            {@link ICallServiceProvider#lookupCallServices}.
      * @param incomingCallsManager Manages the incoming call initialization flow.
+     * @param callServiceRepository Call service repository.
      */
     CallServiceWrapper(
             CallServiceDescriptor descriptor,
-            IncomingCallsManager incomingCallsManager) {
+            IncomingCallsManager incomingCallsManager,
+            CallServiceRepository callServiceRepository) {
         super(TelecommConstants.ACTION_CALL_SERVICE, descriptor.getServiceComponent());
         mDescriptor = descriptor;
         mIncomingCallsManager = incomingCallsManager;
+        mCallServiceRepository = callServiceRepository;
     }
 
     CallServiceDescriptor getDescriptor() {
@@ -459,6 +485,7 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
                     logOutgoing("call %s", callInfo);
                     mServiceInterface.call(callInfo);
                 } catch (RemoteException e) {
+                    Log.e(this, e, "Failure to call -- %s", getDescriptor());
                     mPendingOutgoingCalls.remove(callId).onResult(
                             false, DisconnectCause.ERROR_UNSPECIFIED, e.toString());
                 }
@@ -466,6 +493,7 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
 
             @Override
             public void onFailure() {
+                Log.e(this, new Exception(), "Failure to call %s", getDescriptor());
                 resultCallback.onResult(false, DisconnectCause.ERROR_UNSPECIFIED, null);
             }
         };
@@ -738,5 +766,50 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
 
     private void logOutgoing(String msg, Object... params) {
         Log.d(this, "Telecomm -> CallService: " + msg, params);
+    }
+
+    private void queryRemoteConnectionServices(final RemoteServiceCallback callback) {
+        final List<IBinder> callServices = new ArrayList<>();
+        final List<ComponentName> components = new ArrayList<>();
+
+        mCallServiceRepository.lookupServices(new LookupCallback<CallServiceWrapper>() {
+            private int mRemainingResponses;
+
+            /** ${inheritDoc} */
+            @Override
+            public void onComplete(Collection<CallServiceWrapper> services) {
+                mRemainingResponses = services.size() - 1;
+                for (CallServiceWrapper cs : services) {
+                    if (cs != CallServiceWrapper.this) {
+                        final CallServiceWrapper currentCallService = cs;
+                        cs.mBinder.bind(new BindCallback() {
+                            @Override
+                            public void onSuccess() {
+                                Log.d(this, "Adding ***** %s", currentCallService.getDescriptor());
+                                callServices.add(currentCallService.mServiceInterface.asBinder());
+                                components.add(currentCallService.getComponentName());
+                                maybeComplete();
+                            }
+
+                            @Override
+                            public void onFailure() {
+                                // add null so that we always add up to totalExpected even if
+                                // some of the call services fail to bind.
+                                maybeComplete();
+                            }
+
+                            private void maybeComplete() {
+                                if (--mRemainingResponses == 0) {
+                                    try {
+                                        callback.onResult(components, callServices);
+                                    } catch (RemoteException ignored) {
+                                    }
+                                }
+                            }
+                        });
+                    }
+                }
+            }
+        });
     }
 }
