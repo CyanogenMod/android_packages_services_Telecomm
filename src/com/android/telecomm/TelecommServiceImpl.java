@@ -64,6 +64,11 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
         }
     };
 
+    /** Private constructor; @see init() */
+    private TelecommServiceImpl() {
+        publish();
+    }
+
     /**
      * Initialize the singleton TelecommServiceImpl instance.
      * This is only done once, at startup, from TelecommApp.onCreate().
@@ -79,19 +84,26 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
         }
     }
 
-    /** Private constructor; @see init() */
-    private TelecommServiceImpl() {
-        publish();
-    }
-
-    private void publish() {
-        Log.d(this, "publish: %s", this);
-        ServiceManager.addService(SERVICE_NAME, this);
-    }
-
     //
     // Implementation of the ITelephony interface.
     //
+
+    @Override
+    public List<Subscription> getSubscriptions() {
+        return sSubscriptions;
+    }
+
+    @Override
+    public void setEnabled(Subscription subscription, boolean enabled) {
+        // Enforce MODIFY_PHONE_STATE ?
+        // TODO
+    }
+
+    @Override
+    public void setSystemDefault(Subscription subscription) {
+        // Enforce MODIFY_PHONE_STATE ?
+        // TODO
+    }
 
     @Override
     public void silenceRinger() {
@@ -100,6 +112,18 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
         enforceModifyPermission();
         mHandler.sendEmptyMessage(MSG_SILENCE_RINGER);
     }
+
+    @Override
+    public ComponentName getDefaultPhoneApp() {
+        Resources resources = TelecommApp.getInstance().getResources();
+        return new ComponentName(
+                resources.getString(R.string.ui_default_package),
+                resources.getString(R.string.dialer_default_class));
+    }
+
+    //
+    // Supporting methods for the ITelephony interface implementation.
+    //
 
     /**
      * Internal implemenation of silenceRinger().
@@ -174,22 +198,8 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
                     false)
     );
 
-
-
-    @Override
-    public List<Subscription> getSubscriptions() {
-        return sSubscriptions;
-    }
-
-    @Override
-    public void setEnabled(Subscription subscription, boolean enabled) {
-        // Enforce MODIFY_PHONE_STATE ?
-        // TODO
-    }
-
-    @Override
-    public void setSystemDefault(Subscription subscription) {
-        // Enforce MODIFY_PHONE_STATE ?
-        // TODO
+    private void publish() {
+        Log.d(this, "publish: %s", this);
+        ServiceManager.addService(SERVICE_NAME, this);
     }
 }
