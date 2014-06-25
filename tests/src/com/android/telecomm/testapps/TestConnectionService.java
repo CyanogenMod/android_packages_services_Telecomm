@@ -198,14 +198,14 @@ public class TestConnectionService extends ConnectionService {
         }
     }
 
-    private class CallAttempter implements SimpleResponse<ConnectionRequest, RemoteConnection> {
+    private class CallAttempter implements OutgoingCallResponse<RemoteConnection> {
         private final Iterator<Subscription> mSubscriptionIterator;
-        private final Response<ConnectionRequest, Connection> mCallback;
+        private final OutgoingCallResponse<Connection> mCallback;
         private final ConnectionRequest mOriginalRequest;
 
         CallAttempter(
                 Iterator<Subscription> iterator,
-                Response<ConnectionRequest, Connection> callback,
+                OutgoingCallResponse<Connection> callback,
                 ConnectionRequest originalRequest) {
             mSubscriptionIterator = iterator;
             mCallback = callback;
@@ -213,22 +213,24 @@ public class TestConnectionService extends ConnectionService {
         }
 
         @Override
-        public void onResult(
-            ConnectionRequest request, RemoteConnection remoteConnection) {
-
+        public void onSuccess(ConnectionRequest request, RemoteConnection remoteConnection) {
             if (remoteConnection != null) {
                 TestConnection connection = new TestConnection(
                         remoteConnection, Connection.State.DIALING);
                 mCalls.add(connection);
-                mCallback.onResult(mOriginalRequest, connection);
+                mCallback.onSuccess(mOriginalRequest, connection);
             } else {
                 tryNextSubscription();
             }
         }
 
         @Override
-        public void onError(ConnectionRequest request) {
+        public void onFailure(ConnectionRequest request, int code, String msg) {
             tryNextSubscription();
+        }
+
+        @Override
+        public void onCancel(ConnectionRequest request) {
         }
 
         public void tryNextSubscription() {
@@ -240,7 +242,7 @@ public class TestConnectionService extends ConnectionService {
                         null);
                 createRemoteOutgoingConnection(connectionRequest, this);
             } else {
-                mCallback.onError(mOriginalRequest, 0, null);
+                mCallback.onFailure(mOriginalRequest, 0, null);
             }
         }
     }
@@ -303,7 +305,7 @@ public class TestConnectionService extends ConnectionService {
     @Override
     public void onCreateConnections(
             final ConnectionRequest originalRequest,
-            final Response<ConnectionRequest, Connection> callback) {
+            final OutgoingCallResponse<Connection> callback) {
 
         final Uri handle = originalRequest.getHandle();
         String number = originalRequest.getHandle().getSchemeSpecificPart();
@@ -328,7 +330,7 @@ public class TestConnectionService extends ConnectionService {
         if (number.startsWith("555")) {
             TestConnection connection = new TestConnection(null, Connection.State.DIALING);
             mCalls.add(connection);
-            callback.onResult(request, connection);
+            callback.onSuccess(request, connection);
             connection.startOutgoing();
         } else {
             log("looking up subscriptions");
@@ -343,7 +345,7 @@ public class TestConnectionService extends ConnectionService {
                 @Override
                 public void onError(Uri handle) {
                     log("remote subscription lookup failed.");
-                    callback.onError(request, 0, null);
+                    callback.onFailure(request, 0, null);
                 }
             });
         }

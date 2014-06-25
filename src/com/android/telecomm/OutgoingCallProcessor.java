@@ -91,7 +91,7 @@ final class OutgoingCallProcessor {
      */
     private Iterator<CallServiceDescriptor> mCallServiceDescriptorIterator;
 
-    private AsyncResultCallback<Boolean> mResultCallback;
+    private OutgoingCallResponse mResultCallback;
 
     private boolean mIsAborted = false;
 
@@ -111,7 +111,7 @@ final class OutgoingCallProcessor {
     OutgoingCallProcessor(
             Call call,
             CallServiceRepository callServiceRepository,
-            AsyncResultCallback<Boolean> resultCallback) {
+            OutgoingCallResponse resultCallback) {
 
         ThreadUtil.checkOnMainThread();
 
@@ -263,17 +263,22 @@ final class OutgoingCallProcessor {
                 callService.incrementAssociatedCallCount();
 
                 Log.i(this, "Attempting to call from %s", callService.getDescriptor());
-                callService.call(mCall, new AsyncResultCallback<Boolean>() {
+                callService.call(mCall, new OutgoingCallResponse() {
                     @Override
-                    public void onResult(Boolean wasCallPlaced, int errorCode, String errorMsg) {
-                        if (wasCallPlaced) {
-                            handleSuccessfulCallAttempt(callService);
-                        } else {
-                            handleFailedCallAttempt(errorCode, errorMsg);
-                        }
+                    public void onOutgoingCallSuccess() {
+                        handleSuccessfulCallAttempt(callService);
+                        callService.decrementAssociatedCallCount();
+                    }
 
-                        // If successful, the call should not have it's own association to keep
-                        // the call service bound.
+                    @Override
+                    public void onOutgoingCallFailure(int code, String msg) {
+                        handleFailedCallAttempt(code, msg);
+                        callService.decrementAssociatedCallCount();
+                    }
+
+                    @Override
+                    public void onOutgoingCallCancel() {
+                        abort();
                         callService.decrementAssociatedCallCount();
                     }
                 });
@@ -288,7 +293,13 @@ final class OutgoingCallProcessor {
 
     private void sendResult(boolean wasCallPlaced, int errorCode, String errorMsg) {
         if (mResultCallback != null) {
-            mResultCallback.onResult(wasCallPlaced, errorCode, errorMsg);
+            if (mIsAborted) {
+                mResultCallback.onOutgoingCallCancel();
+            } else if (wasCallPlaced) {
+                mResultCallback.onOutgoingCallSuccess();
+            } else {
+                mResultCallback.onOutgoingCallFailure(errorCode, errorMsg);
+            }
             mResultCallback = null;
 
             mHandler.removeMessages(MSG_EXPIRE);

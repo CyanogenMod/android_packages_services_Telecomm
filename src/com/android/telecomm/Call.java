@@ -53,14 +53,15 @@ import java.util.Set;
  *  from the time the call intent was received by Telecomm (vs. the time the call was
  *  connected etc).
  */
-final class Call {
+final class Call implements OutgoingCallResponse {
 
     /**
      * Listener for events on the call.
      */
     interface Listener {
         void onSuccessfulOutgoingCall(Call call);
-        void onFailedOutgoingCall(Call call, boolean isAborted, int errorCode, String errorMsg);
+        void onFailedOutgoingCall(Call call, int errorCode, String errorMsg);
+        void onCancelledOutgoingCall(Call call);
         void onSuccessfulIncomingCall(Call call, CallInfo callInfo);
         void onFailedIncomingCall(Call call);
         void onRequestingRingback(Call call, boolean requestingRingback);
@@ -524,37 +525,39 @@ final class Call {
         Preconditions.checkState(mOutgoingCallProcessor == null);
 
         mOutgoingCallProcessor = new OutgoingCallProcessor(
-                this,
-                Switchboard.getInstance().getCallServiceRepository(),
-                new AsyncResultCallback<Boolean>() {
-                    @Override
-                    public void onResult(Boolean wasCallPlaced, int errorCode, String errorMsg) {
-                        if (wasCallPlaced) {
-                            handleSuccessfulOutgoing();
-                        } else {
-                            handleFailedOutgoing(
-                                    mOutgoingCallProcessor.isAborted(), errorCode, errorMsg);
-                        }
-                        mOutgoingCallProcessor = null;
-                    }
-                });
+                this, Switchboard.getInstance().getCallServiceRepository(), this);
         mOutgoingCallProcessor.process();
     }
 
-    void handleSuccessfulOutgoing() {
+    @Override
+    public void onOutgoingCallSuccess() {
         // TODO(santoscordon): Replace this with state transitions related to "connecting".
         for (Listener l : mListeners) {
             l.onSuccessfulOutgoingCall(this);
         }
+        mOutgoingCallProcessor = null;
     }
 
-    void handleFailedOutgoing(boolean isAborted, int errorCode, String errorMsg) {
+    @Override
+    public void onOutgoingCallFailure(int code, String msg) {
         // TODO(santoscordon): Replace this with state transitions related to "connecting".
         for (Listener l : mListeners) {
-            l.onFailedOutgoingCall(this, isAborted, errorCode, errorMsg);
+            l.onFailedOutgoingCall(this, code, msg);
         }
 
         clearCallService();
+        mOutgoingCallProcessor = null;
+    }
+
+    @Override
+    public void onOutgoingCallCancel() {
+        // TODO(santoscordon): Replace this with state transitions related to "connecting".
+        for (Listener l : mListeners) {
+            l.onCancelledOutgoingCall(this);
+        }
+
+        clearCallService();
+        mOutgoingCallProcessor = null;
     }
 
     /**

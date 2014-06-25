@@ -145,15 +145,17 @@ public final class CallsManager implements Call.Listener {
     }
 
     @Override
-    public void onFailedOutgoingCall(Call call, boolean isAborted, int errorCode, String errorMsg) {
-        Log.v(this, "onFailedOutgoingCall, call: %s, isAborted: %b", call, isAborted);
-        if (isAborted) {
-            setCallState(call, CallState.ABORTED);
-            removeCall(call);
-        } else {
-            // TODO: Replace disconnect cause with more specific disconnect causes.
-            markCallAsDisconnected(call, errorCode, errorMsg);
-        }
+    public void onFailedOutgoingCall(Call call, int errorCode, String errorMsg) {
+        Log.v(this, "onFailedOutgoingCall, call: %s", call);
+        // TODO: Replace disconnect cause with more specific disconnect causes.
+        markCallAsDisconnected(call, errorCode, errorMsg);
+    }
+
+    @Override
+    public void onCancelledOutgoingCall(Call call) {
+        Log.v(this, "onCancelledOutgoingCall, call: %s", call);
+        setCallState(call, CallState.ABORTED);
+        removeCall(call);
     }
 
     @Override
