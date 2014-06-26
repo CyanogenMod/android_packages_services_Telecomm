@@ -20,6 +20,8 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+
+import android.content.res.Resources;
 import android.net.Uri;
 import android.os.IBinder;
 import android.os.RemoteException;
@@ -58,20 +60,6 @@ public final class InCallController extends CallsManagerListenerBase {
             onDisconnected();
         }
     }
-
-    /**
-     * Package name of the in-call app. Although in-call code in kept in its own namespace, it is
-     * ultimately compiled into the dialer APK, hence the difference in namespaces between this and
-     * {@link #IN_CALL_SERVICE_CLASS_NAME}.
-     * TODO(santoscordon): Change this into config.xml resource entry.
-     */
-    private static final String IN_CALL_PACKAGE_NAME = "com.google.android.dialer";
-
-    /**
-     * Class name of the component within in-call app which implements {@link IInCallService}.
-     */
-    private static final String IN_CALL_SERVICE_CLASS_NAME =
-            "com.android.incallui.InCallServiceImpl";
 
     /** Maintains a binding connection to the in-call app. */
     private final InCallServiceConnection mConnection = new InCallServiceConnection();
@@ -204,14 +192,16 @@ public final class InCallController extends CallsManagerListenerBase {
     private void bind() {
         ThreadUtil.checkOnMainThread();
         if (mInCallService == null) {
-            ComponentName component =
-                    new ComponentName(IN_CALL_PACKAGE_NAME, IN_CALL_SERVICE_CLASS_NAME);
+            Context context = TelecommApp.getInstance();
+            Resources resources = context.getResources();
+            ComponentName component = new ComponentName(
+                    resources.getString(R.string.ui_default_package),
+                    resources.getString(R.string.incall_default_class));
             Log.i(this, "Attempting to bind to InCallService: %s", component);
 
             Intent serviceIntent = new Intent(IInCallService.class.getName());
             serviceIntent.setComponent(component);
 
-            Context context = TelecommApp.getInstance();
             if (!context.bindServiceAsUser(serviceIntent, mConnection, Context.BIND_AUTO_CREATE,
                     UserHandle.CURRENT)) {
                 Log.w(this, "Could not connect to the in-call app (%s)", component);
