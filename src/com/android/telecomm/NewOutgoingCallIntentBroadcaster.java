@@ -77,6 +77,8 @@ class NewOutgoingCallIntentBroadcaster {
     public static final String EXTRA_GATEWAY_PROVIDER_PACKAGE =
             "com.android.phone.extra.GATEWAY_PROVIDER_PACKAGE";
     public static final String EXTRA_GATEWAY_URI = "com.android.phone.extra.GATEWAY_URI";
+    public static final String EXTRA_GATEWAY_ORIGINAL_URI =
+            "com.android.phone.extra.GATEWAY_ORIGINAL_URI";
 
     private static final String SCHEME_TEL = "tel";
     private static final String SCHEME_SIP = "sip";

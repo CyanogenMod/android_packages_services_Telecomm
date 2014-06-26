@@ -699,7 +699,19 @@ final class Call implements OutgoingCallResponse {
         } else if (mOriginalCall != null && mOriginalCall.mCallService != null) {
             descriptor = mOriginalCall.mCallService.getDescriptor();
         }
-        return new CallInfo(callId, mState, mHandle, mGatewayInfo, mExtras, descriptor);
+        Bundle extras = mExtras;
+        if (mGatewayInfo != null && mGatewayInfo.getGatewayProviderPackageName() != null &&
+                mGatewayInfo.getOriginalHandle() != null) {
+            extras = (Bundle) mExtras.clone();
+            extras.putString(
+                    NewOutgoingCallIntentBroadcaster.EXTRA_GATEWAY_PROVIDER_PACKAGE,
+                    mGatewayInfo.getGatewayProviderPackageName());
+            extras.putParcelable(
+                    NewOutgoingCallIntentBroadcaster.EXTRA_GATEWAY_ORIGINAL_URI,
+                    mGatewayInfo.getOriginalHandle());
+
+        }
+        return new CallInfo(callId, mState, mHandle, mGatewayInfo, extras, descriptor);
     }
 
     /** Checks if this is a live call or not. */

@@ -16,44 +16,40 @@
 
 package com.android.telecomm.testapps;
 
-import android.content.ComponentName;
 import android.content.Intent;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.telecomm.CallAudioState;
-import android.telecomm.CallInfo;
 import android.telecomm.CallServiceAdapter;
-import android.telecomm.CallState;
 import android.telecomm.Connection;
 import android.telecomm.ConnectionRequest;
 import android.telecomm.ConnectionService;
 import android.telecomm.RemoteConnection;
-import android.telecomm.RemoteConnectionService;
 import android.telecomm.Response;
-
 import android.telecomm.SimpleResponse;
 import android.telecomm.Subscription;
 import android.telephony.DisconnectCause;
+import android.text.TextUtils;
 import android.util.Log;
 
 import com.android.telecomm.tests.R;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Strings;
-import com.google.common.collect.Maps;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Service which provides fake calls to test the ICallService interface. TODO(santoscordon): Rename
  * all classes in the directory to Dummy* (e.g., DummyCallService).
  */
 public class TestConnectionService extends ConnectionService {
+    public static final String EXTRA_GATEWAY_PROVIDER_PACKAGE =
+            "com.android.phone.extra.GATEWAY_PROVIDER_PACKAGE";
+    public static final String EXTRA_GATEWAY_ORIGINAL_URI =
+            "com.android.phone.extra.GATEWAY_ORIGINAL_URI";
+
     private final class TestConnection extends Connection {
         private final RemoteConnection.Listener mProxyListener = new RemoteConnection.Listener() {
             @Override
@@ -298,7 +294,7 @@ public class TestConnectionService extends ConnectionService {
     }
 
     private static void log(String msg) {
-        Log.w("telecomtestcallservice", "[TestCallService] " + msg);
+        Log.w("telecomtestcs", "[TestConnectionService] " + msg);
     }
 
     /** ${inheritDoc} */
@@ -315,6 +311,12 @@ public class TestConnectionService extends ConnectionService {
         if ("5550340".equals(number)) {
             throw new RuntimeException("Goodbye, cruel world.");
         }
+
+        Bundle extras = originalRequest.getExtras();
+        String gatewayPackage = extras.getString(EXTRA_GATEWAY_PROVIDER_PACKAGE);
+        Uri originalHandle = extras.getParcelable(EXTRA_GATEWAY_ORIGINAL_URI);
+        log("gateway package [" + gatewayPackage + "], original handle [" +
+                originalHandle + "]");
 
         // Normally we would use the original request as is, but for testing purposes, we are adding
         // ".." to the end of the number to follow its path more easily through the logs.
