@@ -27,6 +27,7 @@ import android.telecomm.CallInfo;
 import android.telecomm.CallServiceDescriptor;
 import android.telecomm.CallState;
 import android.telecomm.GatewayInfo;
+import android.telecomm.InCallService;
 import android.telecomm.Response;
 import android.telecomm.TelecommConstants;
 import android.telephony.DisconnectCause;
@@ -1024,5 +1025,12 @@ final class Call implements OutgoingCallResponse {
      */
     public boolean getStartWithSpeakerphoneOn() {
         return mSpeakerphoneOn;
+    }
+
+    /**
+     * Sets a call video provider for the call.
+     */
+    public void setCallVideoProvider() {
+        //TODO: Implement this method. For now, it's just an empty stub.
     }
 }
