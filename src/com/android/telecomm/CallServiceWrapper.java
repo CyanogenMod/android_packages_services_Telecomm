@@ -61,18 +61,19 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
         private static final int MSG_NOTIFY_INCOMING_CALL = 1;
         private static final int MSG_HANDLE_SUCCESSFUL_OUTGOING_CALL = 2;
         private static final int MSG_HANDLE_FAILED_OUTGOING_CALL = 3;
-        private static final int MSG_SET_ACTIVE = 4;
-        private static final int MSG_SET_RINGING = 5;
-        private static final int MSG_SET_DIALING = 6;
-        private static final int MSG_SET_DISCONNECTED = 7;
-        private static final int MSG_SET_ON_HOLD = 8;
-        private static final int MSG_SET_REQUESTING_RINGBACK = 9;
-        private static final int MSG_ON_POST_DIAL_WAIT = 10;
-        private static final int MSG_CAN_CONFERENCE = 11;
-        private static final int MSG_SET_IS_CONFERENCED = 12;
-        private static final int MSG_ADD_CONFERENCE_CALL = 13;
-        private static final int MSG_HANDOFF_CALL = 14;
-        private static final int MSG_QUERY_REMOTE_CALL_SERVICES = 15;
+        private static final int MSG_CANCEL_OUTGOING_CALL = 4;
+        private static final int MSG_SET_ACTIVE = 5;
+        private static final int MSG_SET_RINGING = 6;
+        private static final int MSG_SET_DIALING = 7;
+        private static final int MSG_SET_DISCONNECTED = 8;
+        private static final int MSG_SET_ON_HOLD = 9;
+        private static final int MSG_SET_REQUESTING_RINGBACK = 10;
+        private static final int MSG_ON_POST_DIAL_WAIT = 11;
+        private static final int MSG_CAN_CONFERENCE = 12;
+        private static final int MSG_SET_IS_CONFERENCED = 13;
+        private static final int MSG_ADD_CONFERENCE_CALL = 14;
+        private static final int MSG_HANDOFF_CALL = 15;
+        private static final int MSG_QUERY_REMOTE_CALL_SERVICES = 16;
 
         private final Handler mHandler = new Handler() {
             @Override
@@ -100,7 +101,7 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
                     case MSG_HANDLE_SUCCESSFUL_OUTGOING_CALL: {
                         String callId = (String) msg.obj;
                         if (mPendingOutgoingCalls.containsKey(callId)) {
-                            mPendingOutgoingCalls.remove(callId).onResult(true, 0, null);
+                            mPendingOutgoingCalls.remove(callId).onOutgoingCallSuccess();
                         } else {
                             //Log.w(this, "handleSuccessfulOutgoingCall, unknown call: %s", callId);
                         }
@@ -115,14 +116,23 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
                             // TODO(santoscordon): Do something with 'reason' or get rid of it.
 
                             if (mPendingOutgoingCalls.containsKey(callId)) {
-                                mPendingOutgoingCalls.remove(callId).onResult(
-                                        false, statusCode, statusMsg);
+                                mPendingOutgoingCalls.remove(callId).onOutgoingCallFailure(
+                                        statusCode, statusMsg);
                                 mCallIdMapper.removeCall(callId);
                             } else {
                                 //Log.w(this, "handleFailedOutgoingCall, unknown call: %s", callId);
                             }
                         } finally {
                             args.recycle();
+                        }
+                        break;
+                    }
+                    case MSG_CANCEL_OUTGOING_CALL: {
+                        String callId = (String) msg.obj;
+                        if (mPendingOutgoingCalls.containsKey(callId)) {
+                            mPendingOutgoingCalls.remove(callId).onOutgoingCallCancel();
+                        } else {
+                            //Log.w(this, "cancelOutgoingCall, unknown call: %s", callId);
                         }
                         break;
                     }
@@ -306,6 +316,14 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
 
         /** {@inheritDoc} */
         @Override
+        public void cancelOutgoingCall(String callId) {
+            logIncoming("cancelOutgoingCall %s", callId);
+            mCallIdMapper.checkValidCallId(callId);
+            mHandler.obtainMessage(MSG_CANCEL_OUTGOING_CALL, callId).sendToTarget();
+        }
+
+        /** {@inheritDoc} */
+        @Override
         public void setActive(String callId) {
             logIncoming("setActive %s", callId);
             mCallIdMapper.checkValidCallId(callId);
@@ -428,7 +446,7 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
     private final CallServiceDescriptor mDescriptor;
     private final CallIdMapper mCallIdMapper = new CallIdMapper("CallService");
     private final IncomingCallsManager mIncomingCallsManager;
-    private final Map<String, AsyncResultCallback<Boolean>> mPendingOutgoingCalls = new HashMap<>();
+    private final Map<String, OutgoingCallResponse> mPendingOutgoingCalls = new HashMap<>();
     private final Handler mHandler = new Handler();
 
     private Binder mBinder = new Binder();
@@ -472,13 +490,13 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
      * Attempts to place the specified call, see {@link ICallService#call}. Returns the result
      * asynchronously through the specified callback.
      */
-    void call(final Call call, final AsyncResultCallback<Boolean> resultCallback) {
+    void call(final Call call, final OutgoingCallResponse callResponse) {
         Log.d(this, "call(%s) via %s.", call, getComponentName());
         BindCallback callback = new BindCallback() {
             @Override
             public void onSuccess() {
                 String callId = mCallIdMapper.getCallId(call);
-                mPendingOutgoingCalls.put(callId, resultCallback);
+                mPendingOutgoingCalls.put(callId, callResponse);
 
                 try {
                     CallInfo callInfo = call.toCallInfo(callId);
@@ -486,15 +504,15 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
                     mServiceInterface.call(callInfo);
                 } catch (RemoteException e) {
                     Log.e(this, e, "Failure to call -- %s", getDescriptor());
-                    mPendingOutgoingCalls.remove(callId).onResult(
-                            false, DisconnectCause.ERROR_UNSPECIFIED, e.toString());
+                    mPendingOutgoingCalls.remove(callId).onOutgoingCallFailure(
+                            DisconnectCause.ERROR_UNSPECIFIED, e.toString());
                 }
             }
 
             @Override
             public void onFailure() {
                 Log.e(this, new Exception(), "Failure to call %s", getDescriptor());
-                resultCallback.onResult(false, DisconnectCause.ERROR_UNSPECIFIED, null);
+                callResponse.onOutgoingCallFailure(DisconnectCause.ERROR_UNSPECIFIED, null);
             }
         };
 
@@ -661,10 +679,10 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
     void removeCall(Call call) {
         mPendingIncomingCalls.remove(call);
 
-        AsyncResultCallback<Boolean> outgoingResultCallback =
-            mPendingOutgoingCalls.remove(mCallIdMapper.getCallId(call));
+        OutgoingCallResponse outgoingResultCallback =
+                mPendingOutgoingCalls.remove(mCallIdMapper.getCallId(call));
         if (outgoingResultCallback != null) {
-            outgoingResultCallback.onResult(false, DisconnectCause.ERROR_UNSPECIFIED, null);
+            outgoingResultCallback.onOutgoingCallFailure(DisconnectCause.ERROR_UNSPECIFIED, null);
         }
 
         mCallIdMapper.removeCall(call);
@@ -737,8 +755,8 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
      */
     private void handleCallServiceDeath() {
         if (!mPendingOutgoingCalls.isEmpty()) {
-            for (AsyncResultCallback<Boolean> callback : mPendingOutgoingCalls.values()) {
-                callback.onResult(false, DisconnectCause.ERROR_UNSPECIFIED, null);
+            for (OutgoingCallResponse callback : mPendingOutgoingCalls.values()) {
+                callback.onOutgoingCallFailure(DisconnectCause.ERROR_UNSPECIFIED, null);
             }
             mPendingOutgoingCalls.clear();
         }
