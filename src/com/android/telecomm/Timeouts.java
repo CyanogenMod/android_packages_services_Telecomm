@@ -53,14 +53,6 @@ public final class Timeouts {
     }
 
     /**
-     * Returns the longest period, in milliseconds, each new outgoing call is allowed to wait before
-     * being established. If the call does not connect before this time, abort the call.
-     */
-    public static long getNewOutgoingCallMillis() {
-        return get("new_outgoing_call_ms", 60 * 1000L);
-    }
-
-    /**
      * Returns the longest period, in milliseconds, to wait for the query for direct-to-voicemail
      * to complete. If the query goes beyond this timeout, the incoming call screen is shown to the
      * user.

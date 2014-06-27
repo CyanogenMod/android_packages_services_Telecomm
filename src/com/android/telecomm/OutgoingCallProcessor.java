@@ -43,14 +43,8 @@ import java.util.Set;
  *
  * Except for the abort case, all other scenarios should terminate with the call notified
  * of the result.
- *
- * NOTE(gilad): Currently operating under the assumption that we'll have one timeout per (outgoing)
- * call attempt.  If we (also) like to timeout individual selectors and/or call services, the code
- * here will need to be re-factored (quite a bit) to support that.
  */
 final class OutgoingCallProcessor {
-
-    private final static int MSG_EXPIRE = 1;
 
     /**
      * The outgoing call this processor is tasked with placing.
@@ -69,17 +63,6 @@ final class OutgoingCallProcessor {
     private final Set<CallServiceWrapper> mAttemptedCallServices = Sets.newHashSet();
 
     private final CallServiceRepository mCallServiceRepository;
-
-    private final Handler mHandler = new Handler() {
-        @Override
-        public void handleMessage(Message msg) {
-            switch (msg.what) {
-                case MSG_EXPIRE:
-                    abort();
-                    break;
-            }
-        }
-    };
 
     /**
      * The duplicate-free list of currently-available call-service descriptors.
@@ -126,9 +109,6 @@ final class OutgoingCallProcessor {
     void process() {
         Log.v(this, "process, mIsAborted: %b", mIsAborted);
         if (!mIsAborted) {
-            // Start the expiration timeout.
-            mHandler.sendEmptyMessageDelayed(MSG_EXPIRE, Timeouts.getNewOutgoingCallMillis());
-
             // Lookup call services
             mCallServiceRepository.lookupServices(new LookupCallback<CallServiceWrapper>() {
                 @Override
@@ -301,8 +281,6 @@ final class OutgoingCallProcessor {
                 mResultCallback.onOutgoingCallFailure(errorCode, errorMsg);
             }
             mResultCallback = null;
-
-            mHandler.removeMessages(MSG_EXPIRE);
         } else {
             Log.wtf(this, "Attempting to return outgoing result twice for call %s", mCall);
         }
