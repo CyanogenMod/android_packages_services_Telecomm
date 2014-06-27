@@ -30,6 +30,9 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -588,22 +591,11 @@ public final class CallsManager implements Call.Listener {
     }
 
     boolean hasActiveOrHoldingCall() {
-        for (Call call : mCalls) {
-            CallState state = call.getState();
-            if (state == CallState.ACTIVE || state == CallState.ON_HOLD) {
-                return true;
-            }
-        }
-        return false;
+        return getFirstCallWithState(CallState.ACTIVE, CallState.ON_HOLD) != null;
     }
 
     boolean hasRingingCall() {
-        for (Call call : mCalls) {
-            if (call.getState() == CallState.RINGING) {
-                return true;
-            }
-        }
-        return false;
+        return getFirstCallWithState(CallState.RINGING) != null;
     }
 
     boolean onMediaButton(int type) {
@@ -658,8 +650,13 @@ public final class CallsManager implements Call.Listener {
      * priority order so that any call with the first state will be returned before any call with
      * states listed later in the parameter list.
      */
-    private Call getFirstCallWithState(CallState... states) {
+    Call getFirstCallWithState(CallState... states) {
         for (CallState currentState : states) {
+            // check the foreground first
+            if (mForegroundCall != null && mForegroundCall.getState() == currentState) {
+                return mForegroundCall;
+            }
+
             for (Call call : mCalls) {
                 if (currentState == call.getState()) {
                     return call;

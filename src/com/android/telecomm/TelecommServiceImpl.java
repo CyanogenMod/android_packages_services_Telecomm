@@ -24,8 +24,10 @@ import android.content.ComponentName;
 import android.content.res.Resources;
 import android.net.Uri;
 import android.os.Handler;
+import android.os.Looper;
 import android.os.Message;
 import android.os.ServiceManager;
+import android.telecomm.CallState;
 import android.telecomm.Subscription;
 import android.text.TextUtils;
 
@@ -35,36 +37,76 @@ import java.util.List;
  * Implementation of the ITelecomm interface.
  */
 public class TelecommServiceImpl extends ITelecommService.Stub {
-    private static final String TAG = TelecommServiceImpl.class.getSimpleName();
-
-    private static final String SERVICE_NAME = "telecomm";
-
-    private static final int MSG_SILENCE_RINGER = 1;
-    private static final int MSG_SHOW_CALL_SCREEN = 2;
-
-    /** The singleton instance. */
-    private static TelecommServiceImpl sInstance;
+    /**
+     * A request object for use with {@link MainThreadHandler}. Requesters should wait() on the
+     * request after sending. The main thread will notify the request when it is complete.
+     */
+    private static final class MainThreadRequest {
+        /** The result of the request that is run on the main thread */
+        public Object result;
+    }
 
     /**
      * A handler that processes messages on the main thread in the phone process. Since many
      * of the Phone calls are not thread safe this is needed to shuttle the requests from the
      * inbound binder threads to the main thread in the phone process.
      */
-    private final Handler mHandler = new Handler() {
+    private final class MainThreadHandler extends Handler {
         @Override
         public void handleMessage(Message msg) {
-            switch (msg.what) {
-                case MSG_SILENCE_RINGER:
-                    silenceRingerInternal();
-                    break;
-                case MSG_SHOW_CALL_SCREEN:
-                    showCallScreenInternal(msg.arg1 == 1);
-                    break;
+            if (msg.obj instanceof MainThreadRequest) {
+                MainThreadRequest request = (MainThreadRequest) msg.obj;
+                Object result = null;
+                switch (msg.what) {
+                    case MSG_SILENCE_RINGER:
+                        mCallsManager.getRinger().silence();
+                        break;
+                    case MSG_SHOW_CALL_SCREEN:
+                        mCallsManager.getInCallController().bringToForeground(msg.arg1 == 1);
+                        break;
+                    case MSG_IS_IN_A_PHONE_CALL:
+                        result = mCallsManager.hasAnyCalls();
+                        break;
+                    case MSG_IS_RINGING:
+                        result = mCallsManager.hasRingingCall();
+                        break;
+                    case MSG_END_CALL:
+                        result = endCallInternal();
+                        break;
+                    case MSG_ACCEPT_RINGING_CALL:
+                        acceptRingingCallInternal();
+                        break;
+                }
+
+                if (result != null) {
+                    request.result = result;
+                    synchronized(request) {
+                        request.notifyAll();
+                    }
+                }
             }
         }
-    };
+    }
 
     /** Private constructor; @see init() */
+    private static final String TAG = TelecommServiceImpl.class.getSimpleName();
+
+    private static final String SERVICE_NAME = "telecomm";
+
+    private static final int MSG_SILENCE_RINGER = 1;
+    private static final int MSG_SHOW_CALL_SCREEN = 2;
+    private static final int MSG_IS_IN_A_PHONE_CALL = 3;
+    private static final int MSG_IS_RINGING = 4;
+    private static final int MSG_END_CALL = 5;
+    private static final int MSG_ACCEPT_RINGING_CALL = 6;
+
+    /** The singleton instance. */
+    private static TelecommServiceImpl sInstance;
+
+    private final CallsManager mCallsManager = CallsManager.getInstance();
+
+    private final MainThreadHandler mMainThreadHandler = new MainThreadHandler();
+
     private TelecommServiceImpl() {
         publish();
     }
@@ -85,7 +127,7 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
     }
 
     //
-    // Implementation of the ITelephony interface.
+    // Implementation of the ITelecommService interface.
     //
 
     @Override
@@ -105,14 +147,19 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
         // TODO
     }
 
+    /**
+     * @see TelecommManager#silenceringer
+     */
     @Override
     public void silenceRinger() {
         Log.d(this, "silenceRinger");
-        // TODO: find a more appropriate permission to check here.
         enforceModifyPermission();
-        mHandler.sendEmptyMessage(MSG_SILENCE_RINGER);
+        sendRequestAsync(MSG_SILENCE_RINGER, 0);
     }
 
+    /**
+     * @see TelecommManager#getDefaultPhoneApp
+     */
     @Override
     public ComponentName getDefaultPhoneApp() {
         Resources resources = TelecommApp.getInstance().getResources();
@@ -121,17 +168,81 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
                 resources.getString(R.string.dialer_default_class));
     }
 
+    /**
+     * @see TelecommManager#isInAPhoneCall
+     */
+    @Override
+    public boolean isInAPhoneCall() {
+        enforceReadPermission();
+        return (boolean) sendRequest(MSG_IS_IN_A_PHONE_CALL);
+    }
+
+    /**
+     * @see TelecommManager#isRinging
+     */
+    @Override
+    public boolean isRinging() {
+        enforceReadPermission();
+        return (boolean) sendRequest(MSG_IS_RINGING);
+    }
+
+    /**
+     * @see TelecommManager#endCall
+     */
+    @Override
+    public boolean endCall() {
+        enforceModifyPermission();
+        return (boolean) sendRequest(MSG_END_CALL);
+    }
+
+    /**
+     * @see TelecommManager#acceptRingingCall
+     */
+    @Override
+    public void acceptRingingCall() {
+        enforceModifyPermission();
+        sendRequestAsync(MSG_ACCEPT_RINGING_CALL, 0);
+    }
+
+    @Override
+    public void showCallScreen(boolean showDialpad) {
+        mMainThreadHandler.obtainMessage(MSG_SHOW_CALL_SCREEN, showDialpad ? 1 : 0, 0)
+                .sendToTarget();
+    }
+
     //
     // Supporting methods for the ITelephony interface implementation.
     //
 
-    /**
-     * Internal implemenation of silenceRinger().
-     * This should only be called from the main thread of the Phone app.
-     * @see #silenceRinger
-     */
-    private void silenceRingerInternal() {
-        CallsManager.getInstance().getRinger().silence();
+    private void acceptRingingCallInternal() {
+        Call call = mCallsManager.getFirstCallWithState(CallState.RINGING);
+        if (call != null) {
+            call.answer();
+        }
+    }
+
+    private boolean endCallInternal() {
+        // Always operate on the foreground call if one exists, otherwise get the first call in
+        // priority order by call-state.
+        Call call = mCallsManager.getForegroundCall();
+        if (call == null) {
+            call = mCallsManager.getFirstCallWithState(
+                    CallState.ACTIVE,
+                    CallState.DIALING,
+                    CallState.RINGING,
+                    CallState.ON_HOLD);
+        }
+
+        if (call != null) {
+            if (call.getState() == CallState.RINGING) {
+                call.reject(false /* rejectWithMessage */, null);
+            } else {
+                call.disconnect();
+            }
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -144,13 +255,9 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
                 android.Manifest.permission.MODIFY_PHONE_STATE, null);
     }
 
-    @Override
-    public void showCallScreen(boolean showDialpad) {
-        mHandler.obtainMessage(MSG_SHOW_CALL_SCREEN, showDialpad ? 1 : 0, 0).sendToTarget();
-    }
-
-    private void showCallScreenInternal(boolean showDialpad) {
-        CallsManager.getInstance().getInCallController().bringToForeground(showDialpad);
+    private void enforceReadPermission() {
+        TelecommApp.getInstance().enforceCallingOrSelfPermission(
+                android.Manifest.permission.READ_PHONE_STATE, null);
     }
 
     // TODO (STOPSHIP): Static list of Subscriptions for testing and UX work only.
@@ -201,5 +308,35 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
     private void publish() {
         Log.d(this, "publish: %s", this);
         ServiceManager.addService(SERVICE_NAME, this);
+    }
+
+    private MainThreadRequest sendRequestAsync(int command, int arg1) {
+        MainThreadRequest request = new MainThreadRequest();
+        mMainThreadHandler.obtainMessage(command, arg1, 0, request).sendToTarget();
+        return request;
+    }
+
+    /**
+     * Posts the specified command to be executed on the main thread, waits for the request to
+     * complete, and returns the result.
+     */
+    private Object sendRequest(int command) {
+        if (Looper.myLooper() == mMainThreadHandler.getLooper()) {
+            throw new RuntimeException("This method will deadlock if called from the main thread.");
+        }
+
+        MainThreadRequest request = sendRequestAsync(command, 0);
+
+        // Wait for the request to complete
+        synchronized (request) {
+            while (request.result == null) {
+                try {
+                    request.wait();
+                } catch (InterruptedException e) {
+                    // Do nothing, go back and wait until the request is complete
+                }
+            }
+        }
+        return request.result;
     }
 }
