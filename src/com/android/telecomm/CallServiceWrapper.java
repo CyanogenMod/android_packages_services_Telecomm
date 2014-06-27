@@ -31,9 +31,11 @@ import android.telecomm.TelecommConstants;
 import android.telephony.DisconnectCause;
 
 import com.android.internal.os.SomeArgs;
+
 import com.android.internal.telecomm.ICallService;
 import com.android.internal.telecomm.ICallServiceAdapter;
 import com.android.internal.telecomm.ICallServiceProvider;
+import com.android.internal.telecomm.ICallVideoProvider;
 import com.android.internal.telecomm.RemoteServiceCallback;
 import com.android.telecomm.BaseRepository.LookupCallback;
 import com.google.common.base.Preconditions;
@@ -74,6 +76,7 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
         private static final int MSG_ADD_CONFERENCE_CALL = 14;
         private static final int MSG_HANDOFF_CALL = 15;
         private static final int MSG_QUERY_REMOTE_CALL_SERVICES = 16;
+        private static final int MSG_SET_CALL_VIDEO_PROVIDER = 17;
 
         private final Handler mHandler = new Handler() {
             @Override
@@ -278,6 +281,19 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
                     case MSG_QUERY_REMOTE_CALL_SERVICES: {
                         CallServiceWrapper.this.queryRemoteConnectionServices(
                                 (RemoteServiceCallback) msg.obj);
+                        break;
+                    }
+                    case MSG_SET_CALL_VIDEO_PROVIDER: {
+                        SomeArgs args = (SomeArgs) msg.obj;
+                        try {
+                            call = mCallIdMapper.getCall(args.arg1);
+                            if (call != null) {
+                                call.setCallVideoProvider();
+                            }
+                        } finally {
+                            args.recycle();
+                        }
+                        break;
                     }
                 }
             }
@@ -336,6 +352,17 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
             logIncoming("setRinging %s", callId);
             mCallIdMapper.checkValidCallId(callId);
             mHandler.obtainMessage(MSG_SET_RINGING, callId).sendToTarget();
+        }
+
+        /** {@inheritDoc} */
+        @Override
+        public void setCallVideoProvider(String callId, ICallVideoProvider callVideoProvider) {
+            logIncoming("setCallVideoProvider %s", callId);
+            mCallIdMapper.checkValidCallId(callId);
+            SomeArgs args = SomeArgs.obtain();
+            args.arg1 = callId;
+            args.arg2 = callVideoProvider;
+            mHandler.obtainMessage(MSG_SET_CALL_VIDEO_PROVIDER, args).sendToTarget();
         }
 
         /** {@inheritDoc} */
