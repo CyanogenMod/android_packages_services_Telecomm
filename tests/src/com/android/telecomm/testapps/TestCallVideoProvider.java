@@ -17,8 +17,10 @@
 package com.android.telecomm.testapps;
 
 import android.telecomm.CallVideoProvider;
+import android.telecomm.VideoCallProfile;
 
 import android.util.Log;
+import android.view.Surface;
 
 /**
  * Implements the CallVideoProvider.
@@ -29,6 +31,51 @@ public class TestCallVideoProvider extends CallVideoProvider {
     @Override
     public void setCamera(String cameraId) {
         log("Set camera to " + cameraId);
+    }
+
+    @Override
+    public void setPreviewSurface(Surface surface) {
+
+    }
+
+    @Override
+    public void setDisplaySurface(Surface surface) {
+
+    }
+
+    @Override
+    public void setDeviceOrientation(int rotation) {
+
+    }
+
+    @Override
+    public void setZoom(float value) {
+
+    }
+
+    @Override
+    public void sendSessionModifyRequest(VideoCallProfile requestProfile) {
+
+    }
+
+    @Override
+    public void sendSessionModifyResponse(VideoCallProfile responseProfile) {
+
+    }
+
+    @Override
+    public void requestCameraCapabilities() {
+
+    }
+
+    @Override
+    public void requestCallDataUsage() {
+
+    }
+
+    @Override
+    public void setPauseImage(String uri) {
+
     }
 
     private static void log(String msg) {
