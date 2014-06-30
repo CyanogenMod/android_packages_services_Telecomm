@@ -162,6 +162,11 @@ public final class InCallController extends CallsManagerListenerBase {
         updateCall(call);
     }
 
+    @Override
+    public void onCallVideoProviderChanged(Call call) {
+        updateCall(call);
+    }
+
     void bringToForeground(boolean showDialpad) {
         if (mInCallService != null) {
             try {
@@ -311,7 +316,8 @@ public final class InCallController extends CallsManagerListenerBase {
         return new InCallCall(callId, state, call.getDisconnectCause(), call.getDisconnectMessage(),
                 call.getCannedSmsResponses(), capabilities, connectTimeMillis, call.getHandle(),
                 call.getGatewayInfo(), call.getSubscription(), descriptor,
-                call.getHandoffCallServiceDescriptor(), parentCallId, childCallIds);
+                call.getHandoffCallServiceDescriptor(), call.getCallVideoProvider(),
+                parentCallId, childCallIds);
     }
 
 }

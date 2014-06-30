@@ -65,6 +65,7 @@ public final class CallsManager implements Call.Listener {
         void onIsConferenceCapableChanged(Call call, boolean isConferenceCapable);
         void onIsConferencedChanged(Call call);
         void onCannedSmsResponsesLoaded(Call call);
+        void onCallVideoProviderChanged(Call call);
     }
 
     private static final CallsManager INSTANCE = new CallsManager();
@@ -222,6 +223,13 @@ public final class CallsManager implements Call.Listener {
     public void onCannedSmsResponsesLoaded(Call call) {
         for (CallsManagerListener listener : mListeners) {
             listener.onCannedSmsResponsesLoaded(call);
+        }
+    }
+
+    @Override
+    public void onCallVideoProviderChanged(Call call) {
+        for (CallsManagerListener listener : mListeners) {
+            listener.onCallVideoProviderChanged(call);
         }
     }
 

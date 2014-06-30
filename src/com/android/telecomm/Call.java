@@ -27,7 +27,6 @@ import android.telecomm.CallInfo;
 import android.telecomm.CallServiceDescriptor;
 import android.telecomm.CallState;
 import android.telecomm.GatewayInfo;
-import android.telecomm.InCallService;
 import android.telecomm.Response;
 import android.telecomm.Subscription;
 import android.telecomm.TelecommConstants;
@@ -35,10 +34,10 @@ import android.telephony.DisconnectCause;
 import android.telephony.PhoneNumberUtils;
 import android.text.TextUtils;
 
+import com.android.internal.telecomm.ICallVideoProvider;
 import com.android.internal.telephony.CallerInfo;
 import com.android.internal.telephony.CallerInfoAsyncQuery;
 import com.android.internal.telephony.CallerInfoAsyncQuery.OnQueryCompleteListener;
-
 import com.android.internal.telephony.SmsApplication;
 import com.android.telecomm.ContactsAsyncHelper.OnImageLoadCompleteListener;
 import com.google.common.base.Preconditions;
@@ -74,6 +73,7 @@ final class Call implements OutgoingCallResponse {
         void onParentChanged(Call call);
         void onChildrenChanged(Call call);
         void onCannedSmsResponsesLoaded(Call call);
+        void onCallVideoProviderChanged(Call call);
     }
 
     private static final OnQueryCompleteListener sCallerInfoQueryListener =
@@ -205,6 +205,8 @@ final class Call implements OutgoingCallResponse {
 
     /** Whether an attempt has been made to load the text message responses. */
     private boolean mCannedSmsResponsesLoadingStarted = false;
+
+    private ICallVideoProvider mCallVideoProvider;
 
     /**
      * Creates an empty call object.
@@ -1053,7 +1055,17 @@ final class Call implements OutgoingCallResponse {
     /**
      * Sets a call video provider for the call.
      */
-    public void setCallVideoProvider() {
-        //TODO: Implement this method. For now, it's just an empty stub.
+    public void setCallVideoProvider(ICallVideoProvider callVideoProvider) {
+        mCallVideoProvider = callVideoProvider;
+        for (Listener l : mListeners) {
+            l.onCallVideoProviderChanged(Call.this);
+        }
+    }
+
+    /**
+     * @return Return the call video Provider binder.
+     */
+    public ICallVideoProvider getCallVideoProvider() {
+        return mCallVideoProvider;
     }
 }
