@@ -22,7 +22,6 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.telecomm.CallAudioState;
-import android.telecomm.CallServiceAdapter;
 import android.telecomm.Connection;
 import android.telecomm.ConnectionRequest;
 import android.telecomm.ConnectionService;
@@ -41,8 +40,8 @@ import java.util.Iterator;
 import java.util.List;
 
 /**
- * Service which provides fake calls to test the ICallService interface. TODO(santoscordon): Rename
- * all classes in the directory to Dummy* (e.g., DummyCallService).
+ * Service which provides fake calls to test the ConnectionService interface.
+ * TODO(santoscordon): Rename all classes in the directory to Dummy* (e.g., DummyConnectionService).
  */
 public class TestConnectionService extends ConnectionService {
     public static final String EXTRA_GATEWAY_PROVIDER_PACKAGE =
