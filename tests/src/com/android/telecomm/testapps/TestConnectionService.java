@@ -58,11 +58,6 @@ public class TestConnectionService extends ConnectionService {
             }
 
             @Override
-            public void onAudioStateChanged(RemoteConnection connection, CallAudioState state) {
-                setAudioState(state);
-            }
-
-            @Override
             public void onDisconnected(RemoteConnection connection, int cause, String message) {
                 setDisconnected(cause, message);
                 destroyCall(TestConnection.this);
@@ -176,6 +171,13 @@ public class TestConnectionService extends ConnectionService {
             }
         }
 
+        @Override
+        protected void onSetAudioState(CallAudioState state) {
+            if (mRemoteConnection != null) {
+                mRemoteConnection.setAudioState(state);
+            }
+        }
+
         private void setState(int state) {
             switch (state) {
                 case Connection.State.ACTIVE:
@@ -253,14 +255,6 @@ public class TestConnectionService extends ConnectionService {
 
     /** {@inheritDoc} */
     @Override
-    public void onAdapterAttached(CallServiceAdapter callServiceAdapter) {
-        log("onAdapterAttached");
-        mMediaPlayer = createMediaPlayer();
-        super.onAdapterAttached(callServiceAdapter);
-    }
-
-    /** {@inheritDoc} */
-    @Override
     public boolean onUnbind(Intent intent) {
         log("onUnbind");
         mMediaPlayer = null;
@@ -269,7 +263,10 @@ public class TestConnectionService extends ConnectionService {
 
     private void activateCall(TestConnection connection) {
         if (!connection.isProxy()) {
-            if (mMediaPlayer != null && !mMediaPlayer.isPlaying()) {
+            if (mMediaPlayer == null) {
+                mMediaPlayer = createMediaPlayer();
+            }
+            if (!mMediaPlayer.isPlaying()) {
                 mMediaPlayer.start();
             }
         }

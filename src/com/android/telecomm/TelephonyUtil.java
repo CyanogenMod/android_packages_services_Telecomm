@@ -28,8 +28,7 @@ import android.telecomm.CallServiceDescriptor;
 public final class TelephonyUtil {
     private static final String TAG = TelephonyUtil.class.getSimpleName();
 
-    private static final String TELEPHONY_PACKAGE_NAME =
-            "com.android.phone";
+    private static final String TELEPHONY_PACKAGE_NAME = "com.android.phone";
 
     private static final String PSTN_CALL_SERVICE_CLASS_NAME =
             "com.android.services.telephony.PstnConnectionService";
@@ -37,13 +36,9 @@ public final class TelephonyUtil {
     private TelephonyUtil() {}
 
     static boolean isPstnCallService(CallServiceDescriptor descriptor) {
-        ComponentName componentName = descriptor.getServiceComponent();
-        if (TELEPHONY_PACKAGE_NAME.equals(componentName.getPackageName())) {
-            String className = componentName.getClassName();
-            return PSTN_CALL_SERVICE_CLASS_NAME.equals(className);
-        }
-
-        return false;
+        final ComponentName pstnComponentName = new ComponentName(
+                TELEPHONY_PACKAGE_NAME, PSTN_CALL_SERVICE_CLASS_NAME);
+        return pstnComponentName.equals(descriptor.getServiceComponent());
     }
 
     /**
