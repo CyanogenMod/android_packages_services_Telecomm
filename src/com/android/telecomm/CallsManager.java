@@ -69,6 +69,7 @@ public final class CallsManager implements Call.Listener {
         void onIsConferencedChanged(Call call);
         void onCannedSmsResponsesLoaded(Call call);
         void onCallVideoProviderChanged(Call call);
+        void onFeaturesChanged(Call call);
     }
 
     private static final CallsManager INSTANCE = new CallsManager();
@@ -233,6 +234,14 @@ public final class CallsManager implements Call.Listener {
     public void onCallVideoProviderChanged(Call call) {
         for (CallsManagerListener listener : mListeners) {
             listener.onCallVideoProviderChanged(call);
+        }
+    }
+
+    @Override
+    public void onFeaturesChanged(Call call) {
+        Log.v(this, "onFeaturesChanged: %d", call.getFeatures());
+        for (CallsManagerListener listener : mListeners) {
+            listener.onFeaturesChanged(call);
         }
     }
 
