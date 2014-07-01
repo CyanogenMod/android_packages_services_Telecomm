@@ -21,6 +21,7 @@ import com.google.android.collect.Lists;
 import com.android.internal.telecomm.ITelecommService;
 
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.res.Resources;
 import android.net.Uri;
 import android.os.Handler;
@@ -28,8 +29,8 @@ import android.os.Looper;
 import android.os.Message;
 import android.os.ServiceManager;
 import android.telecomm.CallState;
-import android.telecomm.Subscription;
 import android.text.TextUtils;
+import android.telecomm.PhoneAccount;
 
 import java.util.List;
 
@@ -131,18 +132,57 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
     //
 
     @Override
-    public List<Subscription> getSubscriptions() {
-        return sSubscriptions;
+    public List<PhoneAccount> getAccounts() {
+        // TODO (STOPSHIP): Static list of Accounts for testing and UX work only.
+        ComponentName componentName = new ComponentName(
+                "com.android.telecomm",
+                TelecommServiceImpl.class.getName());  // This field is a no-op
+        Context app = TelecommApp.getInstance();
+
+        return Lists.newArrayList(
+                new PhoneAccount(
+                        componentName,
+                        "account0",
+                        Uri.parse("tel:999-555-1212"),
+                        app.getString(R.string.test_account_0_label),
+                        app.getString(R.string.test_account_0_short_description),
+                        true,
+                        true),
+                new PhoneAccount(
+                        componentName,
+                        "account1",
+                        Uri.parse("tel:333-111-2222"),
+                        app.getString(R.string.test_account_1_label),
+                        app.getString(R.string.test_account_1_short_description),
+                        true,
+                        false),
+                new PhoneAccount(
+                        componentName,
+                        "account2",
+                        Uri.parse("mailto:two@example.com"),
+                        app.getString(R.string.test_account_2_label),
+                        app.getString(R.string.test_account_2_short_description),
+                        true,
+                        false),
+                new PhoneAccount(
+                        componentName,
+                        "account3",
+                        Uri.parse("mailto:three@example.com"),
+                        app.getString(R.string.test_account_3_label),
+                        app.getString(R.string.test_account_3_short_description),
+                        true,
+                        false)
+        );
     }
 
     @Override
-    public void setEnabled(Subscription subscription, boolean enabled) {
+    public void setEnabled(PhoneAccount account, boolean enabled) {
         // Enforce MODIFY_PHONE_STATE ?
         // TODO
     }
 
     @Override
-    public void setSystemDefault(Subscription subscription) {
+    public void setSystemDefault(PhoneAccount account) {
         // Enforce MODIFY_PHONE_STATE ?
         // TODO
     }
@@ -260,50 +300,9 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
                 android.Manifest.permission.READ_PHONE_STATE, null);
     }
 
-    // TODO (STOPSHIP): Static list of Subscriptions for testing and UX work only.
-
-    private  static final ComponentName sComponentName = new ComponentName(
-            "com.android.telecomm",
-            TelecommServiceImpl.class.getName());  // This field is a no-op
-
-    private static final List<Subscription> sSubscriptions = Lists.newArrayList(
-            new Subscription(
-                    sComponentName,
-                    "subscription0",
-                    Uri.parse("tel:999-555-1212"),
-                    R.string.test_subscription_0_label,
-                    R.string.test_subscription_0_short_description,
-                    R.drawable.q_mobile,
-                    true,
-                    true),
-            new Subscription(
-                    sComponentName,
-                    "subscription1",
-                    Uri.parse("tel:333-111-2222"),
-                    R.string.test_subscription_1_label,
-                    R.string.test_subscription_1_short_description,
-                    R.drawable.market_wireless,
-                    true,
-                    false),
-            new Subscription(
-                    sComponentName,
-                    "subscription2",
-                    Uri.parse("mailto:two@example.com"),
-                    R.string.test_subscription_2_label,
-                    R.string.test_subscription_2_short_description,
-                    R.drawable.talk_to_your_circles,
-                    true,
-                    false),
-            new Subscription(
-                    sComponentName,
-                    "subscription3",
-                    Uri.parse("mailto:three@example.com"),
-                    R.string.test_subscription_3_label,
-                    R.string.test_subscription_3_short_description,
-                    R.drawable.chat_with_others,
-                    true,
-                    false)
-    );
+    private void showCallScreenInternal(boolean showDialpad) {
+        CallsManager.getInstance().getInCallController().bringToForeground(showDialpad);
+    }
 
     private void publish() {
         Log.d(this, "publish: %s", this);

@@ -78,20 +78,20 @@
 
 
     <!-- DO NOT TRANSLATE. Label for test Subscription 0. -->
-    <string name="test_subscription_0_label">Q Mobile</string>
+    <string name="test_account_0_label">Q Mobile</string>
     <!-- DO NOT TRANSLATE. Label for test Subscription 1. -->
-    <string name="test_subscription_1_label">Market Wireless</string>
+    <string name="test_account_1_label">Market Wireless</string>
     <!-- DO NOT TRANSLATE. Label for test Subscription 2. -->
-    <string name="test_subscription_2_label">Sonoma Circles Talk Plus</string>
+    <string name="test_account_2_label">Sonoma Circles Talk Plus</string>
     <!-- DO NOT TRANSLATE. Label for test Subscription 3. -->
-    <string name="test_subscription_3_label">Bay Voice Chat Pro</string>
+    <string name="test_account_3_label">Bay Voice Chat Pro</string>
 
     <!-- DO NOT TRANSLATE. Short description for test Subscription 0. -->
-    <string name="test_subscription_0_short_description">Account with Q Mobile</string>
+    <string name="test_account_0_short_description">Account with Q Mobile</string>
     <!-- DO NOT TRANSLATE. Short description for test Subscription 1. -->
-    <string name="test_subscription_1_short_description">Account with Market Wireless</string>
+    <string name="test_account_1_short_description">Account with Market Wireless</string>
     <!-- DO NOT TRANSLATE. Short description for test Subscription 2. -->
-    <string name="test_subscription_2_short_description">Talk to everyone in your Circles!</string>
+    <string name="test_account_2_short_description">Talk to everyone in your Circles!</string>
     <!-- DO NOT TRANSLATE. Short description for test Subscription 3. -->
-    <string name="test_subscription_3_short_description">Chat with Chat Network users</string>
+    <string name="test_account_3_short_description">Chat with Chat Network users</string>
 </resources>

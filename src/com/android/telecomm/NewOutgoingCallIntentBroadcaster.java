@@ -17,34 +17,18 @@
 package com.android.telecomm;
 
 import android.app.Activity;
-import android.app.ActivityManagerNative;
-import android.app.AlertDialog;
-import android.app.AppOpsManager;
-import android.app.Dialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.res.Configuration;
 import android.content.res.Resources;
-import android.database.Cursor;
 import android.net.Uri;
-import android.os.Binder;
-import android.os.Bundle;
-import android.os.Handler;
-import android.os.Message;
-import android.os.RemoteException;
-import android.os.SystemProperties;
 import android.os.UserHandle;
-import android.provider.ContactsContract;
 import android.telecomm.GatewayInfo;
-import android.telecomm.Subscription;
+import android.telecomm.PhoneAccount;
 import android.telecomm.TelecommConstants;
 import android.telephony.PhoneNumberUtils;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
-import android.view.View;
-import android.widget.ProgressBar;
 
 /**
  * OutgoingCallIntentBroadcaster receives CALL and CALL_PRIVILEGED Intents, and broadcasts the
@@ -135,9 +119,9 @@ class NewOutgoingCallIntentBroadcaster {
             }
 
             GatewayInfo gatewayInfo = getGateWayInfoFromIntent(intent, resultHandleUri);
-            Subscription subscription = getSubscriptionFromIntent(intent);
+            PhoneAccount account = getAccountFromIntent(intent);
             mCallsManager.placeOutgoingCall(resultHandleUri, mContactInfo, gatewayInfo,
-                    subscription,
+                    account,
                     mIntent.getBooleanExtra(TelecommConstants.EXTRA_START_CALL_WITH_SPEAKERPHONE,
                             false));
         }
@@ -276,11 +260,11 @@ class NewOutgoingCallIntentBroadcaster {
             Log.d(this, "Found and copied gateway provider extras to broadcast intent.");
             return;
         }
-        Subscription extraSubscription = src.getParcelableExtra(
-                TelephonyManager.EXTRA_SUBSCRIPTION);
-        if (extraSubscription != null) {
-            dst.putExtra(TelephonyManager.EXTRA_SUBSCRIPTION, extraSubscription);
-            Log.d(this, "Found and copied subscription extra to broadcast intent.");
+        PhoneAccount extraAccount = src.getParcelableExtra(
+                TelephonyManager.EXTRA_ACCOUNT);
+        if (extraAccount != null) {
+            dst.putExtra(TelephonyManager.EXTRA_ACCOUNT, extraAccount);
+            Log.d(this, "Found and copied account extra to broadcast intent.");
         }
 
         Log.d(this, "No provider extras found in call intent.");
@@ -327,17 +311,17 @@ class NewOutgoingCallIntentBroadcaster {
     }
 
     /**
-     * Extracts subscription/connection provider information from a provided intent..
+     * Extracts account/connection provider information from a provided intent..
      *
-     * @param intent to extract subscription information from.
-     * @return Subscription object containing extracted subscription information
+     * @param intent to extract account information from.
+     * @return Account object containing extracted account information
      */
-    public static Subscription getSubscriptionFromIntent(Intent intent) {
+    public static PhoneAccount getAccountFromIntent(Intent intent) {
         if (intent == null) {
             return null;
         }
 
-        return intent.getParcelableExtra(TelephonyManager.EXTRA_SUBSCRIPTION);
+        return intent.getParcelableExtra(TelephonyManager.EXTRA_ACCOUNT);
     }
 
     private void launchSystemDialer(Context context, Uri handle) {

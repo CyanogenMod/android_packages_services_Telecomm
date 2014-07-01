@@ -27,8 +27,8 @@ import android.telecomm.CallInfo;
 import android.telecomm.CallServiceDescriptor;
 import android.telecomm.CallState;
 import android.telecomm.GatewayInfo;
+import android.telecomm.PhoneAccount;
 import android.telecomm.Response;
-import android.telecomm.Subscription;
 import android.telecomm.TelecommConstants;
 import android.telephony.DisconnectCause;
 import android.telephony.PhoneNumberUtils;
@@ -117,7 +117,7 @@ final class Call implements OutgoingCallResponse {
      * service. */
     private final GatewayInfo mGatewayInfo;
 
-    private final Subscription mSubscription;
+    private final PhoneAccount mAccount;
 
     private final Handler mHandler = new Handler();
 
@@ -226,15 +226,15 @@ final class Call implements OutgoingCallResponse {
      *
      * @param handle The handle to dial.
      * @param gatewayInfo Gateway information to use for the call.
-     * @param subscription Subscription information to use for the call.
+     * @param account Account information to use for the call.
      * @param isIncoming True if this is an incoming call.
      */
-    Call(Uri handle, GatewayInfo gatewayInfo, Subscription subscription,
+    Call(Uri handle, GatewayInfo gatewayInfo, PhoneAccount account,
             boolean isIncoming, boolean isConference) {
         mState = isConference ? CallState.ACTIVE : CallState.NEW;
         setHandle(handle);
         mGatewayInfo = gatewayInfo;
-        mSubscription = subscription;
+        mAccount = account;
         mIsIncoming = isIncoming;
         mIsConference = isConference;
         maybeLoadCannedSmsResponses();
@@ -360,8 +360,8 @@ final class Call implements OutgoingCallResponse {
         return mGatewayInfo;
     }
 
-    Subscription getSubscription() {
-        return mSubscription;
+    PhoneAccount getAccount() {
+        return mAccount;
     }
 
     boolean isIncoming() {
@@ -728,7 +728,7 @@ final class Call implements OutgoingCallResponse {
                     mGatewayInfo.getOriginalHandle());
 
         }
-        return new CallInfo(callId, mState, mHandle, mGatewayInfo, mSubscription,
+        return new CallInfo(callId, mState, mHandle, mGatewayInfo, mAccount,
                 extras, descriptor);
     }
 

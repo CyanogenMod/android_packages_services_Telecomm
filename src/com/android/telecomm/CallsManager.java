@@ -23,7 +23,7 @@ import android.telecomm.CallInfo;
 import android.telecomm.CallServiceDescriptor;
 import android.telecomm.CallState;
 import android.telecomm.GatewayInfo;
-import android.telecomm.Subscription;
+import android.telecomm.PhoneAccount;
 import android.telephony.DisconnectCause;
 
 import com.google.common.base.Preconditions;
@@ -304,7 +304,7 @@ public final class CallsManager implements Call.Listener {
      * @param speakerphoneOn Whether or not to turn the speakerphone on once the call connects.
      */
     void placeOutgoingCall(Uri handle, ContactInfo contactInfo, GatewayInfo gatewayInfo,
-            Subscription subscription, boolean speakerphoneOn) {
+            PhoneAccount account, boolean speakerphoneOn) {
         final Uri uriHandle = (gatewayInfo == null) ? handle : gatewayInfo.getGatewayHandle();
 
         if (gatewayInfo == null) {
@@ -315,7 +315,7 @@ public final class CallsManager implements Call.Listener {
         }
 
         Call call = new Call(
-                uriHandle, gatewayInfo, subscription,
+                uriHandle, gatewayInfo, account,
                 false /* isIncoming */, false /* isConference */);
         call.setStartWithSpeakerphoneOn(speakerphoneOn);
 
@@ -497,7 +497,7 @@ public final class CallsManager implements Call.Listener {
         // service.
         Call tempCall = new Call(
                 originalCall.getHandoffHandle(), originalCall.getGatewayInfo(),
-                originalCall.getSubscription(), false, false);
+                originalCall.getAccount(), false, false);
         tempCall.setOriginalCall(originalCall);
         tempCall.setExtras(originalCall.getExtras());
         mPendingHandoffCalls.add(tempCall);

@@ -21,13 +21,10 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.provider.CallLog.Calls;
 import android.telecomm.CallState;
-import android.telecomm.Subscription;
+import android.telecomm.PhoneAccount;
 import android.telephony.PhoneNumberUtils;
 
 import com.android.internal.telephony.PhoneConstants;
-
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
 
 /**
  * Helper class that provides functionality to write information about calls and their associated
@@ -49,14 +46,14 @@ final class CallLogManager extends CallsManagerListenerBase {
          * @param durationInMillis Duration of the call (milliseconds).
          */
         public AddCallArgs(Context context, ContactInfo contactInfo, String number,
-                int presentation, int callType, Subscription subscription,
+                int presentation, int callType, PhoneAccount account,
                 long creationDate, long durationInMillis) {
             this.context = context;
             this.contactInfo = contactInfo;
             this.number = number;
             this.presentation = presentation;
             this.callType = callType;
-            this.subscription = subscription;
+            this.mAccount = account;
             this.timestamp = creationDate;
             this.durationInSec = (int)(durationInMillis / 1000);
         }
@@ -67,7 +64,7 @@ final class CallLogManager extends CallsManagerListenerBase {
         public final String number;
         public final int presentation;
         public final int callType;
-        public final Subscription subscription;
+        public final PhoneAccount mAccount;
         public final long timestamp;
         public final int durationInSec;
     }
@@ -115,9 +112,9 @@ final class CallLogManager extends CallsManagerListenerBase {
         Log.d(TAG, "logNumber set to: %s", Log.pii(logNumber));
 
         final int presentation = getPresentation(call, contactInfo);
-        final Subscription subscription = call.getSubscription();
+        final PhoneAccount account = call.getAccount();
 
-        logCall(contactInfo, logNumber, presentation, callLogType, subscription, creationTime, age);
+        logCall(contactInfo, logNumber, presentation, callLogType, account, creationTime, age);
     }
 
     /**
@@ -135,7 +132,7 @@ final class CallLogManager extends CallsManagerListenerBase {
             String number,
             int presentation,
             int callType,
-            Subscription subscription,
+            PhoneAccount account,
             long start,
             long duration) {
         boolean isEmergencyNumber = PhoneNumberUtils.isLocalEmergencyNumber(mContext, number);
@@ -154,7 +151,7 @@ final class CallLogManager extends CallsManagerListenerBase {
                     + Log.pii(number) + "," + presentation + ", " + callType
                     + ", " + start + ", " + duration);
             AddCallArgs args = new AddCallArgs(mContext, contactInfo, number, presentation,
-                    callType, subscription, start, duration);
+                    callType, account, start, duration);
             logCallAsync(args);
         } else {
           Log.d(TAG, "Not adding emergency call to call log.");
@@ -226,7 +223,7 @@ final class CallLogManager extends CallsManagerListenerBase {
                 try {
                     // May block.
                     result[i] = Calls.addCall(null, c.context, c.number, c.presentation,
-                            c.callType, c.subscription, c.timestamp, c.durationInSec);
+                            c.callType, c.mAccount, c.timestamp, c.durationInSec);
                 } catch (Exception e) {
                     // This is very rare but may happen in legitimate cases.
                     // E.g. If the phone is encrypted and thus write request fails, it may cause

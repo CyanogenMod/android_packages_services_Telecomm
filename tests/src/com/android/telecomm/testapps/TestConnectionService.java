@@ -28,7 +28,7 @@ import android.telecomm.ConnectionService;
 import android.telecomm.RemoteConnection;
 import android.telecomm.Response;
 import android.telecomm.SimpleResponse;
-import android.telecomm.Subscription;
+import android.telecomm.PhoneAccount;
 import android.telephony.DisconnectCause;
 import android.text.TextUtils;
 import android.util.Log;
@@ -196,15 +196,15 @@ public class TestConnectionService extends ConnectionService {
     }
 
     private class CallAttempter implements OutgoingCallResponse<RemoteConnection> {
-        private final Iterator<Subscription> mSubscriptionIterator;
+        private final Iterator<PhoneAccount> mAccountIterator;
         private final OutgoingCallResponse<Connection> mCallback;
         private final ConnectionRequest mOriginalRequest;
 
         CallAttempter(
-                Iterator<Subscription> iterator,
+                Iterator<PhoneAccount> iterator,
                 OutgoingCallResponse<Connection> callback,
                 ConnectionRequest originalRequest) {
-            mSubscriptionIterator = iterator;
+            mAccountIterator = iterator;
             mCallback = callback;
             mOriginalRequest = originalRequest;
         }
@@ -217,23 +217,23 @@ public class TestConnectionService extends ConnectionService {
                 mCalls.add(connection);
                 mCallback.onSuccess(mOriginalRequest, connection);
             } else {
-                tryNextSubscription();
+                tryNextAccount();
             }
         }
 
         @Override
         public void onFailure(ConnectionRequest request, int code, String msg) {
-            tryNextSubscription();
+            tryNextAccount();
         }
 
         @Override
         public void onCancel(ConnectionRequest request) {
         }
 
-        public void tryNextSubscription() {
-            if (mSubscriptionIterator.hasNext()) {
+        public void tryNextAccount() {
+            if (mAccountIterator.hasNext()) {
                 ConnectionRequest connectionRequest = new ConnectionRequest(
-                        mSubscriptionIterator.next(),
+                        mAccountIterator.next(),
                         mOriginalRequest.getCallId(),
                         mOriginalRequest.getHandle(),
                         null);
@@ -323,26 +323,25 @@ public class TestConnectionService extends ConnectionService {
 
         // If the number starts with 555, then we handle it ourselves. If not, then we
         // use a remote connection service.
-        // TODO(santoscordon): Have a special phone number to test the subscription-picker dialog
-        // flow.
+        // TODO(santoscordon): Have a special phone number to test the account-picker dialog flow.
         if (number.startsWith("555")) {
             TestConnection connection = new TestConnection(null, Connection.State.DIALING);
             mCalls.add(connection);
             callback.onSuccess(request, connection);
             connection.startOutgoing();
         } else {
-            log("looking up subscriptions");
-            lookupRemoteSubscriptions(handle, new SimpleResponse<Uri, List<Subscription>>() {
+            log("looking up accounts");
+            lookupRemoteAccounts(handle, new SimpleResponse<Uri, List<PhoneAccount>>() {
                 @Override
-                public void onResult(Uri handle, final List<Subscription> subscriptions) {
-                    log("starting the call attempter with subscriptions: " + subscriptions);
-                    new CallAttempter(subscriptions.iterator(), callback, request)
-                            .tryNextSubscription();
+                public void onResult(Uri handle, final List<PhoneAccount> accounts) {
+                    log("starting the call attempter with accounts: " + accounts);
+                    new CallAttempter(accounts.iterator(), callback, request)
+                            .tryNextAccount();
                 }
 
                 @Override
                 public void onError(Uri handle) {
-                    log("remote subscription lookup failed.");
+                    log("remote account lookup failed.");
                     callback.onFailure(request, 0, null);
                 }
             });
