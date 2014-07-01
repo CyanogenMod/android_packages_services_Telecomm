@@ -17,6 +17,7 @@
 package com.android.telecomm.testapps;
 
 import android.telecomm.CallVideoProvider;
+import android.telecomm.RemoteCallVideoClient;
 import android.telecomm.VideoCallProfile;
 
 import android.util.Log;
@@ -27,54 +28,58 @@ import android.view.Surface;
  */
 public class TestCallVideoProvider extends CallVideoProvider {
 
-    /** {@inheritDoc} */
     @Override
-    public void setCamera(String cameraId) {
+    public void onSetCallVideoClient(RemoteCallVideoClient callVideoClient) {
+
+    }
+
+    @Override
+    public void onSetCamera(String cameraId) {
         log("Set camera to " + cameraId);
     }
 
     @Override
-    public void setPreviewSurface(Surface surface) {
+    public void onSetPreviewSurface(Surface surface) {
 
     }
 
     @Override
-    public void setDisplaySurface(Surface surface) {
+    public void onSetDisplaySurface(Surface surface) {
 
     }
 
     @Override
-    public void setDeviceOrientation(int rotation) {
+    public void onSetDeviceOrientation(int rotation) {
 
     }
 
     @Override
-    public void setZoom(float value) {
+    public void onSetZoom(float value) {
 
     }
 
     @Override
-    public void sendSessionModifyRequest(VideoCallProfile requestProfile) {
+    public void onSendSessionModifyRequest(VideoCallProfile requestProfile) {
 
     }
 
     @Override
-    public void sendSessionModifyResponse(VideoCallProfile responseProfile) {
+    public void onSendSessionModifyResponse(VideoCallProfile responseProfile) {
 
     }
 
     @Override
-    public void requestCameraCapabilities() {
+    public void onRequestCameraCapabilities() {
 
     }
 
     @Override
-    public void requestCallDataUsage() {
+    public void onRequestCallDataUsage() {
 
     }
 
     @Override
-    public void setPauseImage(String uri) {
+    public void onSetPauseImage(String uri) {
 
     }
 
