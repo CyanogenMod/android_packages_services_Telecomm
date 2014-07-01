@@ -36,7 +36,6 @@ import com.android.internal.telecomm.IInCallService;
 import com.google.common.collect.ImmutableCollection;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -164,6 +163,12 @@ public final class InCallController extends CallsManagerListenerBase {
 
     @Override
     public void onCallVideoProviderChanged(Call call) {
+        updateCall(call);
+    }
+
+    @Override
+    public void onFeaturesChanged(Call call) {
+        Log.v(this,"onFeaturesChanged: %d", call.getFeatures());
         updateCall(call);
     }
 
@@ -317,7 +322,7 @@ public final class InCallController extends CallsManagerListenerBase {
                 call.getCannedSmsResponses(), capabilities, connectTimeMillis, call.getHandle(),
                 call.getGatewayInfo(), call.getSubscription(), descriptor,
                 call.getHandoffCallServiceDescriptor(), call.getCallVideoProvider(),
-                parentCallId, childCallIds);
+                parentCallId, childCallIds, call.getFeatures());
     }
 
 }

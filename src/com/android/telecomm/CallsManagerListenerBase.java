@@ -89,6 +89,9 @@ class CallsManagerListenerBase implements CallsManager.CallsManagerListener {
 
     @Override
     public void onCallVideoProviderChanged(Call call) {
+    }
 
+    @Override
+    public void onFeaturesChanged(Call call) {
     }
 }

@@ -74,6 +74,7 @@ final class Call implements OutgoingCallResponse {
         void onChildrenChanged(Call call);
         void onCannedSmsResponsesLoaded(Call call);
         void onCallVideoProviderChanged(Call call);
+        void onFeaturesChanged(Call call);
     }
 
     private static final OnQueryCompleteListener sCallerInfoQueryListener =
@@ -207,6 +208,9 @@ final class Call implements OutgoingCallResponse {
     private boolean mCannedSmsResponsesLoadingStarted = false;
 
     private ICallVideoProvider mCallVideoProvider;
+
+    /** Features associated with the call which the InCall UI may wish to show icons for. */
+    private int mFeatures;
 
     /**
      * Creates an empty call object.
@@ -1067,5 +1071,27 @@ final class Call implements OutgoingCallResponse {
      */
     public ICallVideoProvider getCallVideoProvider() {
         return mCallVideoProvider;
+    }
+
+    /**
+     * Returns the features of this call.
+     *
+     * @return The features of this call.
+     */
+    public int getFeatures() {
+        return mFeatures;
+    }
+
+    /**
+     * Set the features associated with the call and notify any listeners of the change.
+     *
+     * @param features The features.
+     */
+    public void setFeatures(int features) {
+        Log.d(this, "setFeatures: %d", features);
+        mFeatures = features;
+        for (Listener l : mListeners) {
+            l.onFeaturesChanged(Call.this);
+        }
     }
 }

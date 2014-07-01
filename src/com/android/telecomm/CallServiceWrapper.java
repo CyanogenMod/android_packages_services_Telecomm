@@ -77,6 +77,7 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
         private static final int MSG_HANDOFF_CALL = 15;
         private static final int MSG_QUERY_REMOTE_CALL_SERVICES = 16;
         private static final int MSG_SET_CALL_VIDEO_PROVIDER = 17;
+        private static final int MSG_SET_FEATURES = 18;
 
         private final Handler mHandler = new Handler() {
             @Override
@@ -296,6 +297,19 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
                         }
                         break;
                     }
+                    case MSG_SET_FEATURES: {
+                        SomeArgs args = (SomeArgs) msg.obj;
+                        try {
+                            call = mCallIdMapper.getCall(args.arg1);
+                            int features = (int) args.arg2;
+                            if (call != null) {
+                                call.setFeatures(features);
+                            }
+                        } finally {
+                            args.recycle();
+                        }
+                        break;
+                    }
                 }
             }
         };
@@ -464,6 +478,16 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
         public void queryRemoteConnectionServices(RemoteServiceCallback callback) {
             logIncoming("queryRemoteCSs");
             mHandler.obtainMessage(MSG_QUERY_REMOTE_CALL_SERVICES, callback).sendToTarget();
+        }
+
+        @Override
+        public void setFeatures(String callId, int features) {
+            logIncoming("setFeatures %s %d", callId, features);
+            mCallIdMapper.checkValidCallId(callId);
+            SomeArgs args = SomeArgs.obtain();
+            args.arg1 = callId;
+            args.arg2 = features;
+            mHandler.obtainMessage(MSG_SET_FEATURES, args).sendToTarget();
         }
     }
 
