@@ -75,6 +75,42 @@ final class Call implements OutgoingCallResponse {
         void onCannedSmsResponsesLoaded(Call call);
         void onCallVideoProviderChanged(Call call);
         void onFeaturesChanged(Call call);
+        void onCallerInfoChanged(Call call);
+    }
+
+    abstract static class ListenerBase implements Listener {
+        @Override
+        public void onSuccessfulOutgoingCall(Call call) {}
+        @Override
+        public void onFailedOutgoingCall(Call call, int errorCode, String errorMsg) {}
+        @Override
+        public void onCancelledOutgoingCall(Call call) {}
+        @Override
+        public void onSuccessfulIncomingCall(Call call, CallInfo callInfo) {}
+        @Override
+        public void onFailedIncomingCall(Call call) {}
+        @Override
+        public void onRequestingRingback(Call call, boolean requestingRingback) {}
+        @Override
+        public void onPostDialWait(Call call, String remaining) {}
+        @Override
+        public void onIsConferenceCapableChanged(Call call, boolean isConferenceCapable) {}
+        @Override
+        public void onExpiredConferenceCall(Call call) {}
+        @Override
+        public void onConfirmedConferenceCall(Call call) {}
+        @Override
+        public void onParentChanged(Call call) {}
+        @Override
+        public void onChildrenChanged(Call call) {}
+        @Override
+        public void onCannedSmsResponsesLoaded(Call call) {}
+        @Override
+        public void onCallVideoProviderChanged(Call call) {}
+        @Override
+        public void onFeaturesChanged(Call call) {}
+        @Override
+        public void onCallerInfoChanged(Call call) {}
     }
 
     private static final OnQueryCompleteListener sCallerInfoQueryListener =
@@ -991,6 +1027,10 @@ final class Call implements OutgoingCallResponse {
                         personUri,
                         sPhotoLoadListener,
                         this);
+            } else {
+                for (Listener l : mListeners) {
+                    l.onCallerInfoChanged(this);
+                }
             }
 
             processDirectToVoicemail();
@@ -1008,6 +1048,10 @@ final class Call implements OutgoingCallResponse {
         if (mQueryToken == token) {
             mCallerInfo.cachedPhoto = photo;
             mCallerInfo.cachedPhotoIcon = photoIcon;
+
+            for (Listener l : mListeners) {
+                l.onCallerInfoChanged(this);
+            }
         }
     }
 
