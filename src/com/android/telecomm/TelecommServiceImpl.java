@@ -77,6 +77,9 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
                     case MSG_ACCEPT_RINGING_CALL:
                         acceptRingingCallInternal();
                         break;
+                    case MSG_CANCEL_MISSED_CALLS_NOTIFICATION:
+                        mMissedCallNotifier.clearMissedCalls();
+                        break;
                 }
 
                 if (result != null) {
@@ -100,15 +103,17 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
     private static final int MSG_IS_RINGING = 4;
     private static final int MSG_END_CALL = 5;
     private static final int MSG_ACCEPT_RINGING_CALL = 6;
+    private static final int MSG_CANCEL_MISSED_CALLS_NOTIFICATION = 7;
 
     /** The singleton instance. */
     private static TelecommServiceImpl sInstance;
 
     private final CallsManager mCallsManager = CallsManager.getInstance();
-
+    private final MissedCallNotifier mMissedCallNotifier;
     private final MainThreadHandler mMainThreadHandler = new MainThreadHandler();
 
-    private TelecommServiceImpl() {
+    private TelecommServiceImpl(MissedCallNotifier missedCallNotifier) {
+        mMissedCallNotifier = missedCallNotifier;
         publish();
     }
 
@@ -116,10 +121,10 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
      * Initialize the singleton TelecommServiceImpl instance.
      * This is only done once, at startup, from TelecommApp.onCreate().
      */
-    static TelecommServiceImpl init() {
+    static TelecommServiceImpl init(MissedCallNotifier missedCallNotifier) {
         synchronized (TelecommServiceImpl.class) {
             if (sInstance == null) {
-                sInstance = new TelecommServiceImpl();
+                sInstance = new TelecommServiceImpl(missedCallNotifier);
             } else {
                 Log.wtf(TAG, "init() called multiple times!  sInstance %s", sInstance);
             }
@@ -246,8 +251,12 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
 
     @Override
     public void showCallScreen(boolean showDialpad) {
-        mMainThreadHandler.obtainMessage(MSG_SHOW_CALL_SCREEN, showDialpad ? 1 : 0, 0)
-                .sendToTarget();
+        sendRequestAsync(MSG_SHOW_CALL_SCREEN, showDialpad ? 1 : 0);
+    }
+
+    @Override
+    public void cancelMissedCallsNotification() {
+        sendRequestAsync(MSG_CANCEL_MISSED_CALLS_NOTIFICATION, 0);
     }
 
     //

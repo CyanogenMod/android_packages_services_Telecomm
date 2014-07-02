@@ -44,7 +44,7 @@ import java.util.Set;
  * access from other packages specifically refraining from passing the CallsManager instance
  * beyond the com.android.telecomm package boundary.
  */
-public final class CallsManager implements Call.Listener {
+public final class CallsManager extends Call.ListenerBase {
 
     // TODO(santoscordon): Consider renaming this CallsManagerPlugin.
     interface CallsManagerListener {

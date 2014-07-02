@@ -20,9 +20,11 @@ import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.TaskStackBuilder;
+import android.content.AsyncQueryHandler;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
@@ -42,6 +44,14 @@ import android.text.TextUtils;
  */
 class MissedCallNotifier extends CallsManagerListenerBase {
 
+    private static final String[] CALL_LOG_PROJECTION = new String[] {
+        Calls._ID,
+        Calls.NUMBER,
+        Calls.NUMBER_PRESENTATION,
+        Calls.DATE,
+        Calls.DURATION,
+        Calls.TYPE,
+    };
     private static final int MISSED_CALL_NOTIFICATION_ID = 1;
     private static final String SCHEME_SMSTO = "smsto";
 
@@ -55,6 +65,8 @@ class MissedCallNotifier extends CallsManagerListenerBase {
         mContext = context;
         mNotificationManager =
                 (NotificationManager) mContext.getSystemService(Context.NOTIFICATION_SERVICE);
+
+        updateOnStartup();
     }
 
     /** {@inheritDoc} */
@@ -242,5 +254,54 @@ class MissedCallNotifier extends CallsManagerListenerBase {
     private void configureLedOnNotification(Notification notification) {
         notification.flags |= Notification.FLAG_SHOW_LIGHTS;
         notification.defaults |= Notification.DEFAULT_LIGHTS;
+    }
+
+    /**
+     * Adds the missed call notification on startup if there are unread missed calls.
+     */
+    private void updateOnStartup() {
+        Log.d(this, "updateOnStartup()...");
+
+        // instantiate query handler
+        AsyncQueryHandler queryHandler = new AsyncQueryHandler(mContext.getContentResolver()) {
+            @Override
+            protected void onQueryComplete(int token, Object cookie, Cursor cursor) {
+                if (cursor != null) {
+                    while (cursor.moveToNext()) {
+                        // Get data about the missed call from the cursor
+                        Uri handle = Uri.parse(cursor.getString(
+                                cursor.getColumnIndexOrThrow(Calls.NUMBER)));
+
+                        // Convert the data to a call object
+                        Call call = new Call(null, null, null, true, false);
+                        call.setDisconnectCause(DisconnectCause.INCOMING_MISSED, "");
+                        call.setState(CallState.DISCONNECTED);
+
+                        // Listen for the update to the caller information before posting the
+                        // notification so that we have the contact info and photo.
+                        call.addListener(new Call.ListenerBase() {
+                            @Override
+                            public void onCallerInfoChanged(Call call) {
+                                call.removeListener(this);  // No longer need to listen to call
+                                                            // changes after the contact info
+                                                            // is retrieved.
+                                showMissedCallNotification(call);
+                            }
+                        });
+                        // Set the handle here because that is what triggers the contact info query.
+                        call.setHandle(handle);
+                    }
+                }
+            }
+        };
+
+        // setup query spec, look for all Missed calls that are new.
+        StringBuilder where = new StringBuilder("type=");
+        where.append(Calls.MISSED_TYPE);
+        where.append(" AND new=1");
+
+        // start the query
+        queryHandler.startQuery(0, null, Calls.CONTENT_URI, CALL_LOG_PROJECTION,
+                where.toString(), null, Calls.DEFAULT_SORT_ORDER);
     }
 }

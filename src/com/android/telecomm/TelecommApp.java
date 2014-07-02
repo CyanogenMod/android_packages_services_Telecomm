@@ -40,7 +40,7 @@ public final class TelecommApp extends Application {
 
         mMissedCallNotifier = new MissedCallNotifier(this);
         if (UserHandle.myUserId() == UserHandle.USER_OWNER) {
-            TelecommServiceImpl.init();
+            TelecommServiceImpl.init(mMissedCallNotifier);
         }
     }
 
