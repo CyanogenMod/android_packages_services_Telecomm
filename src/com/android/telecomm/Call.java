@@ -194,21 +194,6 @@ final class Call implements OutgoingCallResponse {
     /** Info used by the call services. */
     private Bundle mExtras = Bundle.EMPTY;
 
-    /** The Uri to dial to perform the handoff. If this is null then handoff is not supported. */
-    private Uri mHandoffHandle;
-
-    /**
-     * References the call that is being handed off. This value is non-null for untracked calls
-     * that are being used to perform a handoff.
-     */
-    private Call mOriginalCall;
-
-    /**
-     * The descriptor for the call service that this call is being switched to, null if handoff is
-     * not in progress.
-     */
-    private CallServiceDescriptor mHandoffCallServiceDescriptor;
-
     /** Set of listeners on this call. */
     private Set<Listener> mListeners = Sets.newHashSet();
 
@@ -749,8 +734,6 @@ final class Call implements OutgoingCallResponse {
         CallServiceDescriptor descriptor = null;
         if (mCallService != null) {
             descriptor = mCallService.getDescriptor();
-        } else if (mOriginalCall != null && mOriginalCall.mCallService != null) {
-            descriptor = mOriginalCall.mCallService.getDescriptor();
         }
         Bundle extras = mExtras;
         if (mGatewayInfo != null && mGatewayInfo.getGatewayProviderPackageName() != null &&
@@ -800,30 +783,6 @@ final class Call implements OutgoingCallResponse {
         mExtras = extras;
     }
 
-    Uri getHandoffHandle() {
-        return mHandoffHandle;
-    }
-
-    void setHandoffHandle(Uri handoffHandle) {
-        mHandoffHandle = handoffHandle;
-    }
-
-    Call getOriginalCall() {
-        return mOriginalCall;
-    }
-
-    void setOriginalCall(Call originalCall) {
-        mOriginalCall = originalCall;
-    }
-
-    CallServiceDescriptor getHandoffCallServiceDescriptor() {
-        return mHandoffCallServiceDescriptor;
-    }
-
-    void setHandoffCallServiceDescriptor(CallServiceDescriptor descriptor) {
-        mHandoffCallServiceDescriptor = descriptor;
-    }
-
     Uri getRingtone() {
         return mCallerInfo == null ? null : mCallerInfo.contactRingtoneUri;
     }
@@ -836,6 +795,10 @@ final class Call implements OutgoingCallResponse {
 
     void postDialContinue(boolean proceed) {
         getCallService().onPostDialContinue(this, proceed);
+    }
+
+    void phoneAccountClicked() {
+        getCallService().onPhoneAccountClicked(this);
     }
 
     void conferenceInto(Call conferenceCall) {

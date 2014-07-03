@@ -38,21 +38,10 @@ class CallsManagerListenerBase implements CallsManager.CallsManagerListener {
     }
 
     @Override
-    public void onCallHandoffHandleChanged(Call call, Uri oldHandle, Uri newHandle) {
-    }
-
-    @Override
     public void onCallServiceChanged(
             Call call,
             CallServiceWrapper oldCallServiceWrapper,
             CallServiceWrapper newCallService) {
-    }
-
-    @Override
-    public void onCallHandoffCallServiceDescriptorChanged(
-            Call call,
-            CallServiceDescriptor oldDescriptor,
-            CallServiceDescriptor newDescriptor) {
     }
 
     @Override

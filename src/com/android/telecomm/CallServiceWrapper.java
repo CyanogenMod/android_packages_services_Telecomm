@@ -74,10 +74,9 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
         private static final int MSG_CAN_CONFERENCE = 12;
         private static final int MSG_SET_IS_CONFERENCED = 13;
         private static final int MSG_ADD_CONFERENCE_CALL = 14;
-        private static final int MSG_HANDOFF_CALL = 15;
-        private static final int MSG_QUERY_REMOTE_CALL_SERVICES = 16;
-        private static final int MSG_SET_CALL_VIDEO_PROVIDER = 17;
-        private static final int MSG_SET_FEATURES = 18;
+        private static final int MSG_QUERY_REMOTE_CALL_SERVICES = 15;
+        private static final int MSG_SET_CALL_VIDEO_PROVIDER = 16;
+        private static final int MSG_SET_FEATURES = 17;
 
         private final Handler mHandler = new Handler() {
             @Override
@@ -219,14 +218,6 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
                         }
                         break;
                     }
-                    case MSG_HANDOFF_CALL:
-                        call = mCallIdMapper.getCall(msg.obj);
-                        if (call != null) {
-                            mCallsManager.startHandoffForCall(call);
-                        } else {
-                            //Log.w(this, "handoffCall, unknown call id: %s", msg.obj);
-                        }
-                        break;
                     case MSG_CAN_CONFERENCE: {
                         call = mCallIdMapper.getCall(msg.obj);
                         if (call != null) {
@@ -463,14 +454,6 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
             args.arg1 = callId;
             args.arg2 = remaining;
             mHandler.obtainMessage(MSG_ON_POST_DIAL_WAIT, args).sendToTarget();
-        }
-
-        /** {@inheritDoc} */
-        @Override
-        public void handoffCall(String callId) {
-            logIncoming("handoffCall %s", callId);
-            mCallIdMapper.checkValidCallId(callId);
-            mHandler.obtainMessage(MSG_HANDOFF_CALL, callId).sendToTarget();
         }
 
         /** ${inheritDoc} */
@@ -745,6 +728,16 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
             try {
                 logOutgoing("onPostDialContinue %s %b", mCallIdMapper.getCallId(call), proceed);
                 mServiceInterface.onPostDialContinue(mCallIdMapper.getCallId(call), proceed);
+            } catch (RemoteException ignored) {
+            }
+        }
+    }
+
+    void onPhoneAccountClicked(Call call) {
+        if (isServiceValid("onPhoneAccountClicked")) {
+            try {
+                logOutgoing("onPhoneAccountClicked %s", mCallIdMapper.getCallId(call));
+                mServiceInterface.onPhoneAccountClicked(mCallIdMapper.getCallId(call));
             } catch (RemoteException ignored) {
             }
         }
