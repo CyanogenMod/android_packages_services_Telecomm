@@ -36,7 +36,7 @@ class InCallAdapter extends IInCallAdapter.Stub {
     private static final int MSG_DISCONNECT_CALL = 5;
     private static final int MSG_HOLD_CALL = 6;
     private static final int MSG_UNHOLD_CALL = 7;
-    private static final int MSG_HANDOFF_CALL = 8;
+    private static final int MSG_PHONE_ACCOUNT_CLICKED = 8;
     private static final int MSG_MUTE = 9;
     private static final int MSG_SET_AUDIO_ROUTE = 10;
     private static final int MSG_CONFERENCE = 11;
@@ -120,12 +120,12 @@ class InCallAdapter extends IInCallAdapter.Stub {
                         Log.w(this, "unholdCall, unknown call id: %s", msg.obj);
                     }
                     break;
-                case MSG_HANDOFF_CALL:
+                case MSG_PHONE_ACCOUNT_CLICKED:
                     call = mCallIdMapper.getCall(msg.obj);
                     if (call != null) {
-                        mCallsManager.startHandoffForCall(call);
+                        mCallsManager.phoneAccountClicked(call);
                     } else {
-                        Log.w(this, "startHandoffForCall, unknown call id: %s", msg.obj);
+                        Log.w(this, "phoneAccountClicked, unknown call id: %s", msg.obj);
                     }
                     break;
                 case MSG_MUTE:
@@ -234,9 +234,9 @@ class InCallAdapter extends IInCallAdapter.Stub {
 
     /** {@inheritDoc} */
     @Override
-    public void handoffCall(String callId) {
+    public void phoneAccountClicked(String callId) {
         mCallIdMapper.checkValidCallId(callId);
-        mHandler.obtainMessage(MSG_HANDOFF_CALL, callId).sendToTarget();
+        mHandler.obtainMessage(MSG_PHONE_ACCOUNT_CLICKED, callId).sendToTarget();
     }
 
     /** {@inheritDoc} */

@@ -51,15 +51,10 @@ public final class CallsManager extends Call.ListenerBase {
         void onCallAdded(Call call);
         void onCallRemoved(Call call);
         void onCallStateChanged(Call call, CallState oldState, CallState newState);
-        void onCallHandoffHandleChanged(Call call, Uri oldHandle, Uri newHandle);
         void onCallServiceChanged(
                 Call call,
                 CallServiceWrapper oldCallService,
                 CallServiceWrapper newCallService);
-        void onCallHandoffCallServiceDescriptorChanged(
-                Call call,
-                CallServiceDescriptor oldDescriptor,
-                CallServiceDescriptor newDescriptor);
         void onIncomingCallAnswered(Call call);
         void onIncomingCallRejected(Call call, boolean rejectWithMessage, String textMessage);
         void onForegroundCallChanged(Call oldForegroundCall, Call newForegroundCall);
@@ -79,13 +74,6 @@ public final class CallsManager extends Call.ListenerBase {
      * calls are added to the map and removed when the calls move to the disconnected state.
      */
     private final Set<Call> mCalls = new LinkedHashSet<>();
-
-    /**
-     * Set of new calls created to perform a handoff. The calls are added when handoff is initiated
-     * and removed when hadnoff is complete.
-     */
-    private final Set<Call> mPendingHandoffCalls = new LinkedHashSet<>();
-
 
     private final DtmfLocalTonePlayer mDtmfLocalTonePlayer = new DtmfLocalTonePlayer();
     private final InCallController mInCallController = new InCallController();
@@ -139,9 +127,6 @@ public final class CallsManager extends Call.ListenerBase {
             for (CallsManagerListener listener : mListeners) {
                 listener.onCallServiceChanged(call, null, call.getCallService());
             }
-        } else if (mPendingHandoffCalls.contains(call)) {
-            updateHandoffCallServiceDescriptor(call.getOriginalCall(),
-                    call.getCallService().getDescriptor());
         } else {
             Log.wtf(this, "unexpected successful call notification: %s", call);
             return;
@@ -478,33 +463,12 @@ public final class CallsManager extends Call.ListenerBase {
         mCallAudioManager.setAudioRoute(route);
     }
 
-    void startHandoffForCall(Call originalCall) {
-        if (!mCalls.contains(originalCall)) {
-            Log.w(this, "Unknown call %s asked to be handed off", originalCall);
-            return;
+    void phoneAccountClicked(Call call) {
+        if (!mCalls.contains(call)) {
+            Log.i(this, "phoneAccountClicked in a non-existent call %s", call);
+        } else {
+            call.phoneAccountClicked();
         }
-
-        for (Call handoffCall : mPendingHandoffCalls) {
-            if (handoffCall.getOriginalCall() == originalCall) {
-                Log.w(this, "Call %s is already being handed off, skipping", originalCall);
-                return;
-            }
-        }
-
-        // Create a new call to be placed in the background. If handoff is successful then the
-        // original call will live on but its state will be updated to the new call's state. In
-        // particular the original call's call service will be updated to the new call's call
-        // service.
-        Call tempCall = new Call(
-                originalCall.getHandoffHandle(), originalCall.getGatewayInfo(),
-                originalCall.getAccount(), false, false);
-        tempCall.setOriginalCall(originalCall);
-        tempCall.setExtras(originalCall.getExtras());
-        mPendingHandoffCalls.add(tempCall);
-        tempCall.addListener(this);
-
-        Log.d(this, "Placing handoff call");
-        tempCall.startOutgoing();
     }
 
     /** Called when the audio state changes. */
@@ -529,9 +493,6 @@ public final class CallsManager extends Call.ListenerBase {
         }
         setCallState(call, CallState.ACTIVE);
 
-        if (mPendingHandoffCalls.contains(call)) {
-            completeHandoff(call, true);
-        }
         if (call.getStartWithSpeakerphoneOn()) {
             setAudioRoute(CallAudioState.ROUTE_SPEAKER);
         }
@@ -551,33 +512,7 @@ public final class CallsManager extends Call.ListenerBase {
     void markCallAsDisconnected(Call call, int disconnectCause, String disconnectMessage) {
         call.setDisconnectCause(disconnectCause, disconnectMessage);
         setCallState(call, CallState.DISCONNECTED);
-
-        // Only remove the call if handoff is not pending.
-        if (call.getHandoffCallServiceDescriptor() == null) {
-            removeCall(call);
-        }
-    }
-
-    void setHandoffInfo(Call call, Uri handle, Bundle extras) {
-        if (!mCalls.contains(call)) {
-            Log.w(this, "Unknown call (%s) asked to set handoff info", call);
-            return;
-        }
-
-        if (extras == null) {
-            call.setExtras(Bundle.EMPTY);
-        } else {
-            call.setExtras(extras);
-        }
-
-        Uri oldHandle = call.getHandoffHandle();
-        Log.v(this, "set handoff handle %s -> %s, for call: %s", oldHandle, handle, call);
-        if (!areUriEqual(oldHandle, handle)) {
-            call.setHandoffHandle(handle);
-            for (CallsManagerListener listener : mListeners) {
-                listener.onCallHandoffHandleChanged(call, oldHandle, handle);
-            }
-        }
+        removeCall(call);
     }
 
     /**
@@ -692,8 +627,6 @@ public final class CallsManager extends Call.ListenerBase {
     }
 
     private void removeCall(Call call) {
-        // If a handoff is pending then the original call shouldn't be removed.
-        Preconditions.checkState(call.getHandoffCallServiceDescriptor() == null);
         Log.v(this, "removeCall(%s)", call);
 
         call.removeListener(this);
@@ -703,9 +636,6 @@ public final class CallsManager extends Call.ListenerBase {
         if (mCalls.contains(call)) {
             mCalls.remove(call);
             shouldNotify = true;
-        } else if (mPendingHandoffCalls.contains(call)) {
-            Log.v(this, "removeCall, marking handoff call as failed");
-            completeHandoff(call, false);
         }
 
         // Only broadcast changes for calls that are being tracked.
@@ -777,56 +707,6 @@ public final class CallsManager extends Call.ListenerBase {
 
             for (CallsManagerListener listener : mListeners) {
                 listener.onForegroundCallChanged(oldForegroundCall, mForegroundCall);
-            }
-        }
-    }
-
-    private void completeHandoff(Call handoffCall, boolean wasSuccessful) {
-        Call originalCall = handoffCall.getOriginalCall();
-        Log.v(this, "complete handoff, %s -> %s, wasSuccessful: %b", handoffCall, originalCall,
-                wasSuccessful);
-
-        // Remove the transient handoff call object (don't disconnect because the call could still
-        // be live).
-        mPendingHandoffCalls.remove(handoffCall);
-        handoffCall.removeListener(this);
-
-        if (wasSuccessful) {
-            if (TelephonyUtil.isCurrentlyPSTNCall(originalCall)) {
-                originalCall.disconnect();
-            }
-
-            // Synchronize.
-            originalCall.setCallService(handoffCall.getCallService(), handoffCall);
-            setCallState(originalCall, handoffCall.getState());
-
-            // Force the foreground call changed notification to be sent.
-            for (CallsManagerListener listener : mListeners) {
-                listener.onForegroundCallChanged(mForegroundCall, mForegroundCall);
-            }
-
-            updateHandoffCallServiceDescriptor(originalCall, null);
-        } else {
-            updateHandoffCallServiceDescriptor(originalCall, null);
-            if (originalCall.getState() == CallState.DISCONNECTED ||
-                    originalCall.getState() == CallState.ABORTED) {
-                removeCall(originalCall);
-            }
-        }
-    }
-
-    private void updateHandoffCallServiceDescriptor(
-            Call originalCall,
-            CallServiceDescriptor newDescriptor) {
-        CallServiceDescriptor oldDescriptor = originalCall.getHandoffCallServiceDescriptor();
-        Log.v(this, "updateHandoffCallServiceDescriptor, call: %s, pending descriptor: %s -> %s",
-                originalCall, oldDescriptor, newDescriptor);
-
-        if (!areDescriptorsEqual(oldDescriptor, newDescriptor)) {
-            originalCall.setHandoffCallServiceDescriptor(newDescriptor);
-            for (CallsManagerListener listener : mListeners) {
-                listener.onCallHandoffCallServiceDescriptorChanged(originalCall, oldDescriptor,
-                        newDescriptor);
             }
         }
     }

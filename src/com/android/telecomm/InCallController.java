@@ -103,23 +103,10 @@ public final class InCallController extends CallsManagerListenerBase {
     }
 
     @Override
-    public void onCallHandoffHandleChanged(Call call, Uri oldHandle, Uri newHandle) {
-        updateCall(call);
-    }
-
-    @Override
     public void onCallServiceChanged(
             Call call,
             CallServiceWrapper oldCallServiceWrapper,
             CallServiceWrapper newCallService) {
-        updateCall(call);
-    }
-
-    @Override
-    public void onCallHandoffCallServiceDescriptorChanged(
-            Call call,
-            CallServiceDescriptor oldDescriptor,
-            CallServiceDescriptor newDescriptor) {
         updateCall(call);
     }
 
@@ -277,11 +264,7 @@ public final class InCallController extends CallsManagerListenerBase {
         CallServiceDescriptor descriptor =
                 call.getCallService() != null ? call.getCallService().getDescriptor() : null;
 
-        boolean isHandoffCapable = call.getHandoffHandle() != null;
         int capabilities = CallCapabilities.HOLD | CallCapabilities.MUTE;
-        if (call.getHandoffHandle() != null) {
-            capabilities |= CallCapabilities.CONNECTION_HANDOFF;
-        }
         if (CallsManager.getInstance().isAddCallCapable(call)) {
             capabilities |= CallCapabilities.ADD_CALL;
         }
@@ -291,10 +274,6 @@ public final class InCallController extends CallsManagerListenerBase {
         CallState state = call.getState();
         if (state == CallState.ABORTED) {
             state = CallState.DISCONNECTED;
-        }
-        // TODO(sail): Remove this and replace with final reconnecting code.
-        if (state == CallState.DISCONNECTED && call.getHandoffCallServiceDescriptor() != null) {
-            state = CallState.ACTIVE;
         }
 
         String parentCallId = null;
@@ -320,8 +299,7 @@ public final class InCallController extends CallsManagerListenerBase {
 
         return new InCallCall(callId, state, call.getDisconnectCause(), call.getDisconnectMessage(),
                 call.getCannedSmsResponses(), capabilities, connectTimeMillis, call.getHandle(),
-                call.getGatewayInfo(), call.getAccount(), descriptor,
-                call.getHandoffCallServiceDescriptor(), call.getCallVideoProvider(),
+                call.getGatewayInfo(), call.getAccount(), descriptor, call.getCallVideoProvider(),
                 parentCallId, childCallIds, call.getFeatures());
     }
 
