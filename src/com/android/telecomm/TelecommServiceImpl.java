@@ -330,21 +330,23 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
      */
     private Object sendRequest(int command) {
         if (Looper.myLooper() == mMainThreadHandler.getLooper()) {
-            throw new RuntimeException("This method will deadlock if called from the main thread.");
-        }
+            MainThreadRequest request = new MainThreadRequest();
+            mMainThreadHandler.handleMessage(mMainThreadHandler.obtainMessage(command, request));
+            return request.result;
+        } else {
+            MainThreadRequest request = sendRequestAsync(command, 0);
 
-        MainThreadRequest request = sendRequestAsync(command, 0);
-
-        // Wait for the request to complete
-        synchronized (request) {
-            while (request.result == null) {
-                try {
-                    request.wait();
-                } catch (InterruptedException e) {
-                    // Do nothing, go back and wait until the request is complete
+            // Wait for the request to complete
+            synchronized (request) {
+                while (request.result == null) {
+                    try {
+                        request.wait();
+                    } catch (InterruptedException e) {
+                        // Do nothing, go back and wait until the request is complete
+                    }
                 }
             }
+            return request.result;
         }
-        return request.result;
     }
 }
