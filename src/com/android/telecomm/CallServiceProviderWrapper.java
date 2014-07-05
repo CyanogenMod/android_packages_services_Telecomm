@@ -17,31 +17,55 @@
 package com.android.telecomm;
 
 import android.content.ComponentName;
+import android.os.Handler;
 import android.os.IBinder;
 import android.os.RemoteException;
+import android.telecomm.CallServiceDescriptor;
 import android.telecomm.TelecommConstants;
 
 import com.android.internal.telecomm.ICallServiceLookupResponse;
 import com.android.internal.telecomm.ICallServiceProvider;
+
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Wrapper for {@link ICallServiceProvider}s, handles binding to {@link ICallServiceProvider} and
  * keeps track of when the object can safely be unbound. Other classes should not use
  * {@link ICallServiceProvider} directly and instead should use this class to invoke methods of
  * {@link ICallServiceProvider}.
- * TODO(santoscordon): Keep track of when the service can be safely unbound.
  */
 final class CallServiceProviderWrapper extends ServiceBinder<ICallServiceProvider> {
-    /**
-     * The service action used to bind to ICallServiceProvider implementations.
-     * TODO(santoscordon): Move this to TelecommConstants.
-     */
-    static final String CALL_SERVICE_PROVIDER_ACTION = ICallServiceProvider.class.getName();
+    interface LookupResponse {
+        void setCallServiceDescriptors(List<CallServiceDescriptor> descriptors);
+    }
+
+    private class LookupResponseWrapper extends ICallServiceLookupResponse.Stub {
+        private final LookupResponse mResponse;
+
+        LookupResponseWrapper(LookupResponse response) {
+            mResponse = response;
+        }
+
+        @Override
+        public void setCallServiceDescriptors(final List<CallServiceDescriptor> descriptors) {
+            mHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    if (mLookupResponses.remove(mResponse)) {
+                        mResponse.setCallServiceDescriptors(descriptors);
+                    }
+                }
+            });
+        }
+    };
 
     /** The actual service implementation. */
     private ICallServiceProvider mServiceInterface;
-
-    private Binder mBinder = new Binder();
+    private final Binder mBinder = new Binder();
+    private Set<LookupResponse> mLookupResponses = new HashSet<LookupResponse>();
+    private final Handler mHandler = new Handler();
 
     /**
      * Creates a call-service provider for the specified component.
@@ -53,30 +77,30 @@ final class CallServiceProviderWrapper extends ServiceBinder<ICallServiceProvide
     }
 
     /**
-     * initiates a call-service lookup cycle, see {@link ICallServiceProvider#lookupCallServices}.
-     * Upon failure, the specified error callback is invoked.  Can be invoked even when the call
-     * service is unbound.
+     * Initiates a call-service lookup cycle, see {@link ICallServiceProvider#lookupCallServices}.
+     * Can be invoked even when the call service is unbound.
      *
      * @param response The response object via which to return the relevant call-service
      *     implementations, if any.
-     * @param errorCallback The callback to invoke upon failure.
      */
-    void lookupCallServices(
-            final ICallServiceLookupResponse response,
-            final Runnable errorCallback) {
-
+    void lookupCallServices(final LookupResponse response) {
+        mLookupResponses.add(response);
         BindCallback callback = new BindCallback() {
-            @Override public void onSuccess() {
+            @Override
+            public void onSuccess() {
                 if (isServiceValid("lookupCallServices")) {
                     try {
-                        mServiceInterface.lookupCallServices(response);
+                        mServiceInterface.lookupCallServices(new LookupResponseWrapper(response));
                     } catch (RemoteException e) {
-                        Log.e(CallServiceProviderWrapper.this, e, "Failed to lookupCallServices.");
                     }
                 }
             }
-            @Override public void onFailure() {
-                errorCallback.run();
+
+            @Override
+            public void onFailure() {
+                if (mLookupResponses.remove(response)) {
+                    response.setCallServiceDescriptors(null);
+                }
             }
         };
 
@@ -85,6 +109,16 @@ final class CallServiceProviderWrapper extends ServiceBinder<ICallServiceProvide
 
     /** {@inheritDoc} */
     @Override protected void setServiceInterface(IBinder binder) {
-        mServiceInterface = ICallServiceProvider.Stub.asInterface(binder);
+        if (binder == null) {
+            mServiceInterface = null;
+
+            Set<LookupResponse> responses = mLookupResponses;
+            mLookupResponses = new HashSet<LookupResponse>();
+            for (LookupResponse response : responses) {
+                response.setCallServiceDescriptors(null);
+            }
+        } else {
+            mServiceInterface = ICallServiceProvider.Stub.asInterface(binder);
+        }
     }
 }

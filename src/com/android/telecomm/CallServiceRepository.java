@@ -21,7 +21,6 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.content.pm.ServiceInfo;
-import android.os.Handler;
 import android.telecomm.CallServiceDescriptor;
 import android.telecomm.TelecommConstants;
 
@@ -100,29 +99,12 @@ class CallServiceRepository extends BaseRepository<ConnectionServiceWrapper> {
         private void queryProviderForCallServices(final ComponentName providerName) {
             final CallServiceProviderWrapper provider = new CallServiceProviderWrapper(
                     providerName);
-
-            ICallServiceLookupResponse response = new ICallServiceLookupResponse.Stub() {
-                    @Override
-                public void setCallServiceDescriptors(
-                        final List<CallServiceDescriptor> callServiceDescriptors) {
-
-                    mHandler.post(new Runnable() {
-                            @Override
-                        public void run() {
-                            processCallServices(provider, Sets.newHashSet(callServiceDescriptors));
-                        }
-                    });
+            provider.lookupCallServices(new CallServiceProviderWrapper.LookupResponse() {
+                @Override
+                public void setCallServiceDescriptors(List<CallServiceDescriptor> descriptors) {
+                    processCallServices(provider, descriptors);
                 }
-            };
-
-            Runnable errorCallback = new Runnable() {
-                    @Override
-                public void run() {
-                    processCallServices(provider, null);
-                }
-            };
-
-            provider.lookupCallServices(response, errorCallback);
+            });
         }
 
         /**
@@ -133,17 +115,17 @@ class CallServiceRepository extends BaseRepository<ConnectionServiceWrapper> {
          */
         private void processCallServices(
                 CallServiceProviderWrapper provider,
-                Set<CallServiceDescriptor> callServiceDescriptors) {
+                List<CallServiceDescriptor> descriptors) {
 
             // Descriptor lookup finished, we no longer need the provider.
             provider.unbind();
 
             ComponentName providerName = provider.getComponentName();
             if (mOutstandingProviders.remove(providerName)) {
-                if (callServiceDescriptors != null) {
+                if (descriptors != null) {
                     // Add all the connection services from this provider to the connection-service
                     // cache.
-                    for (CallServiceDescriptor descriptor : callServiceDescriptors) {
+                    for (CallServiceDescriptor descriptor : descriptors) {
                         mServices.add(getService(descriptor.getServiceComponent(), descriptor));
                     }
                 }
@@ -162,7 +144,6 @@ class CallServiceRepository extends BaseRepository<ConnectionServiceWrapper> {
     }
 
     private final IncomingCallsManager mIncomingCallsManager;
-    private final Handler mHandler = new Handler();
 
     /** Persists specified parameters. */
     CallServiceRepository(IncomingCallsManager incomingCallsManager) {
