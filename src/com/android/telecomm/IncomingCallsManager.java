@@ -17,8 +17,8 @@
 package com.android.telecomm;
 
 import android.os.Bundle;
-import android.telecomm.CallInfo;
-import android.telecomm.CallService;
+import android.telecomm.ConnectionService;
+import android.telecomm.ConnectionRequest;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
@@ -34,11 +34,12 @@ final class IncomingCallsManager {
     private final Set<Call> mPendingIncomingCalls = Sets.newLinkedHashSet();
 
     /**
-     * Retrieves details of an incoming call through its associated call service.
+     * Retrieves details of an incoming call through its associated connection service.
      *
      * @param call The call object.
      * @param extras The optional extras passed with the incoming call intent (to be returned to
-     *     the call service via {@link CallService#setIncomingCallId(String, android.os.Bundle)}).
+     *     the connection service via
+     *     {@link ConnectionService#createIncomingCall(ConnectionRequest)}.
      */
     void retrieveIncomingCall(final Call call, Bundle extras) {
         ThreadUtil.checkOnMainThread();
@@ -55,22 +56,22 @@ final class IncomingCallsManager {
             }
         };
 
-        call.getCallService().setIncomingCallId(call, extras, errorCallback);
+        call.getConnectionService().createIncomingCall(call, extras, errorCallback);
     }
 
     /**
      * Notifies the incoming call of success after removing it from the pending
      * list.
      *
-     * @param callInfo The details of the call.
+     * @param request The details of the call.
      */
-    void handleSuccessfulIncomingCall(Call call, CallInfo callInfo) {
+    void handleSuccessfulIncomingCall(Call call, ConnectionRequest request) {
         ThreadUtil.checkOnMainThread();
 
         if (mPendingIncomingCalls.contains(call)) {
             Log.d(this, "Incoming call %s found.", call);
             mPendingIncomingCalls.remove(call);
-            call.handleVerifiedIncoming(callInfo);
+            call.handleVerifiedIncoming(request);
         }
     }
 

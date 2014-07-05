@@ -97,8 +97,8 @@ public class CallActivity extends Activity {
     }
 
     /**
-     * Processes INCOMING_CALL intents. Grabs the call service informations from the intent extra
-     * and forwards that to the CallsManager to start the incoming call flow.
+     * Processes INCOMING_CALL intents. Grabs the connection service informations from the intent
+     * extra and forwards that to the CallsManager to start the incoming call flow.
      *
      * @param intent The incoming call intent.
      */
@@ -115,7 +115,7 @@ public class CallActivity extends Activity {
             clientExtras = intent.getBundleExtra(TelecommConstants.EXTRA_INCOMING_CALL_EXTRAS);
         }
 
-        Log.d(this, "Processing incoming call from call service [%s]", descriptor);
+        Log.d(this, "Processing incoming call from connection service [%s]", descriptor);
         mCallsManager.processIncomingCallIntent(descriptor, clientExtras);
     }
 }

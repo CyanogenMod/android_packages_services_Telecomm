@@ -35,11 +35,9 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Utility class to place a call using the specified set of call-services and ordered selectors.
- * Iterates through the selectors and gets a sorted list of supported call-service descriptors
- * for each selector. Upon receiving each sorted list (one list per selector), each of the
- * corresponding call services is then attempted until either the outgoing call is placed, the
- * attempted call is aborted, or the list is exhausted -- whichever occurs first.
+ * Utility class to place a call using the specified set of call-services. Each of the connection
+ * services is then attempted until either the outgoing call is placed, the attempted call is
+ * aborted, or the list is exhausted -- whichever occurs first.
  *
  * Except for the abort case, all other scenarios should terminate with the call notified
  * of the result.
@@ -54,13 +52,13 @@ final class OutgoingCallProcessor {
     /**
      * The map of currently-available call-service implementations keyed by call-service ID.
      */
-    private final Map<String, CallServiceWrapper> mCallServicesById = Maps.newHashMap();
+    private final Map<String, ConnectionServiceWrapper> mConnectionServicesById = Maps.newHashMap();
 
     /**
-     * The set of attempted call services, used to ensure services are attempted at most once per
-     * outgoing-call attempt.
+     * The set of attempted connection services, used to ensure services are attempted at most once
+     * per outgoing-call attempt.
      */
-    private final Set<CallServiceWrapper> mAttemptedCallServices = Sets.newHashSet();
+    private final Set<ConnectionServiceWrapper> mAttemptedConnectionServices = Sets.newHashSet();
 
     private final CallServiceRepository mCallServiceRepository;
 
@@ -84,8 +82,8 @@ final class OutgoingCallProcessor {
 
     /**
      * Persists the specified parameters and iterates through the prioritized list of call
-     * services. Stops once a matching call service is found. Calls with no matching
-     * call service will eventually be killed by the cleanup/monitor switchboard handler.
+     * services. Stops once a matching connection service is found. Calls with no matching
+     * connection service will eventually be killed by the cleanup/monitor switchboard handler.
      *
      * @param call The call to place.
      * @param callServiceRepository
@@ -109,11 +107,11 @@ final class OutgoingCallProcessor {
     void process() {
         Log.v(this, "process, mIsAborted: %b", mIsAborted);
         if (!mIsAborted) {
-            // Lookup call services
-            mCallServiceRepository.lookupServices(new LookupCallback<CallServiceWrapper>() {
+            // Lookup connection services
+            mCallServiceRepository.lookupServices(new LookupCallback<ConnectionServiceWrapper>() {
                 @Override
-                public void onComplete(Collection<CallServiceWrapper> services) {
-                    setCallServices(services);
+                public void onComplete(Collection<ConnectionServiceWrapper> services) {
+                    setConnectionServices(services);
                 }
             });
         }
@@ -129,14 +127,15 @@ final class OutgoingCallProcessor {
         if (!mIsAborted && mResultCallback != null) {
             mIsAborted = true;
 
-            // On an abort, we need to check if we already told the call service to place the
+            // On an abort, we need to check if we already told the connection service to place the
             // call. If so, we need to tell it to abort.
-            // TODO(santoscordon): The call service is saved with the call and so we have to query
-            // the call to get it, which is a bit backwards.  Ideally, the call service would be
-            // saved inside this class until the whole thing is complete and then set on the call.
-            CallServiceWrapper callService = mCall.getCallService();
-            if (callService != null) {
-                callService.abort(mCall);
+            // TODO(santoscordon): The conneciton service is saved with the call and so we have to
+            // query the call to get it, which is a bit backwards.  Ideally, the connection service
+            // would be saved inside this class until the whole thing is complete and then set on
+            // the call.
+            ConnectionServiceWrapper service = mCall.getConnectionService();
+            if (service != null) {
+                service.abort(mCall);
             }
 
             // We consider a deliberate abort to be a "normal" disconnect, not
@@ -150,17 +149,16 @@ final class OutgoingCallProcessor {
     }
 
     /**
-     * Completes the outgoing call sequence by setting the call service on the call object. This is
-     * invoked when the call service adapter receives positive confirmation that the call service
-     * placed the call.
+     * Completes the outgoing call sequence by setting the connection service on the call object.
+     * This is invoked when the connection service adapter receives positive confirmation that the
+     * connection service placed the call.
      */
-    void handleSuccessfulCallAttempt(CallServiceWrapper callService) {
+    void handleSuccessfulCallAttempt(ConnectionServiceWrapper service) {
         Log.v(this, "handleSuccessfulCallAttempt");
         ThreadUtil.checkOnMainThread();
 
         if (mIsAborted) {
-            // TODO(gilad): Ask the call service to drop the call?
-            callService.abort(mCall);
+            service.abort(mCall);
             return;
         }
 
@@ -168,8 +166,8 @@ final class OutgoingCallProcessor {
     }
 
     /**
-     * Attempts the next call service if the specified call service is the one currently being
-     * attempted.
+     * Attempts the next connection service if the specified connection service is the one currently
+    * being attempted.
      *
      * @param errorCode The reason for the failure, one of {@link DisconnectCause}.
      * @param errorMsg Optional text reason for the failure.
@@ -182,91 +180,90 @@ final class OutgoingCallProcessor {
         mLastErrorMsg = errorMsg;
         if (!mIsAborted) {
             ThreadUtil.checkOnMainThread();
-            attemptNextCallService();
+            attemptNextConnectionService();
         }
     }
 
     /**
-     * Sets the call services to attempt for this outgoing call.
+     * Sets the connection services to attempt for this outgoing call.
      *
-     * @param callServices The call services.
+     * @param services The connection services.
      */
-    private void setCallServices(Collection<CallServiceWrapper> callServices) {
+    private void setConnectionServices(Collection<ConnectionServiceWrapper> services) {
         mCallServiceDescriptors = new ArrayList<>();
 
-        // Populate the list and map of call-service descriptors.  The list is needed since
-        // it's being passed down to selectors.
-        for (CallServiceWrapper callService : callServices) {
-            CallServiceDescriptor descriptor = callService.getDescriptor();
+        // Populate the list and map of call-service descriptors.
+        for (ConnectionServiceWrapper service : services) {
+            CallServiceDescriptor descriptor = service.getDescriptor();
             // TODO(sail): Remove once there's a way to pick the service.
             if (descriptor.getServiceComponent().getPackageName().equals(
                     "com.google.android.talk")) {
-                Log.i(this, "Moving call service %s to top of list", descriptor);
+                Log.i(this, "Moving connection service %s to top of list", descriptor);
                 mCallServiceDescriptors.add(0, descriptor);
             } else {
                 mCallServiceDescriptors.add(descriptor);
             }
-            mCallServicesById.put(descriptor.getCallServiceId(), callService);
+            mConnectionServicesById.put(descriptor.getConnectionServiceId(), service);
         }
 
         adjustCallServiceDescriptorsForEmergency();
 
         mCallServiceDescriptorIterator = mCallServiceDescriptors.iterator();
-        attemptNextCallService();
+        attemptNextConnectionService();
     }
 
     /**
-     * Attempts to place the call using the call service specified by the next call-service
+     * Attempts to place the call using the connection service specified by the next call-service
      * descriptor of mCallServiceDescriptorIterator.
      */
-    private void attemptNextCallService() {
-        Log.v(this, "attemptNextCallService, mIsAborted: %b", mIsAborted);
+    private void attemptNextConnectionService() {
+        Log.v(this, "attemptNextConnectionService, mIsAborted: %b", mIsAborted);
         if (mIsAborted) {
             return;
         }
 
         if (mCallServiceDescriptorIterator != null && mCallServiceDescriptorIterator.hasNext()) {
             CallServiceDescriptor descriptor = mCallServiceDescriptorIterator.next();
-            final CallServiceWrapper callService =
-                    mCallServicesById.get(descriptor.getCallServiceId());
+            final ConnectionServiceWrapper service =
+                    mConnectionServicesById.get(descriptor.getConnectionServiceId());
 
-            if (callService == null || mAttemptedCallServices.contains(callService)) {
-                // The next call service is either null or has already been attempted, fast forward
-                // to the next.
-                attemptNextCallService();
+            if (service == null || mAttemptedConnectionServices.contains(service)) {
+                // The next connection service is either null or has already been attempted, fast
+                // forward to the next.
+                attemptNextConnectionService();
             } else {
-                mAttemptedCallServices.add(callService);
-                mCall.setCallService(callService);
+                mAttemptedConnectionServices.add(service);
+                mCall.setConnectionService(service);
 
                 // Increment the associated call count until we get a result. This prevents the call
                 // service from unbinding while we are using it.
-                callService.incrementAssociatedCallCount();
+                service.incrementAssociatedCallCount();
 
-                Log.i(this, "Attempting to call from %s", callService.getDescriptor());
-                callService.call(mCall, new OutgoingCallResponse() {
+                Log.i(this, "Attempting to call from %s", service.getDescriptor());
+                service.call(mCall, new OutgoingCallResponse() {
                     @Override
                     public void onOutgoingCallSuccess() {
-                        handleSuccessfulCallAttempt(callService);
-                        callService.decrementAssociatedCallCount();
+                        handleSuccessfulCallAttempt(service);
+                        service.decrementAssociatedCallCount();
                     }
 
                     @Override
                     public void onOutgoingCallFailure(int code, String msg) {
                         handleFailedCallAttempt(code, msg);
-                        callService.decrementAssociatedCallCount();
+                        service.decrementAssociatedCallCount();
                     }
 
                     @Override
                     public void onOutgoingCallCancel() {
                         abort();
-                        callService.decrementAssociatedCallCount();
+                        service.decrementAssociatedCallCount();
                     }
                 });
             }
         } else {
-            Log.v(this, "attemptNextCallService, no more service descriptors, failing");
+            Log.v(this, "attemptNextConnectionService, no more service descriptors, failing");
             mCallServiceDescriptorIterator = null;
-            mCall.clearCallService();
+            mCall.clearConnectionService();
             sendResult(false, mLastErrorCode, mLastErrorMsg);
         }
     }
@@ -287,11 +284,11 @@ final class OutgoingCallProcessor {
     }
 
     // If we are possibly attempting to call a local emergency number, ensure that the
-    // plain PSTN call service, if it exists, is attempted first.
+    // plain PSTN connection service, if it exists, is attempted first.
     private void adjustCallServiceDescriptorsForEmergency()  {
         for (int i = 0; i < mCallServiceDescriptors.size(); i++) {
             if (shouldProcessAsEmergency(mCall.getHandle())) {
-                if (TelephonyUtil.isPstnCallService(mCallServiceDescriptors.get(i))) {
+                if (TelephonyUtil.isPstnConnectionService(mCallServiceDescriptors.get(i))) {
                     mCallServiceDescriptors.add(0, mCallServiceDescriptors.remove(i));
                     return;
                 }

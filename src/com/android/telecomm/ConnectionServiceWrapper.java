@@ -23,17 +23,17 @@ import android.os.IBinder;
 import android.os.Message;
 import android.os.RemoteException;
 import android.telecomm.CallAudioState;
-import android.telecomm.CallInfo;
-import android.telecomm.CallService;
+import android.telecomm.ConnectionService;
 import android.telecomm.CallServiceDescriptor;
 import android.telecomm.ConnectionRequest;
+import android.telecomm.GatewayInfo;
 import android.telecomm.TelecommConstants;
 import android.telephony.DisconnectCause;
 
 import com.android.internal.os.SomeArgs;
 
-import com.android.internal.telecomm.ICallService;
-import com.android.internal.telecomm.ICallServiceAdapter;
+import com.android.internal.telecomm.IConnectionService;
+import com.android.internal.telecomm.IConnectionServiceAdapter;
 import com.android.internal.telecomm.ICallServiceProvider;
 import com.android.internal.telecomm.ICallVideoProvider;
 import com.android.internal.telecomm.RemoteServiceCallback;
@@ -52,273 +52,270 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Wrapper for {@link ICallService}s, handles binding to {@link ICallService} and keeps track of
- * when the object can safely be unbound. Other classes should not use {@link ICallService} directly
- * and instead should use this class to invoke methods of {@link ICallService}.
+ * Wrapper for {@link IConnectionService}s, handles binding to {@link IConnectionService} and keeps
+ * track of when the object can safely be unbound. Other classes should not use
+ * {@link IConnectionService} directly and instead should use this class to invoke methods of
+ * {@link IConnectionService}.
  */
-final class CallServiceWrapper extends ServiceBinder<ICallService> {
-    private static final String TAG = CallServiceWrapper.class.getSimpleName();
+final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
+    private static final int MSG_NOTIFY_INCOMING_CALL = 1;
+    private static final int MSG_HANDLE_SUCCESSFUL_OUTGOING_CALL = 2;
+    private static final int MSG_HANDLE_FAILED_OUTGOING_CALL = 3;
+    private static final int MSG_CANCEL_OUTGOING_CALL = 4;
+    private static final int MSG_SET_ACTIVE = 5;
+    private static final int MSG_SET_RINGING = 6;
+    private static final int MSG_SET_DIALING = 7;
+    private static final int MSG_SET_DISCONNECTED = 8;
+    private static final int MSG_SET_ON_HOLD = 9;
+    private static final int MSG_SET_REQUESTING_RINGBACK = 10;
+    private static final int MSG_CAN_CONFERENCE = 11;
+    private static final int MSG_SET_IS_CONFERENCED = 12;
+    private static final int MSG_ADD_CONFERENCE_CALL = 13;
+    private static final int MSG_REMOVE_CALL = 14;
+    private static final int MSG_ON_POST_DIAL_WAIT = 15;
+    private static final int MSG_QUERY_REMOTE_CALL_SERVICES = 16;
+    private static final int MSG_SET_CALL_VIDEO_PROVIDER = 17;
+    private static final int MSG_SET_FEATURES = 18;
 
-    private final class Adapter extends ICallServiceAdapter.Stub {
-        private static final int MSG_NOTIFY_INCOMING_CALL = 1;
-        private static final int MSG_HANDLE_SUCCESSFUL_OUTGOING_CALL = 2;
-        private static final int MSG_HANDLE_FAILED_OUTGOING_CALL = 3;
-        private static final int MSG_CANCEL_OUTGOING_CALL = 4;
-        private static final int MSG_SET_ACTIVE = 5;
-        private static final int MSG_SET_RINGING = 6;
-        private static final int MSG_SET_DIALING = 7;
-        private static final int MSG_SET_DISCONNECTED = 8;
-        private static final int MSG_SET_ON_HOLD = 9;
-        private static final int MSG_SET_REQUESTING_RINGBACK = 10;
-        private static final int MSG_ON_POST_DIAL_WAIT = 11;
-        private static final int MSG_CAN_CONFERENCE = 12;
-        private static final int MSG_SET_IS_CONFERENCED = 13;
-        private static final int MSG_ADD_CONFERENCE_CALL = 14;
-        private static final int MSG_QUERY_REMOTE_CALL_SERVICES = 15;
-        private static final int MSG_SET_CALL_VIDEO_PROVIDER = 16;
-        private static final int MSG_SET_FEATURES = 17;
+    private final Handler mHandler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            Call call;
+            switch (msg.what) {
+                case MSG_NOTIFY_INCOMING_CALL: {
+                    ConnectionRequest request = (ConnectionRequest) msg.obj;
+                    call = mCallIdMapper.getCall(request.getCallId());
+                    if (call != null && mPendingIncomingCalls.remove(call) &&
+                            call.isIncoming()) {
+                        mIncomingCallsManager.handleSuccessfulIncomingCall(call, request);
+                    } else {
+                        // TODO(santoscordon): For this an the other commented logging, we need
+                        // to reenable it.  At the moment all ConnectionServiceAdapters receive
+                        // notification of changes to all calls, even calls which it may not own
+                        // (ala remote connections). We need to fix that and then uncomment the
+                        // logging calls here.
+                        //Log.w(this, "notifyIncomingCall, unknown incoming call: %s, id: %s",
+                        //        call, request.getId());
+                    }
+                    break;
+                }
+                case MSG_HANDLE_SUCCESSFUL_OUTGOING_CALL: {
+                    ConnectionRequest request = (ConnectionRequest) msg.obj;
+                    if (mPendingOutgoingCalls.containsKey(request.getCallId())) {
+                        mPendingOutgoingCalls.remove(
+                                request.getCallId()).onOutgoingCallSuccess();
+                    } else {
+                        //Log.w(this, "handleSuccessfulOutgoingCall, unknown call: %s", callId);
+                    }
+                    break;
+                }
+                case MSG_HANDLE_FAILED_OUTGOING_CALL: {
+                    SomeArgs args = (SomeArgs) msg.obj;
+                    try {
+                        ConnectionRequest request = (ConnectionRequest) msg.obj;
+                        int statusCode = args.argi1;
+                        String statusMsg = (String) args.arg2;
+                        // TODO(santoscordon): Do something with 'reason' or get rid of it.
 
-        private final Handler mHandler = new Handler() {
-            @Override
-            public void handleMessage(Message msg) {
-                Call call;
-                switch (msg.what) {
-                    case MSG_NOTIFY_INCOMING_CALL:
-                        CallInfo clientCallInfo = (CallInfo) msg.obj;
-                        call = mCallIdMapper.getCall(clientCallInfo.getId());
-                        if (call != null && mPendingIncomingCalls.remove(call) &&
-                                call.isIncoming()) {
-                            CallInfo callInfo = new CallInfo(null, clientCallInfo.getState(),
-                                    clientCallInfo.getHandle());
-                            mIncomingCallsManager.handleSuccessfulIncomingCall(call, callInfo);
+                        if (mPendingOutgoingCalls.containsKey(request.getCallId())) {
+                            mPendingOutgoingCalls.remove(request.getCallId())
+                                    .onOutgoingCallFailure(statusCode, statusMsg);
+                            mCallIdMapper.removeCall(request.getCallId());
                         } else {
-                            // TODO(santoscordon): For this an the other commented logging, we need
-                            // to reenable it.  At the moment all CallServiceAdapters receive
-                            // notification of changes to all calls, even calls which it may not own
-                            // (ala remote connections). We need to fix that and then uncomment the
-                            // logging calls here.
-                            //Log.w(this, "notifyIncomingCall, unknown incoming call: %s, id: %s",
-                            //        call, clientCallInfo.getId());
+                            //Log.w(this, "handleFailedOutgoingCall, unknown call: %s", callId);
                         }
-                        break;
-                    case MSG_HANDLE_SUCCESSFUL_OUTGOING_CALL: {
-                        String callId = (String) msg.obj;
-                        if (mPendingOutgoingCalls.containsKey(callId)) {
-                            mPendingOutgoingCalls.remove(callId).onOutgoingCallSuccess();
-                        } else {
-                            //Log.w(this, "handleSuccessfulOutgoingCall, unknown call: %s", callId);
-                        }
-                        break;
+                    } finally {
+                        args.recycle();
                     }
-                    case MSG_HANDLE_FAILED_OUTGOING_CALL: {
-                        SomeArgs args = (SomeArgs) msg.obj;
-                        try {
-                            String callId = (String) args.arg1;
-                            int statusCode = args.argi1;
-                            String statusMsg = (String) args.arg2;
-                            // TODO(santoscordon): Do something with 'reason' or get rid of it.
-
-                            if (mPendingOutgoingCalls.containsKey(callId)) {
-                                mPendingOutgoingCalls.remove(callId).onOutgoingCallFailure(
-                                        statusCode, statusMsg);
-                                mCallIdMapper.removeCall(callId);
+                    break;
+                }
+                case MSG_CANCEL_OUTGOING_CALL: {
+                    ConnectionRequest request = (ConnectionRequest) msg.obj;
+                    if (mPendingOutgoingCalls.containsKey(request.getCallId())) {
+                        mPendingOutgoingCalls.remove(
+                                request.getCallId()).onOutgoingCallCancel();
+                    } else {
+                        //Log.w(this, "cancelOutgoingCall, unknown call: %s", callId);
+                    }
+                    break;
+                }
+                case MSG_SET_ACTIVE:
+                    call = mCallIdMapper.getCall(msg.obj);
+                    if (call != null) {
+                        mCallsManager.markCallAsActive(call);
+                    } else {
+                        //Log.w(this, "setActive, unknown call id: %s", msg.obj);
+                    }
+                    break;
+                case MSG_SET_RINGING:
+                    call = mCallIdMapper.getCall(msg.obj);
+                    if (call != null) {
+                        mCallsManager.markCallAsRinging(call);
+                    } else {
+                        //Log.w(this, "setRinging, unknown call id: %s", msg.obj);
+                    }
+                    break;
+                case MSG_SET_DIALING:
+                    call = mCallIdMapper.getCall(msg.obj);
+                    if (call != null) {
+                        mCallsManager.markCallAsDialing(call);
+                    } else {
+                        //Log.w(this, "setDialing, unknown call id: %s", msg.obj);
+                    }
+                    break;
+                case MSG_SET_DISCONNECTED: {
+                    SomeArgs args = (SomeArgs) msg.obj;
+                    try {
+                        call = mCallIdMapper.getCall(args.arg1);
+                        String disconnectMessage = (String) args.arg2;
+                        int disconnectCause = args.argi1;
+                        if (call != null) {
+                            mCallsManager.markCallAsDisconnected(call, disconnectCause,
+                                    disconnectMessage);
+                        } else {
+                            //Log.w(this, "setDisconnected, unknown call id: %s", args.arg1);
+                        }
+                    } finally {
+                        args.recycle();
+                    }
+                    break;
+                }
+                case MSG_SET_ON_HOLD:
+                    call = mCallIdMapper.getCall(msg.obj);
+                    if (call != null) {
+                        mCallsManager.markCallAsOnHold(call);
+                    } else {
+                        //Log.w(this, "setOnHold, unknown call id: %s", msg.obj);
+                    }
+                    break;
+                case MSG_SET_REQUESTING_RINGBACK: {
+                    SomeArgs args = (SomeArgs) msg.obj;
+                    try {
+                        call = mCallIdMapper.getCall(args.arg1);
+                        boolean ringback = (boolean) args.arg2;
+                        if (call != null) {
+                            call.setRequestingRingback(ringback);
+                        } else {
+                            //Log.w(this, "setRingback, unknown call id: %s", args.arg1);
+                        }
+                    } finally {
+                        args.recycle();
+                    }
+                    break;
+                }
+                case MSG_CAN_CONFERENCE: {
+                    call = mCallIdMapper.getCall(msg.obj);
+                    if (call != null) {
+                        call.setIsConferenceCapable(msg.arg1 == 1);
+                    } else {
+                        //Log.w(ConnectionServiceWrapper.this,
+                        //      "canConference, unknown call id: %s", msg.obj);
+                    }
+                    break;
+                }
+                case MSG_SET_IS_CONFERENCED: {
+                    SomeArgs args = (SomeArgs) msg.obj;
+                    try {
+                        Call childCall = mCallIdMapper.getCall(args.arg1);
+                        if (childCall != null) {
+                            String conferenceCallId = (String) args.arg2;
+                            if (conferenceCallId == null) {
+                                childCall.setParentCall(null);
                             } else {
-                                //Log.w(this, "handleFailedOutgoingCall, unknown call: %s", callId);
-                            }
-                        } finally {
-                            args.recycle();
-                        }
-                        break;
-                    }
-                    case MSG_CANCEL_OUTGOING_CALL: {
-                        String callId = (String) msg.obj;
-                        if (mPendingOutgoingCalls.containsKey(callId)) {
-                            mPendingOutgoingCalls.remove(callId).onOutgoingCallCancel();
-                        } else {
-                            //Log.w(this, "cancelOutgoingCall, unknown call: %s", callId);
-                        }
-                        break;
-                    }
-                    case MSG_SET_ACTIVE:
-                        call = mCallIdMapper.getCall(msg.obj);
-                        if (call != null) {
-                            mCallsManager.markCallAsActive(call);
-                        } else {
-                            //Log.w(this, "setActive, unknown call id: %s", msg.obj);
-                        }
-                        break;
-                    case MSG_SET_RINGING:
-                        call = mCallIdMapper.getCall(msg.obj);
-                        if (call != null) {
-                            mCallsManager.markCallAsRinging(call);
-                        } else {
-                            //Log.w(this, "setRinging, unknown call id: %s", msg.obj);
-                        }
-                        break;
-                    case MSG_SET_DIALING:
-                        call = mCallIdMapper.getCall(msg.obj);
-                        if (call != null) {
-                            mCallsManager.markCallAsDialing(call);
-                        } else {
-                            //Log.w(this, "setDialing, unknown call id: %s", msg.obj);
-                        }
-                        break;
-                    case MSG_SET_DISCONNECTED: {
-                        SomeArgs args = (SomeArgs) msg.obj;
-                        try {
-                            call = mCallIdMapper.getCall(args.arg1);
-                            String disconnectMessage = (String) args.arg2;
-                            int disconnectCause = args.argi1;
-                            if (call != null) {
-                                mCallsManager.markCallAsDisconnected(call, disconnectCause,
-                                        disconnectMessage);
-                            } else {
-                                //Log.w(this, "setDisconnected, unknown call id: %s", args.arg1);
-                            }
-                        } finally {
-                            args.recycle();
-                        }
-                        break;
-                    }
-                    case MSG_SET_ON_HOLD:
-                        call = mCallIdMapper.getCall(msg.obj);
-                        if (call != null) {
-                            mCallsManager.markCallAsOnHold(call);
-                        } else {
-                            //Log.w(this, "setOnHold, unknown call id: %s", msg.obj);
-                        }
-                        break;
-                    case MSG_SET_REQUESTING_RINGBACK: {
-                        SomeArgs args = (SomeArgs) msg.obj;
-                        try {
-                            call = mCallIdMapper.getCall(args.arg1);
-                            boolean ringback = (boolean) args.arg2;
-                            if (call != null) {
-                                call.setRequestingRingback(ringback);
-                            } else {
-                                //Log.w(this, "setRingback, unknown call id: %s", args.arg1);
-                            }
-                        } finally {
-                            args.recycle();
-                        }
-                        break;
-                    }
-                    case MSG_ON_POST_DIAL_WAIT: {
-                        SomeArgs args = (SomeArgs) msg.obj;
-                        try {
-                            call = mCallIdMapper.getCall(args.arg1);
-                            if (call != null) {
-                                String remaining = (String) args.arg2;
-                                call.onPostDialWait(remaining);
-                            } else {
-                                //Log.w(this, "onPostDialWait, unknown call id: %s", args.arg1);
-                            }
-                        } finally {
-                            args.recycle();
-                        }
-                        break;
-                    }
-                    case MSG_CAN_CONFERENCE: {
-                        call = mCallIdMapper.getCall(msg.obj);
-                        if (call != null) {
-                            call.setIsConferenceCapable(msg.arg1 == 1);
-                        } else {
-                            //Log.w(CallServiceWrapper.this, "canConference, unknown call id: %s",
-                            //        msg.obj);
-                        }
-                        break;
-                    }
-                    case MSG_SET_IS_CONFERENCED: {
-                        SomeArgs args = (SomeArgs) msg.obj;
-                        try {
-                            Call childCall = mCallIdMapper.getCall(args.arg1);
-                            if (childCall != null) {
-                                String conferenceCallId = (String) args.arg2;
-                                if (conferenceCallId == null) {
-                                    childCall.setParentCall(null);
+                                Call conferenceCall = mCallIdMapper.getCall(conferenceCallId);
+                                if (conferenceCall != null &&
+                                        !mPendingConferenceCalls.contains(conferenceCall)) {
+                                    childCall.setParentCall(conferenceCall);
                                 } else {
-                                    Call conferenceCall = mCallIdMapper.getCall(conferenceCallId);
-                                    if (conferenceCall != null &&
-                                            !mPendingConferenceCalls.contains(conferenceCall)) {
-                                        childCall.setParentCall(conferenceCall);
-                                    } else {
-                                        //Log.w(this, "setIsConferenced, unknown conference id %s",
-                                        //        conferenceCallId);
-                                    }
+                                    //Log.w(this, "setIsConferenced, unknown conference id %s",
+                                    //        conferenceCallId);
                                 }
-                            } else {
-                                //Log.w(this, "setIsConferenced, unknown call id: %s", args.arg1);
                             }
-                        } finally {
-                            args.recycle();
+                        } else {
+                            //Log.w(this, "setIsConferenced, unknown call id: %s", args.arg1);
                         }
-                        break;
+                    } finally {
+                        args.recycle();
                     }
-                    case MSG_ADD_CONFERENCE_CALL: {
-                        SomeArgs args = (SomeArgs) msg.obj;
-                        try {
-                            String callId = (String) args.arg1;
-                            Call conferenceCall = mCallIdMapper.getCall(callId);
-                            if (mPendingConferenceCalls.remove(conferenceCall)) {
-                                Log.v(this, "confirming conf call %s", conferenceCall);
-                                conferenceCall.confirmConference();
-                            } else {
-                                //Log.w(this, "addConference, unknown call id: %s", callId);
-                            }
-                        } finally {
-                            args.recycle();
+                    break;
+                }
+                case MSG_ADD_CONFERENCE_CALL: {
+                    Call conferenceCall = mCallIdMapper.getCall(msg.obj);
+                    if (mPendingConferenceCalls.remove(conferenceCall)) {
+                        Log.v(this, "confirming conf call %s", conferenceCall);
+                        conferenceCall.confirmConference();
+                    } else {
+                        //Log.w(this, "addConference, unknown call id: %s", callId);
+                    }
+                    break;
+                }
+                case MSG_REMOVE_CALL:
+                    break;
+                case MSG_ON_POST_DIAL_WAIT: {
+                    SomeArgs args = (SomeArgs) msg.obj;
+                    try {
+                        call = mCallIdMapper.getCall(args.arg1);
+                        if (call != null) {
+                            String remaining = (String) args.arg2;
+                            call.onPostDialWait(remaining);
+                        } else {
+                            //Log.w(this, "onPostDialWait, unknown call id: %s", args.arg1);
                         }
-                        break;
+                    } finally {
+                        args.recycle();
                     }
-                    case MSG_QUERY_REMOTE_CALL_SERVICES: {
-                        CallServiceWrapper.this.queryRemoteConnectionServices(
-                                (RemoteServiceCallback) msg.obj);
-                        break;
-                    }
-                    case MSG_SET_CALL_VIDEO_PROVIDER: {
-                        SomeArgs args = (SomeArgs) msg.obj;
-                        try {
-                            call = mCallIdMapper.getCall(args.arg1);
-                            ICallVideoProvider callVideoProvider = (ICallVideoProvider) args.arg2;
-                            if (call != null) {
-                                call.setCallVideoProvider(callVideoProvider);
-                            }
-                        } finally {
-                            args.recycle();
+                    break;
+                }
+                case MSG_QUERY_REMOTE_CALL_SERVICES: {
+                    ConnectionServiceWrapper.this.queryRemoteConnectionServices(
+                            (RemoteServiceCallback) msg.obj);
+                    break;
+                }
+                case MSG_SET_CALL_VIDEO_PROVIDER: {
+                    SomeArgs args = (SomeArgs) msg.obj;
+                    try {
+                        call = mCallIdMapper.getCall(args.arg1);
+                        ICallVideoProvider callVideoProvider = (ICallVideoProvider) args.arg2;
+                        if (call != null) {
+                            call.setCallVideoProvider(callVideoProvider);
                         }
-                        break;
+                    } finally {
+                        args.recycle();
                     }
-                    case MSG_SET_FEATURES: {
-                        SomeArgs args = (SomeArgs) msg.obj;
-                        try {
-                            call = mCallIdMapper.getCall(args.arg1);
-                            int features = (int) args.arg2;
-                            if (call != null) {
-                                call.setFeatures(features);
-                            }
-                        } finally {
-                            args.recycle();
+                    break;
+                }
+                case MSG_SET_FEATURES: {
+                    SomeArgs args = (SomeArgs) msg.obj;
+                    try {
+                        call = mCallIdMapper.getCall(args.arg1);
+                        int features = (int) args.arg2;
+                        if (call != null) {
+                            call.setFeatures(features);
                         }
-                        break;
+                    } finally {
+                        args.recycle();
                     }
+                    break;
                 }
             }
-        };
+        }
+    };
 
+    private final class Adapter extends IConnectionServiceAdapter.Stub {
         /** {@inheritDoc} */
         @Override
-        public void notifyIncomingCall(CallInfo callInfo) {
-            logIncoming("notifyIncomingCall %s", callInfo);
-            mCallIdMapper.checkValidCallId(callInfo.getId());
-            mHandler.obtainMessage(MSG_NOTIFY_INCOMING_CALL, callInfo).sendToTarget();
+        public void notifyIncomingCall(ConnectionRequest request) {
+            logIncoming("notifyIncomingCall %s", request);
+            mCallIdMapper.checkValidCallId(request.getCallId());
+            mHandler.obtainMessage(MSG_NOTIFY_INCOMING_CALL, request).sendToTarget();
         }
 
         /** {@inheritDoc} */
         @Override
-        public void handleSuccessfulOutgoingCall(String callId) {
-            logIncoming("handleSuccessfulOutgoingCall %s", callId);
-            mCallIdMapper.checkValidCallId(callId);
-            mHandler.obtainMessage(MSG_HANDLE_SUCCESSFUL_OUTGOING_CALL, callId).sendToTarget();
+        public void handleSuccessfulOutgoingCall(ConnectionRequest request) {
+            logIncoming("handleSuccessfulOutgoingCall %s", request);
+            mCallIdMapper.checkValidCallId(request.getCallId());
+            mHandler.obtainMessage(MSG_HANDLE_SUCCESSFUL_OUTGOING_CALL, request).sendToTarget();
         }
 
         /** {@inheritDoc} */
@@ -330,7 +327,7 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
             logIncoming("handleFailedOutgoingCall %s %d %s", request, errorCode, errorMsg);
             mCallIdMapper.checkValidCallId(request.getCallId());
             SomeArgs args = SomeArgs.obtain();
-            args.arg1 = request.getCallId();
+            args.arg1 = request;
             args.argi1 = errorCode;
             args.arg2 = errorMsg;
             mHandler.obtainMessage(MSG_HANDLE_FAILED_OUTGOING_CALL, args).sendToTarget();
@@ -338,10 +335,10 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
 
         /** {@inheritDoc} */
         @Override
-        public void cancelOutgoingCall(String callId) {
-            logIncoming("cancelOutgoingCall %s", callId);
-            mCallIdMapper.checkValidCallId(callId);
-            mHandler.obtainMessage(MSG_CANCEL_OUTGOING_CALL, callId).sendToTarget();
+        public void cancelOutgoingCall(ConnectionRequest request) {
+            logIncoming("cancelOutgoingCall %s", request);
+            mCallIdMapper.checkValidCallId(request.getCallId());
+            mHandler.obtainMessage(MSG_CANCEL_OUTGOING_CALL, request).sendToTarget();
         }
 
         /** {@inheritDoc} */
@@ -437,13 +434,10 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
 
         /** ${InheritDoc} */
         @Override
-        public void addConferenceCall(String callId, CallInfo callInfo) {
-            logIncoming("addConferenceCall %s %s", callId, callInfo);
+        public void addConferenceCall(String callId) {
+            logIncoming("addConferenceCall %s", callId);
             mCallIdMapper.checkValidCallId(callId);
-            SomeArgs args = SomeArgs.obtain();
-            args.arg1 = callId;
-            args.arg2 = callInfo;
-            mHandler.obtainMessage(MSG_ADD_CONFERENCE_CALL, args).sendToTarget();
+            mHandler.obtainMessage(MSG_ADD_CONFERENCE_CALL, callId).sendToTarget();
         }
 
         @Override
@@ -479,13 +473,12 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
     private final Set<Call> mPendingIncomingCalls = new HashSet<>();
     private final Set<Call> mPendingConferenceCalls = new HashSet<>();
     private final CallServiceDescriptor mDescriptor;
-    private final CallIdMapper mCallIdMapper = new CallIdMapper("CallService");
+    private final CallIdMapper mCallIdMapper = new CallIdMapper("ConnectionService");
     private final IncomingCallsManager mIncomingCallsManager;
     private final Map<String, OutgoingCallResponse> mPendingOutgoingCalls = new HashMap<>();
-    private final Handler mHandler = new Handler();
 
     private Binder mBinder = new Binder();
-    private ICallService mServiceInterface;
+    private IConnectionService mServiceInterface;
     private final CallServiceRepository mCallServiceRepository;
 
     /**
@@ -494,13 +487,13 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
      * @param descriptor The call-service descriptor from
      *            {@link ICallServiceProvider#lookupCallServices}.
      * @param incomingCallsManager Manages the incoming call initialization flow.
-     * @param callServiceRepository Call service repository.
+     * @param callServiceRepository Connection service repository.
      */
-    CallServiceWrapper(
+    ConnectionServiceWrapper(
             CallServiceDescriptor descriptor,
             IncomingCallsManager incomingCallsManager,
             CallServiceRepository callServiceRepository) {
-        super(TelecommConstants.ACTION_CALL_SERVICE, descriptor.getServiceComponent());
+        super(TelecommConstants.ACTION_CONNECTION_SERVICE, descriptor.getServiceComponent());
         mDescriptor = descriptor;
         mIncomingCallsManager = incomingCallsManager;
         mCallServiceRepository = callServiceRepository;
@@ -510,19 +503,19 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
         return mDescriptor;
     }
 
-    /** See {@link ICallService#setCallServiceAdapter}. */
-    private void setCallServiceAdapter(ICallServiceAdapter callServiceAdapter) {
-        if (isServiceValid("setCallServiceAdapter")) {
+    /** See {@link IConnectionService#addConnectionServiceAdapter}. */
+    private void addConnectionServiceAdapter(IConnectionServiceAdapter adapter) {
+        if (isServiceValid("addConnectionServiceAdapter")) {
             try {
-                logOutgoing("setCallServiceAdapter %s", callServiceAdapter);
-                mServiceInterface.setCallServiceAdapter(callServiceAdapter);
+                logOutgoing("addConnectionServiceAdapter%s", adapter);
+                mServiceInterface.addConnectionServiceAdapter(adapter);
             } catch (RemoteException e) {
             }
         }
     }
 
     /**
-     * Attempts to place the specified call, see {@link ICallService#call}. Returns the result
+     * Attempts to place the specified call, see {@link IConnectionService#call}. Returns the result
      * asynchronously through the specified callback.
      */
     void call(final Call call, final OutgoingCallResponse callResponse) {
@@ -533,10 +526,22 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
                 String callId = mCallIdMapper.getCallId(call);
                 mPendingOutgoingCalls.put(callId, callResponse);
 
+                GatewayInfo gatewayInfo = call.getGatewayInfo();
+                Bundle extras = call.getExtras();
+                if (gatewayInfo != null && gatewayInfo.getGatewayProviderPackageName() != null &&
+                        gatewayInfo.getOriginalHandle() != null) {
+                    extras = (Bundle) extras.clone();
+                    extras.putString(
+                            NewOutgoingCallIntentBroadcaster.EXTRA_GATEWAY_PROVIDER_PACKAGE,
+                            gatewayInfo.getGatewayProviderPackageName());
+                    extras.putParcelable(
+                            NewOutgoingCallIntentBroadcaster.EXTRA_GATEWAY_ORIGINAL_URI,
+                            gatewayInfo.getOriginalHandle());
+                }
+                ConnectionRequest request = new ConnectionRequest(callId, call.getHandle(), extras);
+
                 try {
-                    CallInfo callInfo = call.toCallInfo(callId);
-                    logOutgoing("call %s", callInfo);
-                    mServiceInterface.call(callInfo);
+                    mServiceInterface.call(request);
                 } catch (RemoteException e) {
                     Log.e(this, e, "Failure to call -- %s", getDescriptor());
                     mPendingOutgoingCalls.remove(callId).onOutgoingCallFailure(
@@ -554,12 +559,12 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
         mBinder.bind(callback);
     }
 
-    /** @see CallService#abort(String) */
+    /** @see ConnectionService#abort(String) */
     void abort(Call call) {
         // Clear out any pending outgoing call data
         String callId = mCallIdMapper.getCallId(call);
 
-        // If still bound, tell the call service to abort.
+        // If still bound, tell the connection service to abort.
         if (isServiceValid("abort")) {
             try {
                 logOutgoing("abort %s", callId);
@@ -571,7 +576,7 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
         removeCall(call);
     }
 
-    /** @see CallService#hold(String) */
+    /** @see ConnectionService#hold(String) */
     void hold(Call call) {
         if (isServiceValid("hold")) {
             try {
@@ -582,7 +587,7 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
         }
     }
 
-    /** @see CallService#unhold(String) */
+    /** @see ConnectionService#unhold(String) */
     void unhold(Call call) {
         if (isServiceValid("unhold")) {
             try {
@@ -593,7 +598,7 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
         }
     }
 
-    /** @see CallService#onAudioStateChanged(String,CallAudioState) */
+    /** @see ConnectionService#onAudioStateChanged(String,CallAudioState) */
     void onAudioStateChanged(Call activeCall, CallAudioState audioState) {
         if (isServiceValid("onAudioStateChanged")) {
             try {
@@ -609,25 +614,26 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
     /**
      * Starts retrieval of details for an incoming call. Details are returned through the
      * call-service adapter using the specified call ID. Upon failure, the specified error callback
-     * is invoked. Can be invoked even when the call service is unbound. See
-     * {@link ICallService#setIncomingCallId}.
+     * is invoked. Can be invoked even when the connection service is unbound. See
+     * {@link IConnectionService#createIncomingCall}.
      *
      * @param call The call used for the incoming call.
-     * @param extras The {@link CallService}-provided extras which need to be sent back.
+     * @param extras The {@link ConnectionService}-provided extras which need to be sent back.
      * @param errorCallback The callback to invoke upon failure.
      */
-    void setIncomingCallId(final Call call, final Bundle extras, final Runnable errorCallback) {
-        Log.d(this, "setIncomingCall(%s) via %s.", call, getComponentName());
+    void createIncomingCall(final Call call, final Bundle extras, final Runnable errorCallback) {
+        Log.d(this, "createIncomingCall(%s) via %s.", call, getComponentName());
         BindCallback callback = new BindCallback() {
             @Override
             public void onSuccess() {
-                if (isServiceValid("setIncomingCallId")) {
+                if (isServiceValid("createIncomingCall")) {
                     mPendingIncomingCalls.add(call);
+                    String callId = mCallIdMapper.getCallId(call);
+                    logOutgoing("createIncomingCall %s %s", callId, extras);
+                    ConnectionRequest request = new ConnectionRequest(
+                            callId, call.getHandle(), extras);
                     try {
-                        logOutgoing("setIncomingCallId %s %s",
-                                mCallIdMapper.getCallId(call), extras);
-                        mServiceInterface.setIncomingCallId(mCallIdMapper.getCallId(call),
-                                extras);
+                        mServiceInterface.createIncomingCall(request);
                     } catch (RemoteException e) {
                     }
                 }
@@ -642,7 +648,7 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
         mBinder.bind(callback);
     }
 
-    /** @see CallService#disconnect(String) */
+    /** @see ConnectionService#disconnect(String) */
     void disconnect(Call call) {
         if (isServiceValid("disconnect")) {
             try {
@@ -653,7 +659,7 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
         }
     }
 
-    /** @see CallService#answer(String) */
+    /** @see ConnectionService#answer(String) */
     void answer(Call call) {
         if (isServiceValid("answer")) {
             try {
@@ -664,7 +670,7 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
         }
     }
 
-    /** @see CallService#reject(String) */
+    /** @see ConnectionService#reject(String) */
     void reject(Call call) {
         if (isServiceValid("reject")) {
             try {
@@ -675,7 +681,7 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
         }
     }
 
-    /** @see CallService#playDtmfTone(String,char) */
+    /** @see ConnectionService#playDtmfTone(String,char) */
     void playDtmfTone(Call call, char digit) {
         if (isServiceValid("playDtmfTone")) {
             try {
@@ -686,7 +692,7 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
         }
     }
 
-    /** @see CallService#stopDtmfTone(String) */
+    /** @see ConnectionService#stopDtmfTone(String) */
     void stopDtmfTone(Call call) {
         if (isServiceValid("stopDtmfTone")) {
             try {
@@ -704,10 +710,10 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
     }
 
     /**
-     * Associates newCall with this call service by replacing callToReplace.
+     * Associates newCall with this connection service by replacing callToReplace.
      */
     void replaceCall(Call newCall, Call callToReplace) {
-        Preconditions.checkState(callToReplace.getCallService() == this);
+        Preconditions.checkState(callToReplace.getConnectionService() == this);
         mCallIdMapper.replaceCall(newCall, callToReplace);
     }
 
@@ -746,7 +752,7 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
     void conference(final Call conferenceCall, Call call) {
         if (isServiceValid("conference")) {
             try {
-                conferenceCall.setCallService(this);
+                conferenceCall.setConnectionService(this);
                 mPendingConferenceCalls.add(conferenceCall);
                 mHandler.postDelayed(new Runnable() {
                     @Override public void run() {
@@ -782,23 +788,23 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
     @Override
     protected void setServiceInterface(IBinder binder) {
         if (binder == null) {
-            // We have lost our service connection. Notify the world that this call service is done.
+            // We have lost our service connection. Notify the world that this service is done.
             // We must notify the adapter before CallsManager. The adapter will force any pending
-            // outgoing calls to try the next call service. This needs to happen before CallsManager
-            // tries to clean up any calls still associated with this call service.
-            handleCallServiceDeath();
-            CallsManager.getInstance().handleCallServiceDeath(this);
+            // outgoing calls to try the next service. This needs to happen before CallsManager
+            // tries to clean up any calls still associated with this service.
+            handleConnectionServiceDeath();
+            CallsManager.getInstance().handleConnectionServiceDeath(this);
             mServiceInterface = null;
         } else {
-            mServiceInterface = ICallService.Stub.asInterface(binder);
-            setCallServiceAdapter(mAdapter);
+            mServiceInterface = IConnectionService.Stub.asInterface(binder);
+            addConnectionServiceAdapter(mAdapter);
         }
     }
 
     /**
-     * Called when the associated call service dies.
+     * Called when the associated connection service dies.
      */
-    private void handleCallServiceDeath() {
+    private void handleConnectionServiceDeath() {
         if (!mPendingOutgoingCalls.isEmpty()) {
             for (OutgoingCallResponse callback : mPendingOutgoingCalls.values()) {
                 callback.onOutgoingCallFailure(DisconnectCause.ERROR_UNSPECIFIED, null);
@@ -824,47 +830,49 @@ final class CallServiceWrapper extends ServiceBinder<ICallService> {
     }
 
     private void logIncoming(String msg, Object... params) {
-        Log.d(this, "CallService -> Telecomm: " + msg, params);
+        Log.d(this, "ConnectionService -> Telecomm: " + msg, params);
     }
 
     private void logOutgoing(String msg, Object... params) {
-        Log.d(this, "Telecomm -> CallService: " + msg, params);
+        Log.d(this, "Telecomm -> ConnectionService: " + msg, params);
     }
 
     private void queryRemoteConnectionServices(final RemoteServiceCallback callback) {
-        final List<IBinder> callServices = new ArrayList<>();
+        final List<IBinder> connectionServices = new ArrayList<>();
         final List<ComponentName> components = new ArrayList<>();
 
-        mCallServiceRepository.lookupServices(new LookupCallback<CallServiceWrapper>() {
+        mCallServiceRepository.lookupServices(new LookupCallback<ConnectionServiceWrapper>() {
             private int mRemainingResponses;
 
             /** ${inheritDoc} */
             @Override
-            public void onComplete(Collection<CallServiceWrapper> services) {
+            public void onComplete(Collection<ConnectionServiceWrapper> services) {
                 mRemainingResponses = services.size() - 1;
-                for (CallServiceWrapper cs : services) {
-                    if (cs != CallServiceWrapper.this) {
-                        final CallServiceWrapper currentCallService = cs;
+                for (ConnectionServiceWrapper cs : services) {
+                    if (cs != ConnectionServiceWrapper.this) {
+                        final ConnectionServiceWrapper currentConnectionService = cs;
                         cs.mBinder.bind(new BindCallback() {
                             @Override
                             public void onSuccess() {
-                                Log.d(this, "Adding ***** %s", currentCallService.getDescriptor());
-                                callServices.add(currentCallService.mServiceInterface.asBinder());
-                                components.add(currentCallService.getComponentName());
+                                Log.d(this, "Adding ***** %s",
+                                        currentConnectionService.getDescriptor());
+                                connectionServices.add(
+                                        currentConnectionService.mServiceInterface.asBinder());
+                                components.add(currentConnectionService.getComponentName());
                                 maybeComplete();
                             }
 
                             @Override
                             public void onFailure() {
                                 // add null so that we always add up to totalExpected even if
-                                // some of the call services fail to bind.
+                                // some of the connection services fail to bind.
                                 maybeComplete();
                             }
 
                             private void maybeComplete() {
                                 if (--mRemainingResponses == 0) {
                                     try {
-                                        callback.onResult(components, callServices);
+                                        callback.onResult(components, connectionServices);
                                     } catch (RemoteException ignored) {
                                     }
                                 }

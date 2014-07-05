@@ -103,10 +103,10 @@ public final class InCallController extends CallsManagerListenerBase {
     }
 
     @Override
-    public void onCallServiceChanged(
+    public void onConnectionServiceChanged(
             Call call,
-            CallServiceWrapper oldCallServiceWrapper,
-            CallServiceWrapper newCallService) {
+            ConnectionServiceWrapper oldService,
+            ConnectionServiceWrapper newService) {
         updateCall(call);
     }
 
@@ -261,8 +261,8 @@ public final class InCallController extends CallsManagerListenerBase {
 
     private InCallCall toInCallCall(Call call) {
         String callId = mCallIdMapper.getCallId(call);
-        CallServiceDescriptor descriptor =
-                call.getCallService() != null ? call.getCallService().getDescriptor() : null;
+        CallServiceDescriptor descriptor = call.getConnectionService() != null ?
+                call.getConnectionService().getDescriptor() : null;
 
         int capabilities = CallCapabilities.HOLD | CallCapabilities.MUTE;
         if (CallsManager.getInstance().isAddCallCapable(call)) {

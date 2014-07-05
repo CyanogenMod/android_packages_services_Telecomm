@@ -74,6 +74,11 @@ public class TestConnectionService extends ConnectionService {
             }
 
             @Override
+            public void onFeaturesChanged(RemoteConnection connection, int features) {
+                setFeatures(features);
+            }
+
+            @Override
             public void onDestroyed(RemoteConnection connection) {
                 setDestroyed();
             }

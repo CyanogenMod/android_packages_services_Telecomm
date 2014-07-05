@@ -33,19 +33,19 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Searches for and returns call services.
+ * Searches for and returns connection services.
  */
-class CallServiceRepository extends BaseRepository<CallServiceWrapper> {
+class CallServiceRepository extends BaseRepository<ConnectionServiceWrapper> {
     /**
      * The representation of a single lookup. Maintains lookup state and invokes the "complete"
      * callback when finished.
      */
     private final class CallServiceLookup {
         final Set<ComponentName> mOutstandingProviders = Sets.newHashSet();
-        final Set<CallServiceWrapper> mServices = Sets.newHashSet();
-        final LookupCallback<CallServiceWrapper> mCallback;
+        final Set<ConnectionServiceWrapper> mServices = Sets.newHashSet();
+        final LookupCallback<ConnectionServiceWrapper> mCallback;
 
-        CallServiceLookup(LookupCallback<CallServiceWrapper> callback) {
+        CallServiceLookup(LookupCallback<ConnectionServiceWrapper> callback) {
             mCallback = callback;
         }
 
@@ -141,7 +141,8 @@ class CallServiceRepository extends BaseRepository<CallServiceWrapper> {
             ComponentName providerName = provider.getComponentName();
             if (mOutstandingProviders.remove(providerName)) {
                 if (callServiceDescriptors != null) {
-                    // Add all the call services from this provider to the call-service cache.
+                    // Add all the connection services from this provider to the connection-service
+                    // cache.
                     for (CallServiceDescriptor descriptor : callServiceDescriptors) {
                         mServices.add(getService(descriptor.getServiceComponent(), descriptor));
                     }
@@ -151,7 +152,7 @@ class CallServiceRepository extends BaseRepository<CallServiceWrapper> {
                     finishLookup();
                 }
             } else {
-                Log.i(this, "Unexpected call services from %s in lookup.", providerName);
+                Log.i(this, "Unexpected connection services from %s in lookup.", providerName);
             }
         }
 
@@ -169,23 +170,24 @@ class CallServiceRepository extends BaseRepository<CallServiceWrapper> {
     }
 
     /**
-     * Returns the call service implementation specified by the descriptor.
+     * Returns the connection service implementation specified by the descriptor.
      *
      * @param descriptor The call-service descriptor.
      */
-    CallServiceWrapper getService(CallServiceDescriptor descriptor) {
+    ConnectionServiceWrapper getService(CallServiceDescriptor descriptor) {
         return getService(descriptor.getServiceComponent(), descriptor);
     }
 
     /** {@inheritDoc} */
     @Override
-    protected void onLookupServices(LookupCallback<CallServiceWrapper> callback) {
+    protected void onLookupServices(LookupCallback<ConnectionServiceWrapper> callback) {
         new CallServiceLookup(callback).start();
     }
 
     @Override
-    protected CallServiceWrapper onCreateNewServiceWrapper(ComponentName componentName,
+    protected ConnectionServiceWrapper onCreateNewServiceWrapper(ComponentName componentName,
             Object param) {
-        return new CallServiceWrapper((CallServiceDescriptor) param, mIncomingCallsManager, this);
+        return new ConnectionServiceWrapper(
+                (CallServiceDescriptor) param, mIncomingCallsManager, this);
     }
 }

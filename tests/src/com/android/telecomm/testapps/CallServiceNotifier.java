@@ -111,7 +111,7 @@ public class CallServiceNotifier {
         log("Creating incoming call pending intent.");
         // Build descriptor for TestConnectionService.
         CallServiceDescriptor.Builder descriptorBuilder = CallServiceDescriptor.newBuilder(context);
-        descriptorBuilder.setCallService(TestConnectionService.class);
+        descriptorBuilder.setConnectionService(TestConnectionService.class);
         descriptorBuilder.setNetworkType(CallServiceDescriptor.FLAG_WIFI);
 
         // Create intent for adding an incoming call.

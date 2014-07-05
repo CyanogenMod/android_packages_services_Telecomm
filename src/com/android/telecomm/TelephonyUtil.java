@@ -35,7 +35,7 @@ public final class TelephonyUtil {
 
     private TelephonyUtil() {}
 
-    static boolean isPstnCallService(CallServiceDescriptor descriptor) {
+    static boolean isPstnConnectionService(CallServiceDescriptor descriptor) {
         final ComponentName pstnComponentName = new ComponentName(
                 TELEPHONY_PACKAGE_NAME, PSTN_CALL_SERVICE_CLASS_NAME);
         return pstnComponentName.equals(descriptor.getServiceComponent());
@@ -47,26 +47,27 @@ public final class TelephonyUtil {
      */
     static boolean isCurrentlyPSTNCall(Call call) {
         if (Log.DEBUG) {
-            verifyCallServiceExists(PSTN_CALL_SERVICE_CLASS_NAME);
+            verifyConnectionServiceExists(PSTN_CALL_SERVICE_CLASS_NAME);
         }
 
-        CallServiceWrapper callService = call.getCallService();
-        if (callService == null) {
+        ConnectionServiceWrapper service = call.getConnectionService();
+        if (service == null) {
             return false;
         }
-        return isPstnCallService(callService.getDescriptor());
+        return isPstnConnectionService(service.getDescriptor());
     }
 
-    private static void verifyCallServiceExists(String serviceName) {
+    private static void verifyConnectionServiceExists(String serviceName) {
         PackageManager packageManager = TelecommApp.getInstance().getPackageManager();
         try {
             ServiceInfo info = packageManager.getServiceInfo(
                     new ComponentName(TELEPHONY_PACKAGE_NAME, serviceName), 0);
             if (info == null) {
-                Log.wtf(TAG, "Error, unable to find call service: %s", serviceName);
+                Log.wtf(TAG, "Error, unable to find connection service: %s", serviceName);
             }
         } catch (PackageManager.NameNotFoundException e) {
-            Log.wtf(TAG, e, "Error, exception while trying to find call service: %s", serviceName);
+            Log.wtf(TAG, e, "Error, exception while trying to find connection service: %s",
+                    serviceName);
         }
     }
 }

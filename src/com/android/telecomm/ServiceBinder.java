@@ -81,7 +81,7 @@ abstract class ServiceBinder<ServiceInterface extends IInterface> {
                 Intent serviceIntent = new Intent(mServiceAction).setComponent(mComponentName);
                 ServiceConnection connection = new ServiceBinderConnection();
 
-                Log.d(ServiceBinder.this, "Binding to call service with intent: %s", serviceIntent);
+                Log.d(ServiceBinder.this, "Binding to service with intent: %s", serviceIntent);
                 if (!mContext.bindService(serviceIntent, connection, Context.BIND_AUTO_CREATE)) {
                     handleFailedConnection();
                     return;

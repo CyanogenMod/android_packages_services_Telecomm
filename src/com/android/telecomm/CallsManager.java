@@ -19,7 +19,6 @@ package com.android.telecomm;
 import android.net.Uri;
 import android.os.Bundle;
 import android.telecomm.CallAudioState;
-import android.telecomm.CallInfo;
 import android.telecomm.CallServiceDescriptor;
 import android.telecomm.CallState;
 import android.telecomm.GatewayInfo;
@@ -51,10 +50,10 @@ public final class CallsManager extends Call.ListenerBase {
         void onCallAdded(Call call);
         void onCallRemoved(Call call);
         void onCallStateChanged(Call call, CallState oldState, CallState newState);
-        void onCallServiceChanged(
+        void onConnectionServiceChanged(
                 Call call,
-                CallServiceWrapper oldCallService,
-                CallServiceWrapper newCallService);
+                ConnectionServiceWrapper oldService,
+                ConnectionServiceWrapper newService);
         void onIncomingCallAnswered(Call call);
         void onIncomingCallRejected(Call call, boolean rejectWithMessage, String textMessage);
         void onForegroundCallChanged(Call oldForegroundCall, Call newForegroundCall);
@@ -123,9 +122,9 @@ public final class CallsManager extends Call.ListenerBase {
     public void onSuccessfulOutgoingCall(Call call) {
         Log.v(this, "onSuccessfulOutgoingCall, %s", call);
         if (mCalls.contains(call)) {
-            // The call's CallService has been updated.
+            // The call's ConnectionService has been updated.
             for (CallsManagerListener listener : mListeners) {
-                listener.onCallServiceChanged(call, null, call.getCallService());
+                listener.onConnectionServiceChanged(call, null, call.getConnectionService());
             }
         } else {
             Log.wtf(this, "unexpected successful call notification: %s", call);
@@ -150,9 +149,9 @@ public final class CallsManager extends Call.ListenerBase {
     }
 
     @Override
-    public void onSuccessfulIncomingCall(Call call, CallInfo callInfo) {
+    public void onSuccessfulIncomingCall(Call call) {
         Log.d(this, "onSuccessfulIncomingCall");
-        setCallState(call, callInfo.getState());
+        setCallState(call, CallState.RINGING);
         addCall(call);
     }
 
@@ -264,13 +263,13 @@ public final class CallsManager extends Call.ListenerBase {
      * specified call; using the specified call service descriptor. Upon success, execution returns
      * to {@link #onSuccessfulIncomingCall} to start the in-call UI.
      *
-     * @param descriptor The descriptor of the call service to use for this incoming call.
+     * @param descriptor The descriptor of the connection service to use for this incoming call.
      * @param extras The optional extras Bundle passed with the intent used for the incoming call.
      */
     void processIncomingCallIntent(CallServiceDescriptor descriptor, Bundle extras) {
         Log.d(this, "processIncomingCallIntent");
         // Create a call with no handle. Eventually, switchboard will update the call with
-        // additional information from the call service, but for now we just need one to pass
+        // additional information from the connection service, but for now we just need one to pass
         // around.
         Call call = new Call(true /* isIncoming */, false /* isConference */);
         // TODO(santoscordon): Move this to be a part of addCall()
@@ -516,15 +515,15 @@ public final class CallsManager extends Call.ListenerBase {
     }
 
     /**
-     * Cleans up any calls currently associated with the specified call service when the
+     * Cleans up any calls currently associated with the specified connection service when the
      * call-service binder disconnects unexpectedly.
      *
-     * @param callService The call service that disconnected.
+     * @param service The connection service that disconnected.
      */
-    void handleCallServiceDeath(CallServiceWrapper callService) {
-        Preconditions.checkNotNull(callService);
+    void handleConnectionServiceDeath(ConnectionServiceWrapper service) {
+        Preconditions.checkNotNull(service);
         for (Call call : ImmutableList.copyOf(mCalls)) {
-            if (call.getCallService() == callService) {
+            if (call.getConnectionService() == service) {
                 markCallAsDisconnected(call, DisconnectCause.ERROR_UNSPECIFIED, null);
             }
         }
@@ -630,7 +629,7 @@ public final class CallsManager extends Call.ListenerBase {
         Log.v(this, "removeCall(%s)", call);
 
         call.removeListener(this);
-        call.clearCallService();
+        call.clearConnectionService();
 
         boolean shouldNotify = false;
         if (mCalls.contains(call)) {
@@ -684,8 +683,8 @@ public final class CallsManager extends Call.ListenerBase {
         Call newForegroundCall = null;
         for (Call call : mCalls) {
             // TODO(santoscordon): Foreground-ness needs to be explicitly set. No call, regardless
-            // of its state will be foreground by default and instead the call service should be
-            // notified when its calls enter and exit foreground state. Foreground will mean that
+            // of its state will be foreground by default and instead the connection service should
+            // be notified when its calls enter and exit foreground state. Foreground will mean that
             // the call should play audio and listen to microphone if it wants.
 
             // Active calls have priority.

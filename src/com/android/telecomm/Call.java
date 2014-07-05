@@ -23,9 +23,9 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.provider.ContactsContract.Contacts;
-import android.telecomm.CallInfo;
 import android.telecomm.CallServiceDescriptor;
 import android.telecomm.CallState;
+import android.telecomm.ConnectionRequest;
 import android.telecomm.GatewayInfo;
 import android.telecomm.PhoneAccount;
 import android.telecomm.Response;
@@ -63,7 +63,7 @@ final class Call implements OutgoingCallResponse {
         void onSuccessfulOutgoingCall(Call call);
         void onFailedOutgoingCall(Call call, int errorCode, String errorMsg);
         void onCancelledOutgoingCall(Call call);
-        void onSuccessfulIncomingCall(Call call, CallInfo callInfo);
+        void onSuccessfulIncomingCall(Call call);
         void onFailedIncomingCall(Call call);
         void onRequestingRingback(Call call, boolean requestingRingback);
         void onPostDialWait(Call call, String remaining);
@@ -86,7 +86,7 @@ final class Call implements OutgoingCallResponse {
         @Override
         public void onCancelledOutgoingCall(Call call) {}
         @Override
-        public void onSuccessfulIncomingCall(Call call, CallInfo callInfo) {}
+        public void onSuccessfulIncomingCall(Call call) {}
         @Override
         public void onFailedIncomingCall(Call call) {}
         @Override
@@ -166,15 +166,9 @@ final class Call implements OutgoingCallResponse {
     private Uri mHandle;
 
     /**
-     * The call service which is attempted or already connecting this call.
+     * The connection service which is attempted or already connecting this call.
      */
-    private CallServiceWrapper mCallService;
-
-    /**
-     * The set of call services that were attempted in the process of placing/switching this call
-     * but turned out unsuitable.  Only used in the context of call switching.
-     */
-    private Set<CallServiceWrapper> mIncompatibleCallServices;
+    private ConnectionServiceWrapper mConnectionService;
 
     private boolean mIsEmergencyCall;
 
@@ -187,11 +181,11 @@ final class Call implements OutgoingCallResponse {
     private int mDisconnectCause = DisconnectCause.NOT_VALID;
 
     /**
-     * Additional disconnect information provided by the call service.
+     * Additional disconnect information provided by the connection service.
      */
     private String mDisconnectMessage;
 
-    /** Info used by the call services. */
+    /** Info used by the connection services. */
     private Bundle mExtras = Bundle.EMPTY;
 
     /** Set of listeners on this call. */
@@ -211,8 +205,8 @@ final class Call implements OutgoingCallResponse {
     /** Whether this call is requesting that Telecomm play the ringback tone on its behalf. */
     private boolean mRequestingRingback = false;
 
-    /** Incoming call-info to use when direct-to-voicemail query finishes. */
-    private CallInfo mPendingDirectToVoicemailCallInfo;
+    /** Whether direct-to-voicemail query is pending. */
+    private boolean mDirectToVoicemailQueryPending;
 
     private boolean mIsConferenceCapable = false;
 
@@ -272,8 +266,8 @@ final class Call implements OutgoingCallResponse {
     /** {@inheritDoc} */
     @Override public String toString() {
         String component = null;
-        if (mCallService != null && mCallService.getComponentName() != null) {
-            component = mCallService.getComponentName().flattenToShortString();
+        if (mConnectionService != null && mConnectionService.getComponentName() != null) {
+            component = mConnectionService.getComponentName().flattenToShortString();
         }
         return String.format(Locale.US, "[%s, %s, %s]", mState, component, Log.piiHandle(mHandle));
     }
@@ -435,48 +429,36 @@ final class Call implements OutgoingCallResponse {
         return mChildCalls;
     }
 
-    CallServiceWrapper getCallService() {
-        return mCallService;
+    ConnectionServiceWrapper getConnectionService() {
+        return mConnectionService;
     }
 
-    void setCallService(CallServiceWrapper callService) {
-        setCallService(callService, null);
-    }
+    void setConnectionService(ConnectionServiceWrapper service) {
+        Preconditions.checkNotNull(service);
 
-    /**
-     * Changes the call service this call is associated with. If callToReplace is non-null then this
-     * call takes its place within the call service.
-     */
-    void setCallService(CallServiceWrapper callService, Call callToReplace) {
-        Preconditions.checkNotNull(callService);
+        clearConnectionService();
 
-        clearCallService();
-
-        callService.incrementAssociatedCallCount();
-        mCallService = callService;
-        if (callToReplace == null) {
-            mCallService.addCall(this);
-        } else {
-            mCallService.replaceCall(this, callToReplace);
-        }
+        service.incrementAssociatedCallCount();
+        mConnectionService = service;
+        mConnectionService.addCall(this);
     }
 
     /**
-     * Clears the associated call service.
+     * Clears the associated connection service.
      */
-    void clearCallService() {
-        if (mCallService != null) {
-            CallServiceWrapper callServiceTemp = mCallService;
-            mCallService = null;
-            callServiceTemp.removeCall(this);
+    void clearConnectionService() {
+        if (mConnectionService != null) {
+            ConnectionServiceWrapper serviceTemp = mConnectionService;
+            mConnectionService = null;
+            serviceTemp.removeCall(this);
 
             // Decrementing the count can cause the service to unbind, which itself can trigger the
             // service-death code.  Since the service death code tries to clean up any associated
             // calls, we need to make sure to remove that information (e.g., removeCall()) before
             // we decrement. Technically, invoking removeCall() prior to decrementing is all that is
-            // necessary, but cleaning up mCallService prior to triggering an unbind is good to do.
-            // If you change this, make sure to update {@link clearCallServiceSelector} as well.
-            decrementAssociatedCallCount(callServiceTemp);
+            // necessary, but cleaning up mConnectionService prior to triggering an unbind is good
+            // to do.
+            decrementAssociatedCallCount(serviceTemp);
         }
     }
 
@@ -498,17 +480,15 @@ final class Call implements OutgoingCallResponse {
      * the result of the query will determine if the call is rejected or passed through to the
      * in-call UI.
      */
-    void handleVerifiedIncoming(CallInfo callInfo) {
-        Preconditions.checkState(callInfo.getState() == CallState.RINGING);
-
-        // We do not handle incoming calls immediately when they are verified by the call service.
-        // We allow the caller-info-query code to execute first so that we can read the
+    void handleVerifiedIncoming(ConnectionRequest request) {
+        // We do not handle incoming calls immediately when they are verified by the connection
+        // service. We allow the caller-info-query code to execute first so that we can read the
         // direct-to-voicemail property before deciding if we want to show the incoming call to the
         // user or if we want to reject the call.
-        mPendingDirectToVoicemailCallInfo = callInfo;
+        mDirectToVoicemailQueryPending = true;
 
         // Setting the handle triggers the caller info lookup code.
-        setHandle(callInfo.getHandle());
+        setHandle(request.getHandle());
 
         // Timeout the direct-to-voicemail lookup execution so that we dont wait too long before
         // showing the user the incoming call screen.
@@ -521,7 +501,7 @@ final class Call implements OutgoingCallResponse {
     }
 
     void processDirectToVoicemail() {
-        if (mPendingDirectToVoicemailCallInfo != null) {
+        if (mDirectToVoicemailQueryPending) {
             if (mCallerInfo != null && mCallerInfo.shouldSendToVoicemail) {
                 Log.i(this, "Directing call to voicemail: %s.", this);
                 // TODO(santoscordon): Once we move State handling from CallsManager to Call, we
@@ -534,16 +514,16 @@ final class Call implements OutgoingCallResponse {
 
                 // TODO(santoscordon): Replace this with state transition to RINGING.
                 for (Listener l : mListeners) {
-                    l.onSuccessfulIncomingCall(this, mPendingDirectToVoicemailCallInfo);
+                    l.onSuccessfulIncomingCall(this);
                 }
             }
 
-            mPendingDirectToVoicemailCallInfo = null;
+            mDirectToVoicemailQueryPending = false;
         }
     }
 
     void handleFailedIncoming() {
-        clearCallService();
+        clearConnectionService();
 
         // TODO: Needs more specific disconnect error for this case.
         setDisconnectCause(DisconnectCause.ERROR_UNSPECIFIED, null);
@@ -557,7 +537,7 @@ final class Call implements OutgoingCallResponse {
 
     /**
      * Starts the outgoing call sequence.  Upon completion, there should exist an active connection
-     * through a call service (or the call will have failed).
+     * through a connection service (or the call will have failed).
      */
     void startOutgoing() {
         Preconditions.checkState(mOutgoingCallProcessor == null);
@@ -583,7 +563,7 @@ final class Call implements OutgoingCallResponse {
             l.onFailedOutgoingCall(this, code, msg);
         }
 
-        clearCallService();
+        clearConnectionService();
         mOutgoingCallProcessor = null;
     }
 
@@ -594,45 +574,19 @@ final class Call implements OutgoingCallResponse {
             l.onCancelledOutgoingCall(this);
         }
 
-        clearCallService();
+        clearConnectionService();
         mOutgoingCallProcessor = null;
-    }
-
-    /**
-     * Adds the specified call service to the list of incompatible services.  The set is used when
-     * attempting to switch a phone call between call services such that incompatible services can
-     * be avoided.
-     *
-     * @param callService The incompatible call service.
-     */
-    void addIncompatibleCallService(CallServiceWrapper callService) {
-        if (mIncompatibleCallServices == null) {
-            mIncompatibleCallServices = Sets.newHashSet();
-        }
-        mIncompatibleCallServices.add(callService);
-    }
-
-    /**
-     * Checks whether or not the specified callService was identified as incompatible in the
-     * context of this call.
-     *
-     * @param callService The call service to evaluate.
-     * @return True upon incompatible call services and false otherwise.
-     */
-    boolean isIncompatibleCallService(CallServiceWrapper callService) {
-        return mIncompatibleCallServices != null &&
-                mIncompatibleCallServices.contains(callService);
     }
 
     /**
      * Plays the specified DTMF tone.
      */
     void playDtmfTone(char digit) {
-        if (mCallService == null) {
-            Log.w(this, "playDtmfTone() request on a call without a call service.");
+        if (mConnectionService == null) {
+            Log.w(this, "playDtmfTone() request on a call without a connection service.");
         } else {
-            Log.i(this, "Send playDtmfTone to call service for call %s", this);
-            mCallService.playDtmfTone(this, digit);
+            Log.i(this, "Send playDtmfTone to connection service for call %s", this);
+            mConnectionService.playDtmfTone(this, digit);
         }
     }
 
@@ -640,29 +594,29 @@ final class Call implements OutgoingCallResponse {
      * Stops playing any currently playing DTMF tone.
      */
     void stopDtmfTone() {
-        if (mCallService == null) {
-            Log.w(this, "stopDtmfTone() request on a call without a call service.");
+        if (mConnectionService == null) {
+            Log.w(this, "stopDtmfTone() request on a call without a connectino service.");
         } else {
-            Log.i(this, "Send stopDtmfTone to call service for call %s", this);
-            mCallService.stopDtmfTone(this);
+            Log.i(this, "Send stopDtmfTone to connection service for call %s", this);
+            mConnectionService.stopDtmfTone(this);
         }
     }
 
     /**
-     * Attempts to disconnect the call through the call service.
+     * Attempts to disconnect the call through the connection service.
      */
     void disconnect() {
         if (mState == CallState.NEW) {
             Log.v(this, "Aborting call %s", this);
             abort();
         } else if (mState != CallState.ABORTED && mState != CallState.DISCONNECTED) {
-            Preconditions.checkNotNull(mCallService);
+            Preconditions.checkNotNull(mConnectionService);
 
-            Log.i(this, "Send disconnect to call service for call: %s", this);
-            // The call isn't officially disconnected until the call service confirms that the call
-            // was actually disconnected. Only then is the association between call and call service
-            // severed, see {@link CallsManager#markCallAsDisconnected}.
-            mCallService.disconnect(this);
+            Log.i(this, "Send disconnect to connection service for call: %s", this);
+            // The call isn't officially disconnected until the connection service confirms that the
+            // call was actually disconnected. Only then is the association between call and
+            // connection service severed, see {@link CallsManager#markCallAsDisconnected}.
+            mConnectionService.disconnect(this);
         }
     }
 
@@ -676,16 +630,16 @@ final class Call implements OutgoingCallResponse {
      * Answers the call if it is ringing.
      */
     void answer() {
-        Preconditions.checkNotNull(mCallService);
+        Preconditions.checkNotNull(mConnectionService);
 
         // Check to verify that the call is still in the ringing state. A call can change states
         // between the time the user hits 'answer' and Telecomm receives the command.
         if (isRinging("answer")) {
-            // At this point, we are asking the call service to answer but we don't assume that
-            // it will work. Instead, we wait until confirmation from the call service that the
-            // call is in a non-RINGING state before changing the UI. See
-            // {@link CallServiceAdapter#setActive} and other set* methods.
-            mCallService.answer(this);
+            // At this point, we are asking the connection service to answer but we don't assume
+            // that it will work. Instead, we wait until confirmation from the connectino service
+            // that the call is in a non-RINGING state before changing the UI. See
+            // {@link ConnectionServiceAdapter#setActive} and other set* methods.
+            mConnectionService.answer(this);
         }
     }
 
@@ -696,12 +650,12 @@ final class Call implements OutgoingCallResponse {
      * @param textMessage An optional text message to send as part of the rejection.
      */
     void reject(boolean rejectWithMessage, String textMessage) {
-        Preconditions.checkNotNull(mCallService);
+        Preconditions.checkNotNull(mConnectionService);
 
         // Check to verify that the call is still in the ringing state. A call can change states
         // between the time the user hits 'reject' and Telecomm receives the command.
         if (isRinging("reject")) {
-            mCallService.reject(this);
+            mConnectionService.reject(this);
         }
     }
 
@@ -709,10 +663,10 @@ final class Call implements OutgoingCallResponse {
      * Puts the call on hold if it is currently active.
      */
     void hold() {
-        Preconditions.checkNotNull(mCallService);
+        Preconditions.checkNotNull(mConnectionService);
 
         if (mState == CallState.ACTIVE) {
-            mCallService.hold(this);
+            mConnectionService.hold(this);
         }
     }
 
@@ -720,35 +674,11 @@ final class Call implements OutgoingCallResponse {
      * Releases the call from hold if it is currently active.
      */
     void unhold() {
-        Preconditions.checkNotNull(mCallService);
+        Preconditions.checkNotNull(mConnectionService);
 
         if (mState == CallState.ON_HOLD) {
-            mCallService.unhold(this);
+            mConnectionService.unhold(this);
         }
-    }
-
-    /**
-     * @return An object containing read-only information about this call.
-     */
-    CallInfo toCallInfo(String callId) {
-        CallServiceDescriptor descriptor = null;
-        if (mCallService != null) {
-            descriptor = mCallService.getDescriptor();
-        }
-        Bundle extras = mExtras;
-        if (mGatewayInfo != null && mGatewayInfo.getGatewayProviderPackageName() != null &&
-                mGatewayInfo.getOriginalHandle() != null) {
-            extras = (Bundle) mExtras.clone();
-            extras.putString(
-                    NewOutgoingCallIntentBroadcaster.EXTRA_GATEWAY_PROVIDER_PACKAGE,
-                    mGatewayInfo.getGatewayProviderPackageName());
-            extras.putParcelable(
-                    NewOutgoingCallIntentBroadcaster.EXTRA_GATEWAY_ORIGINAL_URI,
-                    mGatewayInfo.getOriginalHandle());
-
-        }
-        return new CallInfo(callId, mState, mHandle, mGatewayInfo, mAccount,
-                extras, descriptor);
     }
 
     /** Checks if this is a live call or not. */
@@ -794,25 +724,25 @@ final class Call implements OutgoingCallResponse {
     }
 
     void postDialContinue(boolean proceed) {
-        getCallService().onPostDialContinue(this, proceed);
+        mConnectionService.onPostDialContinue(this, proceed);
     }
 
     void phoneAccountClicked() {
-        getCallService().onPhoneAccountClicked(this);
+        mConnectionService.onPhoneAccountClicked(this);
     }
 
     void conferenceInto(Call conferenceCall) {
-        if (mCallService == null) {
-            Log.w(this, "conference requested on a call without a call service.");
+        if (mConnectionService == null) {
+            Log.w(this, "conference requested on a call without a connection service.");
         } else {
-            mCallService.conference(conferenceCall, this);
+            mConnectionService.conference(conferenceCall, this);
         }
     }
 
     void expireConference() {
         // The conference call expired before we got a confirmation of the conference from the
-        // call service...so start shutting down.
-        clearCallService();
+        // connection service...so start shutting down.
+        clearConnectionService();
         for (Listener l : mListeners) {
             l.onExpiredConferenceCall(this);
         }

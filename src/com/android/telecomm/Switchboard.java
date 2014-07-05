@@ -20,7 +20,6 @@ import android.content.ComponentName;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
-import android.telecomm.CallInfo;
 import android.telecomm.CallServiceDescriptor;
 import android.telecomm.TelecommConstants;
 
@@ -34,7 +33,7 @@ import java.util.Collection;
 import java.util.Set;
 
 /**
- * Switchboard is responsible for gathering the {@link CallServiceWrapper}s through
+ * Switchboard is responsible for gathering the {@link ConnectionServiceWrapper}s through
  *       which to place outgoing calls
  */
 final class Switchboard {
@@ -75,8 +74,8 @@ final class Switchboard {
      */
     void retrieveIncomingCall(Call call, CallServiceDescriptor descriptor, Bundle extras) {
         Log.d(this, "retrieveIncomingCall");
-        CallServiceWrapper callService = mCallServiceRepository.getService(descriptor);
-        call.setCallService(callService);
+        ConnectionServiceWrapper service = mCallServiceRepository.getService(descriptor);
+        call.setConnectionService(service);
         mIncomingCallsManager.retrieveIncomingCall(call, extras);
     }
 }

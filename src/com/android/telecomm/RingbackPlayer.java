@@ -60,16 +60,15 @@ class RingbackPlayer extends CallsManagerListenerBase {
     }
 
     @Override
-    public void onCallServiceChanged(
+    public void onConnectionServiceChanged(
             Call call,
-            CallServiceWrapper oldCallServiceWrapper,
-            CallServiceWrapper newCallService) {
+            ConnectionServiceWrapper oldService,
+            ConnectionServiceWrapper newService) {
 
-        super.onCallServiceChanged(call, oldCallServiceWrapper, newCallService);
         // Treat as ending or begining dialing based on the state transition.
         if (shouldStartRinging(call)) {
             startRingbackForCall(call);
-        } else if (newCallService == null) {
+        } else if (newService == null) {
             stopRingbackForCall(call);
         }
     }

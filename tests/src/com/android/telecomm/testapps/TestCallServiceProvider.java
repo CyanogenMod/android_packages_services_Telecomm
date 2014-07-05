@@ -24,7 +24,7 @@ import android.util.Log;
 import com.google.common.collect.Lists;
 
 /**
- * Service which provides fake calls to test the ICallService interface.
+ * Service which provides fake calls to test the IConnectionService interface.
  * TODO(santoscordon): Build more dummy providers for more CallServiceDescriptor.FLAG_* types.
  */
 public class TestCallServiceProvider extends CallServiceProvider {
@@ -34,7 +34,7 @@ public class TestCallServiceProvider extends CallServiceProvider {
         log("lookupCallServices");
 
         CallServiceDescriptor.Builder builder = CallServiceDescriptor.newBuilder(this);
-        builder.setCallService(TestConnectionService.class);
+        builder.setConnectionService(TestConnectionService.class);
         builder.setNetworkType(CallServiceDescriptor.FLAG_WIFI);
 
         response.setCallServiceDescriptors(Lists.newArrayList(builder.build()));

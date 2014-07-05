@@ -18,8 +18,8 @@ package com.android.telecomm;
 
 import android.Manifest;
 import android.content.Intent;
-import android.telecomm.CallService;
 import android.telecomm.CallState;
+import android.telecomm.ConnectionService;
 import android.telecomm.TelecommConstants;
 import android.telephony.DisconnectCause;
 import android.telephony.TelephonyManager;
@@ -68,9 +68,11 @@ final class PhoneStateBroadcaster extends CallsManagerListenerBase {
         }
 
         // TODO: Replace these with real constants once this API has been vetted.
-        CallServiceWrapper callService = call.getCallService();
-        if (callService != null) {
-            intent.putExtra(CallService.class.getName(), callService.getComponentName());
+        ConnectionServiceWrapper connectionService = call.getConnectionService();
+        if (connectionService != null) {
+            intent.putExtra(
+                    TelecommConstants.EXTRA_CONNECTION_SERVICE,
+                    connectionService.getComponentName());
         }
 
         // TODO: Replace these with real constants once this API has been vetted.

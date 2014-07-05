@@ -85,8 +85,8 @@ class CallIdMapper {
     void checkValidCallId(String callId) {
         // Note, no need for thread check, this method is thread safe.
         if (!isValidCallId(callId)) {
-            // TODO(santoscordon): Re-enable this once we stop getting updates to CallServiceWrapper
-            // for remote connections.
+            // TODO(santoscordon): Re-enable this once we stop getting updates to
+            // ConnectionServiceWrapper for remote connections.
             //throw new IllegalArgumentException(
             //        "Invalid call ID for " + mCallIdPrefix + ": " + callId);
         }

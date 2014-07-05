@@ -38,10 +38,10 @@ class CallsManagerListenerBase implements CallsManager.CallsManagerListener {
     }
 
     @Override
-    public void onCallServiceChanged(
+    public void onConnectionServiceChanged(
             Call call,
-            CallServiceWrapper oldCallServiceWrapper,
-            CallServiceWrapper newCallService) {
+            ConnectionServiceWrapper oldService,
+            ConnectionServiceWrapper newService) {
     }
 
     @Override
