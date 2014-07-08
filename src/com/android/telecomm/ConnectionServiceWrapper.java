@@ -538,7 +538,8 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                             NewOutgoingCallIntentBroadcaster.EXTRA_GATEWAY_ORIGINAL_URI,
                             gatewayInfo.getOriginalHandle());
                 }
-                ConnectionRequest request = new ConnectionRequest(callId, call.getHandle(), extras);
+                ConnectionRequest request = new ConnectionRequest(callId, call.getHandle(), extras,
+                        call.getVideoState());
 
                 try {
                     mServiceInterface.call(request);
@@ -631,7 +632,7 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                     String callId = mCallIdMapper.getCallId(call);
                     logOutgoing("createIncomingCall %s %s", callId, extras);
                     ConnectionRequest request = new ConnectionRequest(
-                            callId, call.getHandle(), extras);
+                            callId, call.getHandle(), extras, call.getVideoState());
                     try {
                         mServiceInterface.createIncomingCall(request);
                     } catch (RemoteException e) {

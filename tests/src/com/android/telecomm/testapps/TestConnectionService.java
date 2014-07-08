@@ -241,7 +241,8 @@ public class TestConnectionService extends ConnectionService {
                         mAccountIterator.next(),
                         mOriginalRequest.getCallId(),
                         mOriginalRequest.getHandle(),
-                        null);
+                        null,
+                        mOriginalRequest.getVideoState());
                 createRemoteOutgoingConnection(connectionRequest, this);
             } else {
                 mCallback.onFailure(mOriginalRequest, 0, null);
@@ -324,7 +325,7 @@ public class TestConnectionService extends ConnectionService {
         final ConnectionRequest request = new ConnectionRequest(
                 originalRequest.getCallId(),
                 Uri.fromParts(handle.getScheme(), handle.getSchemeSpecificPart() + "..", ""),
-                originalRequest.getExtras());
+                originalRequest.getExtras(), originalRequest.getVideoState());
 
         // If the number starts with 555, then we handle it ourselves. If not, then we
         // use a remote connection service.
@@ -364,7 +365,8 @@ public class TestConnectionService extends ConnectionService {
         TestConnection connection = new TestConnection(null, Connection.State.DIALING);
         mCalls.add(connection);
         callback.onResult(
-                new ConnectionRequest(request.getCallId(), handle, request.getExtras()),
+                new ConnectionRequest(request.getCallId(), handle, request.getExtras(),
+                        request.getVideoState()),
                 connection);
     }
 }
