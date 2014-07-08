@@ -29,9 +29,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -286,9 +283,11 @@ public final class CallsManager extends Call.ListenerBase {
      * @param gatewayInfo Optional gateway information that can be used to route the call to the
      *         actual dialed handle via a gateway provider. May be null.
      * @param speakerphoneOn Whether or not to turn the speakerphone on once the call connects.
+     * @param videoState The desired video state for the outgoing call.
      */
     void placeOutgoingCall(Uri handle, ContactInfo contactInfo, GatewayInfo gatewayInfo,
-            PhoneAccount account, boolean speakerphoneOn) {
+            PhoneAccount account, boolean speakerphoneOn, int videoState) {
+
         final Uri uriHandle = (gatewayInfo == null) ? handle : gatewayInfo.getGatewayHandle();
 
         if (gatewayInfo == null) {
@@ -302,6 +301,7 @@ public final class CallsManager extends Call.ListenerBase {
                 uriHandle, gatewayInfo, account,
                 false /* isIncoming */, false /* isConference */);
         call.setStartWithSpeakerphoneOn(speakerphoneOn);
+        call.setVideoState(videoState);
 
         // TODO(santoscordon): Move this to be a part of addCall()
         call.addListener(this);

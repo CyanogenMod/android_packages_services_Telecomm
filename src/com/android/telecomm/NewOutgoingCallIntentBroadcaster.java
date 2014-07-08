@@ -26,6 +26,7 @@ import android.os.UserHandle;
 import android.telecomm.GatewayInfo;
 import android.telecomm.PhoneAccount;
 import android.telecomm.TelecommConstants;
+import android.telecomm.VideoCallProfile;
 import android.telephony.PhoneNumberUtils;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
@@ -123,7 +124,9 @@ class NewOutgoingCallIntentBroadcaster {
             mCallsManager.placeOutgoingCall(resultHandleUri, mContactInfo, gatewayInfo,
                     account,
                     mIntent.getBooleanExtra(TelecommConstants.EXTRA_START_CALL_WITH_SPEAKERPHONE,
-                            false));
+                            false),
+                    mIntent.getIntExtra(TelecommConstants.EXTRA_START_CALL_WITH_VIDEO_STATE,
+                            VideoCallProfile.VIDEO_STATE_AUDIO_ONLY));
         }
     }
 
@@ -192,7 +195,9 @@ class NewOutgoingCallIntentBroadcaster {
             mCallsManager.placeOutgoingCall(
                     Uri.fromParts(scheme, handle, null), mContactInfo, null, null,
                     mIntent.getBooleanExtra(TelecommConstants.EXTRA_START_CALL_WITH_SPEAKERPHONE,
-                            false));
+                            false),
+                    mIntent.getIntExtra(TelecommConstants.EXTRA_START_CALL_WITH_VIDEO_STATE,
+                            VideoCallProfile.VIDEO_STATE_AUDIO_ONLY));
 
             // Don't return but instead continue and send the ACTION_NEW_OUTGOING_CALL broadcast
             // so that third parties can still inspect (but not intercept) the outgoing call. When
