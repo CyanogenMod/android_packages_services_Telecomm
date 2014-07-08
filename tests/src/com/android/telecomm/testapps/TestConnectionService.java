@@ -364,7 +364,7 @@ public class TestConnectionService extends ConnectionService {
         TestConnection connection = new TestConnection(null, Connection.State.DIALING);
         mCalls.add(connection);
         callback.onResult(
-                new ConnectionRequest(handle, request.getExtras()),
+                new ConnectionRequest(request.getCallId(), handle, request.getExtras()),
                 connection);
     }
 }
