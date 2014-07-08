@@ -507,7 +507,7 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
     private void addConnectionServiceAdapter(IConnectionServiceAdapter adapter) {
         if (isServiceValid("addConnectionServiceAdapter")) {
             try {
-                logOutgoing("addConnectionServiceAdapter%s", adapter);
+                logOutgoing("addConnectionServiceAdapter %s", adapter);
                 mServiceInterface.addConnectionServiceAdapter(adapter);
             } catch (RemoteException e) {
             }
