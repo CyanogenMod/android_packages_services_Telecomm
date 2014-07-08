@@ -55,7 +55,6 @@ import java.util.Set;
  *  connected etc).
  */
 final class Call implements OutgoingCallResponse {
-
     /**
      * Listener for events on the call.
      */
@@ -173,6 +172,8 @@ final class Call implements OutgoingCallResponse {
     private boolean mIsEmergencyCall;
 
     private boolean mSpeakerphoneOn;
+
+    private int mVideoState;
 
     /**
      * Disconnect cause for the call. Only valid if the state of the call is DISCONNECTED.
@@ -1030,5 +1031,31 @@ final class Call implements OutgoingCallResponse {
         for (Listener l : mListeners) {
             l.onFeaturesChanged(Call.this);
         }
+    }
+
+    /**
+     * The current video state for the call.
+     * Valid values: {@link android.telecomm.VideoCallProfile#VIDEO_STATE_AUDIO_ONLY},
+     * {@link android.telecomm.VideoCallProfile#VIDEO_STATE_BIDIRECTIONAL},
+     * {@link android.telecomm.VideoCallProfile#VIDEO_STATE_TX_ENABLED},
+     * {@link android.telecomm.VideoCallProfile#VIDEO_STATE_RX_ENABLED}.
+     *
+     * @return True if video is enabled.
+     */
+    public int getVideoState() {
+        return mVideoState;
+    }
+
+    /**
+     * At the start of the call, determines the desired video state for the call.
+     * Valid values: {@link android.telecomm.VideoCallProfile#VIDEO_STATE_AUDIO_ONLY},
+     * {@link android.telecomm.VideoCallProfile#VIDEO_STATE_BIDIRECTIONAL},
+     * {@link android.telecomm.VideoCallProfile#VIDEO_STATE_TX_ENABLED},
+     * {@link android.telecomm.VideoCallProfile#VIDEO_STATE_RX_ENABLED}.
+     *
+     * @param videoState The desired video state for the call.
+     */
+    public void setVideoState(int videoState) {
+        mVideoState = videoState;
     }
 }
