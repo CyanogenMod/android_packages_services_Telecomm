@@ -112,7 +112,7 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                 case MSG_HANDLE_FAILED_OUTGOING_CALL: {
                     SomeArgs args = (SomeArgs) msg.obj;
                     try {
-                        ConnectionRequest request = (ConnectionRequest) msg.obj;
+                        ConnectionRequest request = (ConnectionRequest) args.arg1;
                         int statusCode = args.argi1;
                         String statusMsg = (String) args.arg2;
                         // TODO(santoscordon): Do something with 'reason' or get rid of it.
