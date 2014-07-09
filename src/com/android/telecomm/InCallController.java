@@ -159,6 +159,11 @@ public final class InCallController extends CallsManagerListenerBase {
         updateCall(call);
     }
 
+    @Override
+    public void onStatusHintsChanged(Call call) {
+        updateCall(call);
+    }
+
     void bringToForeground(boolean showDialpad) {
         if (mInCallService != null) {
             try {
@@ -300,7 +305,7 @@ public final class InCallController extends CallsManagerListenerBase {
         return new InCallCall(callId, state, call.getDisconnectCause(), call.getDisconnectMessage(),
                 call.getCannedSmsResponses(), capabilities, connectTimeMillis, call.getHandle(),
                 call.getGatewayInfo(), call.getAccount(), descriptor, call.getCallVideoProvider(),
-                parentCallId, childCallIds, call.getFeatures());
+                parentCallId, childCallIds, call.getFeatures(), call.getStatusHints());
     }
 
 }

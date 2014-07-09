@@ -25,10 +25,11 @@ import android.telecomm.CallAudioState;
 import android.telecomm.Connection;
 import android.telecomm.ConnectionRequest;
 import android.telecomm.ConnectionService;
+import android.telecomm.PhoneAccount;
 import android.telecomm.RemoteConnection;
 import android.telecomm.Response;
 import android.telecomm.SimpleResponse;
-import android.telecomm.PhoneAccount;
+import android.telecomm.StatusHints;
 import android.telephony.DisconnectCause;
 import android.text.TextUtils;
 import android.util.Log;
@@ -81,6 +82,11 @@ public class TestConnectionService extends ConnectionService {
             @Override
             public void onSetAudioModeIsVoip(RemoteConnection connection, boolean isVoip) {
                 setAudioModeIsVoip(isVoip);
+            }
+
+            @Override
+            public void onSetStatusHints(RemoteConnection connection, StatusHints statusHints) {
+                setStatusHints(statusHints);
             }
 
             @Override

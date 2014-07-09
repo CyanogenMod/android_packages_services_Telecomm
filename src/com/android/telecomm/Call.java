@@ -29,6 +29,7 @@ import android.telecomm.ConnectionRequest;
 import android.telecomm.GatewayInfo;
 import android.telecomm.PhoneAccount;
 import android.telecomm.Response;
+import android.telecomm.StatusHints;
 import android.telecomm.TelecommConstants;
 import android.telephony.DisconnectCause;
 import android.telephony.PhoneNumberUtils;
@@ -76,6 +77,7 @@ final class Call implements OutgoingCallResponse {
         void onFeaturesChanged(Call call);
         void onCallerInfoChanged(Call call);
         void onAudioModeIsVoipChanged(Call call);
+        void onStatusHintsChanged(Call call);
     }
 
     abstract static class ListenerBase implements Listener {
@@ -113,6 +115,8 @@ final class Call implements OutgoingCallResponse {
         public void onCallerInfoChanged(Call call) {}
         @Override
         public void onAudioModeIsVoipChanged(Call call) {}
+        @Override
+        public void onStatusHintsChanged(Call call) {}
     }
 
     private static final OnQueryCompleteListener sCallerInfoQueryListener =
@@ -232,6 +236,7 @@ final class Call implements OutgoingCallResponse {
     private int mFeatures;
 
     private boolean mAudioModeIsVoip;
+    private StatusHints mStatusHints;
 
     /**
      * Creates an empty call object.
@@ -1071,7 +1076,18 @@ final class Call implements OutgoingCallResponse {
     public void setAudioModeIsVoip(boolean audioModeIsVoip) {
         mAudioModeIsVoip = audioModeIsVoip;
         for (Listener l : mListeners) {
-            l.onAudioModeIsVoipChanged(Call.this);
+            l.onAudioModeIsVoipChanged(this);
+        }
+    }
+
+    public StatusHints getStatusHints() {
+        return mStatusHints;
+    }
+
+    public void setStatusHints(StatusHints statusHints) {
+        mStatusHints = statusHints;
+        for (Listener l : mListeners) {
+            l.onStatusHintsChanged(this);
         }
     }
 }

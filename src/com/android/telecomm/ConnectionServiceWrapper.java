@@ -27,11 +27,11 @@ import android.telecomm.ConnectionService;
 import android.telecomm.CallServiceDescriptor;
 import android.telecomm.ConnectionRequest;
 import android.telecomm.GatewayInfo;
+import android.telecomm.StatusHints;
 import android.telecomm.TelecommConstants;
 import android.telephony.DisconnectCause;
 
 import com.android.internal.os.SomeArgs;
-
 import com.android.internal.telecomm.IConnectionService;
 import com.android.internal.telecomm.IConnectionServiceAdapter;
 import com.android.internal.telecomm.ICallServiceProvider;
@@ -77,6 +77,7 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
     private static final int MSG_SET_CALL_VIDEO_PROVIDER = 17;
     private static final int MSG_SET_FEATURES = 18;
     private static final int MSG_SET_AUDIO_MODE_IS_VOIP = 19;
+    private static final int MSG_SET_STATUS_HINTS = 20;
 
     private final Handler mHandler = new Handler() {
         @Override
@@ -311,6 +312,19 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                     }
                     break;
                 }
+                case MSG_SET_STATUS_HINTS: {
+                    SomeArgs args = (SomeArgs) msg.obj;
+                    try {
+                        call = mCallIdMapper.getCall(args.arg1);
+                        StatusHints statusHints = (StatusHints) args.arg2;
+                        if (call != null) {
+                            call.setStatusHints(statusHints);
+                        }
+                    } finally {
+                        args.recycle();
+                    }
+                    break;
+                }
             }
         }
     };
@@ -489,6 +503,16 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
             args.arg1 = callId;
             args.argi1 = isVoip ? 1 : 0;
             mHandler.obtainMessage(MSG_SET_AUDIO_MODE_IS_VOIP, args).sendToTarget();
+        }
+
+        @Override
+        public void setStatusHints(String callId, StatusHints statusHints) {
+            logIncoming("setStatusHints %s %s", callId, statusHints);
+            mCallIdMapper.checkValidCallId(callId);
+            SomeArgs args = SomeArgs.obtain();
+            args.arg1 = callId;
+            args.arg2 = statusHints;
+            mHandler.obtainMessage(MSG_SET_STATUS_HINTS, args).sendToTarget();
         }
     }
 

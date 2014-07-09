@@ -23,6 +23,7 @@ import android.telecomm.CallServiceDescriptor;
 import android.telecomm.CallState;
 import android.telecomm.GatewayInfo;
 import android.telecomm.PhoneAccount;
+import android.telecomm.StatusHints;
 import android.telephony.DisconnectCause;
 
 import com.google.common.base.Preconditions;
@@ -62,6 +63,7 @@ public final class CallsManager extends Call.ListenerBase {
         void onCallVideoProviderChanged(Call call);
         void onFeaturesChanged(Call call);
         void onAudioModeIsVoipChanged(Call call);
+        void onStatusHintsChanged(Call call);
     }
 
     private static final CallsManager INSTANCE = new CallsManager();
@@ -231,6 +233,13 @@ public final class CallsManager extends Call.ListenerBase {
     public void onAudioModeIsVoipChanged(Call call) {
         for (CallsManagerListener listener : mListeners) {
             listener.onAudioModeIsVoipChanged(call);
+        }
+    }
+
+    @Override
+    public void onStatusHintsChanged(Call call) {
+        for (CallsManagerListener listener : mListeners) {
+            listener.onStatusHintsChanged(call);
         }
     }
 
