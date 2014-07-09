@@ -83,4 +83,8 @@ class CallsManagerListenerBase implements CallsManager.CallsManagerListener {
     @Override
     public void onFeaturesChanged(Call call) {
     }
+
+    @Override
+    public void onAudioModeIsVoipChanged(Call call) {
+    }
 }

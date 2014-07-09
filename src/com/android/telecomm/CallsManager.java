@@ -61,6 +61,7 @@ public final class CallsManager extends Call.ListenerBase {
         void onCannedSmsResponsesLoaded(Call call);
         void onCallVideoProviderChanged(Call call);
         void onFeaturesChanged(Call call);
+        void onAudioModeIsVoipChanged(Call call);
     }
 
     private static final CallsManager INSTANCE = new CallsManager();
@@ -223,6 +224,13 @@ public final class CallsManager extends Call.ListenerBase {
         Log.v(this, "onFeaturesChanged: %d", call.getFeatures());
         for (CallsManagerListener listener : mListeners) {
             listener.onFeaturesChanged(call);
+        }
+    }
+
+    @Override
+    public void onAudioModeIsVoipChanged(Call call) {
+        for (CallsManagerListener listener : mListeners) {
+            listener.onAudioModeIsVoipChanged(call);
         }
     }
 

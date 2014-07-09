@@ -79,6 +79,11 @@ public class TestConnectionService extends ConnectionService {
             }
 
             @Override
+            public void onSetAudioModeIsVoip(RemoteConnection connection, boolean isVoip) {
+                setAudioModeIsVoip(isVoip);
+            }
+
+            @Override
             public void onDestroyed(RemoteConnection connection) {
                 setDestroyed();
             }

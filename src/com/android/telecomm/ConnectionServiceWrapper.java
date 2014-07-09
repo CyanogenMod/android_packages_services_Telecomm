@@ -76,6 +76,7 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
     private static final int MSG_QUERY_REMOTE_CALL_SERVICES = 16;
     private static final int MSG_SET_CALL_VIDEO_PROVIDER = 17;
     private static final int MSG_SET_FEATURES = 18;
+    private static final int MSG_SET_AUDIO_MODE_IS_VOIP = 19;
 
     private final Handler mHandler = new Handler() {
         @Override
@@ -288,9 +289,22 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                     SomeArgs args = (SomeArgs) msg.obj;
                     try {
                         call = mCallIdMapper.getCall(args.arg1);
-                        int features = (int) args.arg2;
+                        int features = (int) args.argi1;
                         if (call != null) {
                             call.setFeatures(features);
+                        }
+                    } finally {
+                        args.recycle();
+                    }
+                    break;
+                }
+                case MSG_SET_AUDIO_MODE_IS_VOIP: {
+                    SomeArgs args = (SomeArgs) msg.obj;
+                    try {
+                        call = mCallIdMapper.getCall(args.arg1);
+                        boolean isVoip = args.argi1 == 1;
+                        if (call != null) {
+                            call.setAudioModeIsVoip(isVoip);
                         }
                     } finally {
                         args.recycle();
@@ -463,8 +477,18 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
             mCallIdMapper.checkValidCallId(callId);
             SomeArgs args = SomeArgs.obtain();
             args.arg1 = callId;
-            args.arg2 = features;
+            args.argi1 = features;
             mHandler.obtainMessage(MSG_SET_FEATURES, args).sendToTarget();
+        }
+
+        @Override
+        public void setAudioModeIsVoip(String callId, boolean isVoip) {
+            logIncoming("setAudioModeIsVoip %s %d", callId, isVoip);
+            mCallIdMapper.checkValidCallId(callId);
+            SomeArgs args = SomeArgs.obtain();
+            args.arg1 = callId;
+            args.argi1 = isVoip ? 1 : 0;
+            mHandler.obtainMessage(MSG_SET_AUDIO_MODE_IS_VOIP, args).sendToTarget();
         }
     }
 

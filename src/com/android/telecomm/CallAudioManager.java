@@ -102,6 +102,11 @@ final class CallAudioManager extends CallsManagerListenerBase {
         updateAudioForForegroundCall();
     }
 
+    @Override
+    public void onAudioModeIsVoipChanged(Call call) {
+        updateAudioStreamAndMode();
+    }
+
     void toggleMute() {
         mute(!mAudioState.isMuted);
     }
@@ -277,8 +282,8 @@ final class CallAudioManager extends CallsManagerListenerBase {
         } else {
             Call call = getForegroundCall();
             if (call != null) {
-                int mode = TelephonyUtil.isCurrentlyPSTNCall(call) ?
-                        AudioManager.MODE_IN_CALL : AudioManager.MODE_IN_COMMUNICATION;
+                int mode = call.getAudioModeIsVoip() ?
+                        AudioManager.MODE_IN_COMMUNICATION : AudioManager.MODE_IN_CALL;
                 requestAudioFocusAndSetMode(AudioManager.STREAM_VOICE_CALL, mode);
             } else if (mIsTonePlaying) {
                 // There is no call, however, we are still playing a tone, so keep focus.

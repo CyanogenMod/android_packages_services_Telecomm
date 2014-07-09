@@ -75,6 +75,7 @@ final class Call implements OutgoingCallResponse {
         void onCallVideoProviderChanged(Call call);
         void onFeaturesChanged(Call call);
         void onCallerInfoChanged(Call call);
+        void onAudioModeIsVoipChanged(Call call);
     }
 
     abstract static class ListenerBase implements Listener {
@@ -110,6 +111,8 @@ final class Call implements OutgoingCallResponse {
         public void onFeaturesChanged(Call call) {}
         @Override
         public void onCallerInfoChanged(Call call) {}
+        @Override
+        public void onAudioModeIsVoipChanged(Call call) {}
     }
 
     private static final OnQueryCompleteListener sCallerInfoQueryListener =
@@ -227,6 +230,8 @@ final class Call implements OutgoingCallResponse {
 
     /** Features associated with the call which the InCall UI may wish to show icons for. */
     private int mFeatures;
+
+    private boolean mAudioModeIsVoip;
 
     /**
      * Creates an empty call object.
@@ -1057,5 +1062,16 @@ final class Call implements OutgoingCallResponse {
      */
     public void setVideoState(int videoState) {
         mVideoState = videoState;
+    }
+
+    public boolean getAudioModeIsVoip() {
+        return mAudioModeIsVoip;
+    }
+
+    public void setAudioModeIsVoip(boolean audioModeIsVoip) {
+        mAudioModeIsVoip = audioModeIsVoip;
+        for (Listener l : mListeners) {
+            l.onAudioModeIsVoipChanged(Call.this);
+        }
     }
 }
