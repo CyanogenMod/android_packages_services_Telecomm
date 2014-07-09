@@ -304,8 +304,8 @@ public final class InCallController extends CallsManagerListenerBase {
 
         return new InCallCall(callId, state, call.getDisconnectCause(), call.getDisconnectMessage(),
                 call.getCannedSmsResponses(), capabilities, connectTimeMillis, call.getHandle(),
-                call.getGatewayInfo(), call.getAccount(), descriptor, call.getCallVideoProvider(),
-                parentCallId, childCallIds, call.getFeatures(), call.getStatusHints());
+                call.getGatewayInfo(), call.getPhoneAccount(), descriptor,
+                call.getCallVideoProvider(), parentCallId, childCallIds, call.getFeatures(),
+                call.getStatusHints());
     }
-
 }

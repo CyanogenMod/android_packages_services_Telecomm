@@ -159,7 +159,7 @@ final class Call implements OutgoingCallResponse {
      * service. */
     private final GatewayInfo mGatewayInfo;
 
-    private final PhoneAccount mAccount;
+    private PhoneAccount mPhoneAccount;
 
     private final Handler mHandler = new Handler();
 
@@ -260,7 +260,7 @@ final class Call implements OutgoingCallResponse {
         mState = isConference ? CallState.ACTIVE : CallState.NEW;
         setHandle(handle);
         mGatewayInfo = gatewayInfo;
-        mAccount = account;
+        mPhoneAccount = account;
         mIsIncoming = isIncoming;
         mIsConference = isConference;
         maybeLoadCannedSmsResponses();
@@ -386,8 +386,8 @@ final class Call implements OutgoingCallResponse {
         return mGatewayInfo;
     }
 
-    PhoneAccount getAccount() {
-        return mAccount;
+    PhoneAccount getPhoneAccount() {
+        return mPhoneAccount;
     }
 
     boolean isIncoming() {
@@ -492,6 +492,8 @@ final class Call implements OutgoingCallResponse {
      * in-call UI.
      */
     void handleVerifiedIncoming(ConnectionRequest request) {
+        mPhoneAccount = request.getAccount();
+
         // We do not handle incoming calls immediately when they are verified by the connection
         // service. We allow the caller-info-query code to execute first so that we can read the
         // direct-to-voicemail property before deciding if we want to show the incoming call to the

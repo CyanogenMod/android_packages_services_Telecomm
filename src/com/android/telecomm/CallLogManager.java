@@ -112,7 +112,7 @@ final class CallLogManager extends CallsManagerListenerBase {
         Log.d(TAG, "logNumber set to: %s", Log.pii(logNumber));
 
         final int presentation = getPresentation(call, contactInfo);
-        final PhoneAccount account = call.getAccount();
+        final PhoneAccount account = call.getPhoneAccount();
 
         logCall(contactInfo, logNumber, presentation, callLogType, account, creationTime, age);
     }
