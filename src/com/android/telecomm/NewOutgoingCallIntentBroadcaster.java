@@ -26,9 +26,9 @@ import android.os.UserHandle;
 import android.telecomm.GatewayInfo;
 import android.telecomm.PhoneAccount;
 import android.telecomm.TelecommConstants;
+import android.telecomm.TelecommManager;
 import android.telecomm.VideoCallProfile;
 import android.telephony.PhoneNumberUtils;
-import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 
 /**
@@ -261,9 +261,9 @@ class NewOutgoingCallIntentBroadcaster {
             return;
         }
         PhoneAccount extraAccount = src.getParcelableExtra(
-                TelephonyManager.EXTRA_ACCOUNT);
+                TelecommManager.EXTRA_PHONE_ACCOUNT);
         if (extraAccount != null) {
-            dst.putExtra(TelephonyManager.EXTRA_ACCOUNT, extraAccount);
+            dst.putExtra(TelecommManager.EXTRA_PHONE_ACCOUNT, extraAccount);
             Log.d(this, "Found and copied account extra to broadcast intent.");
         }
 
@@ -321,7 +321,7 @@ class NewOutgoingCallIntentBroadcaster {
             return null;
         }
 
-        return intent.getParcelableExtra(TelephonyManager.EXTRA_ACCOUNT);
+        return intent.getParcelableExtra(TelecommManager.EXTRA_PHONE_ACCOUNT);
     }
 
     private void launchSystemDialer(Context context, Uri handle) {
