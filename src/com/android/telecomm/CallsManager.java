@@ -62,6 +62,9 @@ public final class CallsManager extends Call.ListenerBase {
 
     private static final CallsManager INSTANCE = new CallsManager();
 
+    /** Temporary flag for disabling account selection menu */
+    public static final boolean ENABLE_ACCOUNT_SELECT = true;
+
     /**
      * The main call repository. Keeps an instance of all live calls. New incoming and outgoing
      * calls are added to the map and removed when the calls move to the disconnected state.
@@ -280,9 +283,8 @@ public final class CallsManager extends Call.ListenerBase {
      * Attempts to issue/connect the specified call.
      *
      * @param handle Handle to connect the call with.
-     * @param contactInfo Information about the entity being called.
      * @param gatewayInfo Optional gateway information that can be used to route the call to the
-     *         actual dialed handle via a gateway provider. May be null.
+     *        actual dialed handle via a gateway provider. May be null.
      * @param speakerphoneOn Whether or not to turn the speakerphone on once the call connects.
      * @param videoState The desired video state for the outgoing call.
      */
@@ -311,6 +313,13 @@ public final class CallsManager extends Call.ListenerBase {
         // TODO(santoscordon): Move this to be a part of addCall()
         call.addListener(this);
         addCall(call);
+
+        // TODO: check for default account
+        if (account == null && ENABLE_ACCOUNT_SELECT) {
+            call.setState(CallState.PRE_DIAL_WAIT);
+            return;
+        }
+
         call.startCreateConnection();
     }
 
@@ -477,6 +486,15 @@ public final class CallsManager extends Call.ListenerBase {
             Log.i(this, "phoneAccountClicked in a non-existent call %s", call);
         } else {
             call.phoneAccountClicked();
+        }
+    }
+
+    void phoneAccountSelected(Call call, PhoneAccount account) {
+        if (!mCalls.contains(call)) {
+            Log.i(this, "Attemped to add account to unknown call %s", call);
+        } else {
+            call.setPhoneAccount(account);
+            call.startCreateConnection();
         }
     }
 

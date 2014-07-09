@@ -431,6 +431,10 @@ final class Call implements CreateConnectionResponse {
         return mPhoneAccount;
     }
 
+    void setPhoneAccount(PhoneAccount account) {
+        mPhoneAccount = account;
+    }
+
     boolean isIncoming() {
         return mIsIncoming;
     }
@@ -641,7 +645,7 @@ final class Call implements CreateConnectionResponse {
      * Attempts to disconnect the call through the connection service.
      */
     void disconnect() {
-        if (mState == CallState.NEW) {
+        if (mState == CallState.NEW || mState == CallState.PRE_DIAL_WAIT) {
             Log.v(this, "Aborting call %s", this);
             abort();
         } else if (mState != CallState.ABORTED && mState != CallState.DISCONNECTED) {
@@ -658,6 +662,8 @@ final class Call implements CreateConnectionResponse {
     void abort() {
         if (mCreateConnectionProcessor != null) {
             mCreateConnectionProcessor.abort();
+        } else if (mState == CallState.PRE_DIAL_WAIT) {
+            handleCreateConnectionFailed(DisconnectCause.LOCAL, null);
         }
     }
 
