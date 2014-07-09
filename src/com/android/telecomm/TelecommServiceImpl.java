@@ -16,21 +16,24 @@
 
 package com.android.telecomm;
 
-import com.google.android.collect.Lists;
-
-import com.android.internal.telecomm.ITelecommService;
-
+import android.app.AppOpsManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.res.Resources;
 import android.net.Uri;
+import android.os.Binder;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.os.ServiceManager;
+import android.phone.PhoneManager;
 import android.telecomm.CallState;
-import android.text.TextUtils;
 import android.telecomm.PhoneAccount;
+import android.telecomm.TelecommManager;
+import android.telephony.TelephonyManager;
+
+import com.android.internal.telecomm.ITelecommService;
+import com.google.android.collect.Lists;
 
 import java.util.List;
 
@@ -108,12 +111,16 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
     /** The singleton instance. */
     private static TelecommServiceImpl sInstance;
 
+    private final MainThreadHandler mMainThreadHandler = new MainThreadHandler();
     private final CallsManager mCallsManager = CallsManager.getInstance();
     private final MissedCallNotifier mMissedCallNotifier;
-    private final MainThreadHandler mMainThreadHandler = new MainThreadHandler();
+    private final AppOpsManager mAppOpsManager;
 
     private TelecommServiceImpl(MissedCallNotifier missedCallNotifier) {
         mMissedCallNotifier = missedCallNotifier;
+        mAppOpsManager =
+                (AppOpsManager) TelecommApp.getInstance().getSystemService(Context.APP_OPS_SERVICE);
+
         publish();
     }
 
@@ -249,18 +256,41 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
         sendRequestAsync(MSG_ACCEPT_RINGING_CALL, 0);
     }
 
+    /**
+     * @see PhoneManager#showCallScreen
+     */
     @Override
     public void showCallScreen(boolean showDialpad) {
+        enforceReadPermissionOrDefaultDialer();
         sendRequestAsync(MSG_SHOW_CALL_SCREEN, showDialpad ? 1 : 0);
     }
 
+    /**
+     * @see PhoneManager#cancelMissedCallsNotification
+     */
     @Override
     public void cancelMissedCallsNotification() {
+        enforceModifyPermissionOrDefaultDialer();
         sendRequestAsync(MSG_CANCEL_MISSED_CALLS_NOTIFICATION, 0);
     }
 
+    /**
+     * @see PhoneManager#handlePinMmi
+     */
+    @Override
+    public boolean handlePinMmi(String dialString) {
+        enforceModifyPermissionOrDefaultDialer();
+
+        // Switch identity so that TelephonyManager checks Telecomm's permissions instead.
+        long token = Binder.clearCallingIdentity();
+        boolean retval = getTelephonyManager().handlePinMmi(dialString);
+        Binder.restoreCallingIdentity(token);
+
+        return retval;
+    }
+
     //
-    // Supporting methods for the ITelephony interface implementation.
+    // Supporting methods for the ITelecommService interface implementation.
     //
 
     private void acceptRingingCallInternal() {
@@ -304,13 +334,44 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
                 android.Manifest.permission.MODIFY_PHONE_STATE, null);
     }
 
+    private void enforceModifyPermissionOrDefaultDialer() {
+        if (!isDefaultDialerCalling()) {
+            enforceModifyPermission();
+        }
+    }
+
     private void enforceReadPermission() {
         TelecommApp.getInstance().enforceCallingOrSelfPermission(
                 android.Manifest.permission.READ_PHONE_STATE, null);
     }
 
+    private void enforceReadPermissionOrDefaultDialer() {
+        if (!isDefaultDialerCalling()) {
+            enforceReadPermission();
+        }
+    }
+
     private void showCallScreenInternal(boolean showDialpad) {
         CallsManager.getInstance().getInCallController().bringToForeground(showDialpad);
+    }
+
+    private boolean isDefaultDialerCalling() {
+        ComponentName defaultDialerComponent = getDefaultPhoneApp();
+        if (defaultDialerComponent != null) {
+            try {
+                mAppOpsManager.checkPackage(
+                        Binder.getCallingUid(), defaultDialerComponent.getPackageName());
+                return true;
+            } catch (SecurityException e) {
+                Log.e(TAG, e, "Could not get default dialer.");
+            }
+        }
+        return false;
+    }
+
+    private TelephonyManager getTelephonyManager() {
+        return (TelephonyManager)
+                TelecommApp.getInstance().getSystemService(Context.TELEPHONY_SERVICE);
     }
 
     private void publish() {
