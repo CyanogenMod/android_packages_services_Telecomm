@@ -42,20 +42,25 @@ final class CallLogManager extends CallsManagerListenerBase {
          * @param presentation Number presentation of the phone number to be logged.
          * @param callType The type of call (e.g INCOMING_TYPE). @see
          *     {@link android.provider.CallLog} for the list of values.
+         * @param features The features of the call (e.g. FEATURES_VIDEO). @see
+         *     {@link android.provider.CallLog} for the list of values.
          * @param creationDate Time when the call was created (milliseconds since epoch).
          * @param durationInMillis Duration of the call (milliseconds).
+         * @param dataUsage Data usage in bytes, or null if not applicable.
          */
         public AddCallArgs(Context context, ContactInfo contactInfo, String number,
-                int presentation, int callType, PhoneAccount account,
-                long creationDate, long durationInMillis) {
+                int presentation, int callType, int features, PhoneAccount account,
+                long creationDate, long durationInMillis, Long dataUsage) {
             this.context = context;
             this.contactInfo = contactInfo;
             this.number = number;
             this.presentation = presentation;
             this.callType = callType;
+            this.features = features;
             this.mAccount = account;
             this.timestamp = creationDate;
             this.durationInSec = (int)(durationInMillis / 1000);
+            this.dataUsage = dataUsage;
         }
         // Since the members are accessed directly, we don't use the
         // mXxxx notation.
@@ -64,9 +69,11 @@ final class CallLogManager extends CallsManagerListenerBase {
         public final String number;
         public final int presentation;
         public final int callType;
+        public final int features;
         public final PhoneAccount mAccount;
         public final long timestamp;
         public final int durationInSec;
+        public final Long dataUsage;
     }
 
     private static final String TAG = CallLogManager.class.getSimpleName();
@@ -114,7 +121,9 @@ final class CallLogManager extends CallsManagerListenerBase {
         final int presentation = getPresentation(call, contactInfo);
         final PhoneAccount account = call.getPhoneAccount();
 
-        logCall(contactInfo, logNumber, presentation, callLogType, account, creationTime, age);
+        // TODO: Once features and data usage are available, wire them up here.
+        logCall(contactInfo, logNumber, presentation, callLogType, Calls.FEATURES_NONE, account,
+                creationTime, age, null);
     }
 
     /**
@@ -124,17 +133,21 @@ final class CallLogManager extends CallsManagerListenerBase {
      * @param number The number the call was made to or from.
      * @param presentation
      * @param callType The type of call.
+     * @param features The features of the call.
      * @param start The start time of the call, in milliseconds.
      * @param duration The duration of the call, in milliseconds.
+     * @param dataUsage The data usage for the call, null if not applicable.
      */
     private void logCall(
             ContactInfo contactInfo,
             String number,
             int presentation,
             int callType,
+            int features,
             PhoneAccount account,
             long start,
-            long duration) {
+            long duration,
+            Long dataUsage) {
         boolean isEmergencyNumber = PhoneNumberUtils.isLocalEmergencyNumber(mContext, number);
 
         // On some devices, to avoid accidental redialing of emergency numbers, we *never* log
@@ -151,7 +164,7 @@ final class CallLogManager extends CallsManagerListenerBase {
                     + Log.pii(number) + "," + presentation + ", " + callType
                     + ", " + start + ", " + duration);
             AddCallArgs args = new AddCallArgs(mContext, contactInfo, number, presentation,
-                    callType, account, start, duration);
+                    callType, features, account, start, duration, dataUsage);
             logCallAsync(args);
         } else {
           Log.d(TAG, "Not adding emergency call to call log.");
@@ -223,7 +236,8 @@ final class CallLogManager extends CallsManagerListenerBase {
                 try {
                     // May block.
                     result[i] = Calls.addCall(null, c.context, c.number, c.presentation,
-                            c.callType, c.mAccount, c.timestamp, c.durationInSec);
+                            c.callType, c.features, c.mAccount, c.timestamp, c.durationInSec,
+                            c.dataUsage);
                 } catch (Exception e) {
                     // This is very rare but may happen in legitimate cases.
                     // E.g. If the phone is encrypted and thus write request fails, it may cause
