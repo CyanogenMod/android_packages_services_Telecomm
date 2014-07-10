@@ -497,7 +497,7 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
 
         @Override
         public void setAudioModeIsVoip(String callId, boolean isVoip) {
-            logIncoming("setAudioModeIsVoip %s %d", callId, isVoip);
+            logIncoming("setAudioModeIsVoip %s %b", callId, isVoip);
             mCallIdMapper.checkValidCallId(callId);
             SomeArgs args = SomeArgs.obtain();
             args.arg1 = callId;
