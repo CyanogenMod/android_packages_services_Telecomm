@@ -68,7 +68,7 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
     private static final int MSG_SET_DISCONNECTED = 8;
     private static final int MSG_SET_ON_HOLD = 9;
     private static final int MSG_SET_REQUESTING_RINGBACK = 10;
-    private static final int MSG_CAN_CONFERENCE = 11;
+    private static final int MSG_SET_CALL_CAPABILITIES = 11;
     private static final int MSG_SET_IS_CONFERENCED = 12;
     private static final int MSG_ADD_CONFERENCE_CALL = 13;
     private static final int MSG_REMOVE_CALL = 14;
@@ -205,13 +205,13 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                     }
                     break;
                 }
-                case MSG_CAN_CONFERENCE: {
+                case MSG_SET_CALL_CAPABILITIES: {
                     call = mCallIdMapper.getCall(msg.obj);
                     if (call != null) {
-                        call.setIsConferenceCapable(msg.arg1 == 1);
+                        call.setCallCapabilities(msg.arg1);
                     } else {
                         //Log.w(ConnectionServiceWrapper.this,
-                        //      "canConference, unknown call id: %s", msg.obj);
+                        //      "setCallCapabilities, unknown call id: %s", msg.obj);
                     }
                     break;
                 }
@@ -287,28 +287,16 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                     break;
                 }
                 case MSG_SET_FEATURES: {
-                    SomeArgs args = (SomeArgs) msg.obj;
-                    try {
-                        call = mCallIdMapper.getCall(args.arg1);
-                        int features = (int) args.argi1;
-                        if (call != null) {
-                            call.setFeatures(features);
-                        }
-                    } finally {
-                        args.recycle();
+                    call = mCallIdMapper.getCall(msg.obj);
+                    if (call != null) {
+                        call.setFeatures(msg.arg1);
                     }
                     break;
                 }
                 case MSG_SET_AUDIO_MODE_IS_VOIP: {
-                    SomeArgs args = (SomeArgs) msg.obj;
-                    try {
-                        call = mCallIdMapper.getCall(args.arg1);
-                        boolean isVoip = args.argi1 == 1;
-                        if (call != null) {
-                            call.setAudioModeIsVoip(isVoip);
-                        }
-                    } finally {
-                        args.recycle();
+                    call = mCallIdMapper.getCall(msg.obj);
+                    if (call != null) {
+                        call.setAudioModeIsVoip(msg.arg1 == 1);
                     }
                     break;
                 }
@@ -444,9 +432,9 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
 
         /** ${inheritDoc} */
         @Override
-        public void setCanConference(String callId, boolean canConference) {
-            logIncoming("setCanConference %s %b", callId, canConference);
-            mHandler.obtainMessage(MSG_CAN_CONFERENCE, canConference ? 1 : 0, 0, callId)
+        public void setCallCapabilities(String callId, int callCapabilities) {
+            logIncoming("setCallCapabilities %s %d", callId, callCapabilities);
+            mHandler.obtainMessage(MSG_SET_CALL_CAPABILITIES, callCapabilities, 0, callId)
                     .sendToTarget();
         }
 
@@ -489,20 +477,15 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
         public void setFeatures(String callId, int features) {
             logIncoming("setFeatures %s %d", callId, features);
             mCallIdMapper.checkValidCallId(callId);
-            SomeArgs args = SomeArgs.obtain();
-            args.arg1 = callId;
-            args.argi1 = features;
-            mHandler.obtainMessage(MSG_SET_FEATURES, args).sendToTarget();
+            mHandler.obtainMessage(MSG_SET_FEATURES, features, 0, callId).sendToTarget();
         }
 
         @Override
         public void setAudioModeIsVoip(String callId, boolean isVoip) {
             logIncoming("setAudioModeIsVoip %s %d", callId, isVoip);
             mCallIdMapper.checkValidCallId(callId);
-            SomeArgs args = SomeArgs.obtain();
-            args.arg1 = callId;
-            args.argi1 = isVoip ? 1 : 0;
-            mHandler.obtainMessage(MSG_SET_AUDIO_MODE_IS_VOIP, args).sendToTarget();
+            mHandler.obtainMessage(MSG_SET_AUDIO_MODE_IS_VOIP, isVoip ? 1 : 0, 0,
+                    callId).sendToTarget();
         }
 
         @Override

@@ -66,7 +66,7 @@ class CallsManagerListenerBase implements CallsManager.CallsManagerListener {
     }
 
     @Override
-    public void onIsConferenceCapableChanged(Call call, boolean isConferenceCapable) {
+    public void onCallCapabilitiesChanged(Call call) {
     }
 
     @Override

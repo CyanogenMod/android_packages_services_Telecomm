@@ -133,7 +133,7 @@ public final class InCallController extends CallsManagerListenerBase {
     }
 
     @Override
-    public void onIsConferenceCapableChanged(Call call, boolean isConferenceCapable) {
+    public void onCallCapabilitiesChanged(Call call) {
         updateCall(call);
     }
 
@@ -269,13 +269,14 @@ public final class InCallController extends CallsManagerListenerBase {
         CallServiceDescriptor descriptor = call.getConnectionService() != null ?
                 call.getConnectionService().getDescriptor() : null;
 
-        int capabilities = CallCapabilities.HOLD | CallCapabilities.MUTE;
-        if (CallsManager.getInstance().isAddCallCapable(call)) {
-            capabilities |= CallCapabilities.ADD_CALL;
+        int capabilities = call.getCallCapabilities();
+        if (!CallsManager.getInstance().isAddCallCapable(call)) {
+            capabilities &= ~CallCapabilities.ADD_CALL;
         }
-        if (call.isConferenceCapable()) {
-            capabilities |= CallCapabilities.MERGE_CALLS;
+        if (call.isEmergencyCall()) {
+            capabilities &= ~CallCapabilities.MUTE;
         }
+
         CallState state = call.getState();
         if (state == CallState.ABORTED) {
             state = CallState.DISCONNECTED;

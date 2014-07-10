@@ -67,7 +67,7 @@ final class Call implements OutgoingCallResponse {
         void onFailedIncomingCall(Call call);
         void onRequestingRingback(Call call, boolean requestingRingback);
         void onPostDialWait(Call call, String remaining);
-        void onIsConferenceCapableChanged(Call call, boolean isConferenceCapable);
+        void onCallCapabilitiesChanged(Call call);
         void onExpiredConferenceCall(Call call);
         void onConfirmedConferenceCall(Call call);
         void onParentChanged(Call call);
@@ -96,7 +96,7 @@ final class Call implements OutgoingCallResponse {
         @Override
         public void onPostDialWait(Call call, String remaining) {}
         @Override
-        public void onIsConferenceCapableChanged(Call call, boolean isConferenceCapable) {}
+        public void onCallCapabilitiesChanged(Call call) {}
         @Override
         public void onExpiredConferenceCall(Call call) {}
         @Override
@@ -216,7 +216,7 @@ final class Call implements OutgoingCallResponse {
     /** Whether direct-to-voicemail query is pending. */
     private boolean mDirectToVoicemailQueryPending;
 
-    private boolean mIsConferenceCapable = false;
+    private int mCallCapabilities;
 
     private boolean mIsConference = false;
 
@@ -419,15 +419,15 @@ final class Call implements OutgoingCallResponse {
         mConnectTimeMillis = connectTimeMillis;
     }
 
-    boolean isConferenceCapable() {
-        return mIsConferenceCapable;
+    int getCallCapabilities() {
+        return mCallCapabilities;
     }
 
-    void setIsConferenceCapable(boolean isConferenceCapable) {
-        if (mIsConferenceCapable != isConferenceCapable) {
-            mIsConferenceCapable = isConferenceCapable;
+    void setCallCapabilities(int callCapabilities) {
+        if (mCallCapabilities != callCapabilities) {
+            mCallCapabilities = callCapabilities;
             for (Listener l : mListeners) {
-                l.onIsConferenceCapableChanged(this, mIsConferenceCapable);
+                l.onCallCapabilitiesChanged(this);
             }
         }
     }

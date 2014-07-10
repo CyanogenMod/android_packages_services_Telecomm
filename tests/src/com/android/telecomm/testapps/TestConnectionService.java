@@ -70,6 +70,12 @@ public class TestConnectionService extends ConnectionService {
             }
 
             @Override
+            public void onCallCapabilitiesChanged(RemoteConnection connection,
+                int callCapabilities) {
+                setCallCapabilities(callCapabilities);
+            }
+
+            @Override
             public void onPostDialWait(RemoteConnection connection, String remainingDigits) {
                 // TODO(santoscordon): Method needs to be exposed on Connection.java
             }

@@ -57,7 +57,7 @@ public final class CallsManager extends Call.ListenerBase {
         void onForegroundCallChanged(Call oldForegroundCall, Call newForegroundCall);
         void onAudioStateChanged(CallAudioState oldAudioState, CallAudioState newAudioState);
         void onRequestingRingback(Call call, boolean ringback);
-        void onIsConferenceCapableChanged(Call call, boolean isConferenceCapable);
+        void onCallCapabilitiesChanged(Call call);
         void onIsConferencedChanged(Call call);
         void onCannedSmsResponsesLoaded(Call call);
         void onCallVideoProviderChanged(Call call);
@@ -161,9 +161,9 @@ public final class CallsManager extends Call.ListenerBase {
     }
 
     @Override
-    public void onIsConferenceCapableChanged(Call call, boolean isConferenceCapable) {
+    public void onCallCapabilitiesChanged(Call call) {
         for (CallsManagerListener listener : mListeners) {
-            listener.onIsConferenceCapableChanged(call, isConferenceCapable);
+            listener.onCallCapabilitiesChanged(call);
         }
     }
 
