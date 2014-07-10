@@ -10,7 +10,7 @@
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- Ca* See the License for the specific language governing permissions and
+ * See the License for the specific language governing permissions and
  * limitations under the License.
  */
 
@@ -30,6 +30,8 @@ import android.telecomm.RemoteConnection;
 import android.telecomm.Response;
 import android.telecomm.SimpleResponse;
 import android.telecomm.StatusHints;
+import android.telecomm.PhoneAccount;
+import android.telecomm.VideoCallProfile;
 import android.telephony.DisconnectCause;
 import android.text.TextUtils;
 import android.util.Log;
@@ -236,6 +238,7 @@ public class TestConnectionService extends ConnectionService {
             if (remoteConnection != null) {
                 TestConnection connection = new TestConnection(
                         remoteConnection, Connection.State.DIALING);
+
                 mCalls.add(connection);
                 mCallback.onSuccess(mOriginalRequest, connection);
             } else {
@@ -298,7 +301,7 @@ public class TestConnectionService extends ConnectionService {
         mCalls.remove(connection);
 
         // Stops audio if there are no more calls.
-        if (mCalls.isEmpty() && mMediaPlayer.isPlaying()) {
+        if (mCalls.isEmpty() && mMediaPlayer != null && mMediaPlayer.isPlaying()) {
             mMediaPlayer.stop();
             mMediaPlayer.release();
             mMediaPlayer = createMediaPlayer();
@@ -375,15 +378,21 @@ public class TestConnectionService extends ConnectionService {
     @Override
     public void onCreateIncomingConnection(
             ConnectionRequest request, Response<ConnectionRequest, Connection> callback) {
-
         // Use dummy number for testing incoming calls.
         Uri handle = Uri.fromParts(SCHEME_TEL, "5551234", null);
+        boolean isVideoCall = CallServiceNotifier.getInstance().shouldStartVideoCall();
 
         TestConnection connection = new TestConnection(null, Connection.State.DIALING);
+        if (isVideoCall) {
+            connection.setCallVideoProvider(new TestCallVideoProvider(getApplicationContext()));
+        }
+
         mCalls.add(connection);
-        callback.onResult(
-                new ConnectionRequest(request.getCallId(), handle, request.getExtras(),
-                        request.getVideoState()),
-                connection);
+
+        ConnectionRequest newRequest = new ConnectionRequest(request.getCallId(), handle,
+                request.getExtras(),
+                isVideoCall ? VideoCallProfile.VIDEO_STATE_BIDIRECTIONAL : request.getVideoState());
+
+        callback.onResult(newRequest, connection);
     }
 }

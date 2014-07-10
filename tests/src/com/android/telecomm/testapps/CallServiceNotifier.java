@@ -23,6 +23,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.telecomm.CallServiceDescriptor;
 import android.telecomm.TelecommConstants;
+import android.telecomm.VideoCallProfile;
 import android.util.Log;
 
 /**
@@ -36,6 +37,12 @@ public class CallServiceNotifier {
      * Static notification id.
      */
     private static final int CALL_NOTIFICATION_ID = 1;
+
+    /**
+     * Whether the added call should be started as a video call. Referenced by
+     * {@link TestConnectionService} to know whether to provide a call video provider.
+     */
+    public static boolean mStartVideoCall;
 
     /**
      * Singleton accessor.
@@ -81,7 +88,7 @@ public class CallServiceNotifier {
         builder.setOngoing(true);
         builder.setPriority(Notification.PRIORITY_HIGH);
 
-        final PendingIntent intent = createIncomingCallIntent(context);
+        final PendingIntent intent = createIncomingCallIntent(context, false /* isVideoCall */);
         builder.setContentIntent(intent);
 
         builder.setSmallIcon(android.R.drawable.stat_sys_phone_call);
@@ -89,6 +96,7 @@ public class CallServiceNotifier {
         builder.setContentTitle("TestConnectionService");
 
         addAddCallAction(builder, context);
+        addAddVideoCallAction(builder, context);
         addExitAction(builder, context);
 
         return builder.build();
@@ -107,7 +115,7 @@ public class CallServiceNotifier {
     /**
      * Creates the intent to add an incoming call through Telecomm.
      */
-    private PendingIntent createIncomingCallIntent(Context context) {
+    private PendingIntent createIncomingCallIntent(Context context, boolean isVideoCall) {
         log("Creating incoming call pending intent.");
         // Build descriptor for TestConnectionService.
         CallServiceDescriptor.Builder descriptorBuilder = CallServiceDescriptor.newBuilder(context);
@@ -121,6 +129,8 @@ public class CallServiceNotifier {
         intent.setPackage("com.android.telecomm");
         intent.putExtra(TelecommConstants.EXTRA_CALL_SERVICE_DESCRIPTOR, descriptorBuilder.build());
 
+        mStartVideoCall = isVideoCall;
+
         return PendingIntent.getActivity(context, 0, intent, 0);
     }
 
@@ -130,7 +140,14 @@ public class CallServiceNotifier {
      */
     private void addAddCallAction(Notification.Builder builder, Context context) {
         // Set pending intent on the notification builder.
-        builder.addAction(0, "Add a Call", createIncomingCallIntent(context));
+        builder.addAction(0, "Add Call", createIncomingCallIntent(context, false /* isVideoCall */));
+    }
+
+    /**
+     * Adds an action to the Notification Builder to add an incoming video call through Telecomm.
+     */
+    private void addAddVideoCallAction(Notification.Builder builder, Context context) {
+        builder.addAction(0, "Add Video", createIncomingCallIntent(context, true /* isVideoCall */));
     }
 
     /**
@@ -138,6 +155,10 @@ public class CallServiceNotifier {
      */
     private void addExitAction(Notification.Builder builder, Context context) {
         builder.addAction(0, "Exit", createExitIntent(context));
+    }
+
+    public boolean shouldStartVideoCall() {
+        return mStartVideoCall;
     }
 
     private static void log(String msg) {
