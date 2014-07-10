@@ -923,16 +923,16 @@ final class Call implements OutgoingCallResponse {
             mCallerInfo = callerInfo;
             Log.i(this, "CallerInfo received for %s: %s", Log.piiHandle(mHandle), callerInfo);
 
-            if (mCallerInfo.person_id != 0) {
-                Uri personUri =
-                        ContentUris.withAppendedId(Contacts.CONTENT_URI, mCallerInfo.person_id);
-                Log.d(this, "Searching person uri %s for call %s", personUri, this);
+            if (mCallerInfo.contactDisplayPhotoUri != null) {
+                Log.d(this, "Searching person uri %s for call %s",
+                        mCallerInfo.contactDisplayPhotoUri, this);
                 ContactsAsyncHelper.startObtainPhotoAsync(
                         token,
                         TelecommApp.getInstance(),
-                        personUri,
+                        mCallerInfo.contactDisplayPhotoUri,
                         sPhotoLoadListener,
                         this);
+                // Do not call onCallerInfoChanged yet in this case.  We call it in setPhoto().
             } else {
                 for (Listener l : mListeners) {
                     l.onCallerInfoChanged(this);

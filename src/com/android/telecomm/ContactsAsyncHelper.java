@@ -68,7 +68,7 @@ public final class ContactsAsyncHelper {
                 case EVENT_LOAD_IMAGE:
                     if (args.listener != null) {
                         Log.d(this, "Notifying listener: " + args.listener.toString() +
-                                " image: " + args.uri + " completed");
+                                " image: " + args.displayPhotoUri + " completed");
                         args.listener.onImageLoadComplete(msg.what, args.photo, args.photoIcon,
                                 args.cookie);
                     }
@@ -91,7 +91,7 @@ public final class ContactsAsyncHelper {
 
     private static final class WorkerArgs {
         public Context context;
-        public Uri uri;
+        public Uri displayPhotoUri;
         public Drawable photo;
         public Bitmap photoIcon;
         public Object cookie;
@@ -116,27 +116,27 @@ public final class ContactsAsyncHelper {
                     InputStream inputStream = null;
                     try {
                         try {
-                            inputStream = Contacts.openContactPhotoInputStream(
-                                    args.context.getContentResolver(), args.uri, true);
+                            inputStream = args.context.getContentResolver()
+                                    .openInputStream(args.displayPhotoUri);
                         } catch (Exception e) {
                             Log.e(this, e, "Error opening photo input stream");
                         }
 
                         if (inputStream != null) {
                             args.photo = Drawable.createFromStream(inputStream,
-                                    args.uri.toString());
+                                    args.displayPhotoUri.toString());
 
                             // This assumes Drawable coming from contact database is usually
                             // BitmapDrawable and thus we can have (down)scaled version of it.
                             args.photoIcon = getPhotoIconWhenAppropriate(args.context, args.photo);
 
                             Log.d(this, "Loading image: " + msg.arg1 +
-                                    " token: " + msg.what + " image URI: " + args.uri);
+                                    " token: " + msg.what + " image URI: " + args.displayPhotoUri);
                         } else {
                             args.photo = null;
                             args.photoIcon = null;
                             Log.d(this, "Problem with image: " + msg.arg1 +
-                                    " token: " + msg.what + " image URI: " + args.uri +
+                                    " token: " + msg.what + " image URI: " + args.displayPhotoUri +
                                     ", using default image.");
                         }
                     } finally {
@@ -203,7 +203,7 @@ public final class ContactsAsyncHelper {
      * @param token Arbitrary integer which will be returned as the first argument of
      * {@link OnImageLoadCompleteListener#onImageLoadComplete(int, Drawable, Bitmap, Object)}
      * @param context Context object used to do the time-consuming operation.
-     * @param personUri Uri to be used to fetch the photo
+     * @param displayPhotoUri Uri to be used to fetch the photo
      * @param listener Callback object which will be used when the asynchronous load is done.
      * Can be null, which means only the asynchronous load is done while there's no way to
      * obtain the loaded photos.
@@ -211,13 +211,13 @@ public final class ContactsAsyncHelper {
      * fourth argument of {@link OnImageLoadCompleteListener#onImageLoadComplete(int, Drawable,
      * Bitmap, Object)}. Can be null, at which the callback will also has null for the argument.
      */
-    public static final void startObtainPhotoAsync(int token, Context context, Uri personUri,
+    public static final void startObtainPhotoAsync(int token, Context context, Uri displayPhotoUri,
             OnImageLoadCompleteListener listener, Object cookie) {
         ThreadUtil.checkOnMainThread();
 
         // in case the source caller info is null, the URI will be null as well.
         // just update using the placeholder image in this case.
-        if (personUri == null) {
+        if (displayPhotoUri == null) {
             Log.wtf(LOG_TAG, "Uri is missing");
             return;
         }
@@ -229,7 +229,7 @@ public final class ContactsAsyncHelper {
         WorkerArgs args = new WorkerArgs();
         args.cookie = cookie;
         args.context = context;
-        args.uri = personUri;
+        args.displayPhotoUri = displayPhotoUri;
         args.listener = listener;
 
         // setup message arguments
@@ -237,7 +237,7 @@ public final class ContactsAsyncHelper {
         msg.arg1 = EVENT_LOAD_IMAGE;
         msg.obj = args;
 
-        Log.d(LOG_TAG, "Begin loading image: " + args.uri +
+        Log.d(LOG_TAG, "Begin loading image: " + args.displayPhotoUri +
                 ", displaying default image for now.");
 
         // notify the thread to begin working
