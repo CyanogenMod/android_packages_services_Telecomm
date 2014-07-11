@@ -33,6 +33,7 @@ import com.google.common.collect.ImmutableList;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 /**
  * Singleton.
@@ -72,7 +73,7 @@ public final class CallsManager extends Call.ListenerBase {
      * The main call repository. Keeps an instance of all live calls. New incoming and outgoing
      * calls are added to the map and removed when the calls move to the disconnected state.
      */
-    private final Set<Call> mCalls = new LinkedHashSet<>();
+    private final Set<Call> mCalls = new CopyOnWriteArraySet<Call>();
 
     private final DtmfLocalTonePlayer mDtmfLocalTonePlayer = new DtmfLocalTonePlayer();
     private final InCallController mInCallController = new InCallController();
