@@ -68,12 +68,6 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
                     case MSG_SHOW_CALL_SCREEN:
                         mCallsManager.getInCallController().bringToForeground(msg.arg1 == 1);
                         break;
-                    case MSG_IS_IN_A_PHONE_CALL:
-                        result = mCallsManager.hasAnyCalls();
-                        break;
-                    case MSG_IS_RINGING:
-                        result = mCallsManager.hasRingingCall();
-                        break;
                     case MSG_END_CALL:
                         result = endCallInternal();
                         break;
@@ -102,11 +96,9 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
 
     private static final int MSG_SILENCE_RINGER = 1;
     private static final int MSG_SHOW_CALL_SCREEN = 2;
-    private static final int MSG_IS_IN_A_PHONE_CALL = 3;
-    private static final int MSG_IS_RINGING = 4;
-    private static final int MSG_END_CALL = 5;
-    private static final int MSG_ACCEPT_RINGING_CALL = 6;
-    private static final int MSG_CANCEL_MISSED_CALLS_NOTIFICATION = 7;
+    private static final int MSG_END_CALL = 3;
+    private static final int MSG_ACCEPT_RINGING_CALL = 4;
+    private static final int MSG_CANCEL_MISSED_CALLS_NOTIFICATION = 5;
 
     /** The singleton instance. */
     private static TelecommServiceImpl sInstance;
@@ -226,7 +218,9 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
     @Override
     public boolean isInAPhoneCall() {
         enforceReadPermission();
-        return (boolean) sendRequest(MSG_IS_IN_A_PHONE_CALL);
+        // Do not use sendRequest() with this method since it could cause a deadlock with
+        // audio service, which we call into from the main thread: AudioManager.setMode().
+        return mCallsManager.hasAnyCalls();
     }
 
     /**
@@ -235,7 +229,7 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
     @Override
     public boolean isRinging() {
         enforceReadPermission();
-        return (boolean) sendRequest(MSG_IS_RINGING);
+        return mCallsManager.hasRingingCall();
     }
 
     /**
