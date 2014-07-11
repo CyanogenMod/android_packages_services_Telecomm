@@ -70,13 +70,10 @@ class NewOutgoingCallIntentBroadcaster {
     private static final String SCHEME_SIP = "sip";
 
     private final CallsManager mCallsManager;
-    private final ContactInfo mContactInfo;
     private final Intent mIntent;
 
-    NewOutgoingCallIntentBroadcaster(CallsManager callsManager, ContactInfo contactInfo,
-            Intent intent) {
+    NewOutgoingCallIntentBroadcaster(CallsManager callsManager, Intent intent) {
         mCallsManager = callsManager;
-        mContactInfo = contactInfo;
         mIntent = intent;
     }
 
@@ -121,8 +118,7 @@ class NewOutgoingCallIntentBroadcaster {
 
             GatewayInfo gatewayInfo = getGateWayInfoFromIntent(intent, resultHandleUri);
             PhoneAccount account = getAccountFromIntent(intent);
-            mCallsManager.placeOutgoingCall(resultHandleUri, mContactInfo, gatewayInfo,
-                    account,
+            mCallsManager.placeOutgoingCall(resultHandleUri, gatewayInfo, account,
                     mIntent.getBooleanExtra(TelecommConstants.EXTRA_START_CALL_WITH_SPEAKERPHONE,
                             false),
                     mIntent.getIntExtra(TelecommConstants.EXTRA_START_CALL_WITH_VIDEO_STATE,
@@ -193,8 +189,7 @@ class NewOutgoingCallIntentBroadcaster {
                     + " OutgoingCallBroadcastReceiver: %s", intent);
             String scheme = isUriNumber ? SCHEME_SIP : SCHEME_TEL;
             mCallsManager.placeOutgoingCall(
-                    Uri.fromParts(scheme, handle, null), mContactInfo, null, null,
-                    mIntent.getBooleanExtra(TelecommConstants.EXTRA_START_CALL_WITH_SPEAKERPHONE,
+                    Uri.fromParts(scheme, handle, null), null, null, mIntent.getBooleanExtra(TelecommConstants.EXTRA_START_CALL_WITH_SPEAKERPHONE,
                             false),
                     mIntent.getIntExtra(TelecommConstants.EXTRA_START_CALL_WITH_VIDEO_STATE,
                             VideoCallProfile.VIDEO_STATE_AUDIO_ONLY));

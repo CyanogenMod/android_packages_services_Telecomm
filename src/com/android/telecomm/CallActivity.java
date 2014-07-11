@@ -90,9 +90,8 @@ public class CallActivity extends Activity {
      * @param intent Call intent containing data about the handle to call.
      */
     private void processOutgoingCallIntent(Intent intent) {
-        ContactInfo contactInfo = null;
         NewOutgoingCallIntentBroadcaster broadcaster =
-                new NewOutgoingCallIntentBroadcaster(mCallsManager, contactInfo, intent);
+                new NewOutgoingCallIntentBroadcaster(mCallsManager, intent);
         broadcaster.processIntent();
     }
 

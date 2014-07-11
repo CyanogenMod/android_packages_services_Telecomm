@@ -24,6 +24,7 @@ import android.telecomm.CallState;
 import android.telecomm.PhoneAccount;
 import android.telephony.PhoneNumberUtils;
 
+import com.android.internal.telephony.CallerInfo;
 import com.android.internal.telephony.PhoneConstants;
 
 /**
@@ -48,11 +49,11 @@ final class CallLogManager extends CallsManagerListenerBase {
          * @param durationInMillis Duration of the call (milliseconds).
          * @param dataUsage Data usage in bytes, or null if not applicable.
          */
-        public AddCallArgs(Context context, ContactInfo contactInfo, String number,
+        public AddCallArgs(Context context, CallerInfo callerInfo, String number,
                 int presentation, int callType, int features, PhoneAccount account,
                 long creationDate, long durationInMillis, Long dataUsage) {
             this.context = context;
-            this.contactInfo = contactInfo;
+            this.callerInfo = callerInfo;
             this.number = number;
             this.presentation = presentation;
             this.callType = callType;
@@ -65,7 +66,7 @@ final class CallLogManager extends CallsManagerListenerBase {
         // Since the members are accessed directly, we don't use the
         // mXxxx notation.
         public final Context context;
-        public final ContactInfo contactInfo;
+        public final CallerInfo callerInfo;
         public final String number;
         public final int presentation;
         public final int callType;
@@ -112,24 +113,22 @@ final class CallLogManager extends CallsManagerListenerBase {
         final long creationTime = call.getCreationTimeMillis();
         final long age = call.getAgeMillis();
 
-        // TODO(santoscordon): Replace with use of call.getCallerInfo() or similar.
-        final ContactInfo contactInfo = null;
         final String logNumber = getLogNumber(call);
 
         Log.d(TAG, "logNumber set to: %s", Log.pii(logNumber));
 
-        final int presentation = getPresentation(call, contactInfo);
+        final int presentation = getPresentation(call);
         final PhoneAccount account = call.getPhoneAccount();
 
         // TODO: Once features and data usage are available, wire them up here.
-        logCall(contactInfo, logNumber, presentation, callLogType, Calls.FEATURES_NONE, account,
-                creationTime, age, null);
+        logCall(call.getCallerInfo(), logNumber, presentation, callLogType, Calls.FEATURES_NONE,
+                account, creationTime, age, null);
     }
 
     /**
      * Inserts a call into the call log, based on the parameters passed in.
      *
-     * @param contactInfo Caller details.
+     * @param callerInfo Caller details.
      * @param number The number the call was made to or from.
      * @param presentation
      * @param callType The type of call.
@@ -139,7 +138,7 @@ final class CallLogManager extends CallsManagerListenerBase {
      * @param dataUsage The data usage for the call, null if not applicable.
      */
     private void logCall(
-            ContactInfo contactInfo,
+            CallerInfo callerInfo,
             String number,
             int presentation,
             int callType,
@@ -160,10 +159,10 @@ final class CallLogManager extends CallsManagerListenerBase {
         final boolean isOkToLogThisCall = !isEmergencyNumber || okToLogEmergencyNumber;
 
         if (isOkToLogThisCall) {
-            Log.d(TAG, "Logging Calllog entry: " + contactInfo + ", "
+            Log.d(TAG, "Logging Calllog entry: " + callerInfo + ", "
                     + Log.pii(number) + "," + presentation + ", " + callType
                     + ", " + start + ", " + duration);
-            AddCallArgs args = new AddCallArgs(mContext, contactInfo, number, presentation,
+            AddCallArgs args = new AddCallArgs(mContext, callerInfo, number, presentation,
                     callType, features, account, start, duration, dataUsage);
             logCallAsync(args);
         } else {
@@ -193,8 +192,7 @@ final class CallLogManager extends CallsManagerListenerBase {
     }
 
     /**
-     * Gets the presentation from the {@link ContactInfo} if not null. Otherwise, gets it from the
-     * {@link Call}.
+     * Gets the presentation from the {@link Call}.
      *
      * TODO: There needs to be a way to pass information from
      * Connection.getNumberPresentation() into a {@link Call} object. Until then, always return
@@ -202,10 +200,9 @@ final class CallLogManager extends CallsManagerListenerBase {
      * getNumberPresentation to the ContactInfo object as well.
      *
      * @param call The call object to retrieve caller details from.
-     * @param contactInfo The CallerInfo. May be null.
      * @return The number presentation constant to insert into the call logs.
      */
-    private int getPresentation(Call call, ContactInfo contactInfo) {
+    private int getPresentation(Call call) {
         return PhoneConstants.PRESENTATION_ALLOWED;
     }
 
@@ -235,7 +232,7 @@ final class CallLogManager extends CallsManagerListenerBase {
 
                 try {
                     // May block.
-                    result[i] = Calls.addCall(null, c.context, c.number, c.presentation,
+                    result[i] = Calls.addCall(c.callerInfo, c.context, c.number, c.presentation,
                             c.callType, c.features, c.mAccount, c.timestamp, c.durationInSec,
                             c.dataUsage);
                 } catch (Exception e) {

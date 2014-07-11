@@ -943,6 +943,10 @@ final class Call implements OutgoingCallResponse {
         }
     }
 
+    CallerInfo getCallerInfo() {
+        return mCallerInfo;
+    }
+
     /**
      * Saves the specified photo information if the specified token matches that of the last query.
      *

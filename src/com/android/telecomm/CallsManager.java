@@ -303,8 +303,8 @@ public final class CallsManager extends Call.ListenerBase {
      * @param speakerphoneOn Whether or not to turn the speakerphone on once the call connects.
      * @param videoState The desired video state for the outgoing call.
      */
-    void placeOutgoingCall(Uri handle, ContactInfo contactInfo, GatewayInfo gatewayInfo,
-            PhoneAccount account, boolean speakerphoneOn, int videoState) {
+    void placeOutgoingCall(Uri handle, GatewayInfo gatewayInfo, PhoneAccount account,
+            boolean speakerphoneOn, int videoState) {
 
         final Uri uriHandle = (gatewayInfo == null) ? handle : gatewayInfo.getGatewayHandle();
 
