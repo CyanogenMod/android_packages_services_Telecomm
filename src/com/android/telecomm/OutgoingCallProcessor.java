@@ -16,6 +16,7 @@
 
 package com.android.telecomm;
 
+import android.content.ComponentName;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.Message;
@@ -196,8 +197,12 @@ final class OutgoingCallProcessor {
         for (ConnectionServiceWrapper service : services) {
             CallServiceDescriptor descriptor = service.getDescriptor();
             // TODO(sail): Remove once there's a way to pick the service.
-            if (descriptor.getServiceComponent().getPackageName().equals(
-                    "com.google.android.talk")) {
+            ComponentName sipName = new ComponentName("com.android.phone",
+                    "com.android.services.telephony.sip.SipConnectionService");
+            ComponentName hangoutsName = new ComponentName("com.google.android.talk",
+                    "com.google.android.apps.babel.telephony.TeleConnectionService");
+            ComponentName serviceName = descriptor.getServiceComponent();
+            if (serviceName.equals(sipName) || serviceName.equals(hangoutsName)) {
                 Log.i(this, "Moving connection service %s to top of list", descriptor);
                 mCallServiceDescriptors.add(0, descriptor);
             } else {
