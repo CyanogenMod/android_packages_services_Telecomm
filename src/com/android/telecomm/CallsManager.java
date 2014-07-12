@@ -57,6 +57,7 @@ public final class CallsManager extends Call.ListenerBase {
         void onRequestingRingback(Call call, boolean ringback);
         void onIsConferencedChanged(Call call);
         void onAudioModeIsVoipChanged(Call call);
+        void onVideoStateChanged(Call call);
     }
 
     private static final CallsManager INSTANCE = new CallsManager();
@@ -199,6 +200,13 @@ public final class CallsManager extends Call.ListenerBase {
     public void onAudioModeIsVoipChanged(Call call) {
         for (CallsManagerListener listener : mListeners) {
             listener.onAudioModeIsVoipChanged(call);
+        }
+    }
+
+    @Override
+    public void onVideoStateChanged(Call call) {
+        for (CallsManagerListener listener : mListeners) {
+            listener.onVideoStateChanged(call);
         }
     }
 
