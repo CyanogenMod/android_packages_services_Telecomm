@@ -23,6 +23,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.provider.ContactsContract.Contacts;
+import android.telecomm.CallPropertyPresentation;
 import android.telecomm.CallServiceDescriptor;
 import android.telecomm.CallState;
 import android.telecomm.ConnectionRequest;
@@ -48,6 +49,7 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -74,10 +76,11 @@ final class Call implements OutgoingCallResponse {
         void onChildrenChanged(Call call);
         void onCannedSmsResponsesLoaded(Call call);
         void onCallVideoProviderChanged(Call call);
-        void onFeaturesChanged(Call call);
         void onCallerInfoChanged(Call call);
         void onAudioModeIsVoipChanged(Call call);
         void onStatusHintsChanged(Call call);
+        void onHandleChanged(Call call);
+        void onCallerDisplayNameChanged(Call call);
     }
 
     abstract static class ListenerBase implements Listener {
@@ -110,13 +113,15 @@ final class Call implements OutgoingCallResponse {
         @Override
         public void onCallVideoProviderChanged(Call call) {}
         @Override
-        public void onFeaturesChanged(Call call) {}
-        @Override
         public void onCallerInfoChanged(Call call) {}
         @Override
         public void onAudioModeIsVoipChanged(Call call) {}
         @Override
         public void onStatusHintsChanged(Call call) {}
+        @Override
+        public void onHandleChanged(Call call) {}
+        @Override
+        public void onCallerDisplayNameChanged(Call call) {}
     }
 
     private static final OnQueryCompleteListener sCallerInfoQueryListener =
@@ -170,6 +175,15 @@ final class Call implements OutgoingCallResponse {
 
     /** The handle with which to establish this call. */
     private Uri mHandle;
+
+    /** The {@link CallPropertyPresentation} that controls how the handle is shown. */
+    private int mHandlePresentation;
+
+    /** The caller display name (CNAP) set by the connection service. */
+    private String mCallerDisplayName;
+
+    /** The {@link CallPropertyPresentation} that controls how the caller display name is shown. */
+    private int mCallerDisplayNamePresentation;
 
     /**
      * The connection service which is attempted or already connecting this call.
@@ -232,9 +246,6 @@ final class Call implements OutgoingCallResponse {
 
     private ICallVideoProvider mCallVideoProvider;
 
-    /** Features associated with the call which the InCall UI may wish to show icons for. */
-    private int mFeatures;
-
     private boolean mAudioModeIsVoip;
     private StatusHints mStatusHints;
 
@@ -258,7 +269,7 @@ final class Call implements OutgoingCallResponse {
     Call(Uri handle, GatewayInfo gatewayInfo, PhoneAccount account,
             boolean isIncoming, boolean isConference) {
         mState = isConference ? CallState.ACTIVE : CallState.NEW;
-        setHandle(handle);
+        setHandle(handle, CallPropertyPresentation.ALLOWED);
         mGatewayInfo = gatewayInfo;
         mPhoneAccount = account;
         mIsIncoming = isIncoming;
@@ -326,12 +337,39 @@ final class Call implements OutgoingCallResponse {
         return mHandle;
     }
 
-    void setHandle(Uri handle) {
-        if ((mHandle == null && handle != null) || (mHandle != null && !mHandle.equals(handle))) {
+    int getHandlePresentation() {
+        return mHandlePresentation;
+    }
+
+    void setHandle(Uri handle, int presentation) {
+        if (!Objects.equals(handle, mHandle) || presentation != mHandlePresentation) {
             mHandle = handle;
+            mHandlePresentation = presentation;
             mIsEmergencyCall = mHandle != null && PhoneNumberUtils.isLocalEmergencyNumber(
                     TelecommApp.getInstance(), mHandle.getSchemeSpecificPart());
             startCallerInfoLookup();
+            for (Listener l : mListeners) {
+                l.onHandleChanged(this);
+            }
+        }
+    }
+
+    String getCallerDisplayName() {
+        return mCallerDisplayName;
+    }
+
+    int getCallerDisplayNamePresentation() {
+        return mCallerDisplayNamePresentation;
+    }
+
+    void setCallerDisplayName(String callerDisplayName, int presentation) {
+        if (!TextUtils.equals(callerDisplayName, mCallerDisplayName) ||
+                presentation != mCallerDisplayNamePresentation) {
+            mCallerDisplayName = callerDisplayName;
+            mCallerDisplayNamePresentation = presentation;
+            for (Listener l : mListeners) {
+                l.onCallerDisplayNameChanged(this);
+            }
         }
     }
 
@@ -501,7 +539,7 @@ final class Call implements OutgoingCallResponse {
         mDirectToVoicemailQueryPending = true;
 
         // Setting the handle triggers the caller info lookup code.
-        setHandle(request.getHandle());
+        setHandle(request.getHandle(), CallPropertyPresentation.ALLOWED);
 
         // Timeout the direct-to-voicemail lookup execution so that we dont wait too long before
         // showing the user the incoming call screen.
@@ -772,6 +810,10 @@ final class Call implements OutgoingCallResponse {
         // TODO(santoscordon): todo
     }
 
+    void swapWithBackgroundCall() {
+        mConnectionService.swapWithBackgroundCall(this);
+    }
+
     void setParentCall(Call parentCall) {
         if (parentCall == this) {
             Log.e(this, new Exception(), "setting the parent to self");
@@ -1021,28 +1063,6 @@ final class Call implements OutgoingCallResponse {
      */
     public ICallVideoProvider getCallVideoProvider() {
         return mCallVideoProvider;
-    }
-
-    /**
-     * Returns the features of this call.
-     *
-     * @return The features of this call.
-     */
-    public int getFeatures() {
-        return mFeatures;
-    }
-
-    /**
-     * Set the features associated with the call and notify any listeners of the change.
-     *
-     * @param features The features.
-     */
-    public void setFeatures(int features) {
-        Log.d(this, "setFeatures: %d", features);
-        mFeatures = features;
-        for (Listener l : mListeners) {
-            l.onFeaturesChanged(Call.this);
-        }
     }
 
     /**
