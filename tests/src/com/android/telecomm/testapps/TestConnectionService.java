@@ -83,18 +83,24 @@ public class TestConnectionService extends ConnectionService {
             }
 
             @Override
-            public void onFeaturesChanged(RemoteConnection connection, int features) {
-                setFeatures(features);
-            }
-
-            @Override
-            public void onSetAudioModeIsVoip(RemoteConnection connection, boolean isVoip) {
+            public void onAudioModeIsVoipChanged(RemoteConnection connection, boolean isVoip) {
                 setAudioModeIsVoip(isVoip);
             }
 
             @Override
-            public void onSetStatusHints(RemoteConnection connection, StatusHints statusHints) {
+            public void onStatusHintsChanged(RemoteConnection connection, StatusHints statusHints) {
                 setStatusHints(statusHints);
+            }
+
+            @Override
+            public void onHandleChanged(RemoteConnection connection, Uri handle, int presentation) {
+                setHandle(handle, presentation);
+            }
+
+            @Override
+            public void onCallerDisplayNameChanged(
+                    RemoteConnection connection, String callerDisplayName, int presentation) {
+                setCallerDisplayName(callerDisplayName, presentation);
             }
 
             @Override
@@ -261,6 +267,7 @@ public class TestConnectionService extends ConnectionService {
                         mAccountIterator.next(),
                         mOriginalRequest.getCallId(),
                         mOriginalRequest.getHandle(),
+                        mOriginalRequest.getHandlePresentation(),
                         null,
                         mOriginalRequest.getVideoState());
                 createRemoteOutgoingConnection(connectionRequest, this);
@@ -343,9 +350,10 @@ public class TestConnectionService extends ConnectionService {
         // Normally we would use the original request as is, but for testing purposes, we are adding
         // ".." to the end of the number to follow its path more easily through the logs.
         final ConnectionRequest request = new ConnectionRequest(
-                originalRequest.getCallId(),
+                originalRequest.getAccount(), originalRequest.getCallId(),
                 Uri.fromParts(handle.getScheme(), handle.getSchemeSpecificPart() + "..", ""),
-                originalRequest.getExtras(), originalRequest.getVideoState());
+                originalRequest.getHandlePresentation(), originalRequest.getExtras(),
+                originalRequest.getVideoState());
 
         // If the number starts with 555, then we handle it ourselves. If not, then we
         // use a remote connection service.
@@ -389,8 +397,8 @@ public class TestConnectionService extends ConnectionService {
 
         mCalls.add(connection);
 
-        ConnectionRequest newRequest = new ConnectionRequest(request.getCallId(), handle,
-                request.getExtras(),
+        ConnectionRequest newRequest = new ConnectionRequest(request.getAccount(),
+                request.getCallId(), handle, request.getHandlePresentation(), request.getExtras(),
                 isVideoCall ? VideoCallProfile.VIDEO_STATE_BIDIRECTIONAL : request.getVideoState());
 
         callback.onResult(newRequest, connection);

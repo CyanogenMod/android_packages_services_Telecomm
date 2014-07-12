@@ -28,6 +28,7 @@ import android.os.RemoteException;
 import android.os.UserHandle;
 import android.telecomm.CallAudioState;
 import android.telecomm.CallCapabilities;
+import android.telecomm.CallPropertyPresentation;
 import android.telecomm.CallServiceDescriptor;
 import android.telecomm.CallState;
 import android.telecomm.InCallCall;
@@ -60,6 +61,38 @@ public final class InCallController extends CallsManagerListenerBase {
         }
     }
 
+    private final Call.Listener mCallListener = new Call.ListenerBase() {
+        @Override
+        public void onCallCapabilitiesChanged(Call call) {
+            updateCall(call);
+        }
+
+        @Override
+        public void onCannedSmsResponsesLoaded(Call call) {
+            updateCall(call);
+        }
+
+        @Override
+        public void onCallVideoProviderChanged(Call call) {
+            updateCall(call);
+        }
+
+        @Override
+        public void onStatusHintsChanged(Call call) {
+            updateCall(call);
+        }
+
+        @Override
+        public void onHandleChanged(Call call) {
+            updateCall(call);
+        }
+
+        @Override
+        public void onCallerDisplayNameChanged(Call call) {
+            updateCall(call);
+        }
+    };
+
     /** Maintains a binding connection to the in-call app. */
     private final InCallServiceConnection mConnection = new InCallServiceConnection();
 
@@ -80,6 +113,7 @@ public final class InCallController extends CallsManagerListenerBase {
             Log.i(this, "Adding call: %s", call);
             if (mCallIdMapper.getCallId(call) == null) {
                 mCallIdMapper.addCall(call);
+                call.addListener(mCallListener);
                 try {
                     mInCallService.addCall(toInCallCall(call));
                 } catch (RemoteException ignored) {
@@ -94,6 +128,7 @@ public final class InCallController extends CallsManagerListenerBase {
             // TODO(sail): Wait for all messages to be delivered to the service before unbinding.
             unbind();
         }
+        call.removeListener(mCallListener);
         mCallIdMapper.removeCall(call);
     }
 
@@ -133,34 +168,8 @@ public final class InCallController extends CallsManagerListenerBase {
     }
 
     @Override
-    public void onCallCapabilitiesChanged(Call call) {
-        updateCall(call);
-    }
-
-    @Override
     public void onIsConferencedChanged(Call call) {
         Log.v(this, "onIsConferencedChanged %s", call);
-        updateCall(call);
-    }
-
-    @Override
-    public void onCannedSmsResponsesLoaded(Call call) {
-        updateCall(call);
-    }
-
-    @Override
-    public void onCallVideoProviderChanged(Call call) {
-        updateCall(call);
-    }
-
-    @Override
-    public void onFeaturesChanged(Call call) {
-        Log.v(this,"onFeaturesChanged: %d", call.getFeatures());
-        updateCall(call);
-    }
-
-    @Override
-    public void onStatusHintsChanged(Call call) {
         updateCall(call);
     }
 
@@ -303,10 +312,16 @@ public final class InCallController extends CallsManagerListenerBase {
             capabilities |= CallCapabilities.RESPOND_VIA_TEXT;
         }
 
+        Uri handle = call.getHandlePresentation() == CallPropertyPresentation.ALLOWED ?
+                call.getHandle() : null;
+        String callerDisplayName = call.getCallerDisplayNamePresentation() ==
+                CallPropertyPresentation.ALLOWED ?  call.getCallerDisplayName() : null;
+
         return new InCallCall(callId, state, call.getDisconnectCause(), call.getDisconnectMessage(),
-                call.getCannedSmsResponses(), capabilities, connectTimeMillis, call.getHandle(),
-                call.getGatewayInfo(), call.getPhoneAccount(), descriptor,
-                call.getCallVideoProvider(), parentCallId, childCallIds, call.getFeatures(),
-                call.getStatusHints());
+                call.getCannedSmsResponses(), capabilities, connectTimeMillis, handle,
+                call.getHandlePresentation(), callerDisplayName,
+                call.getCallerDisplayNamePresentation(), call.getGatewayInfo(),
+                call.getPhoneAccount(), descriptor, call.getCallVideoProvider(), parentCallId,
+                childCallIds, call.getStatusHints());
     }
 }

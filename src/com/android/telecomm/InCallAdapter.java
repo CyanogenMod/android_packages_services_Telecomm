@@ -41,6 +41,7 @@ class InCallAdapter extends IInCallAdapter.Stub {
     private static final int MSG_SET_AUDIO_ROUTE = 10;
     private static final int MSG_CONFERENCE = 11;
     private static final int MSG_SPLIT_FROM_CONFERENCE = 12;
+    private static final int MSG_SWAP_WITH_BACKGROUND_CALL = 13;
 
     private final class InCallAdapterHandler extends Handler {
         @Override
@@ -151,6 +152,14 @@ class InCallAdapter extends IInCallAdapter.Stub {
                         Log.w(this, "splitFromConference, unknown call id: %s", msg.obj);
                     }
                     break;
+                case MSG_SWAP_WITH_BACKGROUND_CALL:
+                    call = mCallIdMapper.getCall(msg.obj);
+                    if (call != null) {
+                        call.swapWithBackgroundCall();
+                    } else {
+                        Log.w(this, "swapWithBackgroundCall, unknown call id: %s", msg.obj);
+                    }
+                    break;
             }
         }
     }
@@ -166,7 +175,6 @@ class InCallAdapter extends IInCallAdapter.Stub {
         mCallIdMapper = callIdMapper;
     }
 
-    /** {@inheritDoc} */
     @Override
     public void answerCall(String callId) {
         Log.d(this, "answerCall(%s)", callId);
@@ -174,7 +182,6 @@ class InCallAdapter extends IInCallAdapter.Stub {
         mHandler.obtainMessage(MSG_ANSWER_CALL, callId).sendToTarget();
     }
 
-    /** {@inheritDoc} */
     @Override
     public void rejectCall(String callId, boolean rejectWithMessage, String textMessage) {
         Log.d(this, "rejectCall(%s,%b,%s)", callId, rejectWithMessage, textMessage);
@@ -186,7 +193,6 @@ class InCallAdapter extends IInCallAdapter.Stub {
         mHandler.obtainMessage(MSG_REJECT_CALL, args).sendToTarget();
     }
 
-    /** {@inheritDoc} */
     @Override
     public void playDtmfTone(String callId, char digit) {
         Log.d(this, "playDtmfTone(%s,%c)", callId, digit);
@@ -194,7 +200,6 @@ class InCallAdapter extends IInCallAdapter.Stub {
         mHandler.obtainMessage(MSG_PLAY_DTMF_TONE, (int) digit, 0, callId).sendToTarget();
     }
 
-    /** {@inheritDoc} */
     @Override
     public void stopDtmfTone(String callId) {
         Log.d(this, "stopDtmfTone(%s)", callId);
@@ -202,7 +207,6 @@ class InCallAdapter extends IInCallAdapter.Stub {
         mHandler.obtainMessage(MSG_STOP_DTMF_TONE, callId).sendToTarget();
     }
 
-    /** {@inheritDoc} */
     @Override
     public void postDialContinue(String callId, boolean proceed) {
         Log.d(this, "postDialContinue(%s)", callId);
@@ -210,7 +214,6 @@ class InCallAdapter extends IInCallAdapter.Stub {
         mHandler.obtainMessage(MSG_POST_DIAL_CONTINUE, proceed ? 1 : 0, 0, callId).sendToTarget();
     }
 
-    /** {@inheritDoc} */
     @Override
     public void disconnectCall(String callId) {
         Log.v(this, "disconnectCall: %s", callId);
@@ -218,48 +221,46 @@ class InCallAdapter extends IInCallAdapter.Stub {
         mHandler.obtainMessage(MSG_DISCONNECT_CALL, callId).sendToTarget();
     }
 
-    /** {@inheritDoc} */
     @Override
     public void holdCall(String callId) {
         mCallIdMapper.checkValidCallId(callId);
         mHandler.obtainMessage(MSG_HOLD_CALL, callId).sendToTarget();
     }
 
-    /** {@inheritDoc} */
     @Override
     public void unholdCall(String callId) {
         mCallIdMapper.checkValidCallId(callId);
         mHandler.obtainMessage(MSG_UNHOLD_CALL, callId).sendToTarget();
     }
 
-    /** {@inheritDoc} */
     @Override
     public void phoneAccountClicked(String callId) {
         mCallIdMapper.checkValidCallId(callId);
         mHandler.obtainMessage(MSG_PHONE_ACCOUNT_CLICKED, callId).sendToTarget();
     }
 
-    /** {@inheritDoc} */
     @Override
     public void mute(boolean shouldMute) {
         mHandler.obtainMessage(MSG_MUTE, shouldMute ? 1 : 0, 0).sendToTarget();
     }
 
-    /** {@inheritDoc} */
     @Override
     public void setAudioRoute(int route) {
         mHandler.obtainMessage(MSG_SET_AUDIO_ROUTE, route, 0).sendToTarget();
     }
 
-    /** ${inheritDoc} */
     @Override
     public void conference(String callId) {
         mHandler.obtainMessage(MSG_CONFERENCE, callId).sendToTarget();
     }
 
-    /** ${inheritDoc} */
     @Override
     public void splitFromConference(String callId) {
         mHandler.obtainMessage(MSG_SPLIT_FROM_CONFERENCE, callId).sendToTarget();
+    }
+
+    @Override
+    public void swapWithBackgroundCall(String callId) {
+        mHandler.obtainMessage(MSG_SWAP_WITH_BACKGROUND_CALL, callId).sendToTarget();
     }
 }

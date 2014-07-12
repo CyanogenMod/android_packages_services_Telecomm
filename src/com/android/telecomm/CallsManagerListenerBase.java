@@ -20,7 +20,6 @@ import android.net.Uri;
 import android.telecomm.CallAudioState;
 import android.telecomm.CallServiceDescriptor;
 import android.telecomm.CallState;
-import android.telecomm.StatusHints;
 
 /**
  * Provides a default implementation for listeners of CallsManager.
@@ -66,30 +65,10 @@ class CallsManagerListenerBase implements CallsManager.CallsManagerListener {
     }
 
     @Override
-    public void onCallCapabilitiesChanged(Call call) {
-    }
-
-    @Override
     public void onIsConferencedChanged(Call call) {
     }
 
     @Override
-    public void onCannedSmsResponsesLoaded(Call call) {
-    }
-
-    @Override
-    public void onCallVideoProviderChanged(Call call) {
-    }
-
-    @Override
-    public void onFeaturesChanged(Call call) {
-    }
-
-    @Override
     public void onAudioModeIsVoipChanged(Call call) {
-    }
-
-    @Override
-    public void onStatusHintsChanged(Call call) {
     }
 }

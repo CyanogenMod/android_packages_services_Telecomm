@@ -271,6 +271,12 @@ class MissedCallNotifier extends CallsManagerListenerBase {
                         // Get data about the missed call from the cursor
                         Uri handle = Uri.parse(cursor.getString(
                                 cursor.getColumnIndexOrThrow(Calls.NUMBER)));
+                        int presentation = cursor.getInt(cursor.getColumnIndexOrThrow(
+                                Calls.NUMBER_PRESENTATION));
+
+                        if (presentation != Calls.PRESENTATION_ALLOWED) {
+                            handle = null;
+                        }
 
                         // Convert the data to a call object
                         Call call = new Call(null, null, null, true, false);
@@ -289,7 +295,7 @@ class MissedCallNotifier extends CallsManagerListenerBase {
                             }
                         });
                         // Set the handle here because that is what triggers the contact info query.
-                        call.setHandle(handle);
+                        call.setHandle(handle, presentation);
                     }
                 }
             }

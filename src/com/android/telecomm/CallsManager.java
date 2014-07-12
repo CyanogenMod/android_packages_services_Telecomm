@@ -23,7 +23,6 @@ import android.telecomm.CallServiceDescriptor;
 import android.telecomm.CallState;
 import android.telecomm.GatewayInfo;
 import android.telecomm.PhoneAccount;
-import android.telecomm.StatusHints;
 import android.telephony.DisconnectCause;
 
 import com.google.common.base.Preconditions;
@@ -58,13 +57,8 @@ public final class CallsManager extends Call.ListenerBase {
         void onForegroundCallChanged(Call oldForegroundCall, Call newForegroundCall);
         void onAudioStateChanged(CallAudioState oldAudioState, CallAudioState newAudioState);
         void onRequestingRingback(Call call, boolean ringback);
-        void onCallCapabilitiesChanged(Call call);
         void onIsConferencedChanged(Call call);
-        void onCannedSmsResponsesLoaded(Call call);
-        void onCallVideoProviderChanged(Call call);
-        void onFeaturesChanged(Call call);
         void onAudioModeIsVoipChanged(Call call);
-        void onStatusHintsChanged(Call call);
     }
 
     private static final CallsManager INSTANCE = new CallsManager();
@@ -162,13 +156,6 @@ public final class CallsManager extends Call.ListenerBase {
     }
 
     @Override
-    public void onCallCapabilitiesChanged(Call call) {
-        for (CallsManagerListener listener : mListeners) {
-            listener.onCallCapabilitiesChanged(call);
-        }
-    }
-
-    @Override
     public void onRequestingRingback(Call call, boolean ringback) {
         for (CallsManagerListener listener : mListeners) {
             listener.onRequestingRingback(call, ringback);
@@ -209,38 +196,9 @@ public final class CallsManager extends Call.ListenerBase {
     }
 
     @Override
-    public void onCannedSmsResponsesLoaded(Call call) {
-        for (CallsManagerListener listener : mListeners) {
-            listener.onCannedSmsResponsesLoaded(call);
-        }
-    }
-
-    @Override
-    public void onCallVideoProviderChanged(Call call) {
-        for (CallsManagerListener listener : mListeners) {
-            listener.onCallVideoProviderChanged(call);
-        }
-    }
-
-    @Override
-    public void onFeaturesChanged(Call call) {
-        Log.v(this, "onFeaturesChanged: %d", call.getFeatures());
-        for (CallsManagerListener listener : mListeners) {
-            listener.onFeaturesChanged(call);
-        }
-    }
-
-    @Override
     public void onAudioModeIsVoipChanged(Call call) {
         for (CallsManagerListener listener : mListeners) {
             listener.onAudioModeIsVoipChanged(call);
-        }
-    }
-
-    @Override
-    public void onStatusHintsChanged(Call call) {
-        for (CallsManagerListener listener : mListeners) {
-            listener.onStatusHintsChanged(call);
         }
     }
 
@@ -726,21 +684,5 @@ public final class CallsManager extends Call.ListenerBase {
                 listener.onForegroundCallChanged(oldForegroundCall, mForegroundCall);
             }
         }
-    }
-
-    private static boolean areDescriptorsEqual(
-            CallServiceDescriptor descriptor1,
-            CallServiceDescriptor descriptor2) {
-        if (descriptor1 == null) {
-            return descriptor2 == null;
-        }
-        return descriptor1.equals(descriptor2);
-    }
-
-    private static boolean areUriEqual(Uri handle1, Uri handle2) {
-        if (handle1 == null) {
-            return handle2 == null;
-        }
-        return handle1.equals(handle2);
     }
 }
