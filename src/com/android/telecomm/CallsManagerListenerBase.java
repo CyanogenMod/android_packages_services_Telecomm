@@ -18,7 +18,6 @@ package com.android.telecomm;
 
 import android.net.Uri;
 import android.telecomm.CallAudioState;
-import android.telecomm.CallServiceDescriptor;
 import android.telecomm.CallState;
 
 /**

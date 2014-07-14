@@ -20,10 +20,8 @@ import android.content.ComponentName;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
-import android.telecomm.CallServiceDescriptor;
 import android.telecomm.TelecommConstants;
 
-import com.android.telecomm.BaseRepository.LookupCallback;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
@@ -42,7 +40,7 @@ final class Switchboard {
     /** Used to retrieve incoming call details. */
     private final IncomingCallsManager mIncomingCallsManager;
 
-    private final CallServiceRepository mCallServiceRepository;
+    private final ConnectionServiceRepository mConnectionServiceRepository;
 
     /** Singleton accessor. */
     static Switchboard getInstance() {
@@ -56,26 +54,24 @@ final class Switchboard {
         ThreadUtil.checkOnMainThread();
 
         mIncomingCallsManager = new IncomingCallsManager();
-        mCallServiceRepository =
-                new CallServiceRepository(mIncomingCallsManager);
+        mConnectionServiceRepository =
+                new ConnectionServiceRepository(mIncomingCallsManager);
     }
 
-    CallServiceRepository getCallServiceRepository() {
-        return mCallServiceRepository;
+    ConnectionServiceRepository getConnectionServiceRepository() {
+        return mConnectionServiceRepository;
     }
 
     /**
      * Retrieves details about the incoming call through the incoming call manager.
      *
      * @param call The call object.
-     * @param descriptor The relevant call-service descriptor.
-     * @param extras The optional extras passed via
-     *         {@link TelecommConstants#EXTRA_INCOMING_CALL_EXTRAS}
      */
-    void retrieveIncomingCall(Call call, CallServiceDescriptor descriptor, Bundle extras) {
+    void retrieveIncomingCall(Call call) {
         Log.d(this, "retrieveIncomingCall");
-        ConnectionServiceWrapper service = mCallServiceRepository.getService(descriptor);
+        ConnectionServiceWrapper service = mConnectionServiceRepository.getService(
+                call.getPhoneAccount().getComponentName());
         call.setConnectionService(service);
-        mIncomingCallsManager.retrieveIncomingCall(call, extras);
+        mIncomingCallsManager.retrieveIncomingCall(call);
     }
 }

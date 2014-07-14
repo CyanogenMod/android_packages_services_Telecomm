@@ -37,11 +37,8 @@ final class IncomingCallsManager {
      * Retrieves details of an incoming call through its associated connection service.
      *
      * @param call The call object.
-     * @param extras The optional extras passed with the incoming call intent (to be returned to
-     *     the connection service via
-     *     {@link ConnectionService#createIncomingCall(ConnectionRequest)}.
      */
-    void retrieveIncomingCall(final Call call, Bundle extras) {
+    void retrieveIncomingCall(final Call call) {
         ThreadUtil.checkOnMainThread();
         Log.d(this, "retrieveIncomingCall");
 
@@ -56,7 +53,7 @@ final class IncomingCallsManager {
             }
         };
 
-        call.getConnectionService().createIncomingCall(call, extras, errorCallback);
+        call.getConnectionService().createIncomingCall(call, errorCallback);
     }
 
     /**

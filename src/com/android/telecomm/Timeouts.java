@@ -17,7 +17,6 @@
 package com.android.telecomm;
 
 import android.provider.Settings;
-import android.telecomm.CallServiceProvider;
 
 /**
  * A helper class which serves only to make it easier to lookup timeout values. This class should
@@ -42,14 +41,6 @@ public final class Timeouts {
     private static long get(String key, long defaultValue) {
         return Settings.Secure.getLong(
                 TelecommApp.getInstance().getContentResolver(), PREFIX + key, defaultValue);
-    }
-
-    /**
-     * @return The longest period in milliseconds each {@link CallServiceProvider} lookup cycle is
-     *     allowed to span over.
-     */
-    public static long getProviderLookupMillis() {
-        return get("provider_lookup_ms", 1000);
     }
 
     /**

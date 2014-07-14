@@ -16,6 +16,7 @@
 
 package com.android.telecomm;
 
+import android.content.ComponentName;
 import android.content.ContentUris;
 import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
@@ -24,7 +25,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.provider.ContactsContract.Contacts;
 import android.telecomm.CallPropertyPresentation;
-import android.telecomm.CallServiceDescriptor;
 import android.telecomm.CallState;
 import android.telecomm.ConnectionRequest;
 import android.telecomm.GatewayInfo;
@@ -215,9 +215,6 @@ final class Call implements OutgoingCallResponse {
 
     private OutgoingCallProcessor mOutgoingCallProcessor;
 
-    // TODO(santoscordon): The repositories should be changed into singleton types.
-    private CallServiceRepository mCallServiceRepository;
-
     /** Caller information retrieved from the latest contact query. */
     private CallerInfo mCallerInfo;
 
@@ -248,15 +245,6 @@ final class Call implements OutgoingCallResponse {
 
     private boolean mAudioModeIsVoip;
     private StatusHints mStatusHints;
-
-    /**
-     * Creates an empty call object.
-     *
-     * @param isIncoming True if this is an incoming call.
-     */
-    Call(boolean isIncoming, boolean isConference) {
-        this(null, null, null, isIncoming, isConference);
-    }
 
     /**
      * Persists the specified parameters and initializes the new instance.
@@ -388,7 +376,7 @@ final class Call implements OutgoingCallResponse {
     /**
      * @param disconnectCause The reason for the disconnection, any of
      *         {@link android.telephony.DisconnectCause}.
-     * @param disconnectMessage Optional call-service-provided message about the disconnect.
+     * @param disconnectMessage Optional message about the disconnect.
      */
     void setDisconnectCause(int disconnectCause, String disconnectMessage) {
         // TODO: Consider combining this method with a setDisconnected() method that is totally
@@ -514,13 +502,9 @@ final class Call implements OutgoingCallResponse {
     /**
      * Starts the incoming call flow through the switchboard. When switchboard completes, it will
      * invoke handle[Un]SuccessfulIncomingCall.
-     *
-     * @param descriptor The relevant call-service descriptor.
-     * @param extras The optional extras passed via
-     *         {@link TelecommConstants#EXTRA_INCOMING_CALL_EXTRAS}.
      */
-    void startIncoming(CallServiceDescriptor descriptor, Bundle extras) {
-        Switchboard.getInstance().retrieveIncomingCall(this, descriptor, extras);
+    void startIncoming() {
+        Switchboard.getInstance().retrieveIncomingCall(this);
     }
 
     /**
@@ -594,7 +578,7 @@ final class Call implements OutgoingCallResponse {
         Preconditions.checkState(mOutgoingCallProcessor == null);
 
         mOutgoingCallProcessor = new OutgoingCallProcessor(
-                this, Switchboard.getInstance().getCallServiceRepository(), this);
+                this, Switchboard.getInstance().getConnectionServiceRepository(), this);
         mOutgoingCallProcessor.process();
     }
 

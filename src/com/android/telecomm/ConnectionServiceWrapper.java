@@ -25,7 +25,6 @@ import android.os.Message;
 import android.os.RemoteException;
 import android.telecomm.CallAudioState;
 import android.telecomm.ConnectionService;
-import android.telecomm.CallServiceDescriptor;
 import android.telecomm.ConnectionRequest;
 import android.telecomm.GatewayInfo;
 import android.telecomm.StatusHints;
@@ -35,10 +34,8 @@ import android.telephony.DisconnectCause;
 import com.android.internal.os.SomeArgs;
 import com.android.internal.telecomm.IConnectionService;
 import com.android.internal.telecomm.IConnectionServiceAdapter;
-import com.android.internal.telecomm.ICallServiceProvider;
 import com.android.internal.telecomm.ICallVideoProvider;
 import com.android.internal.telecomm.RemoteServiceCallback;
-import com.android.telecomm.BaseRepository.LookupCallback;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 
@@ -522,35 +519,28 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
     private final CallsManager mCallsManager = CallsManager.getInstance();
     private final Set<Call> mPendingIncomingCalls = new HashSet<>();
     private final Set<Call> mPendingConferenceCalls = new HashSet<>();
-    private final CallServiceDescriptor mDescriptor;
     private final CallIdMapper mCallIdMapper = new CallIdMapper("ConnectionService");
     private final IncomingCallsManager mIncomingCallsManager;
     private final Map<String, OutgoingCallResponse> mPendingOutgoingCalls = new HashMap<>();
 
     private Binder mBinder = new Binder();
     private IConnectionService mServiceInterface;
-    private final CallServiceRepository mCallServiceRepository;
+    private final ConnectionServiceRepository mConnectionServiceRepository;
 
     /**
-     * Creates a call-service for the specified descriptor.
+     * Creates a connection service.
      *
-     * @param descriptor The call-service descriptor from
-     *            {@link ICallServiceProvider#lookupCallServices}.
+     * @param componentName The component name of the service with which to bind.
      * @param incomingCallsManager Manages the incoming call initialization flow.
-     * @param callServiceRepository Connection service repository.
+     * @param connectionServiceRepository Connection service repository.
      */
     ConnectionServiceWrapper(
-            CallServiceDescriptor descriptor,
+            ComponentName componentName,
             IncomingCallsManager incomingCallsManager,
-            CallServiceRepository callServiceRepository) {
-        super(TelecommConstants.ACTION_CONNECTION_SERVICE, descriptor.getServiceComponent());
-        mDescriptor = descriptor;
+            ConnectionServiceRepository connectionServiceRepository) {
+        super(TelecommConstants.ACTION_CONNECTION_SERVICE, componentName);
         mIncomingCallsManager = incomingCallsManager;
-        mCallServiceRepository = callServiceRepository;
-    }
-
-    CallServiceDescriptor getDescriptor() {
-        return mDescriptor;
+        mConnectionServiceRepository = connectionServiceRepository;
     }
 
     /** See {@link IConnectionService#addConnectionServiceAdapter}. */
@@ -599,7 +589,7 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                 try {
                     mServiceInterface.call(request);
                 } catch (RemoteException e) {
-                    Log.e(this, e, "Failure to call -- %s", getDescriptor());
+                    Log.e(this, e, "Failure to call -- %s", getComponentName());
                     mPendingOutgoingCalls.remove(callId).onOutgoingCallFailure(
                             DisconnectCause.ERROR_UNSPECIFIED, e.toString());
                 }
@@ -607,7 +597,7 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
 
             @Override
             public void onFailure() {
-                Log.e(this, new Exception(), "Failure to call %s", getDescriptor());
+                Log.e(this, new Exception(), "Failure to call %s", getComponentName());
                 callResponse.onOutgoingCallFailure(DisconnectCause.ERROR_UNSPECIFIED, null);
             }
         };
@@ -668,16 +658,15 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
     }
 
     /**
-     * Starts retrieval of details for an incoming call. Details are returned through the
-     * call-service adapter using the specified call ID. Upon failure, the specified error callback
-     * is invoked. Can be invoked even when the connection service is unbound. See
+     * Starts retrieval of details for an incoming call. Details are returned through the connection
+     * service adapter using the specified call ID. Upon failure, the specified error callback is
+     * invoked. Can be invoked even when the connection service is unbound. See
      * {@link IConnectionService#createIncomingCall}.
      *
      * @param call The call used for the incoming call.
-     * @param extras The {@link ConnectionService}-provided extras which need to be sent back.
      * @param errorCallback The callback to invoke upon failure.
      */
-    void createIncomingCall(final Call call, final Bundle extras, final Runnable errorCallback) {
+    void createIncomingCall(final Call call, final Runnable errorCallback) {
         Log.d(this, "createIncomingCall(%s) via %s.", call, getComponentName());
         BindCallback callback = new BindCallback() {
             @Override
@@ -685,13 +674,13 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                 if (isServiceValid("createIncomingCall")) {
                     mPendingIncomingCalls.add(call);
                     String callId = mCallIdMapper.getCallId(call);
-                    logOutgoing("createIncomingCall %s %s", callId, extras);
+                    logOutgoing("createIncomingCall %s", callId);
                     ConnectionRequest request = new ConnectionRequest(
                             call.getPhoneAccount(),
                             callId,
                             call.getHandle(),
                             call.getHandlePresentation(),
-                            extras,
+                            call.getExtras(),
                             call.getVideoState());
                     try {
                         mServiceInterface.createIncomingCall(request);
@@ -911,47 +900,41 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
     private void queryRemoteConnectionServices(final RemoteServiceCallback callback) {
         final List<IBinder> connectionServices = new ArrayList<>();
         final List<ComponentName> components = new ArrayList<>();
+        final Collection<ConnectionServiceWrapper> services =
+                mConnectionServiceRepository.lookupServices();
 
-        mCallServiceRepository.lookupServices(new LookupCallback<ConnectionServiceWrapper>() {
-            private int mRemainingResponses;
+        for (ConnectionServiceWrapper cs : services) {
+            if (cs != this) {
+                final ConnectionServiceWrapper currentConnectionService = cs;
+                cs.mBinder.bind(new BindCallback() {
+                    private int mRemainingResponses = services.size() - 1;
 
-            /** ${inheritDoc} */
-            @Override
-            public void onComplete(Collection<ConnectionServiceWrapper> services) {
-                mRemainingResponses = services.size() - 1;
-                for (ConnectionServiceWrapper cs : services) {
-                    if (cs != ConnectionServiceWrapper.this) {
-                        final ConnectionServiceWrapper currentConnectionService = cs;
-                        cs.mBinder.bind(new BindCallback() {
-                            @Override
-                            public void onSuccess() {
-                                Log.d(this, "Adding ***** %s",
-                                        currentConnectionService.getDescriptor());
-                                connectionServices.add(
-                                        currentConnectionService.mServiceInterface.asBinder());
-                                components.add(currentConnectionService.getComponentName());
-                                maybeComplete();
-                            }
-
-                            @Override
-                            public void onFailure() {
-                                // add null so that we always add up to totalExpected even if
-                                // some of the connection services fail to bind.
-                                maybeComplete();
-                            }
-
-                            private void maybeComplete() {
-                                if (--mRemainingResponses == 0) {
-                                    try {
-                                        callback.onResult(components, connectionServices);
-                                    } catch (RemoteException ignored) {
-                                    }
-                                }
-                            }
-                        });
+                    @Override
+                    public void onSuccess() {
+                        Log.d(this, "Adding ***** %s", currentConnectionService.getComponentName());
+                        connectionServices.add(
+                                currentConnectionService.mServiceInterface.asBinder());
+                        components.add(currentConnectionService.getComponentName());
+                        maybeComplete();
                     }
-                }
+
+                    @Override
+                    public void onFailure() {
+                        // add null so that we always add up to totalExpected even if
+                        // some of the connection services fail to bind.
+                        maybeComplete();
+                    }
+
+                    private void maybeComplete() {
+                        if (--mRemainingResponses == 0) {
+                            try {
+                                callback.onResult(components, connectionServices);
+                            } catch (RemoteException ignored) {
+                            }
+                        }
+                    }
+                });
             }
-        });
+        }
     }
 }

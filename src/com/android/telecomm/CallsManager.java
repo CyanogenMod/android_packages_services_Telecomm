@@ -19,7 +19,6 @@ package com.android.telecomm;
 import android.net.Uri;
 import android.os.Bundle;
 import android.telecomm.CallAudioState;
-import android.telecomm.CallServiceDescriptor;
 import android.telecomm.CallState;
 import android.telecomm.GatewayInfo;
 import android.telecomm.PhoneAccount;
@@ -30,7 +29,6 @@ import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 
 import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 
@@ -233,22 +231,25 @@ public final class CallsManager extends Call.ListenerBase {
 
     /**
      * Starts the incoming call sequence by having switchboard gather more information about the
-     * specified call; using the specified call service descriptor. Upon success, execution returns
-     * to {@link #onSuccessfulIncomingCall} to start the in-call UI.
+     * specified call; using the specified connection service component name. Upon success,
+     * execution returns to {@link #onSuccessfulIncomingCall} to start the in-call UI.
      *
-     * @param descriptor The descriptor of the connection service to use for this incoming call.
+     * @param phoneAccount The phone account which contains the component name of the connection
+     *                     serivce to use for this call.
      * @param extras The optional extras Bundle passed with the intent used for the incoming call.
      */
-    void processIncomingCallIntent(CallServiceDescriptor descriptor, Bundle extras) {
+    void processIncomingCallIntent(PhoneAccount phoneAccount, Bundle extras) {
         Log.d(this, "processIncomingCallIntent");
         // Create a call with no handle. Eventually, switchboard will update the call with
         // additional information from the connection service, but for now we just need one to pass
         // around.
-        Call call = new Call(true /* isIncoming */, false /* isConference */);
+        Call call = new Call(
+                null, null, phoneAccount, true /* isIncoming */, false /* isConference */);
+        call.setExtras(extras);
         // TODO(santoscordon): Move this to be a part of addCall()
         call.addListener(this);
 
-        call.startIncoming(descriptor, extras);
+        call.startIncoming();
     }
 
     /**
@@ -274,8 +275,7 @@ public final class CallsManager extends Call.ListenerBase {
         }
 
         Call call = new Call(
-                uriHandle, gatewayInfo, account,
-                false /* isIncoming */, false /* isConference */);
+                uriHandle, gatewayInfo, account, false /* isIncoming */, false /* isConference */);
         call.setStartWithSpeakerphoneOn(speakerphoneOn);
         call.setVideoState(videoState);
 
@@ -292,7 +292,8 @@ public final class CallsManager extends Call.ListenerBase {
      * @param call The call to conference with.
      */
     void conference(Call call) {
-        Call conferenceCall = new Call(false, true);
+        Call conferenceCall = new Call(
+                null, null, null, false /* isIncoming */, true /* isConference */);
         conferenceCall.addListener(this);
         call.conferenceInto(conferenceCall);
     }
@@ -482,7 +483,7 @@ public final class CallsManager extends Call.ListenerBase {
      * live call, then also disconnect from the in-call controller.
      *
      * @param disconnectCause The disconnect reason, see {@link android.telephony.DisconnectCause}.
-     * @param disconnectMessage Optional call-service-provided message about the disconnect.
+     * @param disconnectMessage Optional message about the disconnect.
      */
     void markCallAsDisconnected(Call call, int disconnectCause, String disconnectMessage) {
         call.setDisconnectCause(disconnectCause, disconnectMessage);
@@ -492,7 +493,7 @@ public final class CallsManager extends Call.ListenerBase {
 
     /**
      * Cleans up any calls currently associated with the specified connection service when the
-     * call-service binder disconnects unexpectedly.
+     * service binder disconnects unexpectedly.
      *
      * @param service The connection service that disconnected.
      */

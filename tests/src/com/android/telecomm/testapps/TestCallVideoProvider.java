@@ -149,6 +149,6 @@ public class TestCallVideoProvider extends CallVideoProvider {
     }
 
     private static void log(String msg) {
-        Log.w("TestCallServiceProvider", "[TestCallServiceProvider] " + msg);
+        Log.w("TestCallVideoProvider", "[TestCallServiceProvider] " + msg);
     }
 }

@@ -19,7 +19,7 @@ package com.android.telecomm;
 import android.content.ComponentName;
 import android.content.pm.PackageManager;
 import android.content.pm.ServiceInfo;
-import android.telecomm.CallServiceDescriptor;
+import android.telecomm.PhoneAccount;
 
 /**
  * Utilities to deal with the system telephony services. The system telephony services are treated
@@ -35,26 +35,10 @@ public final class TelephonyUtil {
 
     private TelephonyUtil() {}
 
-    static boolean isPstnConnectionService(CallServiceDescriptor descriptor) {
+    static boolean isPstnComponentName(ComponentName componentName) {
         final ComponentName pstnComponentName = new ComponentName(
                 TELEPHONY_PACKAGE_NAME, PSTN_CALL_SERVICE_CLASS_NAME);
-        return pstnComponentName.equals(descriptor.getServiceComponent());
-    }
-
-    /**
-     * Returns whether or not the call is currently connected as a cellular call (through the
-     * device's cellular radio).
-     */
-    static boolean isCurrentlyPSTNCall(Call call) {
-        if (Log.DEBUG) {
-            verifyConnectionServiceExists(PSTN_CALL_SERVICE_CLASS_NAME);
-        }
-
-        ConnectionServiceWrapper service = call.getConnectionService();
-        if (service == null) {
-            return false;
-        }
-        return isPstnConnectionService(service.getDescriptor());
+        return pstnComponentName.equals(componentName);
     }
 
     private static void verifyConnectionServiceExists(String serviceName) {

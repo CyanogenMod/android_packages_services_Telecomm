@@ -21,8 +21,9 @@ import android.os.Bundle;
 
 /**
  * This activity exists in order to add an icon to the launcher. This activity has no UI of its own
- * and instead starts the notification for {@link TestCallService} via {@link CallServiceNotifier}.
- * After triggering a notification update, this activity immediately finishes.
+ * and instead starts the notification for {@link TestConnectionService} via
+ * {@link CallServiceNotifier}. After triggering a notification update, this activity immediately
+ * finishes.
  */
 public class TestCallActivity extends Activity {
 

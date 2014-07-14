@@ -29,7 +29,6 @@ import android.os.UserHandle;
 import android.telecomm.CallAudioState;
 import android.telecomm.CallCapabilities;
 import android.telecomm.CallPropertyPresentation;
-import android.telecomm.CallServiceDescriptor;
 import android.telecomm.CallState;
 import android.telecomm.InCallCall;
 
@@ -275,8 +274,6 @@ public final class InCallController extends CallsManagerListenerBase {
 
     private InCallCall toInCallCall(Call call) {
         String callId = mCallIdMapper.getCallId(call);
-        CallServiceDescriptor descriptor = call.getConnectionService() != null ?
-                call.getConnectionService().getDescriptor() : null;
 
         int capabilities = call.getCallCapabilities();
         if (!CallsManager.getInstance().isAddCallCapable(call)) {
@@ -321,7 +318,7 @@ public final class InCallController extends CallsManagerListenerBase {
                 call.getCannedSmsResponses(), capabilities, connectTimeMillis, handle,
                 call.getHandlePresentation(), callerDisplayName,
                 call.getCallerDisplayNamePresentation(), call.getGatewayInfo(),
-                call.getPhoneAccount(), descriptor, call.getCallVideoProvider(), parentCallId,
-                childCallIds, call.getStatusHints());
+                call.getPhoneAccount(), call.getCallVideoProvider(), parentCallId, childCallIds,
+                call.getStatusHints());
     }
 }
