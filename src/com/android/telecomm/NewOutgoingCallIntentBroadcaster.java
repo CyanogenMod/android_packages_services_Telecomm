@@ -26,7 +26,6 @@ import android.os.UserHandle;
 import android.telecomm.GatewayInfo;
 import android.telecomm.PhoneAccount;
 import android.telecomm.TelecommConstants;
-import android.telecomm.TelecommManager;
 import android.telecomm.VideoCallProfile;
 import android.telephony.PhoneNumberUtils;
 import android.text.TextUtils;
@@ -188,11 +187,13 @@ class NewOutgoingCallIntentBroadcaster {
             Log.i(this, "Placing call immediately instead of waiting for "
                     + " OutgoingCallBroadcastReceiver: %s", intent);
             String scheme = isUriNumber ? SCHEME_SIP : SCHEME_TEL;
+            boolean speakerphoneOn = mIntent.getBooleanExtra(
+                    TelecommConstants.EXTRA_START_CALL_WITH_SPEAKERPHONE, false);
+            int videoState = mIntent.getIntExtra(
+                    TelecommConstants.EXTRA_START_CALL_WITH_VIDEO_STATE,
+                    VideoCallProfile.VIDEO_STATE_AUDIO_ONLY);
             mCallsManager.placeOutgoingCall(
-                    Uri.fromParts(scheme, handle, null), null, null, mIntent.getBooleanExtra(TelecommConstants.EXTRA_START_CALL_WITH_SPEAKERPHONE,
-                            false),
-                    mIntent.getIntExtra(TelecommConstants.EXTRA_START_CALL_WITH_VIDEO_STATE,
-                            VideoCallProfile.VIDEO_STATE_AUDIO_ONLY));
+                    Uri.fromParts(scheme, handle, null), null, null, speakerphoneOn, videoState);
 
             // Don't return but instead continue and send the ACTION_NEW_OUTGOING_CALL broadcast
             // so that third parties can still inspect (but not intercept) the outgoing call. When
@@ -260,10 +261,9 @@ class NewOutgoingCallIntentBroadcaster {
             Log.d(this, "Found and copied gateway provider extras to broadcast intent.");
             return;
         }
-        PhoneAccount extraAccount = src.getParcelableExtra(
-                TelecommManager.EXTRA_PHONE_ACCOUNT);
+        PhoneAccount extraAccount = src.getParcelableExtra(TelecommConstants.EXTRA_PHONE_ACCOUNT);
         if (extraAccount != null) {
-            dst.putExtra(TelecommManager.EXTRA_PHONE_ACCOUNT, extraAccount);
+            dst.putExtra(TelecommConstants.EXTRA_PHONE_ACCOUNT, extraAccount);
             Log.d(this, "Found and copied account extra to broadcast intent.");
         }
 
@@ -321,7 +321,7 @@ class NewOutgoingCallIntentBroadcaster {
             return null;
         }
 
-        return intent.getParcelableExtra(TelecommManager.EXTRA_PHONE_ACCOUNT);
+        return intent.getParcelableExtra(TelecommConstants.EXTRA_PHONE_ACCOUNT);
     }
 
     private void launchSystemDialer(Context context, Uri handle) {

@@ -22,12 +22,12 @@ import android.content.Intent;
 
 /**
  * This class receives the notification callback intents used to update call states for
- * {@link TestCallService}.
+ * {@link TestConnectionService}.
  */
 public class CallNotificationReceiver extends BroadcastReceiver {
     /**
-     * Exit intent action is sent when the user clicks the "exit" action of the TestCallService
-     * notification. Used to cancel (remove) the notification.
+     * Exit intent action is sent when the user clicks the "exit" action of the
+     * TestConnectionService notification. Used to cancel (remove) the notification.
      */
     static final String ACTION_CALL_SERVICE_EXIT =
             "com.android.telecomm.testcallservice.ACTION_CALL_SERVICE_EXIT";

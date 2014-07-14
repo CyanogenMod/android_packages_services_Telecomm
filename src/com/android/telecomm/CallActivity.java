@@ -20,7 +20,7 @@ import android.app.Activity;
 import android.content.Intent;
 import android.content.res.Configuration;
 import android.os.Bundle;
-import android.telecomm.CallServiceDescriptor;
+import android.telecomm.PhoneAccount;
 import android.telecomm.TelecommConstants;
 
 /**
@@ -102,10 +102,14 @@ public class CallActivity extends Activity {
      * @param intent The incoming call intent.
      */
     private void processIncomingCallIntent(Intent intent) {
-        CallServiceDescriptor descriptor =
-                intent.getParcelableExtra(TelecommConstants.EXTRA_CALL_SERVICE_DESCRIPTOR);
-        if (descriptor == null) {
-            Log.w(this, "Rejecting incoming call due to null descriptor");
+        PhoneAccount phoneAccount = intent.getParcelableExtra(
+                TelecommConstants.EXTRA_PHONE_ACCOUNT);
+        if (phoneAccount == null) {
+            Log.w(this, "Rejecting incoming call due to null phone account");
+            return;
+        }
+        if (phoneAccount.getComponentName() == null) {
+            Log.w(this, "Rejecting incoming call due to null component name");
             return;
         }
 
@@ -114,7 +118,8 @@ public class CallActivity extends Activity {
             clientExtras = intent.getBundleExtra(TelecommConstants.EXTRA_INCOMING_CALL_EXTRAS);
         }
 
-        Log.d(this, "Processing incoming call from connection service [%s]", descriptor);
-        mCallsManager.processIncomingCallIntent(descriptor, clientExtras);
+        Log.d(this, "Processing incoming call from connection service [%s]",
+                phoneAccount.getComponentName());
+        mCallsManager.processIncomingCallIntent(phoneAccount, clientExtras);
     }
 }

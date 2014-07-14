@@ -19,9 +19,10 @@ package com.android.telecomm.testapps;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.telecomm.CallServiceDescriptor;
+import android.telecomm.PhoneAccount;
 import android.telecomm.TelecommConstants;
 import android.telecomm.VideoCallProfile;
 import android.util.Log;
@@ -117,17 +118,19 @@ public class CallServiceNotifier {
      */
     private PendingIntent createIncomingCallIntent(Context context, boolean isVideoCall) {
         log("Creating incoming call pending intent.");
-        // Build descriptor for TestConnectionService.
-        CallServiceDescriptor.Builder descriptorBuilder = CallServiceDescriptor.newBuilder(context);
-        descriptorBuilder.setConnectionService(TestConnectionService.class);
-        descriptorBuilder.setNetworkType(CallServiceDescriptor.FLAG_WIFI);
 
         // Create intent for adding an incoming call.
         Intent intent = new Intent(TelecommConstants.ACTION_INCOMING_CALL);
         // TODO(santoscordon): Use a private @hide permission to make sure this only goes to
         // Telecomm instead of setting the package explicitly.
         intent.setPackage("com.android.telecomm");
-        intent.putExtra(TelecommConstants.EXTRA_CALL_SERVICE_DESCRIPTOR, descriptorBuilder.build());
+
+        PhoneAccount phoneAccount = new PhoneAccount(
+                new ComponentName(context, TestConnectionService.class),
+                null /* id */,
+                null /* handle */,
+                PhoneAccount.CAPABILITY_CALL_PROVIDER);
+        intent.putExtra(TelecommConstants.EXTRA_PHONE_ACCOUNT, phoneAccount);
 
         mStartVideoCall = isVideoCall;
 

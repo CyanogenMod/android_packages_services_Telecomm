@@ -108,7 +108,7 @@ public class RespondViaSmsManager extends CallsManagerListenerBase {
                         SHARED_PREFERENCES_NAME, Context.MODE_PRIVATE);
                 final Resources res = TelecommApp.getInstance().getInstance().getResources();
 
-                final ArrayList<String> textMessages = new ArrayList<String>(NUM_CANNED_RESPONSES);
+                final ArrayList<String> textMessages = new ArrayList<>(NUM_CANNED_RESPONSES);
 
                 // Note the default values here must agree with the corresponding
                 // android:defaultValue attributes in respond_via_sms_settings.xml.

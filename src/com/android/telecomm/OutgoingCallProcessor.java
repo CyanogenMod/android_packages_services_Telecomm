@@ -20,11 +20,9 @@ import android.content.ComponentName;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.Message;
-import android.telecomm.CallServiceDescriptor;
 import android.telephony.DisconnectCause;
 import android.telephony.PhoneNumberUtils;
 
-import com.android.telecomm.BaseRepository.LookupCallback;
 import com.google.android.collect.Sets;
 import com.google.common.collect.Maps;
 
@@ -36,9 +34,9 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Utility class to place a call using the specified set of call-services. Each of the connection
- * services is then attempted until either the outgoing call is placed, the attempted call is
- * aborted, or the list is exhausted -- whichever occurs first.
+ * Utility class to place a call using the specified set of connection services. Each of the
+ * connection services is then attempted until either the outgoing call is placed, the attempted
+ * call is aborted, or the list is exhausted -- whichever occurs first.
  *
  * Except for the abort case, all other scenarios should terminate with the call notified
  * of the result.
@@ -51,27 +49,22 @@ final class OutgoingCallProcessor {
     private final Call mCall;
 
     /**
-     * The map of currently-available call-service implementations keyed by call-service ID.
-     */
-    private final Map<String, ConnectionServiceWrapper> mConnectionServicesById = Maps.newHashMap();
-
-    /**
      * The set of attempted connection services, used to ensure services are attempted at most once
      * per outgoing-call attempt.
      */
-    private final Set<ConnectionServiceWrapper> mAttemptedConnectionServices = Sets.newHashSet();
+    private final Set<ConnectionServiceWrapper> mAttemptedServices = Sets.newHashSet();
 
-    private final CallServiceRepository mCallServiceRepository;
-
-    /**
-     * The duplicate-free list of currently-available call-service descriptors.
-     */
-    private List<CallServiceDescriptor> mCallServiceDescriptors;
+    private final ConnectionServiceRepository mConnectionServiceRepository;
 
     /**
-     * The iterator over the currently-selected ordered list of call-service descriptors.
+     * The duplicate-free list of currently-available connection service component names.
      */
-    private Iterator<CallServiceDescriptor> mCallServiceDescriptorIterator;
+    private List<ComponentName> mServiceComponentNames;
+
+    /**
+     * The iterator over the currently-selected ordered list of connection service component names.
+     */
+    private Iterator<ComponentName> mServiceComponentNameIterator;
 
     private OutgoingCallResponse mResultCallback;
 
@@ -87,19 +80,18 @@ final class OutgoingCallProcessor {
      * connection service will eventually be killed by the cleanup/monitor switchboard handler.
      *
      * @param call The call to place.
-     * @param callServiceRepository
      * @param resultCallback The callback on which to return the result.
      */
     OutgoingCallProcessor(
             Call call,
-            CallServiceRepository callServiceRepository,
+            ConnectionServiceRepository connectionServiceRepository,
             OutgoingCallResponse resultCallback) {
 
         ThreadUtil.checkOnMainThread();
 
         mCall = call;
         mResultCallback = resultCallback;
-        mCallServiceRepository = callServiceRepository;
+        mConnectionServiceRepository = connectionServiceRepository;
     }
 
     /**
@@ -108,13 +100,7 @@ final class OutgoingCallProcessor {
     void process() {
         Log.v(this, "process, mIsAborted: %b", mIsAborted);
         if (!mIsAborted) {
-            // Lookup connection services
-            mCallServiceRepository.lookupServices(new LookupCallback<ConnectionServiceWrapper>() {
-                @Override
-                public void onComplete(Collection<ConnectionServiceWrapper> services) {
-                    setConnectionServices(services);
-                }
-            });
+            setConnectionServices(mConnectionServiceRepository.lookupServices());
         }
     }
 
@@ -191,35 +177,36 @@ final class OutgoingCallProcessor {
      * @param services The connection services.
      */
     private void setConnectionServices(Collection<ConnectionServiceWrapper> services) {
-        mCallServiceDescriptors = new ArrayList<>();
+        mServiceComponentNames = new ArrayList<>();
 
-        // Populate the list and map of call-service descriptors.
+        // TODO(sail): Remove once there's a way to pick the service.
+        ArrayList<ComponentName> priorityComponents = new ArrayList<>();
+        priorityComponents.add(new ComponentName("com.android.phone",
+                "com.android.services.telephony.sip.SipConnectionService"));
+        priorityComponents.add(new ComponentName("com.google.android.talk",
+                "com.google.android.apps.babel.telephony.TeleConnectionService"));
+        priorityComponents.add(new ComponentName("com.android.telecomm.tests",
+                "com.android.telecomm.testapps.TestConnectionService"));
+
         for (ConnectionServiceWrapper service : services) {
-            CallServiceDescriptor descriptor = service.getDescriptor();
-            // TODO(sail): Remove once there's a way to pick the service.
-            ComponentName sipName = new ComponentName("com.android.phone",
-                    "com.android.services.telephony.sip.SipConnectionService");
-            ComponentName hangoutsName = new ComponentName("com.google.android.talk",
-                    "com.google.android.apps.babel.telephony.TeleConnectionService");
-            ComponentName serviceName = descriptor.getServiceComponent();
-            if (serviceName.equals(sipName) || serviceName.equals(hangoutsName)) {
-                Log.i(this, "Moving connection service %s to top of list", descriptor);
-                mCallServiceDescriptors.add(0, descriptor);
+            ComponentName serviceName = service.getComponentName();
+            if (priorityComponents.contains(serviceName)) {
+                Log.i(this, "Moving connection service %s to top of list", serviceName);
+                mServiceComponentNames .add(0, serviceName);
             } else {
-                mCallServiceDescriptors.add(descriptor);
+                mServiceComponentNames.add(serviceName);
             }
-            mConnectionServicesById.put(descriptor.getConnectionServiceId(), service);
         }
 
-        adjustCallServiceDescriptorsForEmergency();
+        adjustComponentNamesForEmergency();
 
-        mCallServiceDescriptorIterator = mCallServiceDescriptors.iterator();
+        mServiceComponentNameIterator = mServiceComponentNames.iterator();
         attemptNextConnectionService();
     }
 
     /**
-     * Attempts to place the call using the connection service specified by the next call-service
-     * descriptor of mCallServiceDescriptorIterator.
+     * Attempts to place the call using the connection service specified by the next connection
+     * service component name of mServiceComponentNameIterator.
      */
     private void attemptNextConnectionService() {
         Log.v(this, "attemptNextConnectionService, mIsAborted: %b", mIsAborted);
@@ -227,24 +214,24 @@ final class OutgoingCallProcessor {
             return;
         }
 
-        if (mCallServiceDescriptorIterator != null && mCallServiceDescriptorIterator.hasNext()) {
-            CallServiceDescriptor descriptor = mCallServiceDescriptorIterator.next();
+        if (mServiceComponentNameIterator != null && mServiceComponentNameIterator.hasNext()) {
+            ComponentName component = mServiceComponentNameIterator.next();
             final ConnectionServiceWrapper service =
-                    mConnectionServicesById.get(descriptor.getConnectionServiceId());
+                    mConnectionServiceRepository.getService(component);
 
-            if (service == null || mAttemptedConnectionServices.contains(service)) {
+            if (service == null || mAttemptedServices.contains(service)) {
                 // The next connection service is either null or has already been attempted, fast
                 // forward to the next.
                 attemptNextConnectionService();
             } else {
-                mAttemptedConnectionServices.add(service);
+                mAttemptedServices.add(service);
                 mCall.setConnectionService(service);
 
                 // Increment the associated call count until we get a result. This prevents the call
                 // service from unbinding while we are using it.
                 service.incrementAssociatedCallCount();
 
-                Log.i(this, "Attempting to call from %s", service.getDescriptor());
+                Log.i(this, "Attempting to call from %s", service.getComponentName());
                 service.call(mCall, new OutgoingCallResponse() {
                     @Override
                     public void onOutgoingCallSuccess() {
@@ -266,8 +253,8 @@ final class OutgoingCallProcessor {
                 });
             }
         } else {
-            Log.v(this, "attemptNextConnectionService, no more service descriptors, failing");
-            mCallServiceDescriptorIterator = null;
+            Log.v(this, "attemptNextConnectionService, no more services, failing");
+            mServiceComponentNameIterator = null;
             mCall.clearConnectionService();
             sendResult(false, mLastErrorCode, mLastErrorMsg);
         }
@@ -290,17 +277,12 @@ final class OutgoingCallProcessor {
 
     // If we are possibly attempting to call a local emergency number, ensure that the
     // plain PSTN connection service, if it exists, is attempted first.
-    private void adjustCallServiceDescriptorsForEmergency()  {
-        for (int i = 0; i < mCallServiceDescriptors.size(); i++) {
+    private void adjustComponentNamesForEmergency()  {
+        for (int i = 0; i < mServiceComponentNames.size(); i++) {
             if (shouldProcessAsEmergency(mCall.getHandle())) {
-                if (TelephonyUtil.isPstnConnectionService(mCallServiceDescriptors.get(i))) {
-                    mCallServiceDescriptors.add(0, mCallServiceDescriptors.remove(i));
+                if (TelephonyUtil.isPstnComponentName(mServiceComponentNames.get(i))) {
+                    mServiceComponentNames.add(0, mServiceComponentNames.remove(i));
                     return;
-                }
-            } else {
-                if (mCallServiceDescriptors.get(i).getServiceComponent().getPackageName().equals(
-                        "com.android.telecomm.tests")) {
-                    mCallServiceDescriptors.add(0, mCallServiceDescriptors.remove(i));
                 }
             }
         }
