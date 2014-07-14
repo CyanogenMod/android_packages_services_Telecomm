@@ -29,13 +29,16 @@ import android.os.ServiceManager;
 import android.phone.PhoneManager;
 import android.telecomm.CallState;
 import android.telecomm.PhoneAccount;
+import android.telecomm.PhoneAccountMetadata;
 import android.telecomm.TelecommManager;
 import android.telephony.TelephonyManager;
 
 import com.android.internal.telecomm.ITelecommService;
-import com.google.android.collect.Lists;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Implementation of the ITelecomm interface.
@@ -135,60 +138,94 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
     // Implementation of the ITelecommService interface.
     //
 
-    @Override
-    public List<PhoneAccount> getAccounts() {
+    private static Map<PhoneAccount, PhoneAccountMetadata> sMetadataByAccount = new HashMap<>();
+
+    static {
         // TODO (STOPSHIP): Static list of Accounts for testing and UX work only.
         ComponentName componentName = new ComponentName(
                 "com.android.telecomm",
                 TelecommServiceImpl.class.getName());  // This field is a no-op
         Context app = TelecommApp.getInstance();
 
-        return Lists.newArrayList(
+        PhoneAccount[] accounts = new PhoneAccount[] {
                 new PhoneAccount(
                         componentName,
                         "account0",
                         Uri.parse("tel:999-555-1212"),
-                        app.getString(R.string.test_account_0_label),
-                        app.getString(R.string.test_account_0_short_description),
-                        true,
-                        true),
+                        0),
                 new PhoneAccount(
                         componentName,
                         "account1",
                         Uri.parse("tel:333-111-2222"),
-                        app.getString(R.string.test_account_1_label),
-                        app.getString(R.string.test_account_1_short_description),
-                        true,
-                        false),
+                        0),
                 new PhoneAccount(
                         componentName,
                         "account2",
                         Uri.parse("mailto:two@example.com"),
-                        app.getString(R.string.test_account_2_label),
-                        app.getString(R.string.test_account_2_short_description),
-                        true,
-                        false),
+                        0),
                 new PhoneAccount(
                         componentName,
                         "account3",
                         Uri.parse("mailto:three@example.com"),
+                        0)
+        };
+
+        sMetadataByAccount.put(
+                accounts[0],
+                new PhoneAccountMetadata(
+                        accounts[0],
+                        0,
+                        app.getString(R.string.test_account_0_label),
+                        app.getString(R.string.test_account_0_short_description)));
+        sMetadataByAccount.put(
+                accounts[1],
+                new PhoneAccountMetadata(
+                        accounts[1],
+                        0,
+                        app.getString(R.string.test_account_1_label),
+                        app.getString(R.string.test_account_1_short_description)));
+        sMetadataByAccount.put(
+                accounts[2],
+                new PhoneAccountMetadata(
+                        accounts[2],
+                        0,
+                        app.getString(R.string.test_account_2_label),
+                        app.getString(R.string.test_account_2_short_description)));
+        sMetadataByAccount.put(
+                accounts[3],
+                new PhoneAccountMetadata(
+                        accounts[3],
+                        0,
                         app.getString(R.string.test_account_3_label),
-                        app.getString(R.string.test_account_3_short_description),
-                        true,
-                        false)
-        );
+                        app.getString(R.string.test_account_3_short_description)));
     }
 
     @Override
-    public void setEnabled(PhoneAccount account, boolean enabled) {
-        // Enforce MODIFY_PHONE_STATE ?
-        // TODO
+    public List<PhoneAccount> getEnabledPhoneAccounts() {
+        return new ArrayList<>(sMetadataByAccount.keySet());
     }
 
     @Override
-    public void setSystemDefault(PhoneAccount account) {
-        // Enforce MODIFY_PHONE_STATE ?
-        // TODO
+    public PhoneAccountMetadata getPhoneAccountMetadata(PhoneAccount account) {
+        return sMetadataByAccount.get(account);
+    }
+
+    @Override
+    public void registerPhoneAccount(PhoneAccount account, PhoneAccountMetadata metadata) {
+        enforceModifyPermissionOrCallingPackage(account.getComponentName().getPackageName());
+        // TODO(santoscordon) -- IMPLEMENT ...
+    }
+
+    @Override
+    public void unregisterPhoneAccount(PhoneAccount account) {
+        enforceModifyPermissionOrCallingPackage(account.getComponentName().getPackageName());
+        // TODO(santoscordon) -- IMPLEMENT ...
+    }
+
+    @Override
+    public void clearAccounts(String packageName) {
+        enforceModifyPermissionOrCallingPackage(packageName);
+        // TODO(santoscordon) -- IMPLEMENT ...
     }
 
     /**
@@ -334,6 +371,15 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
         }
     }
 
+    private void enforceModifyPermissionOrCallingPackage(String packageName) {
+        // TODO(santoscordon): Use a new telecomm permission for this instead of reusing modify.
+        try {
+            enforceModifyPermission();
+        } catch (SecurityException e) {
+            enforceCallingPackage(packageName);
+        }
+    }
+
     private void enforceReadPermission() {
         TelecommApp.getInstance().enforceCallingOrSelfPermission(
                 android.Manifest.permission.READ_PHONE_STATE, null);
@@ -343,6 +389,10 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
         if (!isDefaultDialerCalling()) {
             enforceReadPermission();
         }
+    }
+
+    private void enforceCallingPackage(String packageName) {
+        mAppOpsManager.checkPackage(Binder.getCallingUid(), packageName);
     }
 
     private void showCallScreenInternal(boolean showDialpad) {
