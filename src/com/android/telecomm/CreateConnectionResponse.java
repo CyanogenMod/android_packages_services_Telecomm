@@ -16,11 +16,13 @@
 
 package com.android.telecomm;
 
+import android.telecomm.ConnectionRequest;
+
 /**
- * A callback for providing the result of placing an outgoing call.
+ * A callback for providing the result of creating a connection.
  */
-interface OutgoingCallResponse {
-    void onOutgoingCallSuccess();
-    void onOutgoingCallFailure(int code, String msg);
-    void onOutgoingCallCancel();
+interface CreateConnectionResponse {
+    void handleCreateConnectionSuccessful(ConnectionRequest request);
+    void handleCreateConnectionFailed(int code, String msg);
+    void handleCreateConnectionCancelled();
 }

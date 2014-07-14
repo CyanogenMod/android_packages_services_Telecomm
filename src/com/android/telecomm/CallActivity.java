@@ -113,9 +113,12 @@ public class CallActivity extends Activity {
             return;
         }
 
-        Bundle clientExtras = Bundle.EMPTY;
+        Bundle clientExtras = null;
         if (intent.hasExtra(TelecommConstants.EXTRA_INCOMING_CALL_EXTRAS)) {
             clientExtras = intent.getBundleExtra(TelecommConstants.EXTRA_INCOMING_CALL_EXTRAS);
+        }
+        if (clientExtras == null) {
+            clientExtras = Bundle.EMPTY;
         }
 
         Log.d(this, "Processing incoming call from connection service [%s]",
