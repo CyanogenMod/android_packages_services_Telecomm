@@ -746,14 +746,7 @@ final class Call implements OutgoingCallResponse {
     }
 
     boolean isActive() {
-        switch (mState) {
-            case ACTIVE:
-            case POST_DIAL:
-            case POST_DIAL_WAIT:
-                return true;
-            default:
-                return false;
-        }
+        return mState == CallState.ACTIVE;
     }
 
     Bundle getExtras() {
