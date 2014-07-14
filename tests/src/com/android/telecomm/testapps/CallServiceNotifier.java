@@ -22,10 +22,15 @@ import android.app.PendingIntent;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.net.Uri;
 import android.telecomm.PhoneAccount;
+import android.telecomm.PhoneAccountMetadata;
 import android.telecomm.TelecommConstants;
-import android.telecomm.VideoCallProfile;
+import android.telecomm.TelecommManager;
 import android.util.Log;
+import android.widget.Toast;
+
+import java.util.List;
 
 /**
  * Class used to create, update and cancel the notification used to display and update call state
@@ -35,9 +40,10 @@ public class CallServiceNotifier {
     private static final CallServiceNotifier INSTANCE = new CallServiceNotifier();
 
     /**
-     * Static notification id.
+     * Static notification IDs.
      */
     private static final int CALL_NOTIFICATION_ID = 1;
+    private static final int PHONE_ACCOUNT_NOTIFICATION_ID = 2;
 
     /**
      * Whether the added call should be started as a video call. Referenced by
@@ -63,15 +69,45 @@ public class CallServiceNotifier {
      */
     public void updateNotification(Context context) {
         log("adding the notification ------------");
-        getNotificationManager(context).notify(CALL_NOTIFICATION_ID, getNotification(context));
+        getNotificationManager(context).notify(CALL_NOTIFICATION_ID, getMainNotification(context));
+        getNotificationManager(context).notify(
+                PHONE_ACCOUNT_NOTIFICATION_ID, getPhoneAccountNotification(context));
     }
 
     /**
      * Cancels the notification.
      */
-    public void cancelNotification(Context context) {
+    public void cancelNotifications(Context context) {
         log("canceling notification");
         getNotificationManager(context).cancel(CALL_NOTIFICATION_ID);
+        getNotificationManager(context).cancel(PHONE_ACCOUNT_NOTIFICATION_ID);
+    }
+
+    /**
+     * Registers a phone account with telecomm.
+     */
+    public void registerPhoneAccount(Context context) {
+        PhoneAccount phoneAccount = new PhoneAccount(
+                new ComponentName(context, TestConnectionService.class),
+                "testapps_TestConnectionService_Account_ID",
+                Uri.parse("tel:555-TEST"),
+                PhoneAccount.CAPABILITY_CALL_PROVIDER);
+        PhoneAccountMetadata metadata = new PhoneAccountMetadata(phoneAccount, 0, null, null);
+
+        TelecommManager telecommManager =
+                (TelecommManager) context.getSystemService(Context.TELECOMM_SERVICE);
+        telecommManager.registerPhoneAccount(phoneAccount, metadata);
+    }
+
+    /**
+     * Displays all phone accounts registered with telecomm.
+     */
+    public void showAllPhoneAccounts(Context context) {
+        TelecommManager telecommManager =
+                (TelecommManager) context.getSystemService(Context.TELECOMM_SERVICE);
+        List<PhoneAccount> accounts = telecommManager.getEnabledPhoneAccounts();
+
+        Toast.makeText(context, accounts.toString(), Toast.LENGTH_LONG).show();
     }
 
     /**
@@ -82,9 +118,31 @@ public class CallServiceNotifier {
     }
 
     /**
+     * Creates a notification object for using the telecomm APIs.
+     */
+    private Notification getPhoneAccountNotification(Context context) {
+        final Notification.Builder builder = new Notification.Builder(context);
+        builder.setOngoing(true);
+        builder.setPriority(Notification.PRIORITY_HIGH);
+
+        final PendingIntent intent = createShowAllPhoneAccountsIntent(context);
+        builder.setContentIntent(intent);
+
+        builder.setSmallIcon(android.R.drawable.stat_sys_phone_call);
+        // TODO: Consider moving this into a strings.xml
+        builder.setContentText("Test phone accounts via telecomm APIs.");
+        builder.setContentTitle("Test Phone Accounts");
+
+        addRegisterPhoneAccountAction(builder, context);
+        addShowAllPhoneAccountsAction(builder, context);
+
+        return builder.build();
+    }
+
+    /**
      * Creates a notification object out of the current calls state.
      */
-    private Notification getNotification(Context context) {
+    private Notification getMainNotification(Context context) {
         final Notification.Builder builder = new Notification.Builder(context);
         builder.setOngoing(true);
         builder.setPriority(Notification.PRIORITY_HIGH);
@@ -110,6 +168,24 @@ public class CallServiceNotifier {
         final Intent intent = new Intent(CallNotificationReceiver.ACTION_CALL_SERVICE_EXIT, null,
                 context, CallNotificationReceiver.class);
 
+        return PendingIntent.getBroadcast(context, 0, intent, 0);
+    }
+
+    /**
+     * Creates the intent to register a phone account.
+     */
+    private PendingIntent createRegisterPhoneAccountIntent(Context context) {
+        final Intent intent = new Intent(CallNotificationReceiver.ACTION_REGISTER_PHONE_ACCOUNT,
+                null, context, CallNotificationReceiver.class);
+        return PendingIntent.getBroadcast(context, 0, intent, 0);
+    }
+
+    /**
+     * Creates the intent to show all phone accounts.
+     */
+    private PendingIntent createShowAllPhoneAccountsIntent(Context context) {
+        final Intent intent = new Intent(CallNotificationReceiver.ACTION_SHOW_ALL_PHONE_ACCOUNTS,
+                null, context, CallNotificationReceiver.class);
         return PendingIntent.getBroadcast(context, 0, intent, 0);
     }
 
@@ -158,6 +234,20 @@ public class CallServiceNotifier {
      */
     private void addExitAction(Notification.Builder builder, Context context) {
         builder.addAction(0, "Exit", createExitIntent(context));
+    }
+
+    /**
+     * Adds an action to show all registered phone accounts on a device.
+     */
+    private void addShowAllPhoneAccountsAction(Notification.Builder builder, Context context) {
+        builder.addAction(0, "Show Accts", createShowAllPhoneAccountsIntent(context));
+    }
+
+    /**
+     * Adds an action to register a new phone account.
+     */
+    private void addRegisterPhoneAccountAction(Notification.Builder builder, Context context) {
+        builder.addAction(0, "Reg.Acct.", createRegisterPhoneAccountIntent(context));
     }
 
     public boolean shouldStartVideoCall() {

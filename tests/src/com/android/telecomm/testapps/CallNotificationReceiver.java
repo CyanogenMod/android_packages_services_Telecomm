@@ -30,14 +30,22 @@ public class CallNotificationReceiver extends BroadcastReceiver {
      * TestConnectionService notification. Used to cancel (remove) the notification.
      */
     static final String ACTION_CALL_SERVICE_EXIT =
-            "com.android.telecomm.testcallservice.ACTION_CALL_SERVICE_EXIT";
+            "com.android.telecomm.testapps.ACTION_CALL_SERVICE_EXIT";
+    static final String ACTION_REGISTER_PHONE_ACCOUNT =
+            "com.android.telecomm.testapps.ACTION_REGISTER_PHONE_ACCOUNT";
+    static final String ACTION_SHOW_ALL_PHONE_ACCOUNTS =
+            "com.android.telecomm.testapps.ACTION_SHOW_ALL_PHONE_ACCOUNTS";
 
     /** {@inheritDoc} */
     @Override
     public void onReceive(Context context, Intent intent) {
         String action = intent.getAction();
         if (ACTION_CALL_SERVICE_EXIT.equals(action)) {
-            CallServiceNotifier.getInstance().cancelNotification(context);
+            CallServiceNotifier.getInstance().cancelNotifications(context);
+        } else if (ACTION_REGISTER_PHONE_ACCOUNT.equals(action)) {
+            CallServiceNotifier.getInstance().registerPhoneAccount(context);
+        } else if (ACTION_SHOW_ALL_PHONE_ACCOUNTS.equals(action)) {
+            CallServiceNotifier.getInstance().showAllPhoneAccounts(context);
         }
     }
 }
