@@ -43,7 +43,6 @@ import com.android.internal.telephony.CallerInfoAsyncQuery.OnQueryCompleteListen
 import com.android.internal.telephony.SmsApplication;
 import com.android.telecomm.ContactsAsyncHelper.OnImageLoadCompleteListener;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Sets;
 
 import java.util.Collections;
 import java.util.LinkedList;
@@ -51,6 +50,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 /**
  *  Encapsulates all aspects of a given phone call throughout its lifecycle, starting
@@ -216,7 +216,7 @@ final class Call implements CreateConnectionResponse {
     private Bundle mExtras = Bundle.EMPTY;
 
     /** Set of listeners on this call. */
-    private Set<Listener> mListeners = Sets.newHashSet();
+    private Set<Listener> mListeners = new CopyOnWriteArraySet<>();
 
     private CreateConnectionProcessor mCreateConnectionProcessor;
 
