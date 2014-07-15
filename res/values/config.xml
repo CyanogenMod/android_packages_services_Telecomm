@@ -35,4 +35,7 @@
 
     <!-- Class name for the default main dialer activity [DO NOT TRANSLATE] -->
     <string name="dialer_default_class" translatable="false">com.android.dialer.DialtactsActivity</string>
+
+    <!-- Flag indicating if the tty is enabled -->
+    <bool name="tty_enabled">false</bool>
 </resources>
