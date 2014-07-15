@@ -90,6 +90,11 @@ public final class InCallController extends CallsManagerListenerBase {
         public void onCallerDisplayNameChanged(Call call) {
             updateCall(call);
         }
+
+        @Override
+        public void onVideoStateChanged(Call call) {
+            updateCall(call);
+        }
     };
 
     /** Maintains a binding connection to the in-call app. */
@@ -319,6 +324,6 @@ public final class InCallController extends CallsManagerListenerBase {
                 call.getHandlePresentation(), callerDisplayName,
                 call.getCallerDisplayNamePresentation(), call.getGatewayInfo(),
                 call.getPhoneAccount(), call.getCallVideoProvider(), parentCallId, childCallIds,
-                call.getStatusHints());
+                call.getStatusHints() , call.getVideoState());
     }
 }

@@ -81,6 +81,7 @@ final class Call implements CreateConnectionResponse {
         void onStatusHintsChanged(Call call);
         void onHandleChanged(Call call);
         void onCallerDisplayNameChanged(Call call);
+        void onVideoStateChanged(Call call);
     }
 
     abstract static class ListenerBase implements Listener {
@@ -122,6 +123,8 @@ final class Call implements CreateConnectionResponse {
         public void onHandleChanged(Call call) {}
         @Override
         public void onCallerDisplayNameChanged(Call call) {}
+        @Override
+        public void onVideoStateChanged(Call call) {}
     }
 
     private static final OnQueryCompleteListener sCallerInfoQueryListener =
@@ -1067,6 +1070,9 @@ final class Call implements CreateConnectionResponse {
      */
     public void setVideoState(int videoState) {
         mVideoState = videoState;
+        for (Listener l : mListeners) {
+            l.onVideoStateChanged(this);
+        }
     }
 
     public boolean getAudioModeIsVoip() {

@@ -16,7 +16,6 @@
 
 package com.android.telecomm;
 
-import android.net.Uri;
 import android.telecomm.CallAudioState;
 import android.telecomm.CallState;
 
@@ -69,5 +68,9 @@ class CallsManagerListenerBase implements CallsManager.CallsManagerListener {
 
     @Override
     public void onAudioModeIsVoipChanged(Call call) {
+    }
+
+    @Override
+    public void onVideoStateChanged(Call call) {
     }
 }
