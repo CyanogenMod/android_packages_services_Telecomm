@@ -57,7 +57,7 @@ import java.util.Set;
  *  from the time the call intent was received by Telecomm (vs. the time the call was
  *  connected etc).
  */
-final class Call implements OutgoingCallResponse {
+final class Call implements CreateConnectionResponse {
     /**
      * Listener for events on the call.
      */
@@ -147,14 +147,19 @@ final class Call implements OutgoingCallResponse {
                 }
             };
 
+    private final Runnable mDirectToVoicemailRunnable = new Runnable() {
+        @Override
+        public void run() {
+            processDirectToVoicemail();
+        }
+    };
+
     /** True if this is an incoming call. */
     private final boolean mIsIncoming;
 
     /**
-     * The time this call was created, typically also the time this call was added to the set
-     * of pending outgoing calls (mPendingOutgoingCalls) that's maintained by the switchboard.
-     * Beyond logging and such, may also be used for bookkeeping and specifically for marking
-     * certain call attempts as failed attempts.
+     * The time this call was created. Beyond logging and such, may also be used for bookkeeping
+     * and specifically for marking certain call attempts as failed attempts.
      */
     private final long mCreationTimeMillis = System.currentTimeMillis();
 
@@ -213,7 +218,7 @@ final class Call implements OutgoingCallResponse {
     /** Set of listeners on this call. */
     private Set<Listener> mListeners = Sets.newHashSet();
 
-    private OutgoingCallProcessor mOutgoingCallProcessor;
+    private CreateConnectionProcessor mCreateConnectionProcessor;
 
     /** Caller information retrieved from the latest contact query. */
     private CallerInfo mCallerInfo;
@@ -245,6 +250,7 @@ final class Call implements OutgoingCallResponse {
 
     private boolean mAudioModeIsVoip;
     private StatusHints mStatusHints;
+    private final ConnectionServiceRepository mRepository;
 
     /**
      * Persists the specified parameters and initializes the new instance.
@@ -254,9 +260,15 @@ final class Call implements OutgoingCallResponse {
      * @param account Account information to use for the call.
      * @param isIncoming True if this is an incoming call.
      */
-    Call(Uri handle, GatewayInfo gatewayInfo, PhoneAccount account,
-            boolean isIncoming, boolean isConference) {
+    Call(
+            ConnectionServiceRepository repository,
+            Uri handle,
+            GatewayInfo gatewayInfo,
+            PhoneAccount account,
+            boolean isIncoming,
+            boolean isConference) {
         mState = isConference ? CallState.ACTIVE : CallState.NEW;
+        mRepository = repository;
         setHandle(handle, CallPropertyPresentation.ALLOWED);
         mGatewayInfo = gatewayInfo;
         mPhoneAccount = account;
@@ -499,43 +511,7 @@ final class Call implements OutgoingCallResponse {
         }
     }
 
-    /**
-     * Starts the incoming call flow through the switchboard. When switchboard completes, it will
-     * invoke handle[Un]SuccessfulIncomingCall.
-     */
-    void startIncoming() {
-        Switchboard.getInstance().retrieveIncomingCall(this);
-    }
-
-    /**
-     * Takes a verified incoming call and uses the handle to lookup direct-to-voicemail property
-     * from the contacts provider. The call is not yet exposed to the user at this point and
-     * the result of the query will determine if the call is rejected or passed through to the
-     * in-call UI.
-     */
-    void handleVerifiedIncoming(ConnectionRequest request) {
-        mPhoneAccount = request.getAccount();
-
-        // We do not handle incoming calls immediately when they are verified by the connection
-        // service. We allow the caller-info-query code to execute first so that we can read the
-        // direct-to-voicemail property before deciding if we want to show the incoming call to the
-        // user or if we want to reject the call.
-        mDirectToVoicemailQueryPending = true;
-
-        // Setting the handle triggers the caller info lookup code.
-        setHandle(request.getHandle(), CallPropertyPresentation.ALLOWED);
-
-        // Timeout the direct-to-voicemail lookup execution so that we dont wait too long before
-        // showing the user the incoming call screen.
-        mHandler.postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                processDirectToVoicemail();
-            }
-        }, Timeouts.getDirectToVoicemailMillis());
-    }
-
-    void processDirectToVoicemail() {
+    private void processDirectToVoicemail() {
         if (mDirectToVoicemailQueryPending) {
             if (mCallerInfo != null && mCallerInfo.shouldSendToVoicemail) {
                 Log.i(this, "Directing call to voicemail: %s.", this);
@@ -557,60 +533,81 @@ final class Call implements OutgoingCallResponse {
         }
     }
 
-    void handleFailedIncoming() {
-        clearConnectionService();
-
-        // TODO: Needs more specific disconnect error for this case.
-        setDisconnectCause(DisconnectCause.ERROR_UNSPECIFIED, null);
-        setState(CallState.DISCONNECTED);
-
-        // TODO(santoscordon): Replace this with state transitions related to "connecting".
-        for (Listener l : mListeners) {
-            l.onFailedIncomingCall(this);
-        }
-    }
-
     /**
-     * Starts the outgoing call sequence.  Upon completion, there should exist an active connection
-     * through a connection service (or the call will have failed).
+     * Starts the create connection sequence. Upon completion, there should exist an active
+     * connection through a connection service (or the call will have failed).
      */
-    void startOutgoing() {
-        Preconditions.checkState(mOutgoingCallProcessor == null);
-
-        mOutgoingCallProcessor = new OutgoingCallProcessor(
-                this, Switchboard.getInstance().getConnectionServiceRepository(), this);
-        mOutgoingCallProcessor.process();
+    void startCreateConnection() {
+        Preconditions.checkState(mCreateConnectionProcessor == null);
+        mCreateConnectionProcessor = new CreateConnectionProcessor(this, mRepository, this);
+        mCreateConnectionProcessor.process();
     }
 
     @Override
-    public void onOutgoingCallSuccess() {
-        // TODO(santoscordon): Replace this with state transitions related to "connecting".
-        for (Listener l : mListeners) {
-            l.onSuccessfulOutgoingCall(this);
+    public void handleCreateConnectionSuccessful(ConnectionRequest request) {
+        mCreateConnectionProcessor = null;
+        mPhoneAccount = request.getAccount();
+
+        if (mIsIncoming) {
+            // We do not handle incoming calls immediately when they are verified by the connection
+            // service. We allow the caller-info-query code to execute first so that we can read the
+            // direct-to-voicemail property before deciding if we want to show the incoming call to
+            // the user or if we want to reject the call.
+            mDirectToVoicemailQueryPending = true;
+
+            // Setting the handle triggers the caller info lookup code.
+            setHandle(request.getHandle(), request.getHandlePresentation());
+
+            // Timeout the direct-to-voicemail lookup execution so that we dont wait too long before
+            // showing the user the incoming call screen.
+            mHandler.postDelayed(mDirectToVoicemailRunnable, Timeouts.getDirectToVoicemailMillis());
+        } else {
+            for (Listener l : mListeners) {
+                l.onSuccessfulOutgoingCall(this);
+            }
         }
-        mOutgoingCallProcessor = null;
     }
 
     @Override
-    public void onOutgoingCallFailure(int code, String msg) {
-        // TODO(santoscordon): Replace this with state transitions related to "connecting".
-        for (Listener l : mListeners) {
-            l.onFailedOutgoingCall(this, code, msg);
-        }
+    public void handleCreateConnectionFailed(int code, String msg) {
+        mCreateConnectionProcessor = null;
+        if (mIsIncoming) {
+            clearConnectionService();
+            setDisconnectCause(code, null);
+            setState(CallState.DISCONNECTED);
 
-        clearConnectionService();
-        mOutgoingCallProcessor = null;
+            Listener[] listeners = mListeners.toArray(new Listener[mListeners.size()]);
+            for (int i = 0; i < listeners.length; i++) {
+                listeners[i].onFailedIncomingCall(this);
+            }
+        } else {
+            Listener[] listeners = mListeners.toArray(new Listener[mListeners.size()]);
+            for (int i = 0; i < listeners.length; i++) {
+                listeners[i].onFailedOutgoingCall(this, code, msg);
+            }
+            clearConnectionService();
+        }
     }
 
     @Override
-    public void onOutgoingCallCancel() {
-        // TODO(santoscordon): Replace this with state transitions related to "connecting".
-        for (Listener l : mListeners) {
-            l.onCancelledOutgoingCall(this);
-        }
+    public void handleCreateConnectionCancelled() {
+        mCreateConnectionProcessor = null;
+        if (mIsIncoming) {
+            clearConnectionService();
+            setDisconnectCause(DisconnectCause.ERROR_UNSPECIFIED, null);
+            setState(CallState.DISCONNECTED);
 
-        clearConnectionService();
-        mOutgoingCallProcessor = null;
+            Listener[] listeners = mListeners.toArray(new Listener[mListeners.size()]);
+            for (int i = 0; i < listeners.length; i++) {
+                listeners[i].onFailedIncomingCall(this);
+            }
+        } else {
+            Listener[] listeners = mListeners.toArray(new Listener[mListeners.size()]);
+            for (int i = 0; i < listeners.length; i++) {
+                listeners[i].onCancelledOutgoingCall(this);
+            }
+            clearConnectionService();
+        }
     }
 
     /**
@@ -656,8 +653,8 @@ final class Call implements OutgoingCallResponse {
     }
 
     void abort() {
-        if (mOutgoingCallProcessor != null) {
-            mOutgoingCallProcessor.abort();
+        if (mCreateConnectionProcessor != null) {
+            mCreateConnectionProcessor.abort();
         }
     }
 

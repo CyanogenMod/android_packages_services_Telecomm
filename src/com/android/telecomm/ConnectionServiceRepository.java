@@ -32,12 +32,10 @@ import java.util.HashMap;
  */
 final class ConnectionServiceRepository
         implements ServiceBinder.Listener<ConnectionServiceWrapper> {
-    private final IncomingCallsManager mIncomingCallsManager;
     private final HashMap<ComponentName, ConnectionServiceWrapper> mServiceCache =
             new HashMap<ComponentName, ConnectionServiceWrapper>();
 
-    ConnectionServiceRepository(IncomingCallsManager incomingCallsManager) {
-        mIncomingCallsManager = incomingCallsManager;
+    ConnectionServiceRepository() {
     }
 
     Collection<ConnectionServiceWrapper> lookupServices() {
@@ -58,7 +56,7 @@ final class ConnectionServiceRepository
     ConnectionServiceWrapper getService(ComponentName componentName) {
         ConnectionServiceWrapper service = mServiceCache.get(componentName);
         if (service == null) {
-            service = new ConnectionServiceWrapper(componentName, mIncomingCallsManager, this);
+            service = new ConnectionServiceWrapper(componentName, this);
             service.addListener(this);
             mServiceCache.put(componentName, service);
         }

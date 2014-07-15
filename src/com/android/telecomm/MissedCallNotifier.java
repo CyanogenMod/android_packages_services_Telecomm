@@ -279,7 +279,7 @@ class MissedCallNotifier extends CallsManagerListenerBase {
                         }
 
                         // Convert the data to a call object
-                        Call call = new Call(null, null, null, true, false);
+                        Call call = new Call(null, null, null, null, true, false);
                         call.setDisconnectCause(DisconnectCause.INCOMING_MISSED, "");
                         call.setState(CallState.DISCONNECTED);
 

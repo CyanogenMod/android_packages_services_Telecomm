@@ -67,6 +67,8 @@ public final class CallsManager extends Call.ListenerBase {
      */
     private final Set<Call> mCalls = new CopyOnWriteArraySet<Call>();
 
+    private final ConnectionServiceRepository mConnectionServiceRepository =
+            new ConnectionServiceRepository();
     private final DtmfLocalTonePlayer mDtmfLocalTonePlayer = new DtmfLocalTonePlayer();
     private final InCallController mInCallController = new InCallController();
     private final CallAudioManager mCallAudioManager;
@@ -230,9 +232,7 @@ public final class CallsManager extends Call.ListenerBase {
     }
 
     /**
-     * Starts the incoming call sequence by having switchboard gather more information about the
-     * specified call; using the specified connection service component name. Upon success,
-     * execution returns to {@link #onSuccessfulIncomingCall} to start the in-call UI.
+     * Starts the process to attach the call to a connection service.
      *
      * @param phoneAccount The phone account which contains the component name of the connection
      *                     serivce to use for this call.
@@ -240,16 +240,20 @@ public final class CallsManager extends Call.ListenerBase {
      */
     void processIncomingCallIntent(PhoneAccount phoneAccount, Bundle extras) {
         Log.d(this, "processIncomingCallIntent");
-        // Create a call with no handle. Eventually, switchboard will update the call with
-        // additional information from the connection service, but for now we just need one to pass
-        // around.
+        // Create a call with no handle. The handle is eventually set when the call is attached
+        // to a connection service.
         Call call = new Call(
-                null, null, phoneAccount, true /* isIncoming */, false /* isConference */);
+                mConnectionServiceRepository,
+                null /* handle */,
+                null /* gatewayInfo */,
+                phoneAccount,
+                true /* isIncoming */,
+                false /* isConference */);
+
         call.setExtras(extras);
         // TODO(santoscordon): Move this to be a part of addCall()
         call.addListener(this);
-
-        call.startIncoming();
+        call.startCreateConnection();
     }
 
     /**
@@ -275,15 +279,19 @@ public final class CallsManager extends Call.ListenerBase {
         }
 
         Call call = new Call(
-                uriHandle, gatewayInfo, account, false /* isIncoming */, false /* isConference */);
+                mConnectionServiceRepository,
+                uriHandle,
+                gatewayInfo,
+                account,
+                false /* isIncoming */,
+                false /* isConference */);
         call.setStartWithSpeakerphoneOn(speakerphoneOn);
         call.setVideoState(videoState);
 
         // TODO(santoscordon): Move this to be a part of addCall()
         call.addListener(this);
         addCall(call);
-
-        call.startOutgoing();
+        call.startCreateConnection();
     }
 
     /**
@@ -293,7 +301,12 @@ public final class CallsManager extends Call.ListenerBase {
      */
     void conference(Call call) {
         Call conferenceCall = new Call(
-                null, null, null, false /* isIncoming */, true /* isConference */);
+                mConnectionServiceRepository,
+                null /* handle */,
+                null /* gatewayInfo */,
+                null /* phoneAccount */,
+                false /* isIncoming */,
+                true /* isConference */);
         conferenceCall.addListener(this);
         call.conferenceInto(conferenceCall);
     }
