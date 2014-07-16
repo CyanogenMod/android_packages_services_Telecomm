@@ -344,8 +344,11 @@ public final class CallsManager extends Call.ListenerBase {
      * Instructs Telecomm to answer the specified call. Intended to be invoked by the in-call
      * app through {@link InCallAdapter} after Telecomm notifies it of an incoming call followed by
      * the user opting to answer said call.
+     *
+     * @param call The call to answer.
+     * @param videoState The video state in which to answer the call.
      */
-    void answerCall(Call call) {
+    void answerCall(Call call, int videoState) {
         if (!mCalls.contains(call)) {
             Log.i(this, "Request to answer a non-existent call %s", call);
         } else {
@@ -368,7 +371,7 @@ public final class CallsManager extends Call.ListenerBase {
 
             // We do not update the UI until we get confirmation of the answer() through
             // {@link #markCallAsActive}.
-            call.answer();
+            call.answer(videoState);
         }
     }
 
@@ -577,7 +580,7 @@ public final class CallsManager extends Call.ListenerBase {
                     mCallAudioManager.toggleMute();
                     return true;
                 } else {
-                    ringingCall.answer();
+                    ringingCall.answer(ringingCall.getVideoState());
                     return true;
                 }
             } else if (HeadsetMediaButton.LONG_PRESS == type) {

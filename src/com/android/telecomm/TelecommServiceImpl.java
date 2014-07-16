@@ -298,7 +298,7 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
     private void acceptRingingCallInternal() {
         Call call = mCallsManager.getFirstCallWithState(CallState.RINGING);
         if (call != null) {
-            call.answer();
+            call.answer(call.getVideoState());
         }
     }
 

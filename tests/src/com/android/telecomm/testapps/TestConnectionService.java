@@ -149,9 +149,9 @@ public class TestConnectionService extends ConnectionService {
 
         /** ${inheritDoc} */
         @Override
-        protected void onAnswer() {
+        protected void onAnswer(int videoState) {
             if (mRemoteConnection != null) {
-                mRemoteConnection.answer();
+                mRemoteConnection.answer(videoState);
             } else {
                 activateCall(this);
                 setActive();
