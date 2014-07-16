@@ -22,12 +22,14 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.media.AudioManager;
 
-/**
- * Listens for and caches headset state.  Used By the CallAudioManger for maintaining
- * overall audio state for use in the UI layer. Also provides method for connecting the bluetooth
- * headset to the phone call.
- */
+import java.util.HashSet;
+
+/** Listens for and caches headset state. */
 class WiredHeadsetManager {
+    interface Listener {
+        void onWiredHeadsetPluggedInChanged(boolean oldIsPluggedIn, boolean newIsPluggedIn);
+    }
+
     /** Receiver for wired headset plugged and unplugged events. */
     private class WiredHeadsetBroadcastReceiver extends BroadcastReceiver {
         @Override
@@ -41,21 +43,27 @@ class WiredHeadsetManager {
         }
     }
 
-    private final CallAudioManager mCallAudioManager;
     private final WiredHeadsetBroadcastReceiver mReceiver;
     private boolean mIsPluggedIn;
+    private final HashSet<Listener> mListeners = new HashSet<>();
 
-    WiredHeadsetManager(CallAudioManager callAudioManager) {
-        mCallAudioManager = callAudioManager;
+    WiredHeadsetManager(Context context) {
         mReceiver = new WiredHeadsetBroadcastReceiver();
 
-        Context context = TelecommApp.getInstance();
         AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
         mIsPluggedIn = audioManager.isWiredHeadsetOn();
 
         // Register for misc other intent broadcasts.
         IntentFilter intentFilter = new IntentFilter(Intent.ACTION_HEADSET_PLUG);
         context.registerReceiver(mReceiver, intentFilter);
+    }
+
+    void addListener(Listener listener) {
+        mListeners.add(listener);
+    }
+
+    void removeListener(Listener listener) {
+        mListeners.remove(listener);
     }
 
     boolean isPluggedIn() {
@@ -68,7 +76,9 @@ class WiredHeadsetManager {
                     isPluggedIn);
             boolean oldIsPluggedIn = mIsPluggedIn;
             mIsPluggedIn = isPluggedIn;
-            mCallAudioManager.onHeadsetPluggedInChanged(oldIsPluggedIn, mIsPluggedIn);
+            for (Listener listener : mListeners) {
+                listener.onWiredHeadsetPluggedInChanged(oldIsPluggedIn, mIsPluggedIn);
+            }
         }
     }
 }
