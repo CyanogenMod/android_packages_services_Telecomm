@@ -55,11 +55,9 @@ final class HeadsetMediaButton extends CallsManagerListenerBase {
     HeadsetMediaButton(Context context, CallsManager callsManager) {
         mCallsManager = callsManager;
 
-        // Register a MediaSession but don't enable it yet. This is a
+        // Create a MediaSession but don't enable it yet. This is a
         // replacement for MediaButtonReceiver
-        MediaSessionManager msm =
-                (MediaSessionManager) context.getSystemService(Context.MEDIA_SESSION_SERVICE);
-        mSession = msm.createSession(HeadsetMediaButton.class.getSimpleName());
+        mSession = new MediaSession(context, HeadsetMediaButton.class.getSimpleName());
         mSession.addCallback(mSessionCallback);
         mSession.setFlags(MediaSession.FLAG_EXCLUSIVE_GLOBAL_PRIORITY
                 | MediaSession.FLAG_HANDLES_MEDIA_BUTTONS);
