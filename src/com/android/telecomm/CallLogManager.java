@@ -250,7 +250,7 @@ final class CallLogManager extends CallsManagerListenerBase {
                     // May block.
                     result[i] = Calls.addCall(c.callerInfo, c.context, c.number, c.presentation,
                             c.callType, c.features, c.accountHandle, c.timestamp, c.durationInSec,
-                            c.dataUsage);
+                            c.dataUsage, true /* addForAllUsers */);
                 } catch (Exception e) {
                     // This is very rare but may happen in legitimate cases.
                     // E.g. If the phone is encrypted and thus write request fails, it may cause
