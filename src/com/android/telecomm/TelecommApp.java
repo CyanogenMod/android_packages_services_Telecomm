@@ -33,14 +33,21 @@ public final class TelecommApp extends Application {
      */
     private MissedCallNotifier mMissedCallNotifier;
 
+    /**
+     * Maintains the list of registered {@link PhoneAccount}s.
+     */
+    private PhoneAccountRegistrar mPhoneAccountRegistrar;
+
     /** {@inheritDoc} */
     @Override public void onCreate() {
         super.onCreate();
         sInstance = this;
 
         mMissedCallNotifier = new MissedCallNotifier(this);
+        mPhoneAccountRegistrar = new PhoneAccountRegistrar(this);
+
         if (UserHandle.myUserId() == UserHandle.USER_OWNER) {
-            TelecommServiceImpl.init(mMissedCallNotifier);
+            TelecommServiceImpl.init(mMissedCallNotifier, mPhoneAccountRegistrar);
         }
     }
 

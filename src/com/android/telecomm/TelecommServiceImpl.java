@@ -20,7 +20,6 @@ import android.app.AppOpsManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.res.Resources;
-import android.net.Uri;
 import android.os.Binder;
 import android.os.Handler;
 import android.os.Looper;
@@ -35,10 +34,7 @@ import android.telephony.TelephonyManager;
 
 import com.android.internal.telecomm.ITelecommService;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Implementation of the ITelecomm interface.
@@ -117,10 +113,13 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
     private final MainThreadHandler mMainThreadHandler = new MainThreadHandler();
     private final CallsManager mCallsManager = CallsManager.getInstance();
     private final MissedCallNotifier mMissedCallNotifier;
+    private final PhoneAccountRegistrar mPhoneAccountRegistrar;
     private final AppOpsManager mAppOpsManager;
 
-    private TelecommServiceImpl(MissedCallNotifier missedCallNotifier) {
+    private TelecommServiceImpl(
+            MissedCallNotifier missedCallNotifier, PhoneAccountRegistrar phoneAccountRegistrar) {
         mMissedCallNotifier = missedCallNotifier;
+        mPhoneAccountRegistrar = phoneAccountRegistrar;
         mAppOpsManager =
                 (AppOpsManager) TelecommApp.getInstance().getSystemService(Context.APP_OPS_SERVICE);
 
@@ -131,10 +130,11 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
      * Initialize the singleton TelecommServiceImpl instance.
      * This is only done once, at startup, from TelecommApp.onCreate().
      */
-    static TelecommServiceImpl init(MissedCallNotifier missedCallNotifier) {
+    static TelecommServiceImpl init(
+            MissedCallNotifier missedCallNotifier, PhoneAccountRegistrar phoneAccountRegistrar) {
         synchronized (TelecommServiceImpl.class) {
             if (sInstance == null) {
-                sInstance = new TelecommServiceImpl(missedCallNotifier);
+                sInstance = new TelecommServiceImpl(missedCallNotifier, phoneAccountRegistrar);
             } else {
                 Log.wtf(TAG, "init() called multiple times!  sInstance %s", sInstance);
             }
@@ -146,98 +146,43 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
     // Implementation of the ITelecommService interface.
     //
 
-    private static Map<PhoneAccount, PhoneAccountMetadata> sMetadataByAccount = new HashMap<>();
-
-    static {
-        // TODO (STOPSHIP): Static list of Accounts for testing and UX work only.
-        ComponentName componentName = new ComponentName(
-                "com.android.telecomm",
-                TelecommServiceImpl.class.getName());  // This field is a no-op
-        Context app = TelecommApp.getInstance();
-
-        PhoneAccount[] accounts = new PhoneAccount[] {
-                new PhoneAccount(
-                        componentName,
-                        "account0",
-                        Uri.parse("tel:999-555-1212"),
-                        0),
-                new PhoneAccount(
-                        componentName,
-                        "account1",
-                        Uri.parse("tel:333-111-2222"),
-                        0),
-                new PhoneAccount(
-                        componentName,
-                        "account2",
-                        Uri.parse("mailto:two@example.com"),
-                        0),
-                new PhoneAccount(
-                        componentName,
-                        "account3",
-                        Uri.parse("mailto:three@example.com"),
-                        0)
-        };
-
-        sMetadataByAccount.put(
-                accounts[0],
-                new PhoneAccountMetadata(
-                        accounts[0],
-                        0,
-                        app.getString(R.string.test_account_0_label),
-                        app.getString(R.string.test_account_0_short_description)));
-        sMetadataByAccount.put(
-                accounts[1],
-                new PhoneAccountMetadata(
-                        accounts[1],
-                        0,
-                        app.getString(R.string.test_account_1_label),
-                        app.getString(R.string.test_account_1_short_description)));
-        sMetadataByAccount.put(
-                accounts[2],
-                new PhoneAccountMetadata(
-                        accounts[2],
-                        0,
-                        app.getString(R.string.test_account_2_label),
-                        app.getString(R.string.test_account_2_short_description)));
-        sMetadataByAccount.put(
-                accounts[3],
-                new PhoneAccountMetadata(
-                        accounts[3],
-                        0,
-                        app.getString(R.string.test_account_3_label),
-                        app.getString(R.string.test_account_3_short_description)));
-    }
-
     @Override
     public List<PhoneAccount> getEnabledPhoneAccounts() {
-        return new ArrayList<>(sMetadataByAccount.keySet());
+        return mPhoneAccountRegistrar.getEnabledAccounts();
     }
 
     @Override
     public PhoneAccountMetadata getPhoneAccountMetadata(PhoneAccount account) {
-        return sMetadataByAccount.get(account);
+        PhoneAccount registeredAccount = mPhoneAccountRegistrar.getRegisteredAccount(account);
+        if (registeredAccount != null) {
+            return new PhoneAccountMetadata(
+                    registeredAccount, 0, account.getComponentName().getPackageName(), null);
+        }
+        return null;
     }
 
     @Override
     public void registerPhoneAccount(PhoneAccount account, PhoneAccountMetadata metadata) {
         enforceModifyPermissionOrCallingPackage(account.getComponentName().getPackageName());
-        // TODO(santoscordon) -- IMPLEMENT ...
+        mPhoneAccountRegistrar.addAccount(account);
+        // TODO(santoscordon): Implement metadata
     }
 
     @Override
     public void unregisterPhoneAccount(PhoneAccount account) {
         enforceModifyPermissionOrCallingPackage(account.getComponentName().getPackageName());
-        // TODO(santoscordon) -- IMPLEMENT ...
+        mPhoneAccountRegistrar.removeAccount(account);
     }
 
     @Override
     public void clearAccounts(String packageName) {
         enforceModifyPermissionOrCallingPackage(packageName);
-        // TODO(santoscordon) -- IMPLEMENT ...
+        // TODO(santoscordon): Is this needed?
+        Log.e(TAG, null, "Unexpected method call: clearAccounts()");
     }
 
     /**
-     * @see TelecommManager#silenceringer
+     * @see TelecommManager#silenceRinger
      */
     @Override
     public void silenceRinger() {
