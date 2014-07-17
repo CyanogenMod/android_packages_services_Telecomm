@@ -18,6 +18,7 @@ package com.android.telecomm;
 
 import android.os.Handler;
 import android.os.Message;
+import android.telecomm.PhoneAccount;
 
 import com.android.internal.os.SomeArgs;
 import com.android.internal.telecomm.IInCallAdapter;
@@ -42,6 +43,7 @@ class InCallAdapter extends IInCallAdapter.Stub {
     private static final int MSG_CONFERENCE = 11;
     private static final int MSG_SPLIT_FROM_CONFERENCE = 12;
     private static final int MSG_SWAP_WITH_BACKGROUND_CALL = 13;
+    private static final int MSG_PHONE_ACCOUNT_SELECTED = 14;
 
     private final class InCallAdapterHandler extends Handler {
         @Override
@@ -56,7 +58,7 @@ class InCallAdapter extends IInCallAdapter.Stub {
                         Log.w(this, "answerCall, unknown call id: %s", msg.obj);
                     }
                     break;
-                case MSG_REJECT_CALL:
+                case MSG_REJECT_CALL: {
                     SomeArgs args = (SomeArgs) msg.obj;
                     try {
                         call = mCallIdMapper.getCall(args.arg1);
@@ -71,6 +73,7 @@ class InCallAdapter extends IInCallAdapter.Stub {
                         args.recycle();
                     }
                     break;
+                }
                 case MSG_PLAY_DTMF_TONE:
                     call = mCallIdMapper.getCall(msg.obj);
                     if (call != null) {
@@ -129,6 +132,20 @@ class InCallAdapter extends IInCallAdapter.Stub {
                         Log.w(this, "phoneAccountClicked, unknown call id: %s", msg.obj);
                     }
                     break;
+                case MSG_PHONE_ACCOUNT_SELECTED: {
+                    SomeArgs args = (SomeArgs) msg.obj;
+                    try {
+                        call = mCallIdMapper.getCall(args.arg1);
+                        if (call != null) {
+                            mCallsManager.phoneAccountSelected(call, (PhoneAccount) args.arg2);
+                        } else {
+                            Log.w(this, "phoneAccountSelected, unknown call id: %s", args.arg1);
+                        }
+                    } finally {
+                        args.recycle();
+                    }
+                    break;
+                }
                 case MSG_MUTE:
                     mCallsManager.mute(msg.arg1 == 1);
                     break;
@@ -142,7 +159,6 @@ class InCallAdapter extends IInCallAdapter.Stub {
                     } else {
                         Log.w(this, "conference, unknown call id: %s", msg.obj);
                     }
-
                     break;
                 case MSG_SPLIT_FROM_CONFERENCE:
                     call = mCallIdMapper.getCall(msg.obj);
@@ -237,6 +253,15 @@ class InCallAdapter extends IInCallAdapter.Stub {
     public void phoneAccountClicked(String callId) {
         mCallIdMapper.checkValidCallId(callId);
         mHandler.obtainMessage(MSG_PHONE_ACCOUNT_CLICKED, callId).sendToTarget();
+    }
+
+    @Override
+    public void phoneAccountSelected(String callId, PhoneAccount account) {
+        mCallIdMapper.checkValidCallId(callId);
+        SomeArgs args = SomeArgs.obtain();
+        args.arg1 = callId;
+        args.arg2 = account;
+        mHandler.obtainMessage(MSG_PHONE_ACCOUNT_SELECTED, args).sendToTarget();
     }
 
     @Override
