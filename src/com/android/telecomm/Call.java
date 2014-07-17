@@ -16,14 +16,11 @@
 
 package com.android.telecomm;
 
-import android.content.ComponentName;
-import android.content.ContentUris;
 import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
-import android.provider.ContactsContract.Contacts;
 import android.telecomm.CallPropertyPresentation;
 import android.telecomm.CallState;
 import android.telecomm.ConnectionRequest;
@@ -31,7 +28,6 @@ import android.telecomm.GatewayInfo;
 import android.telecomm.PhoneAccount;
 import android.telecomm.Response;
 import android.telecomm.StatusHints;
-import android.telecomm.TelecommConstants;
 import android.telephony.DisconnectCause;
 import android.telephony.PhoneNumberUtils;
 import android.text.TextUtils;
@@ -202,6 +198,12 @@ final class Call implements CreateConnectionResponse {
 
     private boolean mSpeakerphoneOn;
 
+    /**
+     * Tracks the video states which were applicable over the duration of a call.
+     * See {@link android.telecomm.VideoCallProfile} for a list of valid video states.
+     */
+    private int mVideoStateHistory;
+
     private int mVideoState;
 
     /**
@@ -294,7 +296,9 @@ final class Call implements CreateConnectionResponse {
         if (mConnectionService != null && mConnectionService.getComponentName() != null) {
             component = mConnectionService.getComponentName().flattenToShortString();
         }
-        return String.format(Locale.US, "[%s, %s, %s]", mState, component, Log.piiHandle(mHandle));
+
+        return String.format(Locale.US, "[%s, %s, %s, %d]", mState, component,
+                Log.piiHandle(mHandle), getVideoState());
     }
 
     CallState getState() {
@@ -1068,15 +1072,29 @@ final class Call implements CreateConnectionResponse {
     }
 
     /**
-     * At the start of the call, determines the desired video state for the call.
+     * Returns the video states which were applicable over the duration of a call.
+     * See {@link android.telecomm.VideoCallProfile} for a list of valid video states.
+     *
+     * @return The video states applicable over the duration of the call.
+     */
+    public int getVideoStateHistory() {
+        return mVideoStateHistory;
+    }
+
+    /**
+     * Determines the current video state for the call.
+     * For an outgoing call determines the desired video state for the call.
      * Valid values: {@link android.telecomm.VideoCallProfile#VIDEO_STATE_AUDIO_ONLY},
      * {@link android.telecomm.VideoCallProfile#VIDEO_STATE_BIDIRECTIONAL},
      * {@link android.telecomm.VideoCallProfile#VIDEO_STATE_TX_ENABLED},
      * {@link android.telecomm.VideoCallProfile#VIDEO_STATE_RX_ENABLED}.
      *
-     * @param videoState The desired video state for the call.
+     * @param videoState The video state for the call.
      */
     public void setVideoState(int videoState) {
+        // Track which video states were applicable over the duration of the call.
+        mVideoStateHistory = mVideoStateHistory | videoState;
+
         mVideoState = videoState;
         for (Listener l : mListeners) {
             l.onVideoStateChanged(this);

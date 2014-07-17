@@ -76,6 +76,7 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
     private static final int MSG_SET_STATUS_HINTS = 18;
     private static final int MSG_SET_HANDLE = 19;
     private static final int MSG_SET_CALLER_DISPLAY_NAME = 20;
+    private static final int MSG_SET_VIDEO_STATE = 21;
 
     private final Handler mHandler = new Handler() {
         @Override
@@ -308,6 +309,12 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                     }
                     break;
                 }
+                case MSG_SET_VIDEO_STATE: {
+                    call = mCallIdMapper.getCall(msg.obj);
+                    if (call != null) {
+                        call.setVideoState(msg.arg1);
+                    }
+                }
             }
         }
     };
@@ -441,6 +448,13 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
         public void queryRemoteConnectionServices(RemoteServiceCallback callback) {
             logIncoming("queryRemoteCSs");
             mHandler.obtainMessage(MSG_QUERY_REMOTE_CALL_SERVICES, callback).sendToTarget();
+        }
+
+        @Override
+        public void setVideoState(String callId, int videoState) {
+            logIncoming("setVideoState %s %d", callId, videoState);
+            mCallIdMapper.checkValidCallId(callId);
+            mHandler.obtainMessage(MSG_SET_VIDEO_STATE, videoState, 0, callId).sendToTarget();
         }
 
         @Override

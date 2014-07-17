@@ -17,8 +17,12 @@
 package com.android.telecomm.testapps;
 
 import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.os.Bundle;
+import android.telecomm.PhoneAccount;
+import android.telecomm.TelecommConstants;
 
 /**
  * This class receives the notification callback intents used to update call states for
@@ -35,6 +39,10 @@ public class CallNotificationReceiver extends BroadcastReceiver {
             "com.android.telecomm.testapps.ACTION_REGISTER_PHONE_ACCOUNT";
     static final String ACTION_SHOW_ALL_PHONE_ACCOUNTS =
             "com.android.telecomm.testapps.ACTION_SHOW_ALL_PHONE_ACCOUNTS";
+    static final String ACTION_VIDEO_CALL =
+            "com.android.telecomm.testapps.ACTION_VIDEO_CALL";
+    static final String ACTION_AUDIO_CALL =
+            "com.android.telecomm.testapps.ACTION_AUDIO_CALL";
 
     /** {@inheritDoc} */
     @Override
@@ -46,6 +54,40 @@ public class CallNotificationReceiver extends BroadcastReceiver {
             CallServiceNotifier.getInstance().registerPhoneAccount(context);
         } else if (ACTION_SHOW_ALL_PHONE_ACCOUNTS.equals(action)) {
             CallServiceNotifier.getInstance().showAllPhoneAccounts(context);
+        } else if (ACTION_VIDEO_CALL.equals(action)) {
+            sendIncomingCallIntent(context, true);
+        } else if (ACTION_AUDIO_CALL.equals(action)) {
+            sendIncomingCallIntent(context, false);
         }
+    }
+
+    /**
+     * Creates the intent to add an incoming call through Telecomm.
+     *
+     * @param context The current context.
+     * @param isVideoCall {@code True} if this is a video call.
+     */
+    private void sendIncomingCallIntent(Context context, boolean isVideoCall) {
+        // Create intent for adding an incoming call.
+        Intent intent = new Intent(TelecommConstants.ACTION_INCOMING_CALL);
+        // TODO(santoscordon): Use a private @hide permission to make sure this only goes to
+        // Telecomm instead of setting the package explicitly.
+        intent.setPackage("com.android.telecomm");
+
+        PhoneAccount phoneAccount = new PhoneAccount(
+                new ComponentName(context, TestConnectionService.class),
+                null /* id */,
+                null /* handle */,
+                PhoneAccount.CAPABILITY_CALL_PROVIDER);
+        intent.putExtra(TelecommConstants.EXTRA_PHONE_ACCOUNT, phoneAccount);
+
+        // For the purposes of testing, indicate whether the incoming call is a video call by
+        // stashing an indicator in the EXTRA_INCOMING_CALL_EXTRAS.
+        Bundle extras = new Bundle();
+        extras.putBoolean(TestConnectionService.IS_VIDEO_CALL, isVideoCall);
+
+        intent.putExtra(TelecommConstants.EXTRA_INCOMING_CALL_EXTRAS, extras);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        context.startActivity(intent);
     }
 }

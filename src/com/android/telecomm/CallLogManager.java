@@ -22,6 +22,7 @@ import android.os.AsyncTask;
 import android.provider.CallLog.Calls;
 import android.telecomm.CallState;
 import android.telecomm.PhoneAccount;
+import android.telecomm.VideoCallProfile;
 import android.telephony.PhoneNumberUtils;
 
 import com.android.internal.telephony.CallerInfo;
@@ -120,9 +121,10 @@ final class CallLogManager extends CallsManagerListenerBase {
         final int presentation = getPresentation(call);
         final PhoneAccount account = call.getPhoneAccount();
 
-        // TODO: Once features and data usage are available, wire them up here.
-        logCall(call.getCallerInfo(), logNumber, presentation, callLogType, Calls.FEATURES_NONE,
-                account, creationTime, age, null);
+        // TODO(vt): Once data usage is available, wire it up here.
+        int callFeatures = getCallFeatures(call.getVideoStateHistory());
+        logCall(call.getCallerInfo(), logNumber, presentation, callLogType, callFeatures, account,
+                creationTime, age, null);
     }
 
     /**
@@ -168,6 +170,20 @@ final class CallLogManager extends CallsManagerListenerBase {
         } else {
           Log.d(TAG, "Not adding emergency call to call log.");
         }
+    }
+
+    /**
+     * Based on the video state of the call, determines the call features applicable for the call.
+     *
+     * @param videoState The video state.
+     * @return The call features.
+     */
+    private static int getCallFeatures(int videoState) {
+        if ((videoState & VideoCallProfile.VIDEO_STATE_TX_ENABLED)
+                == VideoCallProfile.VIDEO_STATE_TX_ENABLED) {
+            return Calls.FEATURES_VIDEO;
+        }
+        return Calls.FEATURES_NONE;
     }
 
     /**
