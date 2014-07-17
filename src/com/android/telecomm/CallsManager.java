@@ -63,7 +63,7 @@ public final class CallsManager extends Call.ListenerBase {
     private static final CallsManager INSTANCE = new CallsManager();
 
     /** Temporary flag for disabling account selection menu */
-    public static final boolean ENABLE_ACCOUNT_SELECT = true;
+    public static final boolean ENABLE_ACCOUNT_SELECT = false;
 
     /**
      * The main call repository. Keeps an instance of all live calls. New incoming and outgoing
