@@ -76,6 +76,8 @@ public final class CallsManager extends Call.ListenerBase {
     private final Ringer mRinger;
     private final Set<CallsManagerListener> mListeners = new HashSet<>();
     private final HeadsetMediaButton mHeadsetMediaButton;
+    private final WiredHeadsetManager mWiredHeadsetManager;
+    private final TtyManager mTtyManager;
 
     /**
      * The call the user is currently interacting with. This is the call that should have audio
@@ -95,10 +97,12 @@ public final class CallsManager extends Call.ListenerBase {
         TelecommApp app = TelecommApp.getInstance();
 
         StatusBarNotifier statusBarNotifier = new StatusBarNotifier(app, this);
-        mCallAudioManager = new CallAudioManager(app, statusBarNotifier);
+        mWiredHeadsetManager = new WiredHeadsetManager(app);
+        mCallAudioManager = new CallAudioManager(app, statusBarNotifier, mWiredHeadsetManager);
         InCallTonePlayer.Factory playerFactory = new InCallTonePlayer.Factory(mCallAudioManager);
         mRinger = new Ringer(mCallAudioManager, this, playerFactory, app);
         mHeadsetMediaButton = new HeadsetMediaButton(app, this);
+        mTtyManager = new TtyManager(app, mWiredHeadsetManager);
 
         mListeners.add(statusBarNotifier);
         mListeners.add(new CallLogManager(app));
@@ -237,6 +241,14 @@ public final class CallsManager extends Call.ListenerBase {
 
     CallAudioState getAudioState() {
         return mCallAudioManager.getAudioState();
+    }
+
+    boolean isTtySupported() {
+        return mTtyManager.isTtySupported();
+    }
+
+    int getCurrentTtyMode() {
+        return mTtyManager.getCurrentTtyMode();
     }
 
     /**

@@ -80,6 +80,12 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
                     case MSG_CANCEL_MISSED_CALLS_NOTIFICATION:
                         mMissedCallNotifier.clearMissedCalls();
                         break;
+                    case MSG_IS_TTY_SUPPORTED:
+                        result = mCallsManager.isTtySupported();
+                        break;
+                    case MSG_GET_CURRENT_TTY_MODE:
+                        result = mCallsManager.getCurrentTtyMode();
+                        break;
                 }
 
                 if (result != null) {
@@ -102,6 +108,8 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
     private static final int MSG_END_CALL = 3;
     private static final int MSG_ACCEPT_RINGING_CALL = 4;
     private static final int MSG_CANCEL_MISSED_CALLS_NOTIFICATION = 5;
+    private static final int MSG_IS_TTY_SUPPORTED = 6;
+    private static final int MSG_GET_CURRENT_TTY_MODE = 7;
 
     /** The singleton instance. */
     private static TelecommServiceImpl sInstance;
@@ -318,6 +326,24 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
         Binder.restoreCallingIdentity(token);
 
         return retval;
+    }
+
+    /**
+     * @see TelecommManager#isTtySupported
+     */
+    @Override
+    public boolean isTtySupported() {
+        enforceReadPermission();
+        return (boolean) sendRequest(MSG_IS_TTY_SUPPORTED);
+    }
+
+    /**
+     * @see TelecommManager#getCurrentTtyMode
+     */
+    @Override
+    public int getCurrentTtyMode() {
+        enforceReadPermission();
+        return (int) sendRequest(MSG_GET_CURRENT_TTY_MODE);
     }
 
     //

@@ -26,13 +26,14 @@ import com.google.common.base.Preconditions;
 /**
  * This class manages audio modes, streams and other properties.
  */
-final class CallAudioManager extends CallsManagerListenerBase {
+final class CallAudioManager extends CallsManagerListenerBase
+        implements WiredHeadsetManager.Listener {
     private static final int STREAM_NONE = -1;
 
     private final StatusBarNotifier mStatusBarNotifier;
     private final AudioManager mAudioManager;
-    private final WiredHeadsetManager mWiredHeadsetManager;
     private final BluetoothManager mBluetoothManager;
+    private final WiredHeadsetManager mWiredHeadsetManager;
 
     private CallAudioState mAudioState;
     private int mAudioFocusStreamType;
@@ -40,11 +41,13 @@ final class CallAudioManager extends CallsManagerListenerBase {
     private boolean mIsTonePlaying;
     private boolean mWasSpeakerOn;
 
-    CallAudioManager(Context context, StatusBarNotifier statusBarNotifier) {
+    CallAudioManager(Context context, StatusBarNotifier statusBarNotifier,
+            WiredHeadsetManager wiredHeadsetManager) {
         mStatusBarNotifier = statusBarNotifier;
         mAudioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
-        mWiredHeadsetManager = new WiredHeadsetManager(this);
         mBluetoothManager = new BluetoothManager(context, this);
+        mWiredHeadsetManager = wiredHeadsetManager;
+
         saveAudioState(getInitialAudioState(null));
         mAudioFocusStreamType = STREAM_NONE;
     }
@@ -105,6 +108,25 @@ final class CallAudioManager extends CallsManagerListenerBase {
     @Override
     public void onAudioModeIsVoipChanged(Call call) {
         updateAudioStreamAndMode();
+    }
+
+    /**
+      * Updates the audio route when the headset plugged in state changes. For example, if audio is
+      * being routed over speakerphone and a headset is plugged in then switch to wired headset.
+      */
+    @Override
+    public void onWiredHeadsetPluggedInChanged(boolean oldIsPluggedIn, boolean newIsPluggedIn) {
+        int newRoute = CallAudioState.ROUTE_EARPIECE;
+        if (newIsPluggedIn) {
+            newRoute = CallAudioState.ROUTE_WIRED_HEADSET;
+        } else if (mWasSpeakerOn) {
+            Call call = getForegroundCall();
+            if (call != null && call.isAlive()) {
+                // Restore the speaker state.
+                newRoute = CallAudioState.ROUTE_SPEAKER;
+            }
+        }
+        setSystemAudioState(mAudioState.isMuted, newRoute, calculateSupportedRoutes());
     }
 
     void toggleMute() {
@@ -173,24 +195,6 @@ final class CallAudioManager extends CallsManagerListenerBase {
             mIsTonePlaying = isPlayingNew;
             updateAudioStreamAndMode();
         }
-    }
-
-    /**
-      * Updates the audio route when the headset plugged in state changes. For example, if audio is
-      * being routed over speakerphone and a headset is plugged in then switch to wired headset.
-      */
-    void onHeadsetPluggedInChanged(boolean oldIsPluggedIn, boolean newIsPluggedIn) {
-        int newRoute = CallAudioState.ROUTE_EARPIECE;
-        if (newIsPluggedIn) {
-            newRoute = CallAudioState.ROUTE_WIRED_HEADSET;
-        } else if (mWasSpeakerOn) {
-            Call call = getForegroundCall();
-            if (call != null && call.isAlive()) {
-                // Restore the speaker state.
-                newRoute = CallAudioState.ROUTE_SPEAKER;
-            }
-        }
-        setSystemAudioState(mAudioState.isMuted, newRoute, calculateSupportedRoutes());
     }
 
     /**
