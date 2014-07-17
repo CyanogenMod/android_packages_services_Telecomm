@@ -47,6 +47,7 @@ final class CallAudioManager extends CallsManagerListenerBase
         mAudioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
         mBluetoothManager = new BluetoothManager(context, this);
         mWiredHeadsetManager = wiredHeadsetManager;
+        mWiredHeadsetManager.addListener(this);
 
         saveAudioState(getInitialAudioState(null));
         mAudioFocusStreamType = STREAM_NONE;
