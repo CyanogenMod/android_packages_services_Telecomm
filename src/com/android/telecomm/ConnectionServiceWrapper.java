@@ -632,11 +632,11 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
     }
 
     /** @see ConnectionService#answer(String) */
-    void answer(Call call) {
+    void answer(Call call, int videoState) {
         if (isServiceValid("answer")) {
             try {
-                logOutgoing("answer %s", mCallIdMapper.getCallId(call));
-                mServiceInterface.answer(mCallIdMapper.getCallId(call));
+                logOutgoing("answer %s %d", mCallIdMapper.getCallId(call), videoState);
+                mServiceInterface.answer(mCallIdMapper.getCallId(call), videoState);
             } catch (RemoteException e) {
             }
         }

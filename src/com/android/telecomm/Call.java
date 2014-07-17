@@ -669,8 +669,10 @@ final class Call implements CreateConnectionResponse {
 
     /**
      * Answers the call if it is ringing.
+     *
+     * @param videoState The video state in which to answer the call.
      */
-    void answer() {
+    void answer(int videoState) {
         Preconditions.checkNotNull(mConnectionService);
 
         // Check to verify that the call is still in the ringing state. A call can change states
@@ -680,7 +682,7 @@ final class Call implements CreateConnectionResponse {
             // that it will work. Instead, we wait until confirmation from the connectino service
             // that the call is in a non-RINGING state before changing the UI. See
             // {@link ConnectionServiceAdapter#setActive} and other set* methods.
-            mConnectionService.answer(this);
+            mConnectionService.answer(this, videoState);
         }
     }
 

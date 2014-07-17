@@ -50,14 +50,21 @@ class InCallAdapter extends IInCallAdapter.Stub {
         public void handleMessage(Message msg) {
             Call call;
             switch (msg.what) {
-                case MSG_ANSWER_CALL:
-                    call = mCallIdMapper.getCall(msg.obj);
-                    if (call != null) {
-                        mCallsManager.answerCall(call);
-                    } else {
-                        Log.w(this, "answerCall, unknown call id: %s", msg.obj);
+                case MSG_ANSWER_CALL: {
+                    SomeArgs args = (SomeArgs) msg.obj;
+                    try {
+                        call = mCallIdMapper.getCall(args.arg1);
+                        int videoState = (int) args.arg2;
+                        if (call != null) {
+                            mCallsManager.answerCall(call, videoState);
+                        } else {
+                            Log.w(this, "answerCall, unknown call id: %s", msg.obj);
+                        }
+                    } finally {
+                        args.recycle();
                     }
                     break;
+                }
                 case MSG_REJECT_CALL: {
                     SomeArgs args = (SomeArgs) msg.obj;
                     try {
@@ -192,10 +199,13 @@ class InCallAdapter extends IInCallAdapter.Stub {
     }
 
     @Override
-    public void answerCall(String callId) {
-        Log.d(this, "answerCall(%s)", callId);
+    public void answerCall(String callId, int videoState) {
+        Log.d(this, "answerCall(%s,%d)", callId, videoState);
         mCallIdMapper.checkValidCallId(callId);
-        mHandler.obtainMessage(MSG_ANSWER_CALL, callId).sendToTarget();
+        SomeArgs args = SomeArgs.obtain();
+        args.arg1 = callId;
+        args.arg2 = videoState;
+        mHandler.obtainMessage(MSG_ANSWER_CALL, args).sendToTarget();
     }
 
     @Override
