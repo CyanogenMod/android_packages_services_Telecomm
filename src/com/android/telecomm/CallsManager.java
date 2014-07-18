@@ -62,9 +62,6 @@ public final class CallsManager extends Call.ListenerBase {
 
     private static final CallsManager INSTANCE = new CallsManager();
 
-    /** Temporary flag for disabling account selection menu */
-    public static final boolean ENABLE_ACCOUNT_SELECT = false;
-
     /**
      * The main call repository. Keeps an instance of all live calls. New incoming and outgoing
      * calls are added to the map and removed when the calls move to the disconnected state.
@@ -314,13 +311,16 @@ public final class CallsManager extends Call.ListenerBase {
         call.addListener(this);
         addCall(call);
 
-        // TODO: check for default account
-        if (account == null && ENABLE_ACCOUNT_SELECT) {
-            call.setState(CallState.PRE_DIAL_WAIT);
-            return;
+        if (account == null) {
+            PhoneAccount defaultAccount = TelecommApp.getInstance().getPhoneAccountRegistrar()
+                    .getDefaultOutgoingPhoneAccount();
+            if (defaultAccount != null) {
+                call.setPhoneAccount(defaultAccount);
+                call.startCreateConnection();
+            } else {
+                call.setState(CallState.PRE_DIAL_WAIT);
+            }
         }
-
-        call.startCreateConnection();
     }
 
     /**

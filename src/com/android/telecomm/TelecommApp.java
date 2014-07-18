@@ -34,7 +34,7 @@ public final class TelecommApp extends Application {
     private MissedCallNotifier mMissedCallNotifier;
 
     /**
-     * Maintains the list of registered {@link PhoneAccount}s.
+     * Maintains the list of registered {@link android.telecomm.PhoneAccount}s.
      */
     private PhoneAccountRegistrar mPhoneAccountRegistrar;
 
@@ -60,5 +60,9 @@ public final class TelecommApp extends Application {
 
     MissedCallNotifier getMissedCallNotifier() {
         return mMissedCallNotifier;
+    }
+
+    PhoneAccountRegistrar getPhoneAccountRegistrar() {
+        return mPhoneAccountRegistrar;
     }
 }

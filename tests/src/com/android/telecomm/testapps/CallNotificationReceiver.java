@@ -22,6 +22,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.telecomm.PhoneAccount;
+import android.telecomm.PhoneAccountMetadata;
 import android.telecomm.TelecommConstants;
 
 /**
@@ -76,9 +77,7 @@ public class CallNotificationReceiver extends BroadcastReceiver {
 
         PhoneAccount phoneAccount = new PhoneAccount(
                 new ComponentName(context, TestConnectionService.class),
-                null /* id */,
-                null /* handle */,
-                PhoneAccount.CAPABILITY_CALL_PROVIDER);
+                null /* id */);
         intent.putExtra(TelecommConstants.EXTRA_PHONE_ACCOUNT, phoneAccount);
 
         // For the purposes of testing, indicate whether the incoming call is a video call by

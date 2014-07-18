@@ -16,209 +16,310 @@
 
 package com.android.telecomm;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+import org.json.JSONTokener;
+
 import android.content.ComponentName;
 import android.content.Context;
 
 import android.content.SharedPreferences;
-import android.content.SharedPreferences.Editor;
 import android.net.Uri;
-import android.provider.Settings;
 import android.telecomm.PhoneAccount;
+import android.telecomm.PhoneAccountMetadata;
+import android.telecomm.TelecommManager;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
 /**
- * Handles writing and reading PhoneAccount registration entries.
+ * Handles writing and reading PhoneAccount registration entries. This is a simple verbatim
+ * delegate for all the account handling methods on {@link TelecommManager} as implemented in
+ * {@link TelecommServiceImpl}, with the notable exception that {@link TelecommServiceImpl} is
+ * responsible for security checking to make sure that the caller has proper authority over
+ * the {@code ComponentName}s they are declaring in their {@code PhoneAccount}s.
+ *
  * TODO(santoscordon): Replace this implementation with a proper database stored in a Telecomm
  * provider.
  */
 final class PhoneAccountRegistrar {
-    private static final int VERSION = 1;
     private static final String TELECOMM_PREFERENCES = "telecomm_prefs";
     private static final String PREFERENCE_PHONE_ACCOUNTS = "phone_accounts";
 
     private final Context mContext;
 
-    private final class DeserializationToken {
-        int currentIndex = 0;
-        final String source;
-
-        DeserializationToken(String source) {
-            this.source = source;
-        }
-    }
-
     PhoneAccountRegistrar(Context context) {
         mContext = context;
     }
 
-    /**
-     * Adds a new phone account entry or updates an existing one.
-     */
-    boolean addAccount(PhoneAccount account) {
-        List<PhoneAccount> allAccounts = getAllAccounts();
-        // Should we implement an artificial limit for # of accounts associated with a single
-        // ComponentName?
-        allAccounts.add(account);
+    public PhoneAccount getDefaultOutgoingPhoneAccount() {
+        State s = read();
+        return s.mDefaultOutgoing;
+    }
 
-        // Search for duplicates and remove any that are found.
-        for (int i = 0; i < allAccounts.size() - 1; i++) {
-            if (account.equalsComponentAndId(allAccounts.get(i))) {
-                // replace existing entry.
-                allAccounts.remove(i);
-                break;
+    public void setDefaultOutgoingPhoneAccount(PhoneAccount account) {
+        State s = read();
+
+        if (account == null) {
+            // Asking to clear the default outgoing is a valid request
+            s.mDefaultOutgoing = null;
+        } else {
+            boolean found = false;
+            for (PhoneAccountMetadata m : s.mAccounts) {
+                if (Objects.equals(account, m.getAccount())) {
+                    found = true;
+                    break;
+                }
             }
+
+            if (!found) {
+                Log.d(this, "Trying to set nonexistent default outgoing phone account %s", account);
+                return;
+            }
+
+            s.mDefaultOutgoing = account;
         }
 
-        return writeAllAccounts(allAccounts);
+        write(s);
     }
 
-    /**
-     * Removes an existing phone account entry.
-     */
-    boolean removeAccount(PhoneAccount account) {
-        List<PhoneAccount> allAccounts = getAllAccounts();
-
-        for (int i = 0; i < allAccounts.size(); i++) {
-            if (account.equalsComponentAndId(allAccounts.get(i))) {
-                allAccounts.remove(i);
-                return writeAllAccounts(allAccounts);
-            }
-        }
-
-        return false;
+    public List<PhoneAccount> getEnabledPhoneAccounts() {
+        State s = read();
+        return accountsOnly(s);
     }
 
-    /**
-     * Returns a list of all accounts which the user has enabled.
-     */
-    List<PhoneAccount> getEnabledAccounts() {
-        List<PhoneAccount> allAccounts = getAllAccounts();
-        // TODO: filter list
-        return allAccounts;
-    }
-
-    /**
-     * Returns the list of all accounts registered with the system, whether or not the user
-     * has explicitly enabled them.
-     */
-    List<PhoneAccount> getAllAccounts() {
-        String value = getPreferences().getString(PREFERENCE_PHONE_ACCOUNTS, null);
-        return deserializeAllAccounts(value);
-    }
-
-    /**
-     * Returns the registered version of the account matching the component name and ID of the
-     * specified account.
-     */
-    PhoneAccount getRegisteredAccount(PhoneAccount account) {
-        for (PhoneAccount registeredAccount : getAllAccounts()) {
-            if (registeredAccount.equalsComponentAndId(account)) {
-                return registeredAccount;
+    public PhoneAccountMetadata getPhoneAccountMetadata(PhoneAccount account) {
+        State s = read();
+        for (PhoneAccountMetadata m : s.mAccounts) {
+            if (Objects.equals(account, m.getAccount())) {
+                return m;
             }
         }
         return null;
     }
 
-    /**
-     * Replaces the contents of our list of accounts with this new list.
-     */
-    private boolean writeAllAccounts(List<PhoneAccount> allAccounts) {
-        Editor editor = getPreferences().edit();
-        editor.putString(PREFERENCE_PHONE_ACCOUNTS, serializeAllAccounts(allAccounts));
-        return editor.commit();
-    }
+    // TODO: Should we implement an artificial limit for # of accounts associated with a single
+    // ComponentName?
+    public void registerPhoneAccount(PhoneAccountMetadata metadata) {
+        State s = read();
 
-    // Serialization implementation
-    // Serializes all strings into the format "len:string-value"
-    // Example, we will serialize the following PhoneAccount.
-    //   PhoneAccount
-    //     ComponentName: "abc"
-    //     Id:            "def"
-    //     Handle:        "555"
-    //     Capabilities:  1
-    //
-    //  Each value serializes into (spaces added for readability)
-    //    3:abc 3:def 3:555 1:1
-    //
-    //  Two identical accounts would likewise be serialized as a list of strings with a prepended
-    //  size of 2.
-    //    1:2 3:abc 3:def 3:555 1:1 3:abc 3:def 3:555 1:1
-    //
-    //  The final result with a prepended version ("1:1") would be:
-    //    "1:11:23:abc3:def3:5551:13:abc3:def3:5551:1"
-
-    private String serializeAllAccounts(List<PhoneAccount> allAccounts) {
-        StringBuilder buffer = new StringBuilder();
-
-        // Version
-        serializeIntValue(VERSION, buffer);
-
-        // Number of accounts
-        serializeIntValue(allAccounts.size(), buffer);
-
-        // The actual accounts
-        for (int i = 0; i < allAccounts.size(); i++) {
-            PhoneAccount account = allAccounts.get(i);
-            serializeStringValue(account.getComponentName().flattenToShortString(), buffer);
-            serializeStringValue(account.getId(), buffer);
-            serializeStringValue(account.getHandle().toString(), buffer);
-            serializeIntValue(account.getCapabilities(), buffer);
-        }
-
-        return buffer.toString();
-    }
-
-    private List<PhoneAccount> deserializeAllAccounts(String source) {
-        List<PhoneAccount> accounts = new ArrayList<PhoneAccount>();
-
-        if (source != null) {
-            DeserializationToken token = new DeserializationToken(source);
-            int version = deserializeIntValue(token);
-            if (version == 1) {
-                int size = deserializeIntValue(token);
-
-                for (int i = 0; i < size; i++) {
-                    String strComponentName = deserializeStringValue(token);
-                    String strId = deserializeStringValue(token);
-                    String strHandle = deserializeStringValue(token);
-                    int capabilities = deserializeIntValue(token);
-
-                    accounts.add(new PhoneAccount(
-                            ComponentName.unflattenFromString(strComponentName),
-                            strId,
-                            Uri.parse(strHandle),
-                            capabilities));
-                }
+        s.mAccounts.add(metadata);
+        // Search for duplicates and remove any that are found.
+        for (int i = 0; i < s.mAccounts.size() - 1; i++) {
+            if (Objects.equals(metadata.getAccount(), s.mAccounts.get(i).getAccount())) {
+                // replace existing entry.
+                s.mAccounts.remove(i);
+                break;
             }
         }
 
-        return accounts;
+        write(s);
     }
 
-    private void serializeIntValue(int value, StringBuilder buffer) {
-        serializeStringValue(String.valueOf(value), buffer);
+    public void unregisterPhoneAccount(PhoneAccount account) {
+        State s = read();
+
+        for (int i = 0; i < s.mAccounts.size(); i++) {
+            if (Objects.equals(account, s.mAccounts.get(i).getAccount())) {
+                s.mAccounts.remove(i);
+                break;
+            }
+        }
+
+        checkDefaultOutgoing(s);
+
+        write(s);
     }
 
-    private void serializeStringValue(String value, StringBuilder buffer) {
-        buffer.append(value.length()).append(":").append(value);
+    public void clearAccounts(String packageName) {
+        State s = read();
+
+        for (int i = 0; i < s.mAccounts.size(); i++) {
+            if (Objects.equals(
+                    packageName,
+                    s.mAccounts.get(i).getAccount().getComponentName().getPackageName())) {
+                s.mAccounts.remove(i);
+            }
+        }
+
+        checkDefaultOutgoing(s);
+
+        write(s);
     }
 
-    private int deserializeIntValue(DeserializationToken token) {
-        return Integer.parseInt(deserializeStringValue(token));
+    private void checkDefaultOutgoing(State s) {
+        // Check that, after an operation that removes accounts, the account set up as the "default
+        // outgoing" has not been deleted. If it has, then clear out the setting.
+        for (PhoneAccountMetadata m : s.mAccounts) {
+            if (Objects.equals(s.mDefaultOutgoing, m.getAccount())) {
+                return;
+            }
+        }
+        s.mDefaultOutgoing = null;
     }
 
-    private String deserializeStringValue(DeserializationToken token) {
-        int colonIndex = token.source.indexOf(':', token.currentIndex);
-        int valueLength = Integer.parseInt(token.source.substring(token.currentIndex, colonIndex));
-        int endIndex = colonIndex + 1 + valueLength;
-        token.currentIndex = endIndex;
-        return token.source.substring(colonIndex + 1, endIndex);
+    private List<PhoneAccount> accountsOnly(State s) {
+        List<PhoneAccount> result = new ArrayList<>();
+        for (PhoneAccountMetadata m : s.mAccounts) {
+            result.add(m.getAccount());
+        }
+        return result;
+    }
+
+    private State read() {
+        try {
+            String serialized = getPreferences().getString(PREFERENCE_PHONE_ACCOUNTS, null);
+            Log.d(this, "read() obtained serialized state: %s", serialized);
+            State state = serialized == null
+                    ? new State()
+                    : deserializeState(serialized);
+            Log.d(this, "read() obtained state: %s", state);
+            return state;
+        } catch (Exception e) {
+            Log.e(this, e, "read");
+            throw new RuntimeException(e);
+        }
+    }
+
+    private boolean write(State state) {
+        try {
+            Log.d(this, "write() writing state: %s", state);
+            String serialized = serializeState(state);
+            Log.d(this, "write() writing serialized state: %s", serialized);
+            boolean success = getPreferences()
+                    .edit()
+                    .putString(PREFERENCE_PHONE_ACCOUNTS, serialized)
+                    .commit();
+            Log.d(this, "serialized state was written with succcess = %b", success);
+            return success;
+        } catch (Exception e) {
+            Log.e(this, e, "write");
+            throw new RuntimeException(e);
+        }
     }
 
     private SharedPreferences getPreferences() {
         return mContext.getSharedPreferences(TELECOMM_PREFERENCES, Context.MODE_PRIVATE);
     }
+
+    private String serializeState(State s) throws JSONException {
+        // TODO: If this is used in production, remove the indent (=> do not pretty print)
+        return sStateJson.toJson(s).toString(2);
+    }
+
+    private State deserializeState(String s) throws JSONException {
+        return sStateJson.fromJson(new JSONObject(new JSONTokener(s)));
+    }
+
+    private static class State {
+        PhoneAccount mDefaultOutgoing = null;
+        final List<PhoneAccountMetadata> mAccounts = new ArrayList<>();
+    }
+
+    //
+    // JSON serialization
+    //
+
+    private interface Json<T> {
+        JSONObject toJson(T o) throws JSONException;
+        T fromJson(JSONObject json) throws JSONException;
+    }
+
+    private static final Json<State> sStateJson =
+            new Json<State>() {
+        private static final String DEFAULT_OUTGOING = "default_outgoing";
+        private static final String ACCOUNTS = "accounts";
+
+        @Override
+        public JSONObject toJson(State o) throws JSONException {
+            JSONObject json = new JSONObject();
+            if (o.mDefaultOutgoing != null) {
+                json.put(DEFAULT_OUTGOING, sPhoneAccountJson.toJson(o.mDefaultOutgoing));
+            }
+            JSONArray accounts = new JSONArray();
+            for (PhoneAccountMetadata m : o.mAccounts) {
+                accounts.put(sPhoneAccountMetadataJson.toJson(m));
+            }
+            json.put(ACCOUNTS, accounts);
+            return json;
+        }
+
+        @Override
+        public State fromJson(JSONObject json) throws JSONException {
+            State s = new State();
+            if (json.has(DEFAULT_OUTGOING)) {
+                s.mDefaultOutgoing = sPhoneAccountJson.fromJson(
+                        (JSONObject) json.get(DEFAULT_OUTGOING));
+            }
+            if (json.has(ACCOUNTS)) {
+                JSONArray accounts = (JSONArray) json.get(ACCOUNTS);
+                for (int i = 0; i < accounts.length(); i++) {
+                    try {
+                        s.mAccounts.add(sPhoneAccountMetadataJson.fromJson(
+                                (JSONObject) accounts.get(i)));
+                    } catch (Exception e) {
+                        Log.e(this, e, "Extracting phone account");
+                    }
+                }
+            }
+            return s;
+        }
+    };
+
+    private static final Json<PhoneAccountMetadata> sPhoneAccountMetadataJson =
+            new Json<PhoneAccountMetadata>() {
+        private static final String ACCOUNT = "account";
+        private static final String HANDLE = "handle";
+        private static final String CAPABILITIES = "capabilities";
+        private static final String ICON_RES_ID = "icon_res_id";
+        private static final String LABEL = "label";
+        private static final String SHORT_DESCRIPTION = "short_description";
+        private static final String VIDEO_CALLING_SUPPORTED = "video_calling_supported";
+
+        @Override
+        public JSONObject toJson(PhoneAccountMetadata o) throws JSONException {
+            return new JSONObject()
+                    .put(ACCOUNT, sPhoneAccountJson.toJson(o.getAccount()))
+                    .put(HANDLE, o.getHandle().toString())
+                    .put(CAPABILITIES, o.getCapabilities())
+                    .put(ICON_RES_ID, o.getIconResId())
+                    .put(LABEL, o.getLabel())
+                    .put(SHORT_DESCRIPTION, o.getShortDescription())
+                    .put(VIDEO_CALLING_SUPPORTED, (Boolean) o.isVideoCallingSupported());
+        }
+
+        @Override
+        public PhoneAccountMetadata fromJson(JSONObject json) throws JSONException {
+            return new PhoneAccountMetadata(
+                    sPhoneAccountJson.fromJson((JSONObject) json.get(ACCOUNT)),
+                    Uri.parse((String) json.get(HANDLE)),
+                    (int) json.get(CAPABILITIES),
+                    (int) json.get(ICON_RES_ID),
+                    (String) json.get(LABEL),
+                    (String) json.get(SHORT_DESCRIPTION),
+                    (Boolean) json.get(VIDEO_CALLING_SUPPORTED));
+        }
+    };
+
+    private static final Json<PhoneAccount> sPhoneAccountJson =
+            new Json<PhoneAccount>() {
+        private static final String COMPONENT_NAME = "component_name";
+        private static final String ID = "id";
+
+        @Override
+        public JSONObject toJson(PhoneAccount o) throws JSONException {
+            return new JSONObject()
+                    .put(COMPONENT_NAME, o.getComponentName().flattenToString())
+                    .put(ID, o.getId());
+        }
+
+        @Override
+        public PhoneAccount fromJson(JSONObject json) throws JSONException {
+            return new PhoneAccount(
+                    ComponentName.unflattenFromString((String) json.get(COMPONENT_NAME)),
+                    (String) json.get(ID));
+        }
+    };
 }
