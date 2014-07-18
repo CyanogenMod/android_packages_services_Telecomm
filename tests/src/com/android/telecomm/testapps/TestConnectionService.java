@@ -43,6 +43,7 @@ import java.lang.String;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Random;
 
 /**
  * Service which provides fake calls to test the ConnectionService interface.
@@ -59,6 +60,11 @@ public class TestConnectionService extends ConnectionService {
      * in the notification.
      */
     public static final String IS_VIDEO_CALL = "IsVideoCall";
+
+    /**
+     * Random number generator used to generate phone numbers.
+     */
+    private Random mRandom = new Random();
 
     private final class TestConnection extends Connection {
         private final RemoteConnection.Listener mProxyListener = new RemoteConnection.Listener() {
@@ -425,12 +431,12 @@ public class TestConnectionService extends ConnectionService {
         PhoneAccount account = request.getAccount();
         ComponentName componentName = new ComponentName(this, TestConnectionService.class);
         if (account != null && componentName.equals(account.getComponentName())) {
-            // Use dummy number for testing incoming calls.
-            Uri handle = Uri.fromParts(SCHEME_TEL, "5551234", null);
-
             // Get the stashed intent extra that determines if this is a video call or audio call.
             Bundle extras = request.getExtras();
             boolean isVideoCall = extras.getBoolean(IS_VIDEO_CALL);
+
+            // Use dummy number for testing incoming calls.
+            Uri handle = Uri.fromParts(SCHEME_TEL, getDummyNumber(isVideoCall), null);
 
             TestConnection connection = new TestConnection(null, Connection.State.RINGING);
             if (isVideoCall) {
@@ -468,5 +474,19 @@ public class TestConnectionService extends ConnectionService {
             };
             lookupRemoteAccounts(request.getHandle(), accountResponse);
         }
+    }
+
+    /**
+     * Generates a random phone number of format 555YXXX.  Where Y will be {@code 1} if the
+     * phone number is for a video call and {@code 0} for an audio call.  XXX is a randomly
+     * generated phone number.
+     *
+     * @param isVideo {@code True} if the call is a video call.
+     * @return The phone number.
+     */
+    private String getDummyNumber(boolean isVideo) {
+        int videoDigit = isVideo ? 1 : 0;
+        int number = mRandom.nextInt(999);
+        return String.format("555%s%03d", videoDigit, number);
     }
 }
