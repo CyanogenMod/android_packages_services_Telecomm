@@ -17,6 +17,7 @@
 package com.android.telecomm;
 
 import android.content.Context;
+import android.media.AudioAttributes;
 import android.media.AudioManager;
 import android.os.SystemVibrator;
 import android.os.Vibrator;
@@ -35,6 +36,11 @@ final class Ringer extends CallsManagerListenerBase {
         1000, // How long to vibrate
         1000, // How long to wait before vibrating again
     };
+
+    private static final AudioAttributes VIBRATION_ATTRIBUTES = new AudioAttributes.Builder()
+            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+            .setUsage(AudioAttributes.USAGE_NOTIFICATION_TELEPHONY_RINGTONE)
+            .build();
 
     /** Indicate that we want the pattern to repeat at the step which turns on vibration. */
     private static final int VIBRATION_PATTERN_REPEAT = 1;
@@ -190,7 +196,7 @@ final class Ringer extends CallsManagerListenerBase {
 
             if (shouldVibrate(TelecommApp.getInstance()) && !mIsVibrating) {
                 mVibrator.vibrate(VIBRATION_PATTERN, VIBRATION_PATTERN_REPEAT,
-                        AudioManager.STREAM_RING);
+                        VIBRATION_ATTRIBUTES);
                 mIsVibrating = true;
             }
         } else {
