@@ -84,6 +84,7 @@ public final class TelecommApp extends Application {
                                 "com.google.android.apps.babel.telephony.TeleConnectionService"),
                         "null_id"),
                 Uri.fromParts("tel", "null_uri", null),
+                "650-253-0000",
                 PhoneAccountMetadata.CAPABILITY_CALL_PROVIDER,
                 R.drawable.stat_sys_phone_call,
                 "Wi-Fi calling",

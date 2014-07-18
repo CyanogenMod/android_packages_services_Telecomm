@@ -91,6 +91,7 @@ public class CallServiceNotifier {
                         new ComponentName(context, TestConnectionService.class),
                         "testapps_TestConnectionService_Account_ID"),
                 Uri.parse("tel:555-TEST"),
+                "555-TEST",
                 PhoneAccountMetadata.CAPABILITY_CALL_PROVIDER,
                 0,  // iconResId
                 "a label",
