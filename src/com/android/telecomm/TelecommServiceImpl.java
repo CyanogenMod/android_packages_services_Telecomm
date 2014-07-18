@@ -156,7 +156,7 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
         PhoneAccount registeredAccount = mPhoneAccountRegistrar.getRegisteredAccount(account);
         if (registeredAccount != null) {
             return new PhoneAccountMetadata(
-                    registeredAccount, 0, account.getComponentName().getPackageName(), null);
+                    registeredAccount, 0, account.getComponentName().getPackageName(), null, false);
         }
         return null;
     }

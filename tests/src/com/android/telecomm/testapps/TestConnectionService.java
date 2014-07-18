@@ -39,6 +39,7 @@ import android.util.Log;
 
 import com.android.telecomm.tests.R;
 
+import java.lang.String;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -52,6 +53,12 @@ public class TestConnectionService extends ConnectionService {
             "com.android.phone.extra.GATEWAY_PROVIDER_PACKAGE";
     public static final String EXTRA_GATEWAY_ORIGINAL_URI =
             "com.android.phone.extra.GATEWAY_ORIGINAL_URI";
+
+    /**
+     * Intent extra used to pass along whether a call is video or audio based on the user's choice
+     * in the notification.
+     */
+    public static final String IS_VIDEO_CALL = "IsVideoCall";
 
     private final class TestConnection extends Connection {
         private final RemoteConnection.Listener mProxyListener = new RemoteConnection.Listener() {
@@ -91,6 +98,11 @@ public class TestConnectionService extends ConnectionService {
             @Override
             public void onStatusHintsChanged(RemoteConnection connection, StatusHints statusHints) {
                 setStatusHints(statusHints);
+            }
+
+            @Override
+            public void onVideoStateChanged(RemoteConnection connection, int videoState) {
+                setVideoState(videoState);
             }
 
             @Override
@@ -252,6 +264,7 @@ public class TestConnectionService extends ConnectionService {
                         mIsIncoming ? Connection.State.RINGING: Connection.State.DIALING);
 
                 mCalls.add(connection);
+
                 ConnectionRequest remoteRequest = new ConnectionRequest(
                         request.getAccount(),
                         mOriginalRequest.getCallId(),
@@ -362,6 +375,7 @@ public class TestConnectionService extends ConnectionService {
         Bundle extras = originalRequest.getExtras();
         String gatewayPackage = extras.getString(EXTRA_GATEWAY_PROVIDER_PACKAGE);
         Uri originalHandle = extras.getParcelable(EXTRA_GATEWAY_ORIGINAL_URI);
+
         log("gateway package [" + gatewayPackage + "], original handle [" +
                 originalHandle + "]");
 
@@ -382,6 +396,7 @@ public class TestConnectionService extends ConnectionService {
 
             TestConnection connection = new TestConnection(null, Connection.State.DIALING);
             mCalls.add(connection);
+
             callback.onSuccess(request, connection);
             connection.startOutgoing();
         } else {
@@ -412,16 +427,20 @@ public class TestConnectionService extends ConnectionService {
         if (account != null && componentName.equals(account.getComponentName())) {
             // Use dummy number for testing incoming calls.
             Uri handle = Uri.fromParts(SCHEME_TEL, "5551234", null);
-            boolean isVideoCall = CallServiceNotifier.getInstance().shouldStartVideoCall();
 
-            TestConnection connection = new TestConnection(null, Connection.State.DIALING);
+            // Get the stashed intent extra that determines if this is a video call or audio call.
+            Bundle extras = request.getExtras();
+            boolean isVideoCall = extras.getBoolean(IS_VIDEO_CALL);
+
+            TestConnection connection = new TestConnection(null, Connection.State.RINGING);
             if (isVideoCall) {
                 connection.setCallVideoProvider(new TestCallVideoProvider(getApplicationContext()));
             }
-
-            mCalls.add(connection);
             int videoState = isVideoCall ?
-                    VideoCallProfile.VIDEO_STATE_BIDIRECTIONAL : request.getVideoState();
+                    VideoCallProfile.VIDEO_STATE_BIDIRECTIONAL :
+                    VideoCallProfile.VIDEO_STATE_AUDIO_ONLY;
+            mCalls.add(connection);
+
             ConnectionRequest newRequest = new ConnectionRequest(
                     request.getAccount(),
                     request.getCallId(),
@@ -430,6 +449,7 @@ public class TestConnectionService extends ConnectionService {
                     request.getExtras(),
                     videoState);
             response.onSuccess(newRequest, connection);
+            connection.setVideoState(videoState);
         } else {
             SimpleResponse<Uri, List<PhoneAccount>> accountResponse =
                     new SimpleResponse<Uri, List<PhoneAccount>>() {

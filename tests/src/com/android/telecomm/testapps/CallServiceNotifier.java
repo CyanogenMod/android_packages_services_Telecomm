@@ -23,6 +23,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.Bundle;
 import android.telecomm.PhoneAccount;
 import android.telecomm.PhoneAccountMetadata;
 import android.telecomm.TelecommConstants;
@@ -92,7 +93,8 @@ public class CallServiceNotifier {
                 "testapps_TestConnectionService_Account_ID",
                 Uri.parse("tel:555-TEST"),
                 PhoneAccount.CAPABILITY_CALL_PROVIDER);
-        PhoneAccountMetadata metadata = new PhoneAccountMetadata(phoneAccount, 0, null, null);
+        PhoneAccountMetadata metadata = new PhoneAccountMetadata(phoneAccount, 0, null, null,
+                false);
 
         TelecommManager telecommManager =
                 (TelecommManager) context.getSystemService(Context.TELECOMM_SERVICE);
@@ -122,7 +124,10 @@ public class CallServiceNotifier {
      */
     private Notification getPhoneAccountNotification(Context context) {
         final Notification.Builder builder = new Notification.Builder(context);
-        builder.setOngoing(true);
+        // Both notifications have buttons and only the first one with buttons will show its
+        // buttons.  Since the phone accounts notification is always first, setting false ensures
+        // it can be dismissed to use the other notification.
+        builder.setOngoing(false);
         builder.setPriority(Notification.PRIORITY_HIGH);
 
         final PendingIntent intent = createShowAllPhoneAccountsIntent(context);
@@ -146,16 +151,12 @@ public class CallServiceNotifier {
         final Notification.Builder builder = new Notification.Builder(context);
         builder.setOngoing(true);
         builder.setPriority(Notification.PRIORITY_HIGH);
-
-        final PendingIntent intent = createIncomingCallIntent(context, false /* isVideoCall */);
-        builder.setContentIntent(intent);
-
         builder.setSmallIcon(android.R.drawable.stat_sys_phone_call);
         builder.setContentText("Test calls via CallService API");
-        builder.setContentTitle("TestConnectionService");
+        builder.setContentTitle("Test Connection Service");
 
-        addAddCallAction(builder, context);
         addAddVideoCallAction(builder, context);
+        addAddCallAction(builder, context);
         addExitAction(builder, context);
 
         return builder.build();
@@ -190,27 +191,21 @@ public class CallServiceNotifier {
     }
 
     /**
-     * Creates the intent to add an incoming call through Telecomm.
+     * Creates the intent to start an incoming video call
      */
-    private PendingIntent createIncomingCallIntent(Context context, boolean isVideoCall) {
-        log("Creating incoming call pending intent.");
+    private PendingIntent createIncomingVideoCall(Context context) {
+        final Intent intent = new Intent(CallNotificationReceiver.ACTION_VIDEO_CALL,
+                null, context, CallNotificationReceiver.class);
+        return PendingIntent.getBroadcast(context, 0, intent, 0);
+    }
 
-        // Create intent for adding an incoming call.
-        Intent intent = new Intent(TelecommConstants.ACTION_INCOMING_CALL);
-        // TODO(santoscordon): Use a private @hide permission to make sure this only goes to
-        // Telecomm instead of setting the package explicitly.
-        intent.setPackage("com.android.telecomm");
-
-        PhoneAccount phoneAccount = new PhoneAccount(
-                new ComponentName(context, TestConnectionService.class),
-                null /* id */,
-                null /* handle */,
-                PhoneAccount.CAPABILITY_CALL_PROVIDER);
-        intent.putExtra(TelecommConstants.EXTRA_PHONE_ACCOUNT, phoneAccount);
-
-        mStartVideoCall = isVideoCall;
-
-        return PendingIntent.getActivity(context, 0, intent, 0);
+    /**
+     * Creates the intent to start an incoming audio call
+     */
+    private PendingIntent createIncomingAudioCall(Context context) {
+        final Intent intent = new Intent(CallNotificationReceiver.ACTION_AUDIO_CALL,
+                null, context, CallNotificationReceiver.class);
+        return PendingIntent.getBroadcast(context, 0, intent, 0);
     }
 
     /**
@@ -218,15 +213,14 @@ public class CallServiceNotifier {
      * @param builder The Notification Builder.
      */
     private void addAddCallAction(Notification.Builder builder, Context context) {
-        // Set pending intent on the notification builder.
-        builder.addAction(0, "Add Call", createIncomingCallIntent(context, false /* isVideoCall */));
+        builder.addAction(0, "Add Call", createIncomingAudioCall(context));
     }
 
     /**
      * Adds an action to the Notification Builder to add an incoming video call through Telecomm.
      */
     private void addAddVideoCallAction(Notification.Builder builder, Context context) {
-        builder.addAction(0, "Add Video", createIncomingCallIntent(context, true /* isVideoCall */));
+        builder.addAction(0, "Add Video", createIncomingVideoCall(context));
     }
 
     /**
