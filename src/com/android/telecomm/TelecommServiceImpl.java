@@ -147,38 +147,67 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
     //
 
     @Override
+    public PhoneAccount getDefaultOutgoingPhoneAccount() {
+        try {
+            return mPhoneAccountRegistrar.getDefaultOutgoingPhoneAccount();
+        } catch (Exception e) {
+            Log.e(this, e, "getDefaultOutgoingPhoneAccount");
+            throw e;
+        }
+    }
+
+    @Override
     public List<PhoneAccount> getEnabledPhoneAccounts() {
-        return mPhoneAccountRegistrar.getEnabledAccounts();
+        try {
+            return mPhoneAccountRegistrar.getEnabledPhoneAccounts();
+        } catch (Exception e) {
+            Log.e(this, e, "getEnabledPhoneAccounts");
+            throw e;
+        }
     }
 
     @Override
     public PhoneAccountMetadata getPhoneAccountMetadata(PhoneAccount account) {
-        PhoneAccount registeredAccount = mPhoneAccountRegistrar.getRegisteredAccount(account);
-        if (registeredAccount != null) {
-            return new PhoneAccountMetadata(
-                    registeredAccount, 0, account.getComponentName().getPackageName(), null, false);
+        try {
+            return mPhoneAccountRegistrar.getPhoneAccountMetadata(account);
+        } catch (Exception e) {
+            Log.e(this, e, "getPhoneAccountMetadata %s", account);
+            throw e;
         }
-        return null;
     }
 
     @Override
-    public void registerPhoneAccount(PhoneAccount account, PhoneAccountMetadata metadata) {
-        enforceModifyPermissionOrCallingPackage(account.getComponentName().getPackageName());
-        mPhoneAccountRegistrar.addAccount(account);
-        // TODO(santoscordon): Implement metadata
+    public void registerPhoneAccount(PhoneAccountMetadata metadata) {
+        try {
+            enforceModifyPermissionOrCallingPackage(
+                    metadata.getAccount().getComponentName().getPackageName());
+            mPhoneAccountRegistrar.registerPhoneAccount(metadata);
+        } catch (Exception e) {
+            Log.e(this, e, "registerPhoneAccount %s", metadata);
+            throw e;
+        }
     }
 
     @Override
     public void unregisterPhoneAccount(PhoneAccount account) {
-        enforceModifyPermissionOrCallingPackage(account.getComponentName().getPackageName());
-        mPhoneAccountRegistrar.removeAccount(account);
+        try {
+            enforceModifyPermissionOrCallingPackage(account.getComponentName().getPackageName());
+            mPhoneAccountRegistrar.unregisterPhoneAccount(account);
+        } catch (Exception e) {
+            Log.e(this, e, "unregisterPhoneAccount %s", account);
+            throw e;
+        }
     }
 
     @Override
     public void clearAccounts(String packageName) {
-        enforceModifyPermissionOrCallingPackage(packageName);
-        // TODO(santoscordon): Is this needed?
-        Log.e(TAG, null, "Unexpected method call: clearAccounts()");
+        try {
+            enforceModifyPermissionOrCallingPackage(packageName);
+            mPhoneAccountRegistrar.clearAccounts(packageName);
+        } catch (Exception e) {
+            Log.e(this, e, "clearAccounts %s", packageName);
+            throw e;
+        }
     }
 
     /**

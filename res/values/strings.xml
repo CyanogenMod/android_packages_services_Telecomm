@@ -76,6 +76,17 @@
         a text response. [CHAR LIMIT=40] -->
     <string name="respond_via_sms_confirmation_format">Message sent to <xliff:g id="phone_number">%s</xliff:g>.</string>
 
+    <!-- Title for phone accounts settings screen -->
+    <string name="phone_account_preferences_title">Phone account preferences</string>
+
+    <!-- Title for setting to select default outgoing phone account -->
+    <string name="default_outgoing_account_title">Default outgoing account</string>
+
+    <!-- Summary for setting to select default outgoing phone account -->
+    <string name="default_outgoing_account_summary">Select a phone account to use by default for making outgoing calls</string>
+
+    <!-- Indication to "ask every time" for accounts when making a call -->
+    <string name="account_ask_every_time">Ask every time</string>
 
     <!-- DO NOT TRANSLATE. Label for test Subscription 0. -->
     <string name="test_account_0_label">Q Mobile</string>

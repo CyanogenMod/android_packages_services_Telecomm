@@ -25,7 +25,6 @@ import android.telecomm.ConnectionRequest;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 
 /**
  * This class creates connections to place new outgoing calls to attached to an existing incoming
@@ -57,8 +56,6 @@ final class CreateConnectionProcessor {
 
         // TODO(sail): Remove once there's a way to pick the service.
         ArrayList<ComponentName> priorityComponents = new ArrayList<>();
-        priorityComponents.add(new ComponentName("com.android.phone",
-                "com.android.services.telephony.sip.SipConnectionService"));
         priorityComponents.add(new ComponentName("com.google.android.talk",
                 "com.google.android.apps.babel.telephony.TeleConnectionService"));
         priorityComponents.add(new ComponentName("com.android.telecomm.tests",
