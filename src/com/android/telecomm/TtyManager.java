@@ -51,7 +51,7 @@ final class TtyManager implements WiredHeadsetManager.Listener {
 
     boolean isTtySupported() {
         boolean isEnabled = mContext.getResources().getBoolean(R.bool.tty_enabled);
-        Log.v(this, "isTtySupported: " + isEnabled);
+        Log.v(this, "isTtySupported: %b", isEnabled);
         return isEnabled;
     }
 

@@ -16,6 +16,7 @@
 
 package com.android.telecomm;
 
+import android.app.PendingIntent;
 import android.content.ComponentName;
 import android.net.Uri;
 import android.os.Bundle;
@@ -77,6 +78,7 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
     private static final int MSG_SET_HANDLE = 19;
     private static final int MSG_SET_CALLER_DISPLAY_NAME = 20;
     private static final int MSG_SET_VIDEO_STATE = 21;
+    private static final int MSG_START_ACTIVITY_FROM_IN_CALL = 22;
 
     private final Handler mHandler = new Handler() {
         @Override
@@ -171,17 +173,11 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                     }
                     break;
                 case MSG_SET_REQUESTING_RINGBACK: {
-                    SomeArgs args = (SomeArgs) msg.obj;
-                    try {
-                        call = mCallIdMapper.getCall(args.arg1);
-                        boolean ringback = (boolean) args.arg2;
-                        if (call != null) {
-                            call.setRequestingRingback(ringback);
-                        } else {
-                            //Log.w(this, "setRingback, unknown call id: %s", args.arg1);
-                        }
-                    } finally {
-                        args.recycle();
+                    call = mCallIdMapper.getCall(msg.obj);
+                    if (call != null) {
+                        call.setRequestingRingback(msg.arg1 == 1);
+                    } else {
+                        //Log.w(this, "setRingback, unknown call id: %s", args.arg1);
                     }
                     break;
                 }
@@ -315,6 +311,18 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                         call.setVideoState(msg.arg1);
                     }
                 }
+                case MSG_START_ACTIVITY_FROM_IN_CALL: {
+                    SomeArgs args = (SomeArgs) msg.obj;
+                    try {
+                        call = mCallIdMapper.getCall(args.arg1);
+                        if (call != null) {
+                            call.startActivityFromInCall((PendingIntent) args.arg2);
+                        }
+                    } finally {
+                        args.recycle();
+                    }
+                    break;
+                }
             }
         }
     };
@@ -400,10 +408,8 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
         public void setRequestingRingback(String callId, boolean ringback) {
             logIncoming("setRequestingRingback %s %b", callId, ringback);
             mCallIdMapper.checkValidCallId(callId);
-            SomeArgs args = SomeArgs.obtain();
-            args.arg1 = callId;
-            args.arg2 = ringback;
-            mHandler.obtainMessage(MSG_SET_REQUESTING_RINGBACK, args).sendToTarget();
+            mHandler.obtainMessage(MSG_SET_REQUESTING_RINGBACK, ringback ? 1 : 0, 0, callId)
+                    .sendToTarget();
         }
 
         @Override
@@ -496,6 +502,16 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
             args.arg2 = callerDisplayName;
             args.argi1 = presentation;
             mHandler.obtainMessage(MSG_SET_CALLER_DISPLAY_NAME, args).sendToTarget();
+        }
+
+        @Override
+        public void startActivityFromInCall(String callId, PendingIntent intent) {
+            logIncoming("startActivityFromInCall %s %s", callId, intent);
+            mCallIdMapper.checkValidCallId(callId);
+            SomeArgs args = SomeArgs.obtain();
+            args.arg1 = callId;
+            args.arg2 = intent;
+            mHandler.obtainMessage(MSG_START_ACTIVITY_FROM_IN_CALL, args).sendToTarget();
         }
     }
 

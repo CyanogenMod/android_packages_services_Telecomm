@@ -16,6 +16,7 @@
 
 package com.android.telecomm;
 
+import android.app.PendingIntent;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -94,6 +95,17 @@ public final class InCallController extends CallsManagerListenerBase {
         @Override
         public void onVideoStateChanged(Call call) {
             updateCall(call);
+        }
+
+        @Override
+        public void onStartActivityFromInCall(Call call, PendingIntent intent) {
+            if (mInCallService != null) {
+                Log.i(this, "Calling startActivity, intent: %s", intent);
+                try {
+                    mInCallService.startActivity(mCallIdMapper.getCallId(call), intent);
+                } catch (RemoteException ignored) {
+                }
+            }
         }
     };
 
