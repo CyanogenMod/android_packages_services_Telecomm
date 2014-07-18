@@ -56,7 +56,7 @@ final class PhoneAccountRegistrar {
 
     public PhoneAccount getDefaultOutgoingPhoneAccount() {
         State s = read();
-        return s.mDefaultOutgoing;
+        return s.defaultOutgoing;
     }
 
     public void setDefaultOutgoingPhoneAccount(PhoneAccount account) {
@@ -64,10 +64,10 @@ final class PhoneAccountRegistrar {
 
         if (account == null) {
             // Asking to clear the default outgoing is a valid request
-            s.mDefaultOutgoing = null;
+            s.defaultOutgoing = null;
         } else {
             boolean found = false;
-            for (PhoneAccountMetadata m : s.mAccounts) {
+            for (PhoneAccountMetadata m : s.accounts) {
                 if (Objects.equals(account, m.getAccount())) {
                     found = true;
                     break;
@@ -79,7 +79,7 @@ final class PhoneAccountRegistrar {
                 return;
             }
 
-            s.mDefaultOutgoing = account;
+            s.defaultOutgoing = account;
         }
 
         write(s);
@@ -92,7 +92,7 @@ final class PhoneAccountRegistrar {
 
     public PhoneAccountMetadata getPhoneAccountMetadata(PhoneAccount account) {
         State s = read();
-        for (PhoneAccountMetadata m : s.mAccounts) {
+        for (PhoneAccountMetadata m : s.accounts) {
             if (Objects.equals(account, m.getAccount())) {
                 return m;
             }
@@ -105,12 +105,12 @@ final class PhoneAccountRegistrar {
     public void registerPhoneAccount(PhoneAccountMetadata metadata) {
         State s = read();
 
-        s.mAccounts.add(metadata);
+        s.accounts.add(metadata);
         // Search for duplicates and remove any that are found.
-        for (int i = 0; i < s.mAccounts.size() - 1; i++) {
-            if (Objects.equals(metadata.getAccount(), s.mAccounts.get(i).getAccount())) {
+        for (int i = 0; i < s.accounts.size() - 1; i++) {
+            if (Objects.equals(metadata.getAccount(), s.accounts.get(i).getAccount())) {
                 // replace existing entry.
-                s.mAccounts.remove(i);
+                s.accounts.remove(i);
                 break;
             }
         }
@@ -121,9 +121,9 @@ final class PhoneAccountRegistrar {
     public void unregisterPhoneAccount(PhoneAccount account) {
         State s = read();
 
-        for (int i = 0; i < s.mAccounts.size(); i++) {
-            if (Objects.equals(account, s.mAccounts.get(i).getAccount())) {
-                s.mAccounts.remove(i);
+        for (int i = 0; i < s.accounts.size(); i++) {
+            if (Objects.equals(account, s.accounts.get(i).getAccount())) {
+                s.accounts.remove(i);
                 break;
             }
         }
@@ -136,11 +136,11 @@ final class PhoneAccountRegistrar {
     public void clearAccounts(String packageName) {
         State s = read();
 
-        for (int i = 0; i < s.mAccounts.size(); i++) {
+        for (int i = 0; i < s.accounts.size(); i++) {
             if (Objects.equals(
                     packageName,
-                    s.mAccounts.get(i).getAccount().getComponentName().getPackageName())) {
-                s.mAccounts.remove(i);
+                    s.accounts.get(i).getAccount().getComponentName().getPackageName())) {
+                s.accounts.remove(i);
             }
         }
 
@@ -152,17 +152,17 @@ final class PhoneAccountRegistrar {
     private void checkDefaultOutgoing(State s) {
         // Check that, after an operation that removes accounts, the account set up as the "default
         // outgoing" has not been deleted. If it has, then clear out the setting.
-        for (PhoneAccountMetadata m : s.mAccounts) {
-            if (Objects.equals(s.mDefaultOutgoing, m.getAccount())) {
+        for (PhoneAccountMetadata m : s.accounts) {
+            if (Objects.equals(s.defaultOutgoing, m.getAccount())) {
                 return;
             }
         }
-        s.mDefaultOutgoing = null;
+        s.defaultOutgoing = null;
     }
 
     private List<PhoneAccount> accountsOnly(State s) {
         List<PhoneAccount> result = new ArrayList<>();
-        for (PhoneAccountMetadata m : s.mAccounts) {
+        for (PhoneAccountMetadata m : s.accounts) {
             result.add(m.getAccount());
         }
         return result;
@@ -177,9 +177,9 @@ final class PhoneAccountRegistrar {
                     : deserializeState(serialized);
             Log.d(this, "read() obtained state: %s", state);
             return state;
-        } catch (Exception e) {
+        } catch (JSONException e) {
             Log.e(this, e, "read");
-            throw new RuntimeException(e);
+            return new State();
         }
     }
 
@@ -194,9 +194,9 @@ final class PhoneAccountRegistrar {
                     .commit();
             Log.d(this, "serialized state was written with succcess = %b", success);
             return success;
-        } catch (Exception e) {
+        } catch (JSONException e) {
             Log.e(this, e, "write");
-            throw new RuntimeException(e);
+            return false;
         }
     }
 
@@ -214,8 +214,8 @@ final class PhoneAccountRegistrar {
     }
 
     private static class State {
-        PhoneAccount mDefaultOutgoing = null;
-        final List<PhoneAccountMetadata> mAccounts = new ArrayList<>();
+        public PhoneAccount defaultOutgoing = null;
+        public final List<PhoneAccountMetadata> accounts = new ArrayList<>();
     }
 
     //
@@ -235,11 +235,11 @@ final class PhoneAccountRegistrar {
         @Override
         public JSONObject toJson(State o) throws JSONException {
             JSONObject json = new JSONObject();
-            if (o.mDefaultOutgoing != null) {
-                json.put(DEFAULT_OUTGOING, sPhoneAccountJson.toJson(o.mDefaultOutgoing));
+            if (o.defaultOutgoing != null) {
+                json.put(DEFAULT_OUTGOING, sPhoneAccountJson.toJson(o.defaultOutgoing));
             }
             JSONArray accounts = new JSONArray();
-            for (PhoneAccountMetadata m : o.mAccounts) {
+            for (PhoneAccountMetadata m : o.accounts) {
                 accounts.put(sPhoneAccountMetadataJson.toJson(m));
             }
             json.put(ACCOUNTS, accounts);
@@ -250,14 +250,14 @@ final class PhoneAccountRegistrar {
         public State fromJson(JSONObject json) throws JSONException {
             State s = new State();
             if (json.has(DEFAULT_OUTGOING)) {
-                s.mDefaultOutgoing = sPhoneAccountJson.fromJson(
+                s.defaultOutgoing = sPhoneAccountJson.fromJson(
                         (JSONObject) json.get(DEFAULT_OUTGOING));
             }
             if (json.has(ACCOUNTS)) {
                 JSONArray accounts = (JSONArray) json.get(ACCOUNTS);
                 for (int i = 0; i < accounts.length(); i++) {
                     try {
-                        s.mAccounts.add(sPhoneAccountMetadataJson.fromJson(
+                        s.accounts.add(sPhoneAccountMetadataJson.fromJson(
                                 (JSONObject) accounts.get(i)));
                     } catch (Exception e) {
                         Log.e(this, e, "Extracting phone account");
