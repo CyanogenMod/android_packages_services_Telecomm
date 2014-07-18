@@ -17,6 +17,7 @@
 package com.android.telecomm.testapps;
 
 import android.content.Context;
+import android.media.MediaPlayer;
 import android.os.RemoteException;
 import android.telecomm.CallCameraCapabilities;
 import android.telecomm.CallVideoClient;
@@ -29,6 +30,8 @@ import android.view.Surface;
 
 import java.util.Random;
 
+import com.android.telecomm.tests.R;
+
 /**
  * Implements the CallVideoProvider.
  */
@@ -36,9 +39,16 @@ public class TestCallVideoProvider extends CallVideoProvider {
     private RemoteCallVideoClient mCallVideoClient;
     private CallCameraCapabilities mCapabilities;
     private Random random;
-
+    private Surface mDisplaySurface;
+    private Surface mPreviewSurface;
+    private Context mContext;
+    /** Used to play incoming video during a call. */
+    private MediaPlayer mIncomingMediaPlayer;
+    /** Used to play outgoing video during a call. */
+    private MediaPlayer mOutgoingMediaPlayer;
 
     public TestCallVideoProvider(Context context) {
+        mContext = context;
         mCapabilities = new CallCameraCapabilities(false /* zoomSupported */, 0 /* maxZoom */);
         random = new Random();
     }
@@ -58,12 +68,40 @@ public class TestCallVideoProvider extends CallVideoProvider {
 
     @Override
     public void onSetPreviewSurface(Surface surface) {
-        log("Set preview surface");
+        log("Set preview surface " + (surface == null ? "unset" : "set"));
+        mPreviewSurface = surface;
+
+        if (mPreviewSurface != null) {
+            if (mOutgoingMediaPlayer == null) {
+                mOutgoingMediaPlayer = createMediaPlayer(mPreviewSurface, R.raw.outgoing_video);
+            }
+            mOutgoingMediaPlayer.setSurface(mPreviewSurface);
+            if (!mOutgoingMediaPlayer.isPlaying()) {
+                mOutgoingMediaPlayer.start();
+            }
+        } else {
+            mOutgoingMediaPlayer.stop();
+            mOutgoingMediaPlayer.setSurface(null);
+        }
     }
 
     @Override
     public void onSetDisplaySurface(Surface surface) {
-        log("Set display surface");
+        log("Set display surface " + (surface == null ? "unset" : "set"));
+        mDisplaySurface = surface;
+
+        if (mDisplaySurface != null) {
+            if (mIncomingMediaPlayer == null) {
+                mIncomingMediaPlayer = createMediaPlayer(mDisplaySurface, R.raw.test_video);
+            }
+            mIncomingMediaPlayer.setSurface(mDisplaySurface);
+            if (!mIncomingMediaPlayer.isPlaying()) {
+                mIncomingMediaPlayer.start();
+            }
+        } else {
+            mIncomingMediaPlayer.stop();
+            mIncomingMediaPlayer.setSurface(null);
+        }
     }
 
     @Override
@@ -150,5 +188,19 @@ public class TestCallVideoProvider extends CallVideoProvider {
 
     private static void log(String msg) {
         Log.w("TestCallVideoProvider", "[TestCallServiceProvider] " + msg);
+    }
+
+    /**
+     * Creates a media player to play a video resource on a surface.
+     * @param surface The surface.
+     * @param videoResource The video resource.
+     * @return The {@code MediaPlayer}.
+     */
+    private MediaPlayer createMediaPlayer(Surface surface, int videoResource) {
+        MediaPlayer mediaPlayer = MediaPlayer.create(mContext.getApplicationContext(),
+                videoResource);
+        mediaPlayer.setSurface(surface);
+        mediaPlayer.setLooping(true);
+        return mediaPlayer;
     }
 }
