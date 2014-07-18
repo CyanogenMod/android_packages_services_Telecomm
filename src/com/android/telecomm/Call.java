@@ -16,6 +16,7 @@
 
 package com.android.telecomm;
 
+import android.app.PendingIntent;
 import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
@@ -78,6 +79,7 @@ final class Call implements CreateConnectionResponse {
         void onHandleChanged(Call call);
         void onCallerDisplayNameChanged(Call call);
         void onVideoStateChanged(Call call);
+        void onStartActivityFromInCall(Call call, PendingIntent intent);
     }
 
     abstract static class ListenerBase implements Listener {
@@ -121,6 +123,8 @@ final class Call implements CreateConnectionResponse {
         public void onCallerDisplayNameChanged(Call call) {}
         @Override
         public void onVideoStateChanged(Call call) {}
+        @Override
+        public void onStartActivityFromInCall(Call call, PendingIntent intent) {}
     }
 
     private static final OnQueryCompleteListener sCallerInfoQueryListener =
@@ -1120,6 +1124,16 @@ final class Call implements CreateConnectionResponse {
         mStatusHints = statusHints;
         for (Listener l : mListeners) {
             l.onStatusHintsChanged(this);
+        }
+    }
+
+    public void startActivityFromInCall(PendingIntent intent) {
+        if (intent.isActivity()) {
+            for (Listener l : mListeners) {
+                l.onStartActivityFromInCall(this, intent);
+            }
+        } else {
+            Log.w(this, "startActivityFromInCall, activity intent required");
         }
     }
 }

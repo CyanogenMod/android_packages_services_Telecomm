@@ -16,6 +16,7 @@
 
 package com.android.telecomm.testapps;
 
+import android.app.PendingIntent;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.media.MediaPlayer;
@@ -120,6 +121,12 @@ public class TestConnectionService extends ConnectionService {
             public void onCallerDisplayNameChanged(
                     RemoteConnection connection, String callerDisplayName, int presentation) {
                 setCallerDisplayName(callerDisplayName, presentation);
+            }
+
+            @Override
+            public void onStartActivityFromInCall(
+                    RemoteConnection connection, PendingIntent intent) {
+                startActivityFromInCall(intent);
             }
 
             @Override
