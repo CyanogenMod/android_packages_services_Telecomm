@@ -107,6 +107,11 @@ public final class InCallController extends CallsManagerListenerBase {
                 }
             }
         }
+
+        @Override
+        public void onPhoneAccountChanged(Call call) {
+            updateCall(call);
+        }
     };
 
     /** Maintains a binding connection to the in-call app. */

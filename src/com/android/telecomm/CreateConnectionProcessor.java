@@ -16,10 +16,8 @@
 
 package com.android.telecomm;
 
-import android.content.ComponentName;
-import android.net.Uri;
+import android.telecomm.PhoneAccount;
 import android.telephony.DisconnectCause;
-import android.telephony.PhoneNumberUtils;
 import android.telecomm.ConnectionRequest;
 
 import java.util.ArrayList;
@@ -36,8 +34,8 @@ import java.util.List;
 final class CreateConnectionProcessor {
     private final Call mCall;
     private final ConnectionServiceRepository mRepository;
-    private List<ComponentName> mServiceComponentNames;
-    private Iterator<ComponentName> mServiceComponentNameIterator;
+    private List<PhoneAccount> mPhoneAccounts;
+    private Iterator<PhoneAccount> mPhoneAccountIterator;
     private CreateConnectionResponse mResponse;
     private int mLastErrorCode = DisconnectCause.ERROR_UNSPECIFIED;
     private String mLastErrorMsg;
@@ -51,29 +49,13 @@ final class CreateConnectionProcessor {
 
     void process() {
         Log.v(this, "process");
-
-        mServiceComponentNames = new ArrayList<>();
-
-        // TODO(sail): Remove once there's a way to pick the service.
-        ArrayList<ComponentName> priorityComponents = new ArrayList<>();
-        priorityComponents.add(new ComponentName("com.google.android.talk",
-                "com.google.android.apps.babel.telephony.TeleConnectionService"));
-        priorityComponents.add(new ComponentName("com.android.telecomm.tests",
-                "com.android.telecomm.testapps.TestConnectionService"));
-
-        for (ConnectionServiceWrapper service : mRepository.lookupServices()) {
-            ComponentName serviceName = service.getComponentName();
-            if (priorityComponents.contains(serviceName)) {
-                Log.i(this, "Moving connection service %s to top of list", serviceName);
-                mServiceComponentNames .add(0, serviceName);
-            } else {
-                mServiceComponentNames.add(serviceName);
-            }
+        mPhoneAccounts = new ArrayList<>();
+        if (mCall.getPhoneAccount() != null) {
+            mPhoneAccounts.add(mCall.getPhoneAccount());
         }
-
-        adjustComponentNamesForEmergency();
-        mServiceComponentNameIterator = mServiceComponentNames.iterator();
-        attemptNextConnectionService();
+        adjustPhoneAccountsForEmergency();
+        mPhoneAccountIterator = mPhoneAccounts.iterator();
+        attemptNextPhoneAccount();
     }
 
     void abort() {
@@ -94,21 +76,24 @@ final class CreateConnectionProcessor {
         }
     }
 
-    private void attemptNextConnectionService() {
-        Log.v(this, "attemptNextConnectionService");
+    private void attemptNextPhoneAccount() {
+        Log.v(this, "attemptNextPhoneAccount");
 
-        if (mResponse != null && mServiceComponentNameIterator.hasNext()) {
-            ComponentName component = mServiceComponentNameIterator.next();
-            ConnectionServiceWrapper service = mRepository.getService(component);
+        if (mResponse != null && mPhoneAccountIterator.hasNext()) {
+            PhoneAccount account = mPhoneAccountIterator.next();
+            Log.i(this, "Trying account %s", account);
+            ConnectionServiceWrapper service = mRepository.getService(account.getComponentName());
             if (service == null) {
-                attemptNextConnectionService();
+                Log.i(this, "Found no connection service for account %s", account);
+                attemptNextPhoneAccount();
             } else {
+                mCall.setPhoneAccount(account);
                 mCall.setConnectionService(service);
                 Log.i(this, "Attempting to call from %s", service.getComponentName());
                 service.createConnection(mCall, new Response(service));
             }
         } else {
-            Log.v(this, "attemptNextConnectionService, no more services, failing");
+            Log.v(this, "attemptNextPhoneAccount, no more accounts, failing");
             if (mResponse != null) {
                 mResponse.handleCreateConnectionFailed(mLastErrorCode, mLastErrorMsg);
                 mResponse = null;
@@ -118,21 +103,20 @@ final class CreateConnectionProcessor {
     }
 
     // If we are possibly attempting to call a local emergency number, ensure that the
-    // plain PSTN connection service, if it exists, is attempted first.
-    private void adjustComponentNamesForEmergency()  {
-        if (shouldProcessAsEmergency(mCall.getHandle())) {
-            for (int i = 0; i < mServiceComponentNames.size(); i++) {
-                if (TelephonyUtil.isPstnComponentName(mServiceComponentNames.get(i))) {
-                    mServiceComponentNames.add(0, mServiceComponentNames.remove(i));
-                    return;
+    // plain PSTN connection services are listed, and nothing else.
+    private void adjustPhoneAccountsForEmergency()  {
+        if (TelephonyUtil.shouldProcessAsEmergency(TelecommApp.getInstance(), mCall.getHandle())) {
+            Log.i(this, "Emergency number detected");
+            mPhoneAccounts.clear();
+            List<PhoneAccount> allAccounts = TelecommApp.getInstance().getPhoneAccountRegistrar()
+                    .getEnabledPhoneAccounts();
+            for (int i = 0; i < allAccounts.size(); i++) {
+                if (TelephonyUtil.isPstnComponentName(allAccounts.get(i).getComponentName())) {
+                    Log.i(this, "Will try PSTN account %s for emergency", allAccounts.get(i));
+                    mPhoneAccounts.add(allAccounts.get(i));
                 }
             }
         }
-    }
-
-    private boolean shouldProcessAsEmergency(Uri handle) {
-        return handle != null && PhoneNumberUtils.isPotentialLocalEmergencyNumber(
-                TelecommApp.getInstance(), handle.getSchemeSpecificPart());
     }
 
     private class Response implements CreateConnectionResponse {
@@ -156,7 +140,8 @@ final class CreateConnectionProcessor {
         public void handleCreateConnectionFailed(int code, String msg) {
             mLastErrorCode = code;
             mLastErrorMsg = msg;
-            attemptNextConnectionService();
+            Log.d(CreateConnectionProcessor.this, "Connection failed: %d (%s)", code, msg);
+            attemptNextPhoneAccount();
         }
 
         @Override
