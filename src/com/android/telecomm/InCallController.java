@@ -31,7 +31,7 @@ import android.telecomm.CallAudioState;
 import android.telecomm.CallCapabilities;
 import android.telecomm.CallPropertyPresentation;
 import android.telecomm.CallState;
-import android.telecomm.InCallCall;
+import android.telecomm.ParcelableCall;
 
 import com.android.internal.telecomm.IInCallService;
 import com.google.common.collect.ImmutableCollection;
@@ -136,7 +136,7 @@ public final class InCallController extends CallsManagerListenerBase {
                 mCallIdMapper.addCall(call);
                 call.addListener(mCallListener);
                 try {
-                    mInCallService.addCall(toInCallCall(call));
+                    mInCallService.addCall(toParcelableCall(call));
                 } catch (RemoteException ignored) {
                 }
             }
@@ -286,15 +286,15 @@ public final class InCallController extends CallsManagerListenerBase {
     private void updateCall(Call call) {
         if (mInCallService != null) {
             try {
-                InCallCall inCallCall = toInCallCall(call);
-                Log.v(this, "updateCall %s ==> %s", call, inCallCall);
-                mInCallService.updateCall(inCallCall);
+                ParcelableCall parcelableCall = toParcelableCall(call);
+                Log.v(this, "updateCall %s ==> %s", call, parcelableCall);
+                mInCallService.updateCall(parcelableCall);
             } catch (RemoteException ignored) {
             }
         }
     }
 
-    private InCallCall toInCallCall(Call call) {
+    private ParcelableCall toParcelableCall(Call call) {
         String callId = mCallIdMapper.getCallId(call);
 
         int capabilities = call.getCallCapabilities();
@@ -336,11 +336,24 @@ public final class InCallController extends CallsManagerListenerBase {
         String callerDisplayName = call.getCallerDisplayNamePresentation() ==
                 CallPropertyPresentation.ALLOWED ?  call.getCallerDisplayName() : null;
 
-        return new InCallCall(callId, state, call.getDisconnectCause(), call.getDisconnectMessage(),
-                call.getCannedSmsResponses(), capabilities, connectTimeMillis, handle,
-                call.getHandlePresentation(), callerDisplayName,
-                call.getCallerDisplayNamePresentation(), call.getGatewayInfo(),
-                call.getPhoneAccount(), call.getCallVideoProvider(), parentCallId, childCallIds,
-                call.getStatusHints() , call.getVideoState());
+        return new ParcelableCall(
+                callId,
+                state,
+                call.getDisconnectCause(),
+                call.getDisconnectMessage(),
+                call.getCannedSmsResponses(),
+                capabilities,
+                connectTimeMillis,
+                handle,
+                call.getHandlePresentation(),
+                callerDisplayName,
+                call.getCallerDisplayNamePresentation(),
+                call.getGatewayInfo(),
+                call.getPhoneAccount(),
+                call.getCallVideoProvider(),
+                parentCallId,
+                childCallIds,
+                call.getStatusHints(),
+                call.getVideoState());
     }
 }
