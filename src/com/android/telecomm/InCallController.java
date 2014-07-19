@@ -298,11 +298,11 @@ public final class InCallController extends CallsManagerListenerBase {
         String callId = mCallIdMapper.getCallId(call);
 
         int capabilities = call.getCallCapabilities();
-        if (!CallsManager.getInstance().isAddCallCapable(call)) {
-            capabilities &= ~CallCapabilities.ADD_CALL;
+        if (CallsManager.getInstance().isAddCallCapable(call)) {
+            capabilities |= CallCapabilities.ADD_CALL;
         }
-        if (call.isEmergencyCall()) {
-            capabilities &= ~CallCapabilities.MUTE;
+        if (!call.isEmergencyCall()) {
+            capabilities |= CallCapabilities.MUTE;
         }
 
         CallState state = call.getState();
