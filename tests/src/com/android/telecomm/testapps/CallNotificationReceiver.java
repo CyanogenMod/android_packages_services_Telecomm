@@ -22,8 +22,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.telecomm.PhoneAccount;
-import android.telecomm.PhoneAccountMetadata;
-import android.telecomm.TelecommConstants;
+import android.telecomm.TelecommManager;
 
 /**
  * This class receives the notification callback intents used to update call states for
@@ -70,7 +69,7 @@ public class CallNotificationReceiver extends BroadcastReceiver {
      */
     private void sendIncomingCallIntent(Context context, boolean isVideoCall) {
         // Create intent for adding an incoming call.
-        Intent intent = new Intent(TelecommConstants.ACTION_INCOMING_CALL);
+        Intent intent = new Intent(TelecommManager.ACTION_INCOMING_CALL);
         // TODO(santoscordon): Use a private @hide permission to make sure this only goes to
         // Telecomm instead of setting the package explicitly.
         intent.setPackage("com.android.telecomm");
@@ -78,14 +77,14 @@ public class CallNotificationReceiver extends BroadcastReceiver {
         PhoneAccount phoneAccount = new PhoneAccount(
                 new ComponentName(context, TestConnectionService.class),
                 null /* id */);
-        intent.putExtra(TelecommConstants.EXTRA_PHONE_ACCOUNT, phoneAccount);
+        intent.putExtra(TelecommManager.EXTRA_PHONE_ACCOUNT, phoneAccount);
 
         // For the purposes of testing, indicate whether the incoming call is a video call by
         // stashing an indicator in the EXTRA_INCOMING_CALL_EXTRAS.
         Bundle extras = new Bundle();
         extras.putBoolean(TestConnectionService.IS_VIDEO_CALL, isVideoCall);
 
-        intent.putExtra(TelecommConstants.EXTRA_INCOMING_CALL_EXTRAS, extras);
+        intent.putExtra(TelecommManager.EXTRA_INCOMING_CALL_EXTRAS, extras);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         context.startActivity(intent);
     }
