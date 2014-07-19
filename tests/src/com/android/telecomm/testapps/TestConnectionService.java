@@ -29,13 +29,10 @@ import android.telecomm.ConnectionRequest;
 import android.telecomm.ConnectionService;
 import android.telecomm.PhoneAccount;
 import android.telecomm.RemoteConnection;
-import android.telecomm.Response;
 import android.telecomm.SimpleResponse;
 import android.telecomm.StatusHints;
-import android.telecomm.PhoneAccount;
 import android.telecomm.VideoCallProfile;
 import android.telephony.DisconnectCause;
-import android.text.TextUtils;
 import android.util.Log;
 
 import com.android.telecomm.tests.R;
@@ -78,7 +75,7 @@ public class TestConnectionService extends ConnectionService {
             public void onDisconnected(RemoteConnection connection, int cause, String message) {
                 setDisconnected(cause, message);
                 destroyCall(TestConnection.this);
-                setDestroyed();
+                destroy();
             }
 
             @Override
@@ -131,7 +128,7 @@ public class TestConnectionService extends ConnectionService {
 
             @Override
             public void onDestroyed(RemoteConnection connection) {
-                setDestroyed();
+                destroy();
             }
         };
 
@@ -168,7 +165,7 @@ public class TestConnectionService extends ConnectionService {
                 mRemoteConnection.removeListener(mProxyListener);
             } else {
                 destroyCall(this);
-                setDestroyed();
+                destroy();
             }
         }
 
@@ -191,7 +188,7 @@ public class TestConnectionService extends ConnectionService {
             } else {
                 setDisconnected(DisconnectCause.LOCAL, null);
                 destroyCall(this);
-                setDestroyed();
+                destroy();
             }
         }
 
@@ -213,7 +210,7 @@ public class TestConnectionService extends ConnectionService {
             } else {
                 setDisconnected(DisconnectCause.INCOMING_REJECTED, null);
                 destroyCall(this);
-                setDestroyed();
+                destroy();
             }
         }
 
