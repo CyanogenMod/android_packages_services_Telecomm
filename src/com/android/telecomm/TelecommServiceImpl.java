@@ -19,9 +19,13 @@ package com.android.telecomm;
 import android.app.AppOpsManager;
 import android.content.ComponentName;
 import android.content.Context;
+
+import android.content.Intent;
 import android.content.res.Resources;
 import android.os.Binder;
+import android.os.Bundle;
 import android.os.Handler;
+import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
 import android.os.ServiceManager;
@@ -40,7 +44,13 @@ import java.util.List;
  * Implementation of the ITelecomm interface.
  */
 public class TelecommServiceImpl extends ITelecommService.Stub {
-    /**
+    /** ${inheritDoc} */
+    @Override
+    public IBinder asBinder() {
+        return super.asBinder();
+    }
+
+ /**
      * A request object for use with {@link MainThreadHandler}. Requesters should wait() on the
      * request after sending. The main thread will notify the request when it is complete.
      */
@@ -319,6 +329,28 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
     public int getCurrentTtyMode() {
         enforceReadPermission();
         return (int) sendRequest(MSG_GET_CURRENT_TTY_MODE);
+    }
+
+    /**
+     * @see TelecommManager#addNewIncomingCall
+     */
+    @Override
+    public void addNewIncomingCall(PhoneAccountHandle phoneAccountHandle, Bundle extras) {
+        if (phoneAccountHandle != null && phoneAccountHandle.getComponentName() != null) {
+            mAppOpsManager.checkPackage(
+                    Binder.getCallingUid(), phoneAccountHandle.getComponentName().getPackageName());
+
+            Intent intent = new Intent(TelecommManager.ACTION_INCOMING_CALL);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            intent.putExtra(TelecommManager.EXTRA_PHONE_ACCOUNT_HANDLE, phoneAccountHandle);
+            if (extras != null) {
+                intent.putExtra(TelecommManager.EXTRA_INCOMING_CALL_EXTRAS, extras);
+            }
+
+            long token = Binder.clearCallingIdentity();
+            TelecommApp.getInstance().startActivity(intent);
+            Binder.restoreCallingIdentity(token);
+        }
     }
 
     //

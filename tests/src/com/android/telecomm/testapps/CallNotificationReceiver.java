@@ -68,24 +68,15 @@ public class CallNotificationReceiver extends BroadcastReceiver {
      * @param isVideoCall {@code True} if this is a video call.
      */
     private void sendIncomingCallIntent(Context context, boolean isVideoCall) {
-        // Create intent for adding an incoming call.
-        Intent intent = new Intent(TelecommManager.ACTION_INCOMING_CALL);
-        // TODO(santoscordon): Use a private @hide permission to make sure this only goes to
-        // Telecomm instead of setting the package explicitly.
-        intent.setPackage("com.android.telecomm");
-
-        PhoneAccountHandle phoneAccountHandle = new PhoneAccountHandle(
+        PhoneAccountHandle phoneAccount = new PhoneAccountHandle(
                 new ComponentName(context, TestConnectionService.class),
-                null /* id */);
-        intent.putExtra(TelecommManager.EXTRA_PHONE_ACCOUNT_HANDLE, phoneAccountHandle);
+                CallServiceNotifier.PHONE_ACCOUNT_ID);
 
         // For the purposes of testing, indicate whether the incoming call is a video call by
         // stashing an indicator in the EXTRA_INCOMING_CALL_EXTRAS.
         Bundle extras = new Bundle();
         extras.putBoolean(TestConnectionService.IS_VIDEO_CALL, isVideoCall);
 
-        intent.putExtra(TelecommManager.EXTRA_INCOMING_CALL_EXTRAS, extras);
-        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        context.startActivity(intent);
+        TelecommManager.from(context).addNewIncomingCall(phoneAccount, extras);
     }
 }
