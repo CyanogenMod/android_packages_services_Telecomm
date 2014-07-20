@@ -63,7 +63,7 @@ public class PhoneAccountPreferencesActivity extends Activity {
             for ( ; i < accountHandles.size(); i++) {
                 entryValues[i] = Integer.toString(i);
                 entries[i] = mRegistrar
-                        .getPhoneAccountMetadata(accountHandles.get(i))
+                        .getPhoneAccount(accountHandles.get(i))
                         .getLabel();
                 if (Objects.equals(currentDefault, accountHandles.get(i))) {
                     selectedIndex = i;

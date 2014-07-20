@@ -269,21 +269,21 @@ final class Call implements CreateConnectionResponse {
      *
      * @param handle The handle to dial.
      * @param gatewayInfo Gateway information to use for the call.
-     * @param account Account information to use for the call.
+     * @param accountHandle Account information to use for the call.
      * @param isIncoming True if this is an incoming call.
      */
     Call(
             ConnectionServiceRepository repository,
             Uri handle,
             GatewayInfo gatewayInfo,
-            PhoneAccountHandle account,
+            PhoneAccountHandle accountHandle,
             boolean isIncoming,
             boolean isConference) {
         mState = isConference ? CallState.ACTIVE : CallState.NEW;
         mRepository = repository;
         setHandle(handle, CallPropertyPresentation.ALLOWED);
         mGatewayInfo = gatewayInfo;
-        mPhoneAccountHandle = account;
+        mPhoneAccountHandle = accountHandle;
         mIsIncoming = isIncoming;
         mIsConference = isConference;
         maybeLoadCannedSmsResponses();
@@ -569,7 +569,7 @@ final class Call implements CreateConnectionResponse {
     @Override
     public void handleCreateConnectionSuccessful(ConnectionRequest request) {
         mCreateConnectionProcessor = null;
-        mPhoneAccountHandle = request.getAccount();
+        mPhoneAccountHandle = request.getAccountHandle();
 
         if (mIsIncoming) {
             // We do not handle incoming calls immediately when they are verified by the connection

@@ -276,7 +276,7 @@ public class TestConnectionService extends ConnectionService {
                 mCalls.add(connection);
 
                 ConnectionRequest remoteRequest = new ConnectionRequest(
-                        request.getAccount(),
+                        request.getAccountHandle(),
                         mOriginalRequest.getCallId(),
                         request.getHandle(),
                         request.getHandlePresentation(),
@@ -396,7 +396,7 @@ public class TestConnectionService extends ConnectionService {
             // Normally we would use the original request as is, but for testing purposes, we are
             // adding ".." to the end of the number to follow its path more easily through the logs.
             final ConnectionRequest request = new ConnectionRequest(
-                    originalRequest.getAccount(),
+                    originalRequest.getAccountHandle(),
                     originalRequest.getCallId(),
                     Uri.fromParts(handle.getScheme(),
                     handle.getSchemeSpecificPart() + "..", ""),
@@ -413,10 +413,11 @@ public class TestConnectionService extends ConnectionService {
             log("looking up accounts");
             lookupRemoteAccounts(handle, new SimpleResponse<Uri, List<PhoneAccountHandle>>() {
                 @Override
-                public void onResult(Uri handle, List<PhoneAccountHandle> accounts) {
-                    log("starting the call attempter with accounts: " + accounts);
+                public void onResult(Uri handle, List<PhoneAccountHandle> accountHandles) {
+                    log("starting the call attempter with accountHandles: " + accountHandles);
                     new CallAttempter(
-                            accounts.iterator(), callback, originalRequest, false).tryNextAccount();
+                            accountHandles.iterator(), callback, originalRequest, false)
+                            .tryNextAccount();
                 }
 
                 @Override
@@ -432,9 +433,9 @@ public class TestConnectionService extends ConnectionService {
     @Override
     public void onCreateIncomingConnection(
             final ConnectionRequest request, final CreateConnectionResponse<Connection> response) {
-        PhoneAccountHandle account = request.getAccount();
+        PhoneAccountHandle accountHandle = request.getAccountHandle();
         ComponentName componentName = new ComponentName(this, TestConnectionService.class);
-        if (account != null && componentName.equals(account.getComponentName())) {
+        if (accountHandle != null && componentName.equals(accountHandle.getComponentName())) {
             // Get the stashed intent extra that determines if this is a video call or audio call.
             Bundle extras = request.getExtras();
             boolean isVideoCall = extras.getBoolean(IS_VIDEO_CALL);
@@ -452,7 +453,7 @@ public class TestConnectionService extends ConnectionService {
             mCalls.add(connection);
 
             ConnectionRequest newRequest = new ConnectionRequest(
-                    request.getAccount(),
+                    request.getAccountHandle(),
                     request.getCallId(),
                     handle,
                     request.getHandlePresentation(),
@@ -464,15 +465,18 @@ public class TestConnectionService extends ConnectionService {
             SimpleResponse<Uri, List<PhoneAccountHandle>> accountResponse =
                     new SimpleResponse<Uri, List<PhoneAccountHandle>>() {
                             @Override
-                            public void onResult(Uri handle, List<PhoneAccountHandle> accounts) {
-                                log("attaching to incoming call with accounts: " + accounts);
-                                new CallAttempter(accounts.iterator(), response, request, true)
+                            public void onResult(
+                                    Uri handle, List<PhoneAccountHandle> accountHandles) {
+                                log("attaching to incoming call with accountHandles: "
+                                        + accountHandles);
+                                new CallAttempter(accountHandles.iterator(), response, request,
+                                        true /* isIncoming */)
                                         .tryNextAccount();
                             }
 
                             @Override
                             public void onError(Uri handle) {
-                                log("remote account lookup failed.");
+                                log("remote accountHandle lookup failed.");
                                 response.onFailure(request, 0, null);
                             }
             };

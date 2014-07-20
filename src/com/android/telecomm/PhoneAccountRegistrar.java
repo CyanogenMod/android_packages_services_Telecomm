@@ -16,6 +16,7 @@
 
 package com.android.telecomm;
 
+import android.telecomm.PhoneAccount;
 import android.telecomm.PhoneAccountHandle;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -27,7 +28,6 @@ import android.content.Context;
 
 import android.content.SharedPreferences;
 import android.net.Uri;
-import android.telecomm.PhoneAccountMetadata;
 import android.telecomm.TelecommManager;
 
 import java.util.ArrayList;
@@ -67,8 +67,8 @@ final class PhoneAccountRegistrar {
             s.defaultOutgoingHandle = null;
         } else {
             boolean found = false;
-            for (PhoneAccountMetadata m : s.accounts) {
-                if (Objects.equals(accountHandle, m.getAccount())) {
+            for (PhoneAccount m : s.accounts) {
+                if (Objects.equals(accountHandle, m.getAccountHandle())) {
                     found = true;
                     break;
                 }
@@ -91,10 +91,10 @@ final class PhoneAccountRegistrar {
         return accountHandlesOnly(s);
     }
 
-    public PhoneAccountMetadata getPhoneAccountMetadata(PhoneAccountHandle accountHandle) {
+    public PhoneAccount getPhoneAccount(PhoneAccountHandle accountHandle) {
         State s = read();
-        for (PhoneAccountMetadata m : s.accounts) {
-            if (Objects.equals(accountHandle, m.getAccount())) {
+        for (PhoneAccount m : s.accounts) {
+            if (Objects.equals(accountHandle, m.getAccountHandle())) {
                 return m;
             }
         }
@@ -103,13 +103,13 @@ final class PhoneAccountRegistrar {
 
     // TODO: Should we implement an artificial limit for # of accounts associated with a single
     // ComponentName?
-    public void registerPhoneAccount(PhoneAccountMetadata metadata) {
+    public void registerPhoneAccount(PhoneAccount metadata) {
         State s = read();
 
         s.accounts.add(metadata);
         // Search for duplicates and remove any that are found.
         for (int i = 0; i < s.accounts.size() - 1; i++) {
-            if (Objects.equals(metadata.getAccount(), s.accounts.get(i).getAccount())) {
+            if (Objects.equals(metadata.getAccountHandle(), s.accounts.get(i).getAccountHandle())) {
                 // replace existing entry.
                 s.accounts.remove(i);
                 break;
@@ -123,7 +123,7 @@ final class PhoneAccountRegistrar {
         State s = read();
 
         for (int i = 0; i < s.accounts.size(); i++) {
-            if (Objects.equals(accountHandle, s.accounts.get(i).getAccount())) {
+            if (Objects.equals(accountHandle, s.accounts.get(i).getAccountHandle())) {
                 s.accounts.remove(i);
                 break;
             }
@@ -140,7 +140,7 @@ final class PhoneAccountRegistrar {
         for (int i = 0; i < s.accounts.size(); i++) {
             if (Objects.equals(
                     packageName,
-                    s.accounts.get(i).getAccount().getComponentName().getPackageName())) {
+                    s.accounts.get(i).getAccountHandle().getComponentName().getPackageName())) {
                 s.accounts.remove(i);
             }
         }
@@ -153,8 +153,8 @@ final class PhoneAccountRegistrar {
     private void checkDefaultOutgoing(State s) {
         // Check that, after an operation that removes accounts, the account set up as the "default
         // outgoing" has not been deleted. If it has, then clear out the setting.
-        for (PhoneAccountMetadata m : s.accounts) {
-            if (Objects.equals(s.defaultOutgoingHandle, m.getAccount())) {
+        for (PhoneAccount m : s.accounts) {
+            if (Objects.equals(s.defaultOutgoingHandle, m.getAccountHandle())) {
                 return;
             }
         }
@@ -162,11 +162,11 @@ final class PhoneAccountRegistrar {
     }
 
     private List<PhoneAccountHandle> accountHandlesOnly(State s) {
-        List<PhoneAccountHandle> result = new ArrayList<>();
-        for (PhoneAccountMetadata m : s.accounts) {
-            result.add(m.getAccount());
+        List<PhoneAccountHandle> accountHandles = new ArrayList<>();
+        for (PhoneAccount m : s.accounts) {
+            accountHandles.add(m.getAccountHandle());
         }
-        return result;
+        return accountHandles;
     }
 
     private State read() {
@@ -216,7 +216,7 @@ final class PhoneAccountRegistrar {
 
     private static class State {
         public PhoneAccountHandle defaultOutgoingHandle = null;
-        public final List<PhoneAccountMetadata> accounts = new ArrayList<>();
+        public final List<PhoneAccount> accounts = new ArrayList<>();
     }
 
     //
@@ -240,7 +240,7 @@ final class PhoneAccountRegistrar {
                 json.put(DEFAULT_OUTGOING, sPhoneAccountJson.toJson(o.defaultOutgoingHandle));
             }
             JSONArray accounts = new JSONArray();
-            for (PhoneAccountMetadata m : o.accounts) {
+            for (PhoneAccount m : o.accounts) {
                 accounts.put(sPhoneAccountMetadataJson.toJson(m));
             }
             json.put(ACCOUNTS, accounts);
@@ -269,8 +269,8 @@ final class PhoneAccountRegistrar {
         }
     };
 
-    private static final Json<PhoneAccountMetadata> sPhoneAccountMetadataJson =
-            new Json<PhoneAccountMetadata>() {
+    private static final Json<PhoneAccount> sPhoneAccountMetadataJson =
+            new Json<PhoneAccount>() {
         private static final String ACCOUNT = "account";
         private static final String HANDLE = "handle";
         private static final String SUBSCRIPTION_NUMBER = "subscription_number";
@@ -281,9 +281,9 @@ final class PhoneAccountRegistrar {
         private static final String VIDEO_CALLING_SUPPORTED = "video_calling_supported";
 
         @Override
-        public JSONObject toJson(PhoneAccountMetadata o) throws JSONException {
+        public JSONObject toJson(PhoneAccount o) throws JSONException {
             return new JSONObject()
-                    .put(ACCOUNT, sPhoneAccountJson.toJson(o.getAccount()))
+                    .put(ACCOUNT, sPhoneAccountJson.toJson(o.getAccountHandle()))
                     .put(HANDLE, o.getHandle().toString())
                     .put(SUBSCRIPTION_NUMBER, o.getSubscriptionNumber())
                     .put(CAPABILITIES, o.getCapabilities())
@@ -294,8 +294,8 @@ final class PhoneAccountRegistrar {
         }
 
         @Override
-        public PhoneAccountMetadata fromJson(JSONObject json) throws JSONException {
-            return new PhoneAccountMetadata(
+        public PhoneAccount fromJson(JSONObject json) throws JSONException {
+            return new PhoneAccount(
                     sPhoneAccountJson.fromJson((JSONObject) json.get(ACCOUNT)),
                     Uri.parse((String) json.get(HANDLE)),
                     (String) json.get(SUBSCRIPTION_NUMBER),
