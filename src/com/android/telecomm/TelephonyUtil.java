@@ -17,9 +17,9 @@
 package com.android.telecomm;
 
 import android.content.ComponentName;
-import android.content.pm.PackageManager;
-import android.content.pm.ServiceInfo;
-import android.telecomm.PhoneAccount;
+import android.content.Context;
+import android.net.Uri;
+import android.telephony.PhoneNumberUtils;
 
 /**
  * Utilities to deal with the system telephony services. The system telephony services are treated
@@ -31,7 +31,7 @@ public final class TelephonyUtil {
     private static final String TELEPHONY_PACKAGE_NAME = "com.android.phone";
 
     private static final String PSTN_CALL_SERVICE_CLASS_NAME =
-            "com.android.services.telephony.PstnConnectionService";
+            "com.android.services.telephony.TelephonyConnectionService";
 
     private TelephonyUtil() {}
 
@@ -41,17 +41,8 @@ public final class TelephonyUtil {
         return pstnComponentName.equals(componentName);
     }
 
-    private static void verifyConnectionServiceExists(String serviceName) {
-        PackageManager packageManager = TelecommApp.getInstance().getPackageManager();
-        try {
-            ServiceInfo info = packageManager.getServiceInfo(
-                    new ComponentName(TELEPHONY_PACKAGE_NAME, serviceName), 0);
-            if (info == null) {
-                Log.wtf(TAG, "Error, unable to find connection service: %s", serviceName);
-            }
-        } catch (PackageManager.NameNotFoundException e) {
-            Log.wtf(TAG, e, "Error, exception while trying to find connection service: %s",
-                    serviceName);
-        }
+    static boolean shouldProcessAsEmergency(Context context, Uri handle) {
+        return handle != null && PhoneNumberUtils.isPotentialLocalEmergencyNumber(
+                context, handle.getSchemeSpecificPart());
     }
 }

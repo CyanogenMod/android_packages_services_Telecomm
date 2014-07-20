@@ -311,7 +311,11 @@ public final class CallsManager extends Call.ListenerBase {
         call.addListener(this);
         addCall(call);
 
-        if (account == null) {
+        if (TelephonyUtil.shouldProcessAsEmergency(TelecommApp.getInstance(), call.getHandle())) {
+            // Emergency -- CreateConnectionProcessor will choose accounts automatically
+            call.setPhoneAccount(null);
+            call.startCreateConnection();
+        } else if (account == null) {
             PhoneAccount defaultAccount = TelecommApp.getInstance().getPhoneAccountRegistrar()
                     .getDefaultOutgoingPhoneAccount();
             if (defaultAccount != null) {

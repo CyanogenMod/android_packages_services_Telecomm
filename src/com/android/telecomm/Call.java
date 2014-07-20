@@ -80,6 +80,7 @@ final class Call implements CreateConnectionResponse {
         void onCallerDisplayNameChanged(Call call);
         void onVideoStateChanged(Call call);
         void onStartActivityFromInCall(Call call, PendingIntent intent);
+        void onPhoneAccountChanged(Call call);
     }
 
     abstract static class ListenerBase implements Listener {
@@ -125,6 +126,8 @@ final class Call implements CreateConnectionResponse {
         public void onVideoStateChanged(Call call) {}
         @Override
         public void onStartActivityFromInCall(Call call, PendingIntent intent) {}
+        @Override
+        public void onPhoneAccountChanged(Call call) {}
     }
 
     private static final OnQueryCompleteListener sCallerInfoQueryListener =
@@ -440,7 +443,12 @@ final class Call implements CreateConnectionResponse {
     }
 
     void setPhoneAccount(PhoneAccount account) {
-        mPhoneAccount = account;
+        if (!Objects.equals(mPhoneAccount, account)) {
+            mPhoneAccount = account;
+            for (Listener l : mListeners) {
+                l.onPhoneAccountChanged(this);
+            }
+        }
     }
 
     boolean isIncoming() {
