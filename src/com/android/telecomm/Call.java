@@ -26,7 +26,7 @@ import android.telecomm.CallPropertyPresentation;
 import android.telecomm.CallState;
 import android.telecomm.ConnectionRequest;
 import android.telecomm.GatewayInfo;
-import android.telecomm.PhoneAccount;
+import android.telecomm.PhoneAccountHandle;
 import android.telecomm.Response;
 import android.telecomm.StatusHints;
 import android.telephony.DisconnectCause;
@@ -175,7 +175,7 @@ final class Call implements CreateConnectionResponse {
      * service. */
     private final GatewayInfo mGatewayInfo;
 
-    private PhoneAccount mPhoneAccount;
+    private PhoneAccountHandle mPhoneAccountHandle;
 
     private final Handler mHandler = new Handler();
 
@@ -276,14 +276,14 @@ final class Call implements CreateConnectionResponse {
             ConnectionServiceRepository repository,
             Uri handle,
             GatewayInfo gatewayInfo,
-            PhoneAccount account,
+            PhoneAccountHandle account,
             boolean isIncoming,
             boolean isConference) {
         mState = isConference ? CallState.ACTIVE : CallState.NEW;
         mRepository = repository;
         setHandle(handle, CallPropertyPresentation.ALLOWED);
         mGatewayInfo = gatewayInfo;
-        mPhoneAccount = account;
+        mPhoneAccountHandle = account;
         mIsIncoming = isIncoming;
         mIsConference = isConference;
         maybeLoadCannedSmsResponses();
@@ -438,13 +438,13 @@ final class Call implements CreateConnectionResponse {
         return mGatewayInfo;
     }
 
-    PhoneAccount getPhoneAccount() {
-        return mPhoneAccount;
+    PhoneAccountHandle getPhoneAccount() {
+        return mPhoneAccountHandle;
     }
 
-    void setPhoneAccount(PhoneAccount account) {
-        if (!Objects.equals(mPhoneAccount, account)) {
-            mPhoneAccount = account;
+    void setPhoneAccount(PhoneAccountHandle accountHandle) {
+        if (!Objects.equals(mPhoneAccountHandle, accountHandle)) {
+            mPhoneAccountHandle = accountHandle;
             for (Listener l : mListeners) {
                 l.onPhoneAccountChanged(this);
             }
@@ -569,7 +569,7 @@ final class Call implements CreateConnectionResponse {
     @Override
     public void handleCreateConnectionSuccessful(ConnectionRequest request) {
         mCreateConnectionProcessor = null;
-        mPhoneAccount = request.getAccount();
+        mPhoneAccountHandle = request.getAccount();
 
         if (mIsIncoming) {
             // We do not handle incoming calls immediately when they are verified by the connection

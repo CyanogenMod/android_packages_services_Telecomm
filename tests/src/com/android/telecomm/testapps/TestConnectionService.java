@@ -27,15 +27,12 @@ import android.telecomm.CallAudioState;
 import android.telecomm.Connection;
 import android.telecomm.ConnectionRequest;
 import android.telecomm.ConnectionService;
-import android.telecomm.PhoneAccount;
+import android.telecomm.PhoneAccountHandle;
 import android.telecomm.RemoteConnection;
-import android.telecomm.Response;
 import android.telecomm.SimpleResponse;
 import android.telecomm.StatusHints;
-import android.telecomm.PhoneAccount;
 import android.telecomm.VideoCallProfile;
 import android.telephony.DisconnectCause;
-import android.text.TextUtils;
 import android.util.Log;
 
 import com.android.telecomm.tests.R;
@@ -254,13 +251,13 @@ public class TestConnectionService extends ConnectionService {
     }
 
     private class CallAttempter implements CreateConnectionResponse<RemoteConnection> {
-        private final Iterator<PhoneAccount> mAccountIterator;
+        private final Iterator<PhoneAccountHandle> mAccountIterator;
         private final CreateConnectionResponse<Connection> mCallback;
         private final ConnectionRequest mOriginalRequest;
         private final boolean mIsIncoming;
 
         CallAttempter(
-                Iterator<PhoneAccount> iterator,
+                Iterator<PhoneAccountHandle> iterator,
                 CreateConnectionResponse<Connection> callback,
                 ConnectionRequest originalRequest,
                 boolean isIncoming) {
@@ -414,9 +411,9 @@ public class TestConnectionService extends ConnectionService {
             connection.startOutgoing();
         } else {
             log("looking up accounts");
-            lookupRemoteAccounts(handle, new SimpleResponse<Uri, List<PhoneAccount>>() {
+            lookupRemoteAccounts(handle, new SimpleResponse<Uri, List<PhoneAccountHandle>>() {
                 @Override
-                public void onResult(Uri handle, List<PhoneAccount> accounts) {
+                public void onResult(Uri handle, List<PhoneAccountHandle> accounts) {
                     log("starting the call attempter with accounts: " + accounts);
                     new CallAttempter(
                             accounts.iterator(), callback, originalRequest, false).tryNextAccount();
@@ -435,7 +432,7 @@ public class TestConnectionService extends ConnectionService {
     @Override
     public void onCreateIncomingConnection(
             final ConnectionRequest request, final CreateConnectionResponse<Connection> response) {
-        PhoneAccount account = request.getAccount();
+        PhoneAccountHandle account = request.getAccount();
         ComponentName componentName = new ComponentName(this, TestConnectionService.class);
         if (account != null && componentName.equals(account.getComponentName())) {
             // Get the stashed intent extra that determines if this is a video call or audio call.
@@ -464,10 +461,10 @@ public class TestConnectionService extends ConnectionService {
             response.onSuccess(newRequest, connection);
             connection.setVideoState(videoState);
         } else {
-            SimpleResponse<Uri, List<PhoneAccount>> accountResponse =
-                    new SimpleResponse<Uri, List<PhoneAccount>>() {
+            SimpleResponse<Uri, List<PhoneAccountHandle>> accountResponse =
+                    new SimpleResponse<Uri, List<PhoneAccountHandle>>() {
                             @Override
-                            public void onResult(Uri handle, List<PhoneAccount> accounts) {
+                            public void onResult(Uri handle, List<PhoneAccountHandle> accounts) {
                                 log("attaching to incoming call with accounts: " + accounts);
                                 new CallAttempter(accounts.iterator(), response, request, true)
                                         .tryNextAccount();

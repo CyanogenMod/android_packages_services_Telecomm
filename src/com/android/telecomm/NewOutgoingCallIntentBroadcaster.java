@@ -24,7 +24,7 @@ import android.content.res.Resources;
 import android.net.Uri;
 import android.os.UserHandle;
 import android.telecomm.GatewayInfo;
-import android.telecomm.PhoneAccount;
+import android.telecomm.PhoneAccountHandle;
 import android.telecomm.TelecommManager;
 import android.telecomm.VideoCallProfile;
 import android.telephony.PhoneNumberUtils;
@@ -116,8 +116,8 @@ class NewOutgoingCallIntentBroadcaster {
             }
 
             GatewayInfo gatewayInfo = getGateWayInfoFromIntent(intent, resultHandleUri);
-            PhoneAccount account = getAccountFromIntent(intent);
-            mCallsManager.placeOutgoingCall(resultHandleUri, gatewayInfo, account,
+            PhoneAccountHandle accountHandle = getAccountHandleFromIntent(intent);
+            mCallsManager.placeOutgoingCall(resultHandleUri, gatewayInfo, accountHandle,
                     mIntent.getBooleanExtra(TelecommManager.EXTRA_START_CALL_WITH_SPEAKERPHONE,
                             false),
                     mIntent.getIntExtra(TelecommManager.EXTRA_START_CALL_WITH_VIDEO_STATE,
@@ -261,9 +261,10 @@ class NewOutgoingCallIntentBroadcaster {
             Log.d(this, "Found and copied gateway provider extras to broadcast intent.");
             return;
         }
-        PhoneAccount extraAccount = src.getParcelableExtra(TelecommManager.EXTRA_PHONE_ACCOUNT);
-        if (extraAccount != null) {
-            dst.putExtra(TelecommManager.EXTRA_PHONE_ACCOUNT, extraAccount);
+        PhoneAccountHandle extraAccountHandle =
+                src.getParcelableExtra(TelecommManager.EXTRA_PHONE_ACCOUNT_HANDLE);
+        if (extraAccountHandle != null) {
+            dst.putExtra(TelecommManager.EXTRA_PHONE_ACCOUNT_HANDLE, extraAccountHandle);
             Log.d(this, "Found and copied account extra to broadcast intent.");
         }
 
@@ -316,12 +317,12 @@ class NewOutgoingCallIntentBroadcaster {
      * @param intent to extract account information from.
      * @return Account object containing extracted account information
      */
-    public static PhoneAccount getAccountFromIntent(Intent intent) {
+    public static PhoneAccountHandle getAccountHandleFromIntent(Intent intent) {
         if (intent == null) {
             return null;
         }
 
-        return intent.getParcelableExtra(TelecommManager.EXTRA_PHONE_ACCOUNT);
+        return intent.getParcelableExtra(TelecommManager.EXTRA_PHONE_ACCOUNT_HANDLE);
     }
 
     private void launchSystemDialer(Context context, Uri handle) {

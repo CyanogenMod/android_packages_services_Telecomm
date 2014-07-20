@@ -21,7 +21,7 @@ import android.os.Bundle;
 import android.preference.ListPreference;
 import android.preference.Preference;
 import android.preference.PreferenceFragment;
-import android.telecomm.PhoneAccount;
+import android.telecomm.PhoneAccountHandle;
 
 import java.util.HashMap;
 import java.util.List;
@@ -42,7 +42,7 @@ public class PhoneAccountPreferencesActivity extends Activity {
             implements ListPreference.OnPreferenceChangeListener {
         private ListPreference mDefaultOutgoingAccount;
         private PhoneAccountRegistrar mRegistrar;
-        private Map<String, PhoneAccount> mAccountByValue = new HashMap<>();
+        private Map<String, PhoneAccountHandle> mAccountByValue = new HashMap<>();
 
         @Override
         public void onCreate(Bundle savedInstanceState) {
@@ -52,23 +52,23 @@ public class PhoneAccountPreferencesActivity extends Activity {
             mDefaultOutgoingAccount = (ListPreference) findPreference(KEY_DEFAULT_OUTGOING_ACCOUNT);
 
             mRegistrar = TelecommApp.getInstance().getPhoneAccountRegistrar();
-            List<PhoneAccount> accounts = mRegistrar.getEnabledPhoneAccounts();
-            PhoneAccount currentDefault = mRegistrar.getDefaultOutgoingPhoneAccount();
+            List<PhoneAccountHandle> accountHandles = mRegistrar.getEnabledPhoneAccounts();
+            PhoneAccountHandle currentDefault = mRegistrar.getDefaultOutgoingPhoneAccount();
 
-            String[] entryValues = new String[accounts.size() + 1];
-            String[] entries = new String[accounts.size() + 1];
+            String[] entryValues = new String[accountHandles.size() + 1];
+            String[] entries = new String[accountHandles.size() + 1];
 
-            int selectedIndex = accounts.size();  // Points to "ask every time" by default
+            int selectedIndex = accountHandles.size();  // Points to "ask every time" by default
             int i = 0;
-            for ( ; i < accounts.size(); i++) {
+            for ( ; i < accountHandles.size(); i++) {
                 entryValues[i] = Integer.toString(i);
                 entries[i] = mRegistrar
-                        .getPhoneAccountMetadata(accounts.get(i))
+                        .getPhoneAccountMetadata(accountHandles.get(i))
                         .getLabel();
-                if (Objects.equals(currentDefault, accounts.get(i))) {
+                if (Objects.equals(currentDefault, accountHandles.get(i))) {
                     selectedIndex = i;
                 }
-                mAccountByValue.put(entryValues[i], accounts.get(i));
+                mAccountByValue.put(entryValues[i], accountHandles.get(i));
             }
             entryValues[i] = Integer.toString(i);
             entries[i] = getString(R.string.account_ask_every_time);

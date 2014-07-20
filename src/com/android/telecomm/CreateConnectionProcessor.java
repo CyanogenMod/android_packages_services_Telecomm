@@ -16,7 +16,7 @@
 
 package com.android.telecomm;
 
-import android.telecomm.PhoneAccount;
+import android.telecomm.PhoneAccountHandle;
 import android.telephony.DisconnectCause;
 import android.telecomm.ConnectionRequest;
 
@@ -34,8 +34,8 @@ import java.util.List;
 final class CreateConnectionProcessor {
     private final Call mCall;
     private final ConnectionServiceRepository mRepository;
-    private List<PhoneAccount> mPhoneAccounts;
-    private Iterator<PhoneAccount> mPhoneAccountIterator;
+    private List<PhoneAccountHandle> mPhoneAccountHandles;
+    private Iterator<PhoneAccountHandle> mPhoneAccountIterator;
     private CreateConnectionResponse mResponse;
     private int mLastErrorCode = DisconnectCause.ERROR_UNSPECIFIED;
     private String mLastErrorMsg;
@@ -49,12 +49,12 @@ final class CreateConnectionProcessor {
 
     void process() {
         Log.v(this, "process");
-        mPhoneAccounts = new ArrayList<>();
+        mPhoneAccountHandles = new ArrayList<>();
         if (mCall.getPhoneAccount() != null) {
-            mPhoneAccounts.add(mCall.getPhoneAccount());
+            mPhoneAccountHandles.add(mCall.getPhoneAccount());
         }
         adjustPhoneAccountsForEmergency();
-        mPhoneAccountIterator = mPhoneAccounts.iterator();
+        mPhoneAccountIterator = mPhoneAccountHandles.iterator();
         attemptNextPhoneAccount();
     }
 
@@ -80,7 +80,7 @@ final class CreateConnectionProcessor {
         Log.v(this, "attemptNextPhoneAccount");
 
         if (mResponse != null && mPhoneAccountIterator.hasNext()) {
-            PhoneAccount account = mPhoneAccountIterator.next();
+            PhoneAccountHandle account = mPhoneAccountIterator.next();
             Log.i(this, "Trying account %s", account);
             ConnectionServiceWrapper service = mRepository.getService(account.getComponentName());
             if (service == null) {
@@ -107,13 +107,13 @@ final class CreateConnectionProcessor {
     private void adjustPhoneAccountsForEmergency()  {
         if (TelephonyUtil.shouldProcessAsEmergency(TelecommApp.getInstance(), mCall.getHandle())) {
             Log.i(this, "Emergency number detected");
-            mPhoneAccounts.clear();
-            List<PhoneAccount> allAccounts = TelecommApp.getInstance().getPhoneAccountRegistrar()
+            mPhoneAccountHandles.clear();
+            List<PhoneAccountHandle> allAccounts = TelecommApp.getInstance().getPhoneAccountRegistrar()
                     .getEnabledPhoneAccounts();
             for (int i = 0; i < allAccounts.size(); i++) {
                 if (TelephonyUtil.isPstnComponentName(allAccounts.get(i).getComponentName())) {
                     Log.i(this, "Will try PSTN account %s for emergency", allAccounts.get(i));
-                    mPhoneAccounts.add(allAccounts.get(i));
+                    mPhoneAccountHandles.add(allAccounts.get(i));
                 }
             }
         }

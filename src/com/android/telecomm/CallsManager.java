@@ -21,7 +21,7 @@ import android.os.Bundle;
 import android.telecomm.CallAudioState;
 import android.telecomm.CallState;
 import android.telecomm.GatewayInfo;
-import android.telecomm.PhoneAccount;
+import android.telecomm.PhoneAccountHandle;
 import android.telephony.DisconnectCause;
 
 import com.google.common.base.Preconditions;
@@ -254,11 +254,11 @@ public final class CallsManager extends Call.ListenerBase {
     /**
      * Starts the process to attach the call to a connection service.
      *
-     * @param phoneAccount The phone account which contains the component name of the connection
+     * @param phoneAccountHandle The phone account which contains the component name of the connection
      *                     serivce to use for this call.
      * @param extras The optional extras Bundle passed with the intent used for the incoming call.
      */
-    void processIncomingCallIntent(PhoneAccount phoneAccount, Bundle extras) {
+    void processIncomingCallIntent(PhoneAccountHandle phoneAccountHandle, Bundle extras) {
         Log.d(this, "processIncomingCallIntent");
         // Create a call with no handle. The handle is eventually set when the call is attached
         // to a connection service.
@@ -266,7 +266,7 @@ public final class CallsManager extends Call.ListenerBase {
                 mConnectionServiceRepository,
                 null /* handle */,
                 null /* gatewayInfo */,
-                phoneAccount,
+                phoneAccountHandle,
                 true /* isIncoming */,
                 false /* isConference */);
 
@@ -285,7 +285,7 @@ public final class CallsManager extends Call.ListenerBase {
      * @param speakerphoneOn Whether or not to turn the speakerphone on once the call connects.
      * @param videoState The desired video state for the outgoing call.
      */
-    void placeOutgoingCall(Uri handle, GatewayInfo gatewayInfo, PhoneAccount account,
+    void placeOutgoingCall(Uri handle, GatewayInfo gatewayInfo, PhoneAccountHandle accountHandle,
             boolean speakerphoneOn, int videoState) {
 
         final Uri uriHandle = (gatewayInfo == null) ? handle : gatewayInfo.getGatewayHandle();
@@ -301,7 +301,7 @@ public final class CallsManager extends Call.ListenerBase {
                 mConnectionServiceRepository,
                 uriHandle,
                 gatewayInfo,
-                account,
+                accountHandle,
                 false /* isIncoming */,
                 false /* isConference */);
         call.setStartWithSpeakerphoneOn(speakerphoneOn);
@@ -315,11 +315,11 @@ public final class CallsManager extends Call.ListenerBase {
             // Emergency -- CreateConnectionProcessor will choose accounts automatically
             call.setPhoneAccount(null);
             call.startCreateConnection();
-        } else if (account == null) {
-            PhoneAccount defaultAccount = TelecommApp.getInstance().getPhoneAccountRegistrar()
-                    .getDefaultOutgoingPhoneAccount();
-            if (defaultAccount != null) {
-                call.setPhoneAccount(defaultAccount);
+        } else if (accountHandle == null) {
+            PhoneAccountHandle defaultAccountHandle = TelecommApp.getInstance()
+                    .getPhoneAccountRegistrar().getDefaultOutgoingPhoneAccount();
+            if (defaultAccountHandle != null) {
+                call.setPhoneAccount(defaultAccountHandle);
                 call.startCreateConnection();
             } else {
                 call.setState(CallState.PRE_DIAL_WAIT);
@@ -496,7 +496,7 @@ public final class CallsManager extends Call.ListenerBase {
         }
     }
 
-    void phoneAccountSelected(Call call, PhoneAccount account) {
+    void phoneAccountSelected(Call call, PhoneAccountHandle account) {
         if (!mCalls.contains(call)) {
             Log.i(this, "Attemped to add account to unknown call %s", call);
         } else {

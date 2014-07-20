@@ -21,7 +21,7 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.provider.CallLog.Calls;
 import android.telecomm.CallState;
-import android.telecomm.PhoneAccount;
+import android.telecomm.PhoneAccountHandle;
 import android.telecomm.VideoCallProfile;
 import android.telephony.PhoneNumberUtils;
 
@@ -39,7 +39,7 @@ final class CallLogManager extends CallsManagerListenerBase {
      */
     private static class AddCallArgs {
         /**
-         * @param contactInfo Caller details.
+         * @param callerInfo Caller details.
          * @param number The phone number to be logged.
          * @param presentation Number presentation of the phone number to be logged.
          * @param callType The type of call (e.g INCOMING_TYPE). @see
@@ -51,7 +51,7 @@ final class CallLogManager extends CallsManagerListenerBase {
          * @param dataUsage Data usage in bytes, or null if not applicable.
          */
         public AddCallArgs(Context context, CallerInfo callerInfo, String number,
-                int presentation, int callType, int features, PhoneAccount account,
+                int presentation, int callType, int features, PhoneAccountHandle accountHandle,
                 long creationDate, long durationInMillis, Long dataUsage) {
             this.context = context;
             this.callerInfo = callerInfo;
@@ -59,7 +59,7 @@ final class CallLogManager extends CallsManagerListenerBase {
             this.presentation = presentation;
             this.callType = callType;
             this.features = features;
-            this.mAccount = account;
+            this.accountHandle = accountHandle;
             this.timestamp = creationDate;
             this.durationInSec = (int)(durationInMillis / 1000);
             this.dataUsage = dataUsage;
@@ -72,7 +72,7 @@ final class CallLogManager extends CallsManagerListenerBase {
         public final int presentation;
         public final int callType;
         public final int features;
-        public final PhoneAccount mAccount;
+        public final PhoneAccountHandle accountHandle;
         public final long timestamp;
         public final int durationInSec;
         public final Long dataUsage;
@@ -119,7 +119,7 @@ final class CallLogManager extends CallsManagerListenerBase {
         Log.d(TAG, "logNumber set to: %s", Log.pii(logNumber));
 
         final int presentation = getPresentation(call);
-        final PhoneAccount account = call.getPhoneAccount();
+        final PhoneAccountHandle account = call.getPhoneAccount();
 
         // TODO(vt): Once data usage is available, wire it up here.
         int callFeatures = getCallFeatures(call.getVideoStateHistory());
@@ -145,7 +145,7 @@ final class CallLogManager extends CallsManagerListenerBase {
             int presentation,
             int callType,
             int features,
-            PhoneAccount account,
+            PhoneAccountHandle accountHandle,
             long start,
             long duration,
             Long dataUsage) {
@@ -165,7 +165,7 @@ final class CallLogManager extends CallsManagerListenerBase {
                     + Log.pii(number) + "," + presentation + ", " + callType
                     + ", " + start + ", " + duration);
             AddCallArgs args = new AddCallArgs(mContext, callerInfo, number, presentation,
-                    callType, features, account, start, duration, dataUsage);
+                    callType, features, accountHandle, start, duration, dataUsage);
             logCallAsync(args);
         } else {
           Log.d(TAG, "Not adding emergency call to call log.");
@@ -249,7 +249,7 @@ final class CallLogManager extends CallsManagerListenerBase {
                 try {
                     // May block.
                     result[i] = Calls.addCall(c.callerInfo, c.context, c.number, c.presentation,
-                            c.callType, c.features, c.mAccount, c.timestamp, c.durationInSec,
+                            c.callType, c.features, c.accountHandle, c.timestamp, c.durationInSec,
                             c.dataUsage);
                 } catch (Exception e) {
                     // This is very rare but may happen in legitimate cases.
