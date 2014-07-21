@@ -159,7 +159,7 @@ public class TestConnectionService extends ConnectionService {
 
         /** ${inheritDoc} */
         @Override
-        protected void onAbort() {
+        public void onAbort() {
             if (mRemoteConnection != null) {
                 mRemoteConnection.disconnect();
                 mRemoteConnection.removeListener(mProxyListener);
@@ -171,7 +171,7 @@ public class TestConnectionService extends ConnectionService {
 
         /** ${inheritDoc} */
         @Override
-        protected void onAnswer(int videoState) {
+        public void onAnswer(int videoState) {
             if (mRemoteConnection != null) {
                 mRemoteConnection.answer(videoState);
             } else {
@@ -182,7 +182,7 @@ public class TestConnectionService extends ConnectionService {
 
         /** ${inheritDoc} */
         @Override
-        protected void onDisconnect() {
+        public void onDisconnect() {
             if (mRemoteConnection != null) {
                 mRemoteConnection.disconnect();
             } else {
@@ -194,7 +194,7 @@ public class TestConnectionService extends ConnectionService {
 
         /** ${inheritDoc} */
         @Override
-        protected void onHold() {
+        public void onHold() {
             if (mRemoteConnection != null) {
                 mRemoteConnection.hold();
             } else {
@@ -204,7 +204,7 @@ public class TestConnectionService extends ConnectionService {
 
         /** ${inheritDoc} */
         @Override
-        protected void onReject() {
+        public void onReject() {
             if (mRemoteConnection != null) {
                 mRemoteConnection.reject();
             } else {
@@ -216,7 +216,7 @@ public class TestConnectionService extends ConnectionService {
 
         /** ${inheritDoc} */
         @Override
-        protected void onUnhold() {
+        public void onUnhold() {
             if (mRemoteConnection != null) {
                 mRemoteConnection.hold();
             } else {
@@ -225,7 +225,7 @@ public class TestConnectionService extends ConnectionService {
         }
 
         @Override
-        protected void onSetAudioState(CallAudioState state) {
+        public void onSetAudioState(CallAudioState state) {
             if (mRemoteConnection != null) {
                 mRemoteConnection.setAudioState(state);
             }
