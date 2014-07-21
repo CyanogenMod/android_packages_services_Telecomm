@@ -21,7 +21,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
-import android.telecomm.PhoneAccount;
+import android.telecomm.PhoneAccountHandle;
 import android.telecomm.TelecommManager;
 
 /**
@@ -74,10 +74,10 @@ public class CallNotificationReceiver extends BroadcastReceiver {
         // Telecomm instead of setting the package explicitly.
         intent.setPackage("com.android.telecomm");
 
-        PhoneAccount phoneAccount = new PhoneAccount(
+        PhoneAccountHandle phoneAccountHandle = new PhoneAccountHandle(
                 new ComponentName(context, TestConnectionService.class),
                 null /* id */);
-        intent.putExtra(TelecommManager.EXTRA_PHONE_ACCOUNT, phoneAccount);
+        intent.putExtra(TelecommManager.EXTRA_PHONE_ACCOUNT_HANDLE, phoneAccountHandle);
 
         // For the purposes of testing, indicate whether the incoming call is a video call by
         // stashing an indicator in the EXTRA_INCOMING_CALL_EXTRAS.

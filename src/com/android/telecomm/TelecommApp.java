@@ -20,9 +20,8 @@ import android.app.Application;
 import android.content.ComponentName;
 import android.net.Uri;
 import android.os.UserHandle;
-import android.telecomm.PhoneAccount;
+import android.telecomm.PhoneAccountHandle;
 import android.telecomm.PhoneAccountMetadata;
-import android.telephony.PhoneNumberUtils;
 
 /**
  * Top-level Application class for Telecomm.
@@ -39,7 +38,7 @@ public final class TelecommApp extends Application {
     private MissedCallNotifier mMissedCallNotifier;
 
     /**
-     * Maintains the list of registered {@link android.telecomm.PhoneAccount}s.
+     * Maintains the list of registered {@link android.telecomm.PhoneAccountHandle}s.
      */
     private PhoneAccountRegistrar mPhoneAccountRegistrar;
 
@@ -74,11 +73,11 @@ public final class TelecommApp extends Application {
     }
 
     private void addHangoutsAccount() {
-        // TODO: STOPSHIP. We are adding a hacked PhoneAccount to ensure that Wi-Fi calling in
+        // TODO: STOPSHIP. We are adding a hacked PhoneAccountHandle to ensure that Wi-Fi calling in
         // Hangouts continues to work. This needs to be replaced with proper Wi-Fi calling wiring
         // to the appropriate Connection Services.
         PhoneAccountMetadata hangouts = new PhoneAccountMetadata(
-                new PhoneAccount(
+                new PhoneAccountHandle(
                         new ComponentName(
                                 "com.google.android.talk",
                                 "com.google.android.apps.babel.telephony.TeleConnectionService"),

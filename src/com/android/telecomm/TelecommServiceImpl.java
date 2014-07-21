@@ -27,7 +27,7 @@ import android.os.Message;
 import android.os.ServiceManager;
 import android.phone.PhoneManager;
 import android.telecomm.CallState;
-import android.telecomm.PhoneAccount;
+import android.telecomm.PhoneAccountHandle;
 import android.telecomm.PhoneAccountMetadata;
 import android.telecomm.TelecommManager;
 import android.telephony.TelephonyManager;
@@ -147,7 +147,7 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
     //
 
     @Override
-    public PhoneAccount getDefaultOutgoingPhoneAccount() {
+    public PhoneAccountHandle getDefaultOutgoingPhoneAccount() {
         try {
             return mPhoneAccountRegistrar.getDefaultOutgoingPhoneAccount();
         } catch (Exception e) {
@@ -157,7 +157,7 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
     }
 
     @Override
-    public List<PhoneAccount> getEnabledPhoneAccounts() {
+    public List<PhoneAccountHandle> getEnabledPhoneAccounts() {
         try {
             return mPhoneAccountRegistrar.getEnabledPhoneAccounts();
         } catch (Exception e) {
@@ -167,7 +167,7 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
     }
 
     @Override
-    public PhoneAccountMetadata getPhoneAccountMetadata(PhoneAccount account) {
+    public PhoneAccountMetadata getPhoneAccountMetadata(PhoneAccountHandle account) {
         try {
             return mPhoneAccountRegistrar.getPhoneAccountMetadata(account);
         } catch (Exception e) {
@@ -189,7 +189,7 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
     }
 
     @Override
-    public void unregisterPhoneAccount(PhoneAccount account) {
+    public void unregisterPhoneAccount(PhoneAccountHandle account) {
         try {
             enforceModifyPermissionOrCallingPackage(account.getComponentName().getPackageName());
             mPhoneAccountRegistrar.unregisterPhoneAccount(account);

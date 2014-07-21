@@ -18,7 +18,7 @@ package com.android.telecomm;
 
 import android.os.Handler;
 import android.os.Message;
-import android.telecomm.PhoneAccount;
+import android.telecomm.PhoneAccountHandle;
 
 import com.android.internal.os.SomeArgs;
 import com.android.internal.telecomm.IInCallAdapter;
@@ -144,7 +144,7 @@ class InCallAdapter extends IInCallAdapter.Stub {
                     try {
                         call = mCallIdMapper.getCall(args.arg1);
                         if (call != null) {
-                            mCallsManager.phoneAccountSelected(call, (PhoneAccount) args.arg2);
+                            mCallsManager.phoneAccountSelected(call, (PhoneAccountHandle) args.arg2);
                         } else {
                             Log.w(this, "phoneAccountSelected, unknown call id: %s", args.arg1);
                         }
@@ -266,11 +266,11 @@ class InCallAdapter extends IInCallAdapter.Stub {
     }
 
     @Override
-    public void phoneAccountSelected(String callId, PhoneAccount account) {
+    public void phoneAccountSelected(String callId, PhoneAccountHandle accountHandle) {
         mCallIdMapper.checkValidCallId(callId);
         SomeArgs args = SomeArgs.obtain();
         args.arg1 = callId;
-        args.arg2 = account;
+        args.arg2 = accountHandle;
         mHandler.obtainMessage(MSG_PHONE_ACCOUNT_SELECTED, args).sendToTarget();
     }
 

@@ -20,7 +20,7 @@ import android.app.Activity;
 import android.content.Intent;
 import android.content.res.Configuration;
 import android.os.Bundle;
-import android.telecomm.PhoneAccount;
+import android.telecomm.PhoneAccountHandle;
 import android.telecomm.TelecommManager;
 
 /**
@@ -96,19 +96,19 @@ public class CallActivity extends Activity {
     }
 
     /**
-     * Processes INCOMING_CALL intents. Grabs the connection service informations from the intent
+     * Processes INCOMING_CALL intents. Grabs the connection service information from the intent
      * extra and forwards that to the CallsManager to start the incoming call flow.
      *
      * @param intent The incoming call intent.
      */
     private void processIncomingCallIntent(Intent intent) {
-        PhoneAccount phoneAccount = intent.getParcelableExtra(
-                TelecommManager.EXTRA_PHONE_ACCOUNT);
-        if (phoneAccount == null) {
+        PhoneAccountHandle phoneAccountHandle = intent.getParcelableExtra(
+                TelecommManager.EXTRA_PHONE_ACCOUNT_HANDLE);
+        if (phoneAccountHandle == null) {
             Log.w(this, "Rejecting incoming call due to null phone account");
             return;
         }
-        if (phoneAccount.getComponentName() == null) {
+        if (phoneAccountHandle.getComponentName() == null) {
             Log.w(this, "Rejecting incoming call due to null component name");
             return;
         }
@@ -122,7 +122,7 @@ public class CallActivity extends Activity {
         }
 
         Log.d(this, "Processing incoming call from connection service [%s]",
-                phoneAccount.getComponentName());
-        mCallsManager.processIncomingCallIntent(phoneAccount, clientExtras);
+                phoneAccountHandle.getComponentName());
+        mCallsManager.processIncomingCallIntent(phoneAccountHandle, clientExtras);
     }
 }

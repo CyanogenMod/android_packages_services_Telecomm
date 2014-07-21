@@ -16,6 +16,7 @@
 
 package com.android.telecomm;
 
+import android.telecomm.PhoneAccountHandle;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -26,7 +27,6 @@ import android.content.Context;
 
 import android.content.SharedPreferences;
 import android.net.Uri;
-import android.telecomm.PhoneAccount;
 import android.telecomm.PhoneAccountMetadata;
 import android.telecomm.TelecommManager;
 
@@ -35,11 +35,11 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * Handles writing and reading PhoneAccount registration entries. This is a simple verbatim
+ * Handles writing and reading PhoneAccountHandle registration entries. This is a simple verbatim
  * delegate for all the account handling methods on {@link TelecommManager} as implemented in
  * {@link TelecommServiceImpl}, with the notable exception that {@link TelecommServiceImpl} is
  * responsible for security checking to make sure that the caller has proper authority over
- * the {@code ComponentName}s they are declaring in their {@code PhoneAccount}s.
+ * the {@code ComponentName}s they are declaring in their {@code PhoneAccountHandle}s.
  *
  * TODO(santoscordon): Replace this implementation with a proper database stored in a Telecomm
  * provider.
@@ -54,46 +54,47 @@ final class PhoneAccountRegistrar {
         mContext = context;
     }
 
-    public PhoneAccount getDefaultOutgoingPhoneAccount() {
+    public PhoneAccountHandle getDefaultOutgoingPhoneAccount() {
         State s = read();
-        return s.defaultOutgoing;
+        return s.defaultOutgoingHandle;
     }
 
-    public void setDefaultOutgoingPhoneAccount(PhoneAccount account) {
+    public void setDefaultOutgoingPhoneAccount(PhoneAccountHandle accountHandle) {
         State s = read();
 
-        if (account == null) {
+        if (accountHandle == null) {
             // Asking to clear the default outgoing is a valid request
-            s.defaultOutgoing = null;
+            s.defaultOutgoingHandle = null;
         } else {
             boolean found = false;
             for (PhoneAccountMetadata m : s.accounts) {
-                if (Objects.equals(account, m.getAccount())) {
+                if (Objects.equals(accountHandle, m.getAccount())) {
                     found = true;
                     break;
                 }
             }
 
             if (!found) {
-                Log.d(this, "Trying to set nonexistent default outgoing phone account %s", account);
+                Log.w(this, "Trying to set nonexistent default outgoing phone accountHandle %s",
+                        accountHandle);
                 return;
             }
 
-            s.defaultOutgoing = account;
+            s.defaultOutgoingHandle = accountHandle;
         }
 
         write(s);
     }
 
-    public List<PhoneAccount> getEnabledPhoneAccounts() {
+    public List<PhoneAccountHandle> getEnabledPhoneAccounts() {
         State s = read();
-        return accountsOnly(s);
+        return accountHandlesOnly(s);
     }
 
-    public PhoneAccountMetadata getPhoneAccountMetadata(PhoneAccount account) {
+    public PhoneAccountMetadata getPhoneAccountMetadata(PhoneAccountHandle accountHandle) {
         State s = read();
         for (PhoneAccountMetadata m : s.accounts) {
-            if (Objects.equals(account, m.getAccount())) {
+            if (Objects.equals(accountHandle, m.getAccount())) {
                 return m;
             }
         }
@@ -118,11 +119,11 @@ final class PhoneAccountRegistrar {
         write(s);
     }
 
-    public void unregisterPhoneAccount(PhoneAccount account) {
+    public void unregisterPhoneAccount(PhoneAccountHandle accountHandle) {
         State s = read();
 
         for (int i = 0; i < s.accounts.size(); i++) {
-            if (Objects.equals(account, s.accounts.get(i).getAccount())) {
+            if (Objects.equals(accountHandle, s.accounts.get(i).getAccount())) {
                 s.accounts.remove(i);
                 break;
             }
@@ -153,15 +154,15 @@ final class PhoneAccountRegistrar {
         // Check that, after an operation that removes accounts, the account set up as the "default
         // outgoing" has not been deleted. If it has, then clear out the setting.
         for (PhoneAccountMetadata m : s.accounts) {
-            if (Objects.equals(s.defaultOutgoing, m.getAccount())) {
+            if (Objects.equals(s.defaultOutgoingHandle, m.getAccount())) {
                 return;
             }
         }
-        s.defaultOutgoing = null;
+        s.defaultOutgoingHandle = null;
     }
 
-    private List<PhoneAccount> accountsOnly(State s) {
-        List<PhoneAccount> result = new ArrayList<>();
+    private List<PhoneAccountHandle> accountHandlesOnly(State s) {
+        List<PhoneAccountHandle> result = new ArrayList<>();
         for (PhoneAccountMetadata m : s.accounts) {
             result.add(m.getAccount());
         }
@@ -214,7 +215,7 @@ final class PhoneAccountRegistrar {
     }
 
     private static class State {
-        public PhoneAccount defaultOutgoing = null;
+        public PhoneAccountHandle defaultOutgoingHandle = null;
         public final List<PhoneAccountMetadata> accounts = new ArrayList<>();
     }
 
@@ -235,8 +236,8 @@ final class PhoneAccountRegistrar {
         @Override
         public JSONObject toJson(State o) throws JSONException {
             JSONObject json = new JSONObject();
-            if (o.defaultOutgoing != null) {
-                json.put(DEFAULT_OUTGOING, sPhoneAccountJson.toJson(o.defaultOutgoing));
+            if (o.defaultOutgoingHandle != null) {
+                json.put(DEFAULT_OUTGOING, sPhoneAccountJson.toJson(o.defaultOutgoingHandle));
             }
             JSONArray accounts = new JSONArray();
             for (PhoneAccountMetadata m : o.accounts) {
@@ -250,7 +251,7 @@ final class PhoneAccountRegistrar {
         public State fromJson(JSONObject json) throws JSONException {
             State s = new State();
             if (json.has(DEFAULT_OUTGOING)) {
-                s.defaultOutgoing = sPhoneAccountJson.fromJson(
+                s.defaultOutgoingHandle = sPhoneAccountJson.fromJson(
                         (JSONObject) json.get(DEFAULT_OUTGOING));
             }
             if (json.has(ACCOUNTS)) {
@@ -306,21 +307,21 @@ final class PhoneAccountRegistrar {
         }
     };
 
-    private static final Json<PhoneAccount> sPhoneAccountJson =
-            new Json<PhoneAccount>() {
+    private static final Json<PhoneAccountHandle> sPhoneAccountJson =
+            new Json<PhoneAccountHandle>() {
         private static final String COMPONENT_NAME = "component_name";
         private static final String ID = "id";
 
         @Override
-        public JSONObject toJson(PhoneAccount o) throws JSONException {
+        public JSONObject toJson(PhoneAccountHandle o) throws JSONException {
             return new JSONObject()
                     .put(COMPONENT_NAME, o.getComponentName().flattenToString())
                     .put(ID, o.getId());
         }
 
         @Override
-        public PhoneAccount fromJson(JSONObject json) throws JSONException {
-            return new PhoneAccount(
+        public PhoneAccountHandle fromJson(JSONObject json) throws JSONException {
+            return new PhoneAccountHandle(
                     ComponentName.unflattenFromString((String) json.get(COMPONENT_NAME)),
                     (String) json.get(ID));
         }

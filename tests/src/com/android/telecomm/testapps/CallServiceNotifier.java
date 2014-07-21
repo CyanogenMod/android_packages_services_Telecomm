@@ -23,7 +23,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
-import android.telecomm.PhoneAccount;
+import android.telecomm.PhoneAccountHandle;
 import android.telecomm.PhoneAccountMetadata;
 import android.telecomm.TelecommManager;
 import android.util.Log;
@@ -87,7 +87,7 @@ public class CallServiceNotifier {
      */
     public void registerPhoneAccount(Context context) {
         PhoneAccountMetadata metadata = new PhoneAccountMetadata(
-                new PhoneAccount(
+                new PhoneAccountHandle(
                         new ComponentName(context, TestConnectionService.class),
                         "testapps_TestConnectionService_Account_ID"),
                 Uri.parse("tel:555-TEST"),
@@ -108,7 +108,7 @@ public class CallServiceNotifier {
     public void showAllPhoneAccounts(Context context) {
         TelecommManager telecommManager =
                 (TelecommManager) context.getSystemService(Context.TELECOMM_SERVICE);
-        List<PhoneAccount> accounts = telecommManager.getEnabledPhoneAccounts();
+        List<PhoneAccountHandle> accounts = telecommManager.getEnabledPhoneAccounts();
 
         Toast.makeText(context, accounts.toString(), Toast.LENGTH_LONG).show();
     }
