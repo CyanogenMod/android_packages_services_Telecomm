@@ -21,7 +21,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.content.pm.ServiceInfo;
-import android.telecomm.TelecommManager;
+import android.telecomm.ConnectionService;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -40,7 +40,7 @@ final class ConnectionServiceRepository
 
     Collection<ConnectionServiceWrapper> lookupServices() {
         PackageManager packageManager = TelecommApp.getInstance().getPackageManager();
-        Intent intent = new Intent(TelecommManager.ACTION_CONNECTION_SERVICE);
+        Intent intent = new Intent(ConnectionService.SERVICE_INTERFACE);
         ArrayList<ConnectionServiceWrapper> services = new ArrayList<>();
 
         for (ResolveInfo entry : packageManager.queryIntentServices(intent, 0)) {

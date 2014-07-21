@@ -25,21 +25,18 @@ import android.os.IBinder;
 import android.os.Message;
 import android.os.RemoteException;
 import android.telecomm.CallAudioState;
-import android.telecomm.ConnectionService;
 import android.telecomm.ConnectionRequest;
+import android.telecomm.ConnectionService;
 import android.telecomm.GatewayInfo;
 import android.telecomm.StatusHints;
-import android.telecomm.TelecommManager;
 import android.telephony.DisconnectCause;
 
 import com.android.internal.os.SomeArgs;
+import com.android.internal.telecomm.ICallVideoProvider;
 import com.android.internal.telecomm.IConnectionService;
 import com.android.internal.telecomm.IConnectionServiceAdapter;
-import com.android.internal.telecomm.ICallVideoProvider;
 import com.android.internal.telecomm.RemoteServiceCallback;
 import com.google.common.base.Preconditions;
-
-import org.apache.http.conn.ClientConnectionRequest;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -532,7 +529,7 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
      */
     ConnectionServiceWrapper(
             ComponentName componentName, ConnectionServiceRepository connectionServiceRepository) {
-        super(TelecommManager.ACTION_CONNECTION_SERVICE, componentName);
+        super(ConnectionService.SERVICE_INTERFACE, componentName);
         mConnectionServiceRepository = connectionServiceRepository;
     }
 
