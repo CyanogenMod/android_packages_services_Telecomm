@@ -35,7 +35,7 @@ final class CreateConnectionProcessor {
     private final Call mCall;
     private final ConnectionServiceRepository mRepository;
     private List<PhoneAccountHandle> mPhoneAccountHandles;
-    private Iterator<PhoneAccountHandle> mPhoneAccountIterator;
+    private Iterator<PhoneAccountHandle> mPhoneAccountHandleIterator;
     private CreateConnectionResponse mResponse;
     private int mLastErrorCode = DisconnectCause.ERROR_UNSPECIFIED;
     private String mLastErrorMsg;
@@ -54,7 +54,7 @@ final class CreateConnectionProcessor {
             mPhoneAccountHandles.add(mCall.getPhoneAccount());
         }
         adjustPhoneAccountsForEmergency();
-        mPhoneAccountIterator = mPhoneAccountHandles.iterator();
+        mPhoneAccountHandleIterator = mPhoneAccountHandles.iterator();
         attemptNextPhoneAccount();
     }
 
@@ -79,15 +79,16 @@ final class CreateConnectionProcessor {
     private void attemptNextPhoneAccount() {
         Log.v(this, "attemptNextPhoneAccount");
 
-        if (mResponse != null && mPhoneAccountIterator.hasNext()) {
-            PhoneAccountHandle account = mPhoneAccountIterator.next();
-            Log.i(this, "Trying account %s", account);
-            ConnectionServiceWrapper service = mRepository.getService(account.getComponentName());
+        if (mResponse != null && mPhoneAccountHandleIterator.hasNext()) {
+            PhoneAccountHandle accountHandle = mPhoneAccountHandleIterator.next();
+            Log.i(this, "Trying accountHandle %s", accountHandle);
+            ConnectionServiceWrapper service =
+                    mRepository.getService(accountHandle.getComponentName());
             if (service == null) {
-                Log.i(this, "Found no connection service for account %s", account);
+                Log.i(this, "Found no connection service for accountHandle %s", accountHandle);
                 attemptNextPhoneAccount();
             } else {
-                mCall.setPhoneAccount(account);
+                mCall.setPhoneAccount(accountHandle);
                 mCall.setConnectionService(service);
                 Log.i(this, "Attempting to call from %s", service.getComponentName());
                 service.createConnection(mCall, new Response(service));
@@ -108,12 +109,13 @@ final class CreateConnectionProcessor {
         if (TelephonyUtil.shouldProcessAsEmergency(TelecommApp.getInstance(), mCall.getHandle())) {
             Log.i(this, "Emergency number detected");
             mPhoneAccountHandles.clear();
-            List<PhoneAccountHandle> allAccounts = TelecommApp.getInstance().getPhoneAccountRegistrar()
-                    .getEnabledPhoneAccounts();
-            for (int i = 0; i < allAccounts.size(); i++) {
-                if (TelephonyUtil.isPstnComponentName(allAccounts.get(i).getComponentName())) {
-                    Log.i(this, "Will try PSTN account %s for emergency", allAccounts.get(i));
-                    mPhoneAccountHandles.add(allAccounts.get(i));
+            List<PhoneAccountHandle> allAccountHandles = TelecommApp.getInstance()
+                    .getPhoneAccountRegistrar().getEnabledPhoneAccounts();
+            for (int i = 0; i < allAccountHandles.size(); i++) {
+                if (TelephonyUtil.isPstnComponentName(
+                        allAccountHandles.get(i).getComponentName())) {
+                    Log.i(this, "Will try PSTN account %s for emergency", allAccountHandles.get(i));
+                    mPhoneAccountHandles.add(allAccountHandles.get(i));
                 }
             }
         }

@@ -20,8 +20,8 @@ import android.app.Application;
 import android.content.ComponentName;
 import android.net.Uri;
 import android.os.UserHandle;
+import android.telecomm.PhoneAccount;
 import android.telecomm.PhoneAccountHandle;
-import android.telecomm.PhoneAccountMetadata;
 
 /**
  * Top-level Application class for Telecomm.
@@ -76,7 +76,7 @@ public final class TelecommApp extends Application {
         // TODO: STOPSHIP. We are adding a hacked PhoneAccountHandle to ensure that Wi-Fi calling in
         // Hangouts continues to work. This needs to be replaced with proper Wi-Fi calling wiring
         // to the appropriate Connection Services.
-        PhoneAccountMetadata hangouts = new PhoneAccountMetadata(
+        PhoneAccount hangouts = new PhoneAccount(
                 new PhoneAccountHandle(
                         new ComponentName(
                                 "com.google.android.talk",
@@ -84,13 +84,13 @@ public final class TelecommApp extends Application {
                         "null_id"),
                 Uri.fromParts("tel", "null_uri", null),
                 "650-253-0000",
-                PhoneAccountMetadata.CAPABILITY_CALL_PROVIDER,
+                PhoneAccount.CAPABILITY_CALL_PROVIDER,
                 R.drawable.stat_sys_phone_call,
                 "Wi-Fi calling",
                 "Wi-Fi calling by Google Hangouts",
                 false);
         mPhoneAccountRegistrar.clearAccounts(
-                hangouts.getAccount().getComponentName().getPackageName());
+                hangouts.getAccountHandle().getComponentName().getPackageName());
         mPhoneAccountRegistrar.registerPhoneAccount(hangouts);
     }
 }

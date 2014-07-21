@@ -119,12 +119,12 @@ final class CallLogManager extends CallsManagerListenerBase {
         Log.d(TAG, "logNumber set to: %s", Log.pii(logNumber));
 
         final int presentation = getPresentation(call);
-        final PhoneAccountHandle account = call.getPhoneAccount();
+        final PhoneAccountHandle accountHandle = call.getPhoneAccount();
 
         // TODO(vt): Once data usage is available, wire it up here.
         int callFeatures = getCallFeatures(call.getVideoStateHistory());
-        logCall(call.getCallerInfo(), logNumber, presentation, callLogType, callFeatures, account,
-                creationTime, age, null);
+        logCall(call.getCallerInfo(), logNumber, presentation, callLogType, callFeatures,
+                accountHandle, creationTime, age, null);
     }
 
     /**

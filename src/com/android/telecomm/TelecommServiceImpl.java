@@ -27,8 +27,8 @@ import android.os.Message;
 import android.os.ServiceManager;
 import android.phone.PhoneManager;
 import android.telecomm.CallState;
+import android.telecomm.PhoneAccount;
 import android.telecomm.PhoneAccountHandle;
-import android.telecomm.PhoneAccountMetadata;
 import android.telecomm.TelecommManager;
 import android.telephony.TelephonyManager;
 
@@ -167,34 +167,35 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
     }
 
     @Override
-    public PhoneAccountMetadata getPhoneAccountMetadata(PhoneAccountHandle account) {
+    public PhoneAccount getPhoneAccount(PhoneAccountHandle accountHandle) {
         try {
-            return mPhoneAccountRegistrar.getPhoneAccountMetadata(account);
+            return mPhoneAccountRegistrar.getPhoneAccount(accountHandle);
         } catch (Exception e) {
-            Log.e(this, e, "getPhoneAccountMetadata %s", account);
+            Log.e(this, e, "getPhoneAccount %s", accountHandle);
             throw e;
         }
     }
 
     @Override
-    public void registerPhoneAccount(PhoneAccountMetadata metadata) {
+    public void registerPhoneAccount(PhoneAccount account) {
         try {
             enforceModifyPermissionOrCallingPackage(
-                    metadata.getAccount().getComponentName().getPackageName());
-            mPhoneAccountRegistrar.registerPhoneAccount(metadata);
+                    account.getAccountHandle().getComponentName().getPackageName());
+            mPhoneAccountRegistrar.registerPhoneAccount(account);
         } catch (Exception e) {
-            Log.e(this, e, "registerPhoneAccount %s", metadata);
+            Log.e(this, e, "registerPhoneAccount %s", account);
             throw e;
         }
     }
 
     @Override
-    public void unregisterPhoneAccount(PhoneAccountHandle account) {
+    public void unregisterPhoneAccount(PhoneAccountHandle accountHandle) {
         try {
-            enforceModifyPermissionOrCallingPackage(account.getComponentName().getPackageName());
-            mPhoneAccountRegistrar.unregisterPhoneAccount(account);
+            enforceModifyPermissionOrCallingPackage(
+                    accountHandle.getComponentName().getPackageName());
+            mPhoneAccountRegistrar.unregisterPhoneAccount(accountHandle);
         } catch (Exception e) {
-            Log.e(this, e, "unregisterPhoneAccount %s", account);
+            Log.e(this, e, "unregisterPhoneAccount %s", accountHandle);
             throw e;
         }
     }
