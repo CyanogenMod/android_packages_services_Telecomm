@@ -39,7 +39,7 @@ final class Ringer extends CallsManagerListenerBase {
 
     private static final AudioAttributes VIBRATION_ATTRIBUTES = new AudioAttributes.Builder()
             .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-            .setUsage(AudioAttributes.USAGE_NOTIFICATION_TELEPHONY_RINGTONE)
+            .setUsage(AudioAttributes.USAGE_NOTIFICATION_RINGTONE)
             .build();
 
     /** Indicate that we want the pattern to repeat at the step which turns on vibration. */
