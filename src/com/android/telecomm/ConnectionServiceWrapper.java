@@ -28,6 +28,7 @@ import android.telecomm.CallAudioState;
 import android.telecomm.ConnectionRequest;
 import android.telecomm.ConnectionService;
 import android.telecomm.GatewayInfo;
+import android.telecomm.ParcelableConnection;
 import android.telecomm.StatusHints;
 import android.telephony.DisconnectCause;
 
@@ -82,12 +83,16 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
             Call call;
             switch (msg.what) {
                 case MSG_HANDLE_CREATE_CONNECTION_SUCCESSFUL: {
-                    ConnectionRequest request = (ConnectionRequest) msg.obj;
-                    if (mPendingResponses.containsKey(request.getCallId())) {
-                        mPendingResponses.remove(
-                                request.getCallId()).handleCreateConnectionSuccessful(request);
-                    } else {
-                        //Log.w(this, "handleCreateConnectionSuccessful, unknown call: %s", callId);
+                    SomeArgs args = (SomeArgs) msg.obj;
+                    try {
+                        ConnectionRequest request = (ConnectionRequest) args.arg1;
+                        if (mPendingResponses.containsKey(request.getCallId())) {
+                            ParcelableConnection connection = (ParcelableConnection) args.arg2;
+                            mPendingResponses.remove(request.getCallId()).
+                                    handleCreateConnectionSuccessful(request, connection);
+                        }
+                    } finally {
+                        args.recycle();
                     }
                     break;
                 }
@@ -325,10 +330,15 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
 
     private final class Adapter extends IConnectionServiceAdapter.Stub {
         @Override
-        public void handleCreateConnectionSuccessful(ConnectionRequest request) {
+        public void handleCreateConnectionSuccessful(
+                ConnectionRequest request, ParcelableConnection connection) {
+
             logIncoming("handleCreateConnectionSuccessful %s", request);
             mCallIdMapper.checkValidCallId(request.getCallId());
-            mHandler.obtainMessage(MSG_HANDLE_CREATE_CONNECTION_SUCCESSFUL, request).sendToTarget();
+            SomeArgs args = SomeArgs.obtain();
+            args.arg1 = request;
+            args.arg2 = connection;
+            mHandler.obtainMessage(MSG_HANDLE_CREATE_CONNECTION_SUCCESSFUL, args).sendToTarget();
         }
 
         @Override

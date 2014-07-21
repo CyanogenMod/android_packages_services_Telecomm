@@ -16,9 +16,10 @@
 
 package com.android.telecomm;
 
+import android.telecomm.ConnectionRequest;
+import android.telecomm.ParcelableConnection;
 import android.telecomm.PhoneAccountHandle;
 import android.telephony.DisconnectCause;
-import android.telecomm.ConnectionRequest;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -129,12 +130,13 @@ final class CreateConnectionProcessor {
         }
 
         @Override
-        public void handleCreateConnectionSuccessful(ConnectionRequest request) {
+        public void handleCreateConnectionSuccessful(
+                ConnectionRequest request, ParcelableConnection connection) {
             if (mResponse == null) {
                 mService.abort(mCall);
             } else {
-                mResponse.handleCreateConnectionSuccessful(request);
-                mResponse= null;
+                mResponse.handleCreateConnectionSuccessful(request, connection);
+                mResponse = null;
             }
         }
 
