@@ -844,7 +844,7 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
     private void queryRemoteConnectionServices(final RemoteServiceCallback callback) {
         final List<IBinder> connectionServices = new ArrayList<>();
         final List<ComponentName> components = new ArrayList<>();
-        final List<ConnectionServiceWrapper> servciesAttempted = new ArrayList<>();
+        final List<ConnectionServiceWrapper> servicesAttempted = new ArrayList<>();
         final Collection<ConnectionServiceWrapper> services =
                 mConnectionServiceRepository.lookupServices();
 
@@ -869,8 +869,8 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                     }
 
                     private void maybeComplete() {
-                        servciesAttempted.add(currentConnectionService);
-                        if (servciesAttempted.size() == services.size() - 1) {
+                        servicesAttempted.add(currentConnectionService);
+                        if (servicesAttempted.size() == services.size() - 1) {
                             try {
                                 callback.onResult(components, connectionServices);
                             } catch (RemoteException ignored) {
