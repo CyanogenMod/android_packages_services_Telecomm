@@ -311,6 +311,7 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                     if (call != null) {
                         call.setVideoState(msg.arg1);
                     }
+                    break;
                 }
                 case MSG_START_ACTIVITY_FROM_IN_CALL: {
                     SomeArgs args = (SomeArgs) msg.obj;
