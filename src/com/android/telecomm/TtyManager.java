@@ -23,14 +23,14 @@ import android.content.IntentFilter;
 import android.media.AudioManager;
 import android.os.UserHandle;
 import android.provider.Settings;
-import android.telecomm.TelecommConstants;
+import android.telecomm.TelecommManager;
 
 final class TtyManager implements WiredHeadsetManager.Listener {
     private final TtyBroadcastReceiver mReceiver = new TtyBroadcastReceiver();
     private final Context mContext;
     private final WiredHeadsetManager mWiredHeadsetManager;
-    private int mPreferredTtyMode = TelecommConstants.TTY_MODE_OFF;
-    private int mCurrentTtyMode = TelecommConstants.TTY_MODE_OFF;
+    private int mPreferredTtyMode = TelecommManager.TTY_MODE_OFF;
+    private int mCurrentTtyMode = TelecommManager.TTY_MODE_OFF;
 
     TtyManager(Context context, WiredHeadsetManager wiredHeadsetManager) {
         mContext = context;
@@ -40,10 +40,10 @@ final class TtyManager implements WiredHeadsetManager.Listener {
         mPreferredTtyMode = Settings.Secure.getInt(
                 mContext.getContentResolver(),
                 Settings.Secure.PREFERRED_TTY_MODE,
-                TelecommConstants.TTY_MODE_OFF);
+                TelecommManager.TTY_MODE_OFF);
 
         IntentFilter intentFilter = new IntentFilter(
-                TelecommConstants.ACTION_TTY_PREFERRED_MODE_CHANGED);
+                TelecommManager.ACTION_TTY_PREFERRED_MODE_CHANGED);
         mContext.registerReceiver(mReceiver, intentFilter);
 
         updateCurrentTtyMode();
@@ -66,7 +66,7 @@ final class TtyManager implements WiredHeadsetManager.Listener {
     }
 
     private void updateCurrentTtyMode() {
-        int newTtyMode = TelecommConstants.TTY_MODE_OFF;
+        int newTtyMode = TelecommManager.TTY_MODE_OFF;
         if (isTtySupported() && mWiredHeadsetManager.isPluggedIn()) {
             newTtyMode = mPreferredTtyMode;
         }
@@ -74,8 +74,8 @@ final class TtyManager implements WiredHeadsetManager.Listener {
 
         if (mCurrentTtyMode != newTtyMode) {
             mCurrentTtyMode = newTtyMode;
-            Intent ttyModeChanged = new Intent(TelecommConstants.ACTION_CURRENT_TTY_MODE_CHANGED);
-            ttyModeChanged.putExtra(TelecommConstants.EXTRA_CURRENT_TTY_MODE, mCurrentTtyMode);
+            Intent ttyModeChanged = new Intent(TelecommManager.ACTION_CURRENT_TTY_MODE_CHANGED);
+            ttyModeChanged.putExtra(TelecommManager.EXTRA_CURRENT_TTY_MODE, mCurrentTtyMode);
             mContext.sendBroadcastAsUser(ttyModeChanged, UserHandle.ALL);
 
             updateAudioTtyMode();
@@ -85,16 +85,16 @@ final class TtyManager implements WiredHeadsetManager.Listener {
     private void updateAudioTtyMode() {
         String audioTtyMode;
         switch (mCurrentTtyMode) {
-            case TelecommConstants.TTY_MODE_FULL:
+            case TTY_MODE_FULL:
                 audioTtyMode = "tty_full";
                 break;
-            case TelecommConstants.TTY_MODE_VCO:
+            case TTY_MODE_VCO:
                 audioTtyMode = "tty_vco";
                 break;
-            case TelecommConstants.TTY_MODE_HCO:
+            case TTY_MODE_HCO:
                 audioTtyMode = "tty_hco";
                 break;
-            case TelecommConstants.TTY_MODE_OFF:
+            case TTY_MODE_OFF:
             default:
                 audioTtyMode = "tty_off";
                 break;
@@ -110,9 +110,9 @@ final class TtyManager implements WiredHeadsetManager.Listener {
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
             Log.v(TtyManager.this, "onReceive, action: %s", action);
-            if (action.equals(TelecommConstants.ACTION_TTY_PREFERRED_MODE_CHANGED)) {
+            if (action.equals(TelecommManager.ACTION_TTY_PREFERRED_MODE_CHANGED)) {
                 int newPreferredTtyMode = intent.getIntExtra(
-                        TelecommConstants.EXTRA_TTY_PREFERRED_MODE, TelecommConstants.TTY_MODE_OFF);
+                        TelecommManager.EXTRA_TTY_PREFERRED_MODE, TelecommManager.TTY_MODE_OFF);
                 if (mPreferredTtyMode != newPreferredTtyMode) {
                     mPreferredTtyMode = newPreferredTtyMode;
                     updateCurrentTtyMode();

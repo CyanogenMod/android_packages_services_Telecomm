@@ -25,7 +25,7 @@ import android.net.Uri;
 import android.os.UserHandle;
 import android.telecomm.GatewayInfo;
 import android.telecomm.PhoneAccount;
-import android.telecomm.TelecommConstants;
+import android.telecomm.TelecommManager;
 import android.telecomm.VideoCallProfile;
 import android.telephony.PhoneNumberUtils;
 import android.text.TextUtils;
@@ -118,9 +118,9 @@ class NewOutgoingCallIntentBroadcaster {
             GatewayInfo gatewayInfo = getGateWayInfoFromIntent(intent, resultHandleUri);
             PhoneAccount account = getAccountFromIntent(intent);
             mCallsManager.placeOutgoingCall(resultHandleUri, gatewayInfo, account,
-                    mIntent.getBooleanExtra(TelecommConstants.EXTRA_START_CALL_WITH_SPEAKERPHONE,
+                    mIntent.getBooleanExtra(TelecommManager.EXTRA_START_CALL_WITH_SPEAKERPHONE,
                             false),
-                    mIntent.getIntExtra(TelecommConstants.EXTRA_START_CALL_WITH_VIDEO_STATE,
+                    mIntent.getIntExtra(TelecommManager.EXTRA_START_CALL_WITH_VIDEO_STATE,
                             VideoCallProfile.VIDEO_STATE_AUDIO_ONLY));
         }
     }
@@ -188,9 +188,9 @@ class NewOutgoingCallIntentBroadcaster {
                     + " OutgoingCallBroadcastReceiver: %s", intent);
             String scheme = isUriNumber ? SCHEME_SIP : SCHEME_TEL;
             boolean speakerphoneOn = mIntent.getBooleanExtra(
-                    TelecommConstants.EXTRA_START_CALL_WITH_SPEAKERPHONE, false);
+                    TelecommManager.EXTRA_START_CALL_WITH_SPEAKERPHONE, false);
             int videoState = mIntent.getIntExtra(
-                    TelecommConstants.EXTRA_START_CALL_WITH_VIDEO_STATE,
+                    TelecommManager.EXTRA_START_CALL_WITH_VIDEO_STATE,
                     VideoCallProfile.VIDEO_STATE_AUDIO_ONLY);
             mCallsManager.placeOutgoingCall(
                     Uri.fromParts(scheme, handle, null), null, null, speakerphoneOn, videoState);
@@ -261,9 +261,9 @@ class NewOutgoingCallIntentBroadcaster {
             Log.d(this, "Found and copied gateway provider extras to broadcast intent.");
             return;
         }
-        PhoneAccount extraAccount = src.getParcelableExtra(TelecommConstants.EXTRA_PHONE_ACCOUNT);
+        PhoneAccount extraAccount = src.getParcelableExtra(TelecommManager.EXTRA_PHONE_ACCOUNT);
         if (extraAccount != null) {
-            dst.putExtra(TelecommConstants.EXTRA_PHONE_ACCOUNT, extraAccount);
+            dst.putExtra(TelecommManager.EXTRA_PHONE_ACCOUNT, extraAccount);
             Log.d(this, "Found and copied account extra to broadcast intent.");
         }
 
@@ -321,7 +321,7 @@ class NewOutgoingCallIntentBroadcaster {
             return null;
         }
 
-        return intent.getParcelableExtra(TelecommConstants.EXTRA_PHONE_ACCOUNT);
+        return intent.getParcelableExtra(TelecommManager.EXTRA_PHONE_ACCOUNT);
     }
 
     private void launchSystemDialer(Context context, Uri handle) {

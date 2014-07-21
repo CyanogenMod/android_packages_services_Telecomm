@@ -29,7 +29,7 @@ import android.telecomm.ConnectionService;
 import android.telecomm.ConnectionRequest;
 import android.telecomm.GatewayInfo;
 import android.telecomm.StatusHints;
-import android.telecomm.TelecommConstants;
+import android.telecomm.TelecommManager;
 import android.telephony.DisconnectCause;
 
 import com.android.internal.os.SomeArgs;
@@ -38,7 +38,6 @@ import com.android.internal.telecomm.IConnectionServiceAdapter;
 import com.android.internal.telecomm.ICallVideoProvider;
 import com.android.internal.telecomm.RemoteServiceCallback;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 
 import org.apache.http.conn.ClientConnectionRequest;
 
@@ -533,7 +532,7 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
      */
     ConnectionServiceWrapper(
             ComponentName componentName, ConnectionServiceRepository connectionServiceRepository) {
-        super(TelecommConstants.ACTION_CONNECTION_SERVICE, componentName);
+        super(TelecommManager.ACTION_CONNECTION_SERVICE, componentName);
         mConnectionServiceRepository = connectionServiceRepository;
     }
 

@@ -21,7 +21,7 @@ import android.content.Intent;
 import android.content.res.Configuration;
 import android.os.Bundle;
 import android.telecomm.PhoneAccount;
-import android.telecomm.TelecommConstants;
+import android.telecomm.TelecommManager;
 
 /**
  * Activity that handles system CALL actions and forwards them to {@link CallsManager}.
@@ -79,7 +79,7 @@ public class CallActivity extends Activity {
                 Intent.ACTION_CALL_PRIVILEGED.equals(action) ||
                 Intent.ACTION_CALL_EMERGENCY.equals(action)) {
             processOutgoingCallIntent(intent);
-        } else if (TelecommConstants.ACTION_INCOMING_CALL.equals(action)) {
+        } else if (TelecommManager.ACTION_INCOMING_CALL.equals(action)) {
             processIncomingCallIntent(intent);
         }
     }
@@ -103,7 +103,7 @@ public class CallActivity extends Activity {
      */
     private void processIncomingCallIntent(Intent intent) {
         PhoneAccount phoneAccount = intent.getParcelableExtra(
-                TelecommConstants.EXTRA_PHONE_ACCOUNT);
+                TelecommManager.EXTRA_PHONE_ACCOUNT);
         if (phoneAccount == null) {
             Log.w(this, "Rejecting incoming call due to null phone account");
             return;
@@ -114,8 +114,8 @@ public class CallActivity extends Activity {
         }
 
         Bundle clientExtras = null;
-        if (intent.hasExtra(TelecommConstants.EXTRA_INCOMING_CALL_EXTRAS)) {
-            clientExtras = intent.getBundleExtra(TelecommConstants.EXTRA_INCOMING_CALL_EXTRAS);
+        if (intent.hasExtra(TelecommManager.EXTRA_INCOMING_CALL_EXTRAS)) {
+            clientExtras = intent.getBundleExtra(TelecommManager.EXTRA_INCOMING_CALL_EXTRAS);
         }
         if (clientExtras == null) {
             clientExtras = Bundle.EMPTY;
