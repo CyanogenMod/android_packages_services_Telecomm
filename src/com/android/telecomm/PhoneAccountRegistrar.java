@@ -272,6 +272,7 @@ final class PhoneAccountRegistrar {
             new Json<PhoneAccountMetadata>() {
         private static final String ACCOUNT = "account";
         private static final String HANDLE = "handle";
+        private static final String SUBSCRIPTION_NUMBER = "subscription_number";
         private static final String CAPABILITIES = "capabilities";
         private static final String ICON_RES_ID = "icon_res_id";
         private static final String LABEL = "label";
@@ -283,6 +284,7 @@ final class PhoneAccountRegistrar {
             return new JSONObject()
                     .put(ACCOUNT, sPhoneAccountJson.toJson(o.getAccount()))
                     .put(HANDLE, o.getHandle().toString())
+                    .put(SUBSCRIPTION_NUMBER, o.getSubscriptionNumber())
                     .put(CAPABILITIES, o.getCapabilities())
                     .put(ICON_RES_ID, o.getIconResId())
                     .put(LABEL, o.getLabel())
@@ -295,6 +297,7 @@ final class PhoneAccountRegistrar {
             return new PhoneAccountMetadata(
                     sPhoneAccountJson.fromJson((JSONObject) json.get(ACCOUNT)),
                     Uri.parse((String) json.get(HANDLE)),
+                    (String) json.get(SUBSCRIPTION_NUMBER),
                     (int) json.get(CAPABILITIES),
                     (int) json.get(ICON_RES_ID),
                     (String) json.get(LABEL),
