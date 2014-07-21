@@ -24,8 +24,10 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.telecomm.CallPropertyPresentation;
 import android.telecomm.CallState;
+import android.telecomm.Connection;
 import android.telecomm.ConnectionRequest;
 import android.telecomm.GatewayInfo;
+import android.telecomm.ParcelableConnection;
 import android.telecomm.PhoneAccountHandle;
 import android.telecomm.Response;
 import android.telecomm.StatusHints;
@@ -567,9 +569,15 @@ final class Call implements CreateConnectionResponse {
     }
 
     @Override
-    public void handleCreateConnectionSuccessful(ConnectionRequest request) {
+    public void handleCreateConnectionSuccessful(
+            ConnectionRequest request, ParcelableConnection connection) {
         mCreateConnectionProcessor = null;
-        mPhoneAccountHandle = request.getAccountHandle();
+        setState(getStateFromConnectionState(connection.getState()));
+        setPhoneAccount(connection.getPhoneAccount());
+        setHandle(connection.getHandle(), connection.getHandlePresentation());
+        setCallerDisplayName(
+                connection.getCallerDisplayName(), connection.getCallerDisplayNamePresentation());
+        setCallVideoProvider(connection.getCallVideoProvider());
 
         if (mIsIncoming) {
             // We do not handle incoming calls immediately when they are verified by the connection
@@ -577,9 +585,6 @@ final class Call implements CreateConnectionResponse {
             // direct-to-voicemail property before deciding if we want to show the incoming call to
             // the user or if we want to reject the call.
             mDirectToVoicemailQueryPending = true;
-
-            // Setting the handle triggers the caller info lookup code.
-            setHandle(request.getHandle(), request.getHandlePresentation());
 
             // Timeout the direct-to-voicemail lookup execution so that we dont wait too long before
             // showing the user the incoming call screen.
@@ -1143,5 +1148,23 @@ final class Call implements CreateConnectionResponse {
         } else {
             Log.w(this, "startActivityFromInCall, activity intent required");
         }
+    }
+
+    private CallState getStateFromConnectionState(int state) {
+        switch (state) {
+            case Connection.State.ACTIVE:
+                return CallState.ACTIVE;
+            case Connection.State.DIALING:
+                return CallState.DIALING;
+            case Connection.State.DISCONNECTED:
+                return CallState.DISCONNECTED;
+            case Connection.State.HOLDING:
+                return CallState.ON_HOLD;
+            case Connection.State.NEW:
+                return CallState.NEW;
+            case Connection.State.RINGING:
+                return CallState.RINGING;
+        }
+        return CallState.DISCONNECTED;
     }
 }
