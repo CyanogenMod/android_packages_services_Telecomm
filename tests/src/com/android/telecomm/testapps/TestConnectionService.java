@@ -75,7 +75,7 @@ public class TestConnectionService extends ConnectionService {
             public void onDisconnected(RemoteConnection connection, int cause, String message) {
                 setDisconnected(cause, message);
                 destroyCall(TestConnection.this);
-                setDestroyed();
+                destroy();
             }
 
             @Override
@@ -128,7 +128,7 @@ public class TestConnectionService extends ConnectionService {
 
             @Override
             public void onDestroyed(RemoteConnection connection) {
-                setDestroyed();
+                destroy();
             }
         };
 
@@ -165,7 +165,7 @@ public class TestConnectionService extends ConnectionService {
                 mRemoteConnection.removeListener(mProxyListener);
             } else {
                 destroyCall(this);
-                setDestroyed();
+                destroy();
             }
         }
 
@@ -188,7 +188,7 @@ public class TestConnectionService extends ConnectionService {
             } else {
                 setDisconnected(DisconnectCause.LOCAL, null);
                 destroyCall(this);
-                setDestroyed();
+                destroy();
             }
         }
 
@@ -210,7 +210,7 @@ public class TestConnectionService extends ConnectionService {
             } else {
                 setDisconnected(DisconnectCause.INCOMING_REJECTED, null);
                 destroyCall(this);
-                setDestroyed();
+                destroy();
             }
         }
 
