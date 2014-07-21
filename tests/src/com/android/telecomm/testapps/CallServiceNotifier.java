@@ -38,6 +38,8 @@ import java.util.List;
 public class CallServiceNotifier {
     private static final CallServiceNotifier INSTANCE = new CallServiceNotifier();
 
+    static final String PHONE_ACCOUNT_ID = "testapps_TestConnectionService_Account_ID";
+
     /**
      * Static notification IDs.
      */
@@ -89,13 +91,13 @@ public class CallServiceNotifier {
         PhoneAccount account = new PhoneAccount(
                 new PhoneAccountHandle(
                         new ComponentName(context, TestConnectionService.class),
-                        "testapps_TestConnectionService_Account_ID"),
+                        PHONE_ACCOUNT_ID),
                 Uri.parse("tel:555-TEST"),
                 "555-TEST",
                 PhoneAccount.CAPABILITY_CALL_PROVIDER,
                 0,  // iconResId
-                "a label",
-                "a short description",
+                "Dummy Service",
+                "a short description for the dummy service",
                 false);
         TelecommManager telecommManager =
                 (TelecommManager) context.getSystemService(Context.TELECOMM_SERVICE);
