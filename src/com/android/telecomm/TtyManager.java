@@ -85,16 +85,16 @@ final class TtyManager implements WiredHeadsetManager.Listener {
     private void updateAudioTtyMode() {
         String audioTtyMode;
         switch (mCurrentTtyMode) {
-            case TTY_MODE_FULL:
+            case TelecommManager.TTY_MODE_FULL:
                 audioTtyMode = "tty_full";
                 break;
-            case TTY_MODE_VCO:
+            case TelecommManager.TTY_MODE_VCO:
                 audioTtyMode = "tty_vco";
                 break;
-            case TTY_MODE_HCO:
+            case TelecommManager.TTY_MODE_HCO:
                 audioTtyMode = "tty_hco";
                 break;
-            case TTY_MODE_OFF:
+            case TelecommManager.TTY_MODE_OFF:
             default:
                 audioTtyMode = "tty_off";
                 break;
