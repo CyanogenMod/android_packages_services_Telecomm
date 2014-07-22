@@ -18,7 +18,6 @@ package com.android.telecomm.testapps;
 
 import android.content.Context;
 import android.media.MediaPlayer;
-import android.os.RemoteException;
 import android.telecomm.CallCameraCapabilities;
 import android.telecomm.CallVideoClient;
 import android.telecomm.CallVideoProvider;
@@ -123,10 +122,7 @@ public class TestCallVideoProvider extends CallVideoProvider {
             mCapabilities = new CallCameraCapabilities(true /* zoomSupported */, value);
         }
 
-        try {
-            mCallVideoClient.handleCameraCapabilitiesChange(mCapabilities);
-        } catch (RemoteException ignored) {
-        }
+        mCallVideoClient.handleCameraCapabilitiesChange(mCapabilities);
     }
 
     /**
@@ -139,13 +135,10 @@ public class TestCallVideoProvider extends CallVideoProvider {
 
         VideoCallProfile responseProfile = new VideoCallProfile(
                 requestProfile.getVideoState(), requestProfile.getQuality());
-        try {
-            mCallVideoClient.receiveSessionModifyResponse(
-                    CallVideoClient.SESSION_MODIFY_REQUEST_SUCCESS,
-                    requestProfile,
-                    responseProfile);
-        } catch (RemoteException ignored) {
-        }
+        mCallVideoClient.receiveSessionModifyResponse(
+                CallVideoClient.SESSION_MODIFY_REQUEST_SUCCESS,
+                requestProfile,
+                responseProfile);
     }
 
     @Override
@@ -159,10 +152,7 @@ public class TestCallVideoProvider extends CallVideoProvider {
     @Override
     public void onRequestCameraCapabilities() {
         log("Requested camera capabilities");
-        try {
-            mCallVideoClient.handleCameraCapabilitiesChange(mCapabilities);
-        } catch (RemoteException ignored) {
-        }
+        mCallVideoClient.handleCameraCapabilitiesChange(mCapabilities);
     }
 
     /**
@@ -172,10 +162,7 @@ public class TestCallVideoProvider extends CallVideoProvider {
     public void onRequestCallDataUsage() {
         log("Requested call data usage");
         int dataUsageKb = (10 *1024) + random.nextInt(50 * 1024);
-        try {
-            mCallVideoClient.updateCallDataUsage(dataUsageKb);
-        } catch (RemoteException ignored) {
-        }
+        mCallVideoClient.updateCallDataUsage(dataUsageKb);
     }
 
     /**
