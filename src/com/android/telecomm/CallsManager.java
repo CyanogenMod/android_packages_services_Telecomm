@@ -311,19 +311,29 @@ public final class CallsManager extends Call.ListenerBase {
         call.addListener(this);
         addCall(call);
 
-        if (TelephonyUtil.shouldProcessAsEmergency(TelecommApp.getInstance(), call.getHandle())) {
+        // This block of code will attempt to pre-determine a phone account
+        final boolean emergencyCall = TelephonyUtil.shouldProcessAsEmergency(
+                TelecommApp.getInstance(), call.getHandle());
+        if (emergencyCall) {
             // Emergency -- CreateConnectionProcessor will choose accounts automatically
             call.setPhoneAccount(null);
-            call.startCreateConnection();
-        } else if (accountHandle == null) {
+        } else if (accountHandle != null) {
+            call.setPhoneAccount(accountHandle);
+        } else {
+            // No preset account, check if default exists
             PhoneAccountHandle defaultAccountHandle = TelecommApp.getInstance()
                     .getPhoneAccountRegistrar().getDefaultOutgoingPhoneAccount();
             if (defaultAccountHandle != null) {
                 call.setPhoneAccount(defaultAccountHandle);
-                call.startCreateConnection();
-            } else {
-                call.setState(CallState.PRE_DIAL_WAIT);
             }
+        }
+
+        if (call.getPhoneAccount() != null || emergencyCall) {
+            // If the account is selected, proceed to place the outgoing call
+            call.startCreateConnection();
+        } else {
+            // This is the state where the user is expected to select an account
+            call.setState(CallState.PRE_DIAL_WAIT);
         }
     }
 
