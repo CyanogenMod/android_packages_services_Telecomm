@@ -16,20 +16,34 @@
 
 package com.android.telecomm.testapps;
 
+import com.android.ex.camera2.blocking.BlockingCameraManager;
+import com.android.ex.camera2.blocking.BlockingCameraManager.BlockingOpenException;
+import com.android.ex.camera2.blocking.BlockingSessionListener;
+import com.android.telecomm.tests.R;
+
 import android.content.Context;
+import android.hardware.camera2.CameraAccessException;
+import android.hardware.camera2.CameraCaptureSession;
+import android.hardware.camera2.CameraDevice;
+import android.hardware.camera2.CameraManager;
+import android.hardware.camera2.CaptureFailure;
+import android.hardware.camera2.CaptureRequest;
+import android.hardware.camera2.TotalCaptureResult;
 import android.media.MediaPlayer;
+import android.os.Handler;
+import android.os.RemoteException;
 import android.telecomm.CallCameraCapabilities;
 import android.telecomm.CallVideoClient;
 import android.telecomm.CallVideoProvider;
 import android.telecomm.RemoteCallVideoClient;
 import android.telecomm.VideoCallProfile;
-
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.Surface;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
-
-import com.android.telecomm.tests.R;
 
 /**
  * Implements the CallVideoProvider.
@@ -43,13 +57,21 @@ public class TestCallVideoProvider extends CallVideoProvider {
     private Context mContext;
     /** Used to play incoming video during a call. */
     private MediaPlayer mIncomingMediaPlayer;
-    /** Used to play outgoing video during a call. */
-    private MediaPlayer mOutgoingMediaPlayer;
+
+    private CameraManager mCameraManager;
+    private CameraDevice mCameraDevice;
+    private CameraCaptureSession mCameraSession;
+    private CameraThread mLooperThread;
+
+    private String mCameraId;
+
+    private static final long SESSION_TIMEOUT_MS = 2000;
 
     public TestCallVideoProvider(Context context) {
         mContext = context;
         mCapabilities = new CallCameraCapabilities(false /* zoomSupported */, 0 /* maxZoom */);
         random = new Random();
+        mCameraManager = (CameraManager) context.getSystemService(Context.CAMERA_SERVICE);
     }
 
     /**
@@ -63,6 +85,10 @@ public class TestCallVideoProvider extends CallVideoProvider {
     @Override
     public void onSetCamera(String cameraId) {
         log("Set camera to " + cameraId);
+        mCameraId = cameraId;
+        if (mPreviewSurface != null && mCameraId != null) {
+            startCamera(cameraId);
+        }
     }
 
     @Override
@@ -70,17 +96,12 @@ public class TestCallVideoProvider extends CallVideoProvider {
         log("Set preview surface " + (surface == null ? "unset" : "set"));
         mPreviewSurface = surface;
 
-        if (mPreviewSurface != null) {
-            if (mOutgoingMediaPlayer == null) {
-                mOutgoingMediaPlayer = createMediaPlayer(mPreviewSurface, R.raw.outgoing_video);
-            }
-            mOutgoingMediaPlayer.setSurface(mPreviewSurface);
-            if (!mOutgoingMediaPlayer.isPlaying()) {
-                mOutgoingMediaPlayer.start();
-            }
-        } else {
-            mOutgoingMediaPlayer.stop();
-            mOutgoingMediaPlayer.setSurface(null);
+        if (mPreviewSurface == null) {
+            stopCamera();
+        }
+
+        if (!TextUtils.isEmpty(mCameraId) && mPreviewSurface != null) {
+            startCamera(mCameraId);
         }
     }
 
@@ -98,8 +119,10 @@ public class TestCallVideoProvider extends CallVideoProvider {
                 mIncomingMediaPlayer.start();
             }
         } else {
-            mIncomingMediaPlayer.stop();
-            mIncomingMediaPlayer.setSurface(null);
+            if (mIncomingMediaPlayer != null) {
+                mIncomingMediaPlayer.stop();
+                mIncomingMediaPlayer.setSurface(null);
+            }
         }
     }
 
@@ -173,6 +196,18 @@ public class TestCallVideoProvider extends CallVideoProvider {
         // Not implemented.
     }
 
+    /**
+     * Stop and cleanup the media players used for test video playback.
+     */
+    public void stopAndCleanupMedia() {
+        if (mIncomingMediaPlayer != null) {
+            mIncomingMediaPlayer.setSurface(null);
+            mIncomingMediaPlayer.stop();
+            mIncomingMediaPlayer.release();
+            mIncomingMediaPlayer = null;
+        }
+    }
+
     private static void log(String msg) {
         Log.w("TestCallVideoProvider", "[TestCallServiceProvider] " + msg);
     }
@@ -189,5 +224,98 @@ public class TestCallVideoProvider extends CallVideoProvider {
         mediaPlayer.setSurface(surface);
         mediaPlayer.setLooping(true);
         return mediaPlayer;
+    }
+
+    /**
+     * Starts displaying the camera image on the preview surface.
+     *
+     * @param cameraId
+     */
+    private void startCamera(String cameraId) {
+        stopCamera();
+
+        if (mPreviewSurface == null) {
+            return;
+        }
+
+        // Configure a looper thread.
+        mLooperThread = new CameraThread();
+        Handler mHandler;
+        try {
+            mHandler = mLooperThread.start();
+        } catch (Exception e) {
+            log("Exception: " + e);
+            return;
+        }
+
+        // Get the camera device.
+        try {
+            BlockingCameraManager blockingCameraManager = new BlockingCameraManager(mCameraManager);
+            mCameraDevice = blockingCameraManager.openCamera(cameraId, null /* listener */,
+                    mHandler);
+        } catch (CameraAccessException e) {
+            log("CameraAccessException: " + e);
+            return;
+        } catch (BlockingOpenException be) {
+            log("BlockingOpenException: " + be);
+            return;
+        }
+
+        // Create a capture session to get the preview and display it on the surface.
+        List<Surface> surfaces = new ArrayList<Surface>();
+        surfaces.add(mPreviewSurface);
+        CaptureRequest.Builder mCaptureRequest = null;
+        try {
+            BlockingSessionListener blkSession = new BlockingSessionListener();
+            mCameraDevice.createCaptureSession(surfaces, blkSession, mHandler);
+            mCaptureRequest = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
+            mCaptureRequest.addTarget(mPreviewSurface);
+            mCameraSession = blkSession.waitAndGetSession(SESSION_TIMEOUT_MS);
+        } catch (CameraAccessException e) {
+            log("CameraAccessException: " + e);
+            return;
+        }
+
+        // Keep repeating
+        try {
+            mCameraSession.setRepeatingRequest(mCaptureRequest.build(), new CameraCaptureListener(),
+                    mHandler);
+        } catch (CameraAccessException e) {
+            log("CameraAccessException: " + e);
+            return;
+        }
+    }
+
+    /**
+     * Stops the camera and looper thread.
+     */
+    public void stopCamera() {
+        try {
+            if (mCameraDevice != null) {
+                mCameraDevice.close();
+                mCameraDevice = null;
+            }
+            if (mLooperThread != null) {
+                mLooperThread.close();
+                mLooperThread = null;
+            }
+        } catch (Exception e) {
+           log("stopCamera Exception: "+e.toString());
+        }
+    }
+
+    /**
+     * Required listener for camera capture events.
+     */
+    private class CameraCaptureListener extends CameraCaptureSession.CaptureListener {
+        @Override
+        public void onCaptureCompleted(CameraCaptureSession camera, CaptureRequest request,
+                TotalCaptureResult result) {
+        }
+
+        @Override
+        public void onCaptureFailed(CameraCaptureSession camera, CaptureRequest request,
+                CaptureFailure failure) {
+        }
     }
 }
