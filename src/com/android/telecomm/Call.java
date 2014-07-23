@@ -578,6 +578,7 @@ final class Call implements CreateConnectionResponse {
         setCallerDisplayName(
                 connection.getCallerDisplayName(), connection.getCallerDisplayNamePresentation());
         setCallVideoProvider(connection.getCallVideoProvider());
+        setVideoState(connection.getVideoState());
 
         if (mIsIncoming) {
             // We do not handle incoming calls immediately when they are verified by the connection
