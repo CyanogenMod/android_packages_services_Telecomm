@@ -56,7 +56,32 @@ final class PhoneAccountRegistrar {
 
     public PhoneAccountHandle getDefaultOutgoingPhoneAccount() {
         State s = read();
-        return s.defaultOutgoingHandle;
+
+        if (s.defaultOutgoingHandle != null) {
+            // Return the registered outgoing default iff it still exists (we keep a sticky
+            // default to survive account deletion and re-addition)
+            for (int i = 0; i < s.accounts.size(); i++) {
+                if (s.accounts.get(i).getAccountHandle().equals(s.defaultOutgoingHandle)) {
+                    return s.defaultOutgoingHandle;
+                }
+            }
+            // At this point, there was a registered default but it has been deleted; remember
+            // it for the future, but return null from this method
+            return null;
+        } else {
+            List<PhoneAccountHandle> enabled = getEnabledPhoneAccounts();
+            switch (enabled.size()) {
+                case 0:
+                    // There are no accounts, so there can be no default
+                    return null;
+                case 1:
+                    // There is only one account, which is by definition the default
+                    return enabled.get(0);
+                default:
+                    // There are multiple accounts with no selected default
+                    return null;
+            }
+        }
     }
 
     public void setDefaultOutgoingPhoneAccount(PhoneAccountHandle accountHandle) {
@@ -88,7 +113,7 @@ final class PhoneAccountRegistrar {
 
     public List<PhoneAccountHandle> getEnabledPhoneAccounts() {
         State s = read();
-        return accountHandlesOnly(s);
+        return simSubscriptionAccountHandles(s);
     }
 
     public PhoneAccount getPhoneAccount(PhoneAccountHandle accountHandle) {
@@ -129,8 +154,6 @@ final class PhoneAccountRegistrar {
             }
         }
 
-        checkDefaultOutgoing(s);
-
         write(s);
     }
 
@@ -145,26 +168,15 @@ final class PhoneAccountRegistrar {
             }
         }
 
-        checkDefaultOutgoing(s);
-
         write(s);
     }
 
-    private void checkDefaultOutgoing(State s) {
-        // Check that, after an operation that removes accounts, the account set up as the "default
-        // outgoing" has not been deleted. If it has, then clear out the setting.
-        for (PhoneAccount m : s.accounts) {
-            if (Objects.equals(s.defaultOutgoingHandle, m.getAccountHandle())) {
-                return;
-            }
-        }
-        s.defaultOutgoingHandle = null;
-    }
-
-    private List<PhoneAccountHandle> accountHandlesOnly(State s) {
+    private List<PhoneAccountHandle> simSubscriptionAccountHandles(State s) {
         List<PhoneAccountHandle> accountHandles = new ArrayList<>();
         for (PhoneAccount m : s.accounts) {
-            accountHandles.add(m.getAccountHandle());
+            if ((m.getCapabilities() & PhoneAccount.CAPABILITY_SIM_SUBSCRIPTION) != 0) {
+                accountHandles.add(m.getAccountHandle());
+            }
         }
         return accountHandles;
     }
