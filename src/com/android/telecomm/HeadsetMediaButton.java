@@ -20,6 +20,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.media.AudioAttributes;
 import android.media.AudioManager;
 import android.media.session.MediaSession;
 import android.media.session.MediaSessionManager;
@@ -33,6 +34,10 @@ final class HeadsetMediaButton extends CallsManagerListenerBase {
     // Types of media button presses
     static final int SHORT_PRESS = 1;
     static final int LONG_PRESS = 2;
+
+    private static final AudioAttributes AUDIO_ATTRIBUTES = new AudioAttributes.Builder()
+            .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+            .setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION).build();
 
     private final MediaSession.Callback mSessionCallback = new MediaSession.Callback() {
         @Override
@@ -60,7 +65,7 @@ final class HeadsetMediaButton extends CallsManagerListenerBase {
         mSession.addCallback(mSessionCallback);
         mSession.setFlags(MediaSession.FLAG_EXCLUSIVE_GLOBAL_PRIORITY
                 | MediaSession.FLAG_HANDLES_MEDIA_BUTTONS);
-        mSession.setPlaybackToLocal(AudioManager.STREAM_VOICE_CALL);
+        mSession.setPlaybackToLocal(AUDIO_ATTRIBUTES);
     }
 
     /**
