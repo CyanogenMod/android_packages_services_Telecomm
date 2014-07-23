@@ -44,6 +44,8 @@ import java.util.List;
  * Implementation of the ITelecomm interface.
  */
 public class TelecommServiceImpl extends ITelecommService.Stub {
+    private static final String TELEPHONY_PACKAGE_NAME = "com.android.phone";
+
     /** ${inheritDoc} */
     @Override
     public IBinder asBinder() {
@@ -191,6 +193,9 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
         try {
             enforceModifyPermissionOrCallingPackage(
                     account.getAccountHandle().getComponentName().getPackageName());
+            if ((account.getCapabilities() & PhoneAccount.CAPABILITY_SIM_SUBSCRIPTION) != 0) {
+                enforceModifyPermissionOrCallingPackage(TELEPHONY_PACKAGE_NAME);
+            }
             mPhoneAccountRegistrar.registerPhoneAccount(account);
         } catch (Exception e) {
             Log.e(this, e, "registerPhoneAccount %s", account);
