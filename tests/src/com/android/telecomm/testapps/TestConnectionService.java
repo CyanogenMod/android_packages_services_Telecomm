@@ -137,7 +137,7 @@ public class TestConnectionService extends ConnectionService {
         private final RemoteConnection mRemoteConnection;
 
         /** Used to cleanup camera and media when done with connection. */
-        private TestCallVideoProvider mTestCallVideoProvider;
+        private TestVideoCallProvider mTestVideoCallProvider;
 
         TestConnection(RemoteConnection remoteConnection, int initialState) {
             mRemoteConnection = remoteConnection;
@@ -255,17 +255,17 @@ public class TestConnectionService extends ConnectionService {
             }
         }
 
-        public void setTestCallVideoProvider(TestCallVideoProvider testCallVideoProvider) {
-            mTestCallVideoProvider = testCallVideoProvider;
+        public void setTestVideoCallProvider(TestVideoCallProvider testVideoCallProvider) {
+            mTestVideoCallProvider = testVideoCallProvider;
         }
 
         /**
          * Stops playback of test videos.
          */
         private void stopAndCleanupMedia() {
-            if (mTestCallVideoProvider != null) {
-                mTestCallVideoProvider.stopAndCleanupMedia();
-                mTestCallVideoProvider.stopCamera();
+            if (mTestVideoCallProvider != null) {
+                mTestVideoCallProvider.stopAndCleanupMedia();
+                mTestVideoCallProvider.stopCamera();
             }
         }
     }
@@ -466,12 +466,12 @@ public class TestConnectionService extends ConnectionService {
 
             TestConnection connection = new TestConnection(null, Connection.State.RINGING);
             if (isVideoCall) {
-                TestCallVideoProvider testCallVideoProvider =
-                        new TestCallVideoProvider(getApplicationContext());
-                connection.setCallVideoProvider(testCallVideoProvider);
+                TestVideoCallProvider testVideoCallProvider =
+                        new TestVideoCallProvider(getApplicationContext());
+                connection.setVideoCallProvider(testVideoCallProvider);
 
                 // Keep reference to original so we can clean up the media players later.
-                connection.setTestCallVideoProvider(testCallVideoProvider);
+                connection.setTestVideoCallProvider(testVideoCallProvider);
             }
 
             // Assume all calls are video capable.

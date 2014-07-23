@@ -31,11 +31,9 @@ import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.TotalCaptureResult;
 import android.media.MediaPlayer;
 import android.os.Handler;
-import android.os.RemoteException;
 import android.telecomm.CallCameraCapabilities;
-import android.telecomm.CallVideoClient;
-import android.telecomm.CallVideoProvider;
-import android.telecomm.RemoteCallVideoClient;
+import android.telecomm.InCallService.VideoCall;
+import android.telecomm.VideoCallProvider;
 import android.telecomm.VideoCallProfile;
 import android.text.TextUtils;
 import android.util.Log;
@@ -46,10 +44,9 @@ import java.util.List;
 import java.util.Random;
 
 /**
- * Implements the CallVideoProvider.
+ * Implements the VideoCallProvider.
  */
-public class TestCallVideoProvider extends CallVideoProvider {
-    private RemoteCallVideoClient mCallVideoClient;
+public class TestVideoCallProvider extends VideoCallProvider {
     private CallCameraCapabilities mCapabilities;
     private Random random;
     private Surface mDisplaySurface;
@@ -67,19 +64,11 @@ public class TestCallVideoProvider extends CallVideoProvider {
 
     private static final long SESSION_TIMEOUT_MS = 2000;
 
-    public TestCallVideoProvider(Context context) {
+    public TestVideoCallProvider(Context context) {
         mContext = context;
         mCapabilities = new CallCameraCapabilities(false /* zoomSupported */, 0 /* maxZoom */);
         random = new Random();
         mCameraManager = (CameraManager) context.getSystemService(Context.CAMERA_SERVICE);
-    }
-
-    /**
-     * Save the reference to the CallVideoClient so callback can be invoked.
-     */
-    @Override
-    public void onSetCallVideoClient(RemoteCallVideoClient callVideoClient) {
-        mCallVideoClient = callVideoClient;
     }
 
     @Override
@@ -145,7 +134,7 @@ public class TestCallVideoProvider extends CallVideoProvider {
             mCapabilities = new CallCameraCapabilities(true /* zoomSupported */, value);
         }
 
-        mCallVideoClient.handleCameraCapabilitiesChange(mCapabilities);
+        changeCameraCapabilities(mCapabilities);
     }
 
     /**
@@ -158,8 +147,8 @@ public class TestCallVideoProvider extends CallVideoProvider {
 
         VideoCallProfile responseProfile = new VideoCallProfile(
                 requestProfile.getVideoState(), requestProfile.getQuality());
-        mCallVideoClient.receiveSessionModifyResponse(
-                CallVideoClient.SESSION_MODIFY_REQUEST_SUCCESS,
+        receiveSessionModifyResponse(
+                VideoCall.SESSION_MODIFY_REQUEST_SUCCESS,
                 requestProfile,
                 responseProfile);
     }
@@ -175,7 +164,7 @@ public class TestCallVideoProvider extends CallVideoProvider {
     @Override
     public void onRequestCameraCapabilities() {
         log("Requested camera capabilities");
-        mCallVideoClient.handleCameraCapabilitiesChange(mCapabilities);
+        changeCameraCapabilities(mCapabilities);
     }
 
     /**
@@ -185,7 +174,7 @@ public class TestCallVideoProvider extends CallVideoProvider {
     public void onRequestCallDataUsage() {
         log("Requested call data usage");
         int dataUsageKb = (10 *1024) + random.nextInt(50 * 1024);
-        mCallVideoClient.updateCallDataUsage(dataUsageKb);
+        changeCallDataUsage(dataUsageKb);
     }
 
     /**
