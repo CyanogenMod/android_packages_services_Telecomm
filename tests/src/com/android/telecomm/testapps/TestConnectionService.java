@@ -24,6 +24,8 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.telecomm.CallAudioState;
+import android.telecomm.CallCapabilities;
+import android.telecomm.CallPropertyPresentation;
 import android.telecomm.Connection;
 import android.telecomm.ConnectionRequest;
 import android.telecomm.ConnectionService;
@@ -134,6 +136,9 @@ public class TestConnectionService extends ConnectionService {
 
         private final RemoteConnection mRemoteConnection;
 
+        /** Used to cleanup camera and media when done with connection. */
+        private TestCallVideoProvider mTestCallVideoProvider;
+
         TestConnection(RemoteConnection remoteConnection, int initialState) {
             mRemoteConnection = remoteConnection;
             if (mRemoteConnection != null) {
@@ -175,6 +180,7 @@ public class TestConnectionService extends ConnectionService {
             if (mRemoteConnection != null) {
                 mRemoteConnection.answer(videoState);
             } else {
+                setVideoState(videoState);
                 activateCall(this);
                 setActive();
             }
@@ -246,6 +252,20 @@ public class TestConnectionService extends ConnectionService {
                 case Connection.State.RINGING:
                     setRinging();
                     break;
+            }
+        }
+
+        public void setTestCallVideoProvider(TestCallVideoProvider testCallVideoProvider) {
+            mTestCallVideoProvider = testCallVideoProvider;
+        }
+
+        /**
+         * Stops playback of test videos.
+         */
+        private void stopAndCleanupMedia() {
+            if (mTestCallVideoProvider != null) {
+                mTestCallVideoProvider.stopAndCleanupMedia();
+                mTestCallVideoProvider.stopCamera();
             }
         }
     }
@@ -433,6 +453,7 @@ public class TestConnectionService extends ConnectionService {
     @Override
     public void onCreateIncomingConnection(
             final ConnectionRequest request, final CreateConnectionResponse<Connection> response) {
+
         PhoneAccountHandle accountHandle = request.getAccountHandle();
         ComponentName componentName = new ComponentName(this, TestConnectionService.class);
         if (accountHandle != null && componentName.equals(accountHandle.getComponentName())) {
@@ -445,11 +466,25 @@ public class TestConnectionService extends ConnectionService {
 
             TestConnection connection = new TestConnection(null, Connection.State.RINGING);
             if (isVideoCall) {
-                connection.setCallVideoProvider(new TestCallVideoProvider(getApplicationContext()));
+                TestCallVideoProvider testCallVideoProvider =
+                        new TestCallVideoProvider(getApplicationContext());
+                connection.setCallVideoProvider(testCallVideoProvider);
+
+                // Keep reference to original so we can clean up the media players later.
+                connection.setTestCallVideoProvider(testCallVideoProvider);
             }
+
+            // Assume all calls are video capable.
+            int capabilities = connection.getCallCapabilities();
+            capabilities |= CallCapabilities.SUPPORTS_VT_LOCAL;
+            connection.setCallCapabilities(capabilities);
+
             int videoState = isVideoCall ?
                     VideoCallProfile.VIDEO_STATE_BIDIRECTIONAL :
                     VideoCallProfile.VIDEO_STATE_AUDIO_ONLY;
+            connection.setVideoState(videoState);
+            connection.setHandle(handle, CallPropertyPresentation.ALLOWED);
+
             mCalls.add(connection);
 
             ConnectionRequest newRequest = new ConnectionRequest(
@@ -460,7 +495,7 @@ public class TestConnectionService extends ConnectionService {
                     request.getExtras(),
                     videoState);
             response.onSuccess(newRequest, connection);
-            connection.setVideoState(videoState);
+
         } else {
             SimpleResponse<Uri, List<PhoneAccountHandle>> accountResponse =
                     new SimpleResponse<Uri, List<PhoneAccountHandle>>() {
