@@ -61,10 +61,10 @@ public class PhoneAccountPreferencesActivity extends Activity {
             int selectedIndex = accountHandles.size();  // Points to "ask every time" by default
             int i = 0;
             for ( ; i < accountHandles.size(); i++) {
-                entryValues[i] = Integer.toString(i);
-                entries[i] = mRegistrar
-                        .getPhoneAccount(accountHandles.get(i))
+                CharSequence label = mRegistrar.getPhoneAccount(accountHandles.get(i))
                         .getLabel();
+                entries[i] = label == null ? null : label.toString();
+                entryValues[i] = Integer.toString(i);
                 if (Objects.equals(currentDefault, accountHandles.get(i))) {
                     selectedIndex = i;
                 }
