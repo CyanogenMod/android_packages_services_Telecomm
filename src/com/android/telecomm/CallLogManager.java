@@ -88,7 +88,8 @@ final class CallLogManager extends CallsManagerListenerBase {
 
     @Override
     public void onCallStateChanged(Call call, CallState oldState, CallState newState) {
-        if (newState == CallState.DISCONNECTED || newState == CallState.ABORTED) {
+        if ((newState == CallState.DISCONNECTED || newState == CallState.ABORTED) &&
+                oldState != CallState.PRE_DIAL_WAIT) {
             int type;
             if (!call.isIncoming()) {
                 type = Calls.OUTGOING_TYPE;
