@@ -102,13 +102,10 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                         ConnectionRequest request = (ConnectionRequest) args.arg1;
                         int statusCode = args.argi1;
                         String statusMsg = (String) args.arg2;
-                        if (mPendingResponses.containsKey(request.getCallId())) {
-                            mPendingResponses.remove(request.getCallId())
-                                    .handleCreateConnectionFailed(statusCode, statusMsg);
-                            mCallIdMapper.removeCall(request.getCallId());
-                        } else {
-                            //Log.w(this, "handleCreateConnectionFailed, unknown call: %s", callId);
-                        }
+                        removeCall(
+                                mCallIdMapper.getCall(request.getCallId()),
+                                statusCode,
+                                statusMsg);
                     } finally {
                         args.recycle();
                     }
@@ -591,14 +588,14 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                 } catch (RemoteException e) {
                     Log.e(this, e, "Failure to createConnection -- %s", getComponentName());
                     mPendingResponses.remove(callId).handleCreateConnectionFailed(
-                            DisconnectCause.ERROR_UNSPECIFIED, e.toString());
+                            DisconnectCause.OUTGOING_FAILURE, e.toString());
                 }
             }
 
             @Override
             public void onFailure() {
                 Log.e(this, new Exception(), "Failure to call %s", getComponentName());
-                response.handleCreateConnectionFailed(DisconnectCause.ERROR_UNSPECIFIED, null);
+                response.handleCreateConnectionFailed(DisconnectCause.OUTGOING_FAILURE, null);
             }
         };
 
@@ -619,7 +616,7 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
             }
         }
 
-        removeCall(call);
+        removeCall(call, DisconnectCause.LOCAL, null);
     }
 
     /** @see ConnectionService#hold(String) */
@@ -727,9 +724,13 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
     }
 
     void removeCall(Call call) {
+        removeCall(call, DisconnectCause.ERROR_UNSPECIFIED, null);
+    }
+
+    void removeCall(Call call, int disconnectCause, String disconnectMessage) {
         CreateConnectionResponse response = mPendingResponses.remove(mCallIdMapper.getCallId(call));
         if (response != null) {
-            response.handleCreateConnectionFailed(DisconnectCause.ERROR_UNSPECIFIED, null);
+            response.handleCreateConnectionFailed(disconnectCause, disconnectMessage);
         }
 
         mCallIdMapper.removeCall(call);
