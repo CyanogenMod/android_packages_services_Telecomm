@@ -38,7 +38,7 @@ final class CreateConnectionProcessor {
     private List<PhoneAccountHandle> mPhoneAccountHandles;
     private Iterator<PhoneAccountHandle> mPhoneAccountHandleIterator;
     private CreateConnectionResponse mResponse;
-    private int mLastErrorCode = DisconnectCause.ERROR_UNSPECIFIED;
+    private int mLastErrorCode = DisconnectCause.OUTGOING_FAILURE;
     private String mLastErrorMsg;
 
     CreateConnectionProcessor(

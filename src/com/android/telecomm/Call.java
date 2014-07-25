@@ -623,7 +623,7 @@ final class Call implements CreateConnectionResponse {
         mCreateConnectionProcessor = null;
         if (mIsIncoming) {
             clearConnectionService();
-            setDisconnectCause(DisconnectCause.ERROR_UNSPECIFIED, null);
+            setDisconnectCause(DisconnectCause.OUTGOING_CANCELED, null);
             setState(CallState.DISCONNECTED);
 
             Listener[] listeners = mListeners.toArray(new Listener[mListeners.size()]);
