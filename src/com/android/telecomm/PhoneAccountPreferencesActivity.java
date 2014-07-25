@@ -18,19 +18,17 @@ package com.android.telecomm;
 
 import android.app.Activity;
 import android.os.Bundle;
-import android.preference.ListPreference;
-import android.preference.Preference;
 import android.preference.PreferenceFragment;
+import android.telecomm.PhoneAccount;
 import android.telecomm.PhoneAccountHandle;
 
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 
 public class PhoneAccountPreferencesActivity extends Activity {
 
     private static final String KEY_DEFAULT_OUTGOING_ACCOUNT = "default_outgoing_account";
+    private static final String KEY_SIM_CALL_MANAGER_ACCOUNT = "sim_call_manager_account";
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -39,54 +37,63 @@ public class PhoneAccountPreferencesActivity extends Activity {
     }
 
     public static class PreferencesFragment extends PreferenceFragment
-            implements ListPreference.OnPreferenceChangeListener {
-        private ListPreference mDefaultOutgoingAccount;
-        private PhoneAccountRegistrar mRegistrar;
-        private Map<String, PhoneAccountHandle> mAccountByValue = new HashMap<>();
+            implements AccountSelectionPreference.AccountSelectionListener {
+        private AccountSelectionPreference mDefaultOutgoingAccount;
+        private AccountSelectionPreference mSimCallManagerAccount;
 
         @Override
         public void onCreate(Bundle savedInstanceState) {
             super.onCreate(savedInstanceState);
 
             addPreferencesFromResource(R.xml.phone_account_preferences);
-            mDefaultOutgoingAccount = (ListPreference) findPreference(KEY_DEFAULT_OUTGOING_ACCOUNT);
 
-            mRegistrar = TelecommApp.getInstance().getPhoneAccountRegistrar();
-            List<PhoneAccountHandle> accountHandles = mRegistrar.getEnabledPhoneAccounts();
-            PhoneAccountHandle currentDefault = mRegistrar.getDefaultOutgoingPhoneAccount();
+            mDefaultOutgoingAccount = (AccountSelectionPreference)
+                    findPreference(KEY_DEFAULT_OUTGOING_ACCOUNT);
+            mSimCallManagerAccount = (AccountSelectionPreference)
+                    findPreference(KEY_SIM_CALL_MANAGER_ACCOUNT);
 
-            String[] entryValues = new String[accountHandles.size() + 1];
-            String[] entries = new String[accountHandles.size() + 1];
+            PhoneAccountRegistrar registrar = TelecommApp.getInstance().getPhoneAccountRegistrar();
 
-            int selectedIndex = accountHandles.size();  // Points to "ask every time" by default
-            int i = 0;
-            for ( ; i < accountHandles.size(); i++) {
-                CharSequence label = mRegistrar.getPhoneAccount(accountHandles.get(i))
-                        .getLabel();
-                entries[i] = label == null ? null : label.toString();
-                entryValues[i] = Integer.toString(i);
-                if (Objects.equals(currentDefault, accountHandles.get(i))) {
-                    selectedIndex = i;
-                }
-                mAccountByValue.put(entryValues[i], accountHandles.get(i));
-            }
-            entryValues[i] = Integer.toString(i);
-            entries[i] = getString(R.string.account_ask_every_time);
-            mAccountByValue.put(entryValues[i], null);
+            mDefaultOutgoingAccount.setModel(
+                    registrar,
+                    registrar.getEnabledPhoneAccounts(),
+                    registrar.getDefaultOutgoingPhoneAccount(),
+                    getString(R.string.account_ask_every_time));
 
-            mDefaultOutgoingAccount.setEntryValues(entryValues);
-            mDefaultOutgoingAccount.setEntries(entries);
-            mDefaultOutgoingAccount.setValueIndex(selectedIndex);
-            mDefaultOutgoingAccount.setOnPreferenceChangeListener(this);
+            mSimCallManagerAccount.setModel(
+                    registrar,
+                    getSimCallManagers(registrar),
+                    registrar.getSimCallManager(),
+                    getString(R.string.do_not_use_sim_call_manager));
+
+            mDefaultOutgoingAccount.setListener(this);
+            mSimCallManagerAccount.setListener(this);
         }
 
         @Override
-        public boolean onPreferenceChange(Preference p, Object o) {
+        public boolean onAccountSelected(
+                AccountSelectionPreference p, PhoneAccountHandle account) {
+            PhoneAccountRegistrar registrar = TelecommApp.getInstance().getPhoneAccountRegistrar();
             if (p == mDefaultOutgoingAccount) {
-                mRegistrar.setDefaultOutgoingPhoneAccount(mAccountByValue.get(o));
+                registrar.setDefaultOutgoingPhoneAccount(account);
+                return true;
+            } else if (p == mSimCallManagerAccount) {
+                registrar.setSimCallManager(account);
                 return true;
             }
             return false;
+        }
+
+        private List<PhoneAccountHandle> getSimCallManagers(PhoneAccountRegistrar registrar) {
+            List<PhoneAccountHandle> simCallManagers = new ArrayList<>();
+            List<PhoneAccountHandle> allAccounts = registrar.getAllPhoneAccountHandles();
+            for (int i = 0; i < allAccounts.size(); i++) {
+                PhoneAccount account = registrar.getPhoneAccount(allAccounts.get(i));
+                if ((account.getCapabilities() & PhoneAccount.CAPABILITY_SIM_CALL_MANAGER) != 0) {
+                    simCallManagers.add(allAccounts.get(i));
+                }
+            }
+            return simCallManagers;
         }
     }
 }

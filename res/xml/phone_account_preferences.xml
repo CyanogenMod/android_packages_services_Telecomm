@@ -18,10 +18,14 @@
      for making outgoing phone calls -->
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
      android:title="@string/phone_account_preferences_title">
-    <ListPreference
-        android:key="default_outgoing_account"
-        android:title="@string/default_outgoing_account_title"
-        android:summary="@string/default_outgoing_account_summary"
-        android:defaultValue=""
-        android:persistent="false" />
+    <com.android.telecomm.AccountSelectionPreference
+            android:key="default_outgoing_account"
+            android:title="@string/default_outgoing_account_title"
+            android:defaultValue=""
+            android:persistent="false" />
+    <com.android.telecomm.AccountSelectionPreference
+            android:key="sim_call_manager_account"
+            android:title="@string/sim_call_manager_account"
+            android:defaultValue=""
+            android:persistent="false" />
 </PreferenceScreen>

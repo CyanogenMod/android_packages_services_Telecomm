@@ -49,50 +49,47 @@ final class PhoneAccountRegistrar {
     private static final String PREFERENCE_PHONE_ACCOUNTS = "phone_accounts";
 
     private final Context mContext;
+    private final State mState;
 
     PhoneAccountRegistrar(Context context) {
         mContext = context;
+        mState = readState();
     }
 
     public PhoneAccountHandle getDefaultOutgoingPhoneAccount() {
-        State s = read();
-
-        if (s.defaultOutgoingHandle != null) {
+        if (mState.defaultOutgoing != null) {
             // Return the registered outgoing default iff it still exists (we keep a sticky
             // default to survive account deletion and re-addition)
-            for (int i = 0; i < s.accounts.size(); i++) {
-                if (s.accounts.get(i).getAccountHandle().equals(s.defaultOutgoingHandle)) {
-                    return s.defaultOutgoingHandle;
+            for (int i = 0; i < mState.accounts.size(); i++) {
+                if (mState.accounts.get(i).getAccountHandle().equals(mState.defaultOutgoing)) {
+                    return mState.defaultOutgoing;
                 }
             }
-            // At this point, there was a registered default but it has been deleted; remember
-            // it for the future, but return null from this method
-            return null;
-        } else {
-            List<PhoneAccountHandle> enabled = getEnabledPhoneAccounts();
-            switch (enabled.size()) {
-                case 0:
-                    // There are no accounts, so there can be no default
-                    return null;
-                case 1:
-                    // There is only one account, which is by definition the default
-                    return enabled.get(0);
-                default:
-                    // There are multiple accounts with no selected default
-                    return null;
-            }
+            // At this point, there was a registered default but it has been deleted; proceed
+            // as though there were no default
+        }
+
+        List<PhoneAccountHandle> enabled = getEnabledPhoneAccounts();
+        switch (enabled.size()) {
+            case 0:
+                // There are no accounts, so there can be no default
+                return null;
+            case 1:
+                // There is only one account, which is by definition the default
+                return enabled.get(0);
+            default:
+                // There are multiple accounts with no selected default
+                return null;
         }
     }
 
     public void setDefaultOutgoingPhoneAccount(PhoneAccountHandle accountHandle) {
-        State s = read();
-
         if (accountHandle == null) {
             // Asking to clear the default outgoing is a valid request
-            s.defaultOutgoingHandle = null;
+            mState.defaultOutgoing = null;
         } else {
             boolean found = false;
-            for (PhoneAccount m : s.accounts) {
+            for (PhoneAccount m : mState.accounts) {
                 if (Objects.equals(accountHandle, m.getAccountHandle())) {
                     found = true;
                     break;
@@ -105,21 +102,51 @@ final class PhoneAccountRegistrar {
                 return;
             }
 
-            s.defaultOutgoingHandle = accountHandle;
+            mState.defaultOutgoing = accountHandle;
         }
 
-        write(s);
+        write();
     }
 
+    public void setSimCallManager(PhoneAccountHandle callManager) {
+        if (callManager != null) {
+            PhoneAccount callManagerAccount = getPhoneAccount(callManager);
+            if (callManagerAccount == null) {
+                Log.d(this, "setSimCallManager: Nonexistent call manager: %s", callManager);
+                return;
+            } else if (!has(callManagerAccount, PhoneAccount.CAPABILITY_SIM_CALL_MANAGER)) {
+                Log.d(this, "setSimCallManager: Not a call manager: %s", callManagerAccount);
+                return;
+            }
+        }
+        mState.simCallManager = callManager;
+        write();
+    }
+
+    public PhoneAccountHandle getSimCallManager() {
+        return mState.simCallManager;
+    }
+
+    public List<PhoneAccountHandle> getAllPhoneAccountHandles() {
+        List<PhoneAccountHandle> accountHandles = new ArrayList<>();
+        for (PhoneAccount m : mState.accounts) {
+            accountHandles.add(m.getAccountHandle());
+        }
+        return accountHandles;
+    }
+
+    public List<PhoneAccount> getAllPhoneAccounts() {
+        return new ArrayList<>(mState.accounts);
+    }
+
+    // TODO: Rename systemwide to "getCallProviderPhoneAccounts"?
     public List<PhoneAccountHandle> getEnabledPhoneAccounts() {
-        State s = read();
-        return simSubscriptionAccountHandles(s);
+        return getCallProviderAccountHandles();
     }
 
-    public PhoneAccount getPhoneAccount(PhoneAccountHandle accountHandle) {
-        State s = read();
-        for (PhoneAccount m : s.accounts) {
-            if (Objects.equals(accountHandle, m.getAccountHandle())) {
+    public PhoneAccount getPhoneAccount(PhoneAccountHandle handle) {
+        for (PhoneAccount m : mState.accounts) {
+            if (Objects.equals(handle, m.getAccountHandle())) {
                 return m;
             }
         }
@@ -128,60 +155,112 @@ final class PhoneAccountRegistrar {
 
     // TODO: Should we implement an artificial limit for # of accounts associated with a single
     // ComponentName?
-    public void registerPhoneAccount(PhoneAccount metadata) {
-        State s = read();
-
-        s.accounts.add(metadata);
+    public void registerPhoneAccount(PhoneAccount account) {
+        account = hackFixBabelAccount(account);
+        mState.accounts.add(account);
         // Search for duplicates and remove any that are found.
-        for (int i = 0; i < s.accounts.size() - 1; i++) {
-            if (Objects.equals(metadata.getAccountHandle(), s.accounts.get(i).getAccountHandle())) {
+        for (int i = 0; i < mState.accounts.size() - 1; i++) {
+            if (Objects.equals(
+                    account.getAccountHandle(), mState.accounts.get(i).getAccountHandle())) {
                 // replace existing entry.
-                s.accounts.remove(i);
+                mState.accounts.remove(i);
                 break;
             }
         }
 
-        write(s);
+        write();
+    }
+
+    // STOPSHIP: Hack to edit the account registered by Babel so it shows up properly
+    private PhoneAccount hackFixBabelAccount(PhoneAccount account) {
+        String pkg = account.getAccountHandle().getComponentName().getPackageName();
+        return "com.google.android.talk".equals(pkg)
+                ? new PhoneAccount(
+                        account.getAccountHandle(),
+                        account.getHandle(),
+                        account.getSubscriptionNumber(),
+                        PhoneAccount.CAPABILITY_SIM_CALL_MANAGER,
+                        account.getIconResId(),
+                        account.getLabel(),
+                        account.getShortDescription(),
+                        account.isVideoCallingSupported())
+                : account;
     }
 
     public void unregisterPhoneAccount(PhoneAccountHandle accountHandle) {
-        State s = read();
-
-        for (int i = 0; i < s.accounts.size(); i++) {
-            if (Objects.equals(accountHandle, s.accounts.get(i).getAccountHandle())) {
-                s.accounts.remove(i);
+        for (int i = 0; i < mState.accounts.size(); i++) {
+            if (Objects.equals(accountHandle, mState.accounts.get(i).getAccountHandle())) {
+                mState.accounts.remove(i);
                 break;
             }
         }
 
-        write(s);
+        write();
     }
 
     public void clearAccounts(String packageName) {
-        State s = read();
-
-        for (int i = 0; i < s.accounts.size(); i++) {
+        for (int i = 0; i < mState.accounts.size(); i++) {
             if (Objects.equals(
                     packageName,
-                    s.accounts.get(i).getAccountHandle().getComponentName().getPackageName())) {
-                s.accounts.remove(i);
+                    mState.accounts.get(i).getAccountHandle()
+                            .getComponentName().getPackageName())) {
+                mState.accounts.remove(i);
             }
         }
 
-        write(s);
+        write();
     }
 
-    private List<PhoneAccountHandle> simSubscriptionAccountHandles(State s) {
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+
+    // TODO: Add a corresponding has(...) method to class PhoneAccount itself and remove this one
+    // Return true iff the given account has all the specified capability flags
+    static boolean has(PhoneAccount account, int capability) {
+        return (account.getCapabilities() & capability) == capability;
+    }
+
+    private List<PhoneAccountHandle> getCallProviderAccountHandles() {
         List<PhoneAccountHandle> accountHandles = new ArrayList<>();
-        for (PhoneAccount m : s.accounts) {
-            if ((m.getCapabilities() & PhoneAccount.CAPABILITY_SIM_SUBSCRIPTION) != 0) {
+        for (PhoneAccount m : mState.accounts) {
+            if (has(m, PhoneAccount.CAPABILITY_CALL_PROVIDER)) {
                 accountHandles.add(m.getAccountHandle());
             }
         }
         return accountHandles;
     }
 
-    private State read() {
+    /**
+     * The state of this {@code PhoneAccountRegistrar}.
+     */
+    private static class State {
+        /**
+         * The account selected by the user to be employed by default for making outgoing calls.
+         * If the user has not made such a selection, then this is null.
+         */
+        public PhoneAccountHandle defaultOutgoing = null;
+
+        /**
+         * A {@code PhoneAccount} having {@link PhoneAccount#CAPABILITY_SIM_CALL_MANAGER} which
+         * manages and optimizes a user's PSTN SIM connections.
+         */
+        public PhoneAccountHandle simCallManager;
+
+        /**
+         * The complete list of {@code PhoneAccount}s known to the Telecomm subsystem.
+         */
+        public final List<PhoneAccount> accounts = new ArrayList<>();
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    //
+    // State management
+    //
+
+    private void write() {
+        writeState(mState);
+    }
+
+    private State readState() {
         try {
             String serialized = getPreferences().getString(PREFERENCE_PHONE_ACCOUNTS, null);
             Log.v(this, "read() obtained serialized state: %s", serialized);
@@ -196,7 +275,7 @@ final class PhoneAccountRegistrar {
         }
     }
 
-    private boolean write(State state) {
+    private boolean writeState(State state) {
         try {
             Log.v(this, "write() writing state: %s", state);
             String serialized = serializeState(state);
@@ -226,11 +305,7 @@ final class PhoneAccountRegistrar {
         return sStateJson.fromJson(new JSONObject(new JSONTokener(s)));
     }
 
-    private static class State {
-        public PhoneAccountHandle defaultOutgoingHandle = null;
-        public final List<PhoneAccount> accounts = new ArrayList<>();
-    }
-
+    ////////////////////////////////////////////////////////////////////////////////////////////////
     //
     // JSON serialization
     //
@@ -243,17 +318,21 @@ final class PhoneAccountRegistrar {
     private static final Json<State> sStateJson =
             new Json<State>() {
         private static final String DEFAULT_OUTGOING = "default_outgoing";
+        private static final String SIM_CALL_MANAGER = "sim_call_manager";
         private static final String ACCOUNTS = "accounts";
 
         @Override
         public JSONObject toJson(State o) throws JSONException {
             JSONObject json = new JSONObject();
-            if (o.defaultOutgoingHandle != null) {
-                json.put(DEFAULT_OUTGOING, sPhoneAccountJson.toJson(o.defaultOutgoingHandle));
+            if (o.defaultOutgoing != null) {
+                json.put(DEFAULT_OUTGOING, sPhoneAccountHandleJson.toJson(o.defaultOutgoing));
+            }
+            if (o.simCallManager != null) {
+                json.put(SIM_CALL_MANAGER, sPhoneAccountHandleJson.toJson(o.simCallManager));
             }
             JSONArray accounts = new JSONArray();
             for (PhoneAccount m : o.accounts) {
-                accounts.put(sPhoneAccountMetadataJson.toJson(m));
+                accounts.put(sPhoneAccountJson.toJson(m));
             }
             json.put(ACCOUNTS, accounts);
             return json;
@@ -263,14 +342,26 @@ final class PhoneAccountRegistrar {
         public State fromJson(JSONObject json) throws JSONException {
             State s = new State();
             if (json.has(DEFAULT_OUTGOING)) {
-                s.defaultOutgoingHandle = sPhoneAccountJson.fromJson(
-                        (JSONObject) json.get(DEFAULT_OUTGOING));
+                try {
+                    s.defaultOutgoing = sPhoneAccountHandleJson.fromJson(
+                            (JSONObject) json.get(DEFAULT_OUTGOING));
+                } catch (Exception e) {
+                    Log.e(this, e, "Extracting PhoneAccountHandle");
+                }
+            }
+            if (json.has(SIM_CALL_MANAGER)) {
+                try {
+                    s.simCallManager = sPhoneAccountHandleJson.fromJson(
+                            (JSONObject) json.get(SIM_CALL_MANAGER));
+                } catch (Exception e) {
+                    Log.e(this, e, "Extracting PhoneAccountHandle");
+                }
             }
             if (json.has(ACCOUNTS)) {
                 JSONArray accounts = (JSONArray) json.get(ACCOUNTS);
                 for (int i = 0; i < accounts.length(); i++) {
                     try {
-                        s.accounts.add(sPhoneAccountMetadataJson.fromJson(
+                        s.accounts.add(sPhoneAccountJson.fromJson(
                                 (JSONObject) accounts.get(i)));
                     } catch (Exception e) {
                         Log.e(this, e, "Extracting phone account");
@@ -281,7 +372,7 @@ final class PhoneAccountRegistrar {
         }
     };
 
-    private static final Json<PhoneAccount> sPhoneAccountMetadataJson =
+    private static final Json<PhoneAccount> sPhoneAccountJson =
             new Json<PhoneAccount>() {
         private static final String ACCOUNT = "account";
         private static final String HANDLE = "handle";
@@ -295,7 +386,7 @@ final class PhoneAccountRegistrar {
         @Override
         public JSONObject toJson(PhoneAccount o) throws JSONException {
             return new JSONObject()
-                    .put(ACCOUNT, sPhoneAccountJson.toJson(o.getAccountHandle()))
+                    .put(ACCOUNT, sPhoneAccountHandleJson.toJson(o.getAccountHandle()))
                     .put(HANDLE, o.getHandle().toString())
                     .put(SUBSCRIPTION_NUMBER, o.getSubscriptionNumber())
                     .put(CAPABILITIES, o.getCapabilities())
@@ -308,7 +399,7 @@ final class PhoneAccountRegistrar {
         @Override
         public PhoneAccount fromJson(JSONObject json) throws JSONException {
             return new PhoneAccount(
-                    sPhoneAccountJson.fromJson((JSONObject) json.get(ACCOUNT)),
+                    sPhoneAccountHandleJson.fromJson((JSONObject) json.get(ACCOUNT)),
                     Uri.parse((String) json.get(HANDLE)),
                     (String) json.get(SUBSCRIPTION_NUMBER),
                     (int) json.get(CAPABILITIES),
@@ -319,7 +410,7 @@ final class PhoneAccountRegistrar {
         }
     };
 
-    private static final Json<PhoneAccountHandle> sPhoneAccountJson =
+    private static final Json<PhoneAccountHandle> sPhoneAccountHandleJson =
             new Json<PhoneAccountHandle>() {
         private static final String COMPONENT_NAME = "component_name";
         private static final String ID = "id";
