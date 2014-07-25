@@ -82,11 +82,14 @@
     <!-- Title for setting to select default outgoing phone account -->
     <string name="default_outgoing_account_title">Default outgoing account</string>
 
-    <!-- Summary for setting to select default outgoing phone account -->
-    <string name="default_outgoing_account_summary">Select a phone account to use by default for making outgoing calls</string>
+    <!-- Title for setting to select SIM call manager account -->
+    <string name="sim_call_manager_account">Wi-Fi calling account</string>
 
     <!-- Indication to "ask every time" for accounts when making a call -->
     <string name="account_ask_every_time">Ask every time</string>
+
+    <!-- Indication to not use a SIM call manager -->
+    <string name="do_not_use_sim_call_manager">Do not use Wi-Fi calling</string>
 
     <!-- DO NOT TRANSLATE. Label for test Subscription 0. -->
     <string name="test_account_0_label">Q Mobile</string>

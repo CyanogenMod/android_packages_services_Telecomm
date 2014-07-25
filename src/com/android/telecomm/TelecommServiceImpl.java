@@ -193,7 +193,8 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
         try {
             enforceModifyPermissionOrCallingPackage(
                     account.getAccountHandle().getComponentName().getPackageName());
-            if ((account.getCapabilities() & PhoneAccount.CAPABILITY_SIM_SUBSCRIPTION) != 0) {
+            if (PhoneAccountRegistrar.has(account, PhoneAccount.CAPABILITY_CALL_PROVIDER) ||
+                PhoneAccountRegistrar.has(account, PhoneAccount.CAPABILITY_SIM_SUBSCRIPTION)) {
                 enforceModifyPermissionOrCallingPackage(TELEPHONY_PACKAGE_NAME);
             }
             mPhoneAccountRegistrar.registerPhoneAccount(account);

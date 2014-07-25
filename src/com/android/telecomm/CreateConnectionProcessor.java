@@ -24,6 +24,7 @@ import android.telephony.DisconnectCause;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * This class creates connections to place new outgoing calls to attached to an existing incoming
@@ -33,10 +34,35 @@ import java.util.List;
  *   - a connection service cancels the process, in which case the call is aborted
  */
 final class CreateConnectionProcessor {
+
+    // Describes information required to attempt to make a phone call
+    private static class CallAttemptRecord {
+        // The PhoneAccount describing the target connection service which we will
+        // contact in order to process an attempt
+        public final PhoneAccountHandle targetConnectionServiceAccount;
+        // The PhoneAccount which we will tell the target connection service to use
+        // for attempting to make the actual phone call
+        public final PhoneAccountHandle phoneAccount;
+
+        public CallAttemptRecord(
+                PhoneAccountHandle targetConnectionServiceAccount,
+                PhoneAccountHandle phoneAccount) {
+            this.targetConnectionServiceAccount = targetConnectionServiceAccount;
+            this.phoneAccount = phoneAccount;
+        }
+
+        @Override
+        public String toString() {
+            return "CallAttemptRecord("
+                    + Objects.toString(targetConnectionServiceAccount) + ","
+                    + Objects.toString(phoneAccount) + ")";
+        }
+    }
+
     private final Call mCall;
     private final ConnectionServiceRepository mRepository;
-    private List<PhoneAccountHandle> mPhoneAccountHandles;
-    private Iterator<PhoneAccountHandle> mPhoneAccountHandleIterator;
+    private List<CallAttemptRecord> mAttemptRecords;
+    private Iterator<CallAttemptRecord> mAttemptRecordIterator;
     private CreateConnectionResponse mResponse;
     private int mLastErrorCode = DisconnectCause.OUTGOING_FAILURE;
     private String mLastErrorMsg;
@@ -50,12 +76,14 @@ final class CreateConnectionProcessor {
 
     void process() {
         Log.v(this, "process");
-        mPhoneAccountHandles = new ArrayList<>();
+        mAttemptRecords = new ArrayList<>();
         if (mCall.getPhoneAccount() != null) {
-            mPhoneAccountHandles.add(mCall.getPhoneAccount());
+            mAttemptRecords.add(
+                    new CallAttemptRecord(mCall.getPhoneAccount(), mCall.getPhoneAccount()));
         }
-        adjustPhoneAccountsForEmergency();
-        mPhoneAccountHandleIterator = mPhoneAccountHandles.iterator();
+        adjustAttemptsForWifi();
+        adjustAttemptsForEmergency();
+        mAttemptRecordIterator = mAttemptRecords.iterator();
         attemptNextPhoneAccount();
     }
 
@@ -80,16 +108,16 @@ final class CreateConnectionProcessor {
     private void attemptNextPhoneAccount() {
         Log.v(this, "attemptNextPhoneAccount");
 
-        if (mResponse != null && mPhoneAccountHandleIterator.hasNext()) {
-            PhoneAccountHandle accountHandle = mPhoneAccountHandleIterator.next();
-            Log.i(this, "Trying accountHandle %s", accountHandle);
+        if (mResponse != null && mAttemptRecordIterator.hasNext()) {
+            CallAttemptRecord attempt = mAttemptRecordIterator.next();
+            Log.i(this, "Trying attempt %s", attempt);
             ConnectionServiceWrapper service =
-                    mRepository.getService(accountHandle.getComponentName());
+                    mRepository.getService(attempt.targetConnectionServiceAccount.getComponentName());
             if (service == null) {
-                Log.i(this, "Found no connection service for accountHandle %s", accountHandle);
+                Log.i(this, "Found no connection service for attempt %s", attempt);
                 attemptNextPhoneAccount();
             } else {
-                mCall.setPhoneAccount(accountHandle);
+                mCall.setPhoneAccount(attempt.phoneAccount);
                 mCall.setConnectionService(service);
                 Log.i(this, "Attempting to call from %s", service.getComponentName());
                 service.createConnection(mCall, new Response(service));
@@ -104,19 +132,45 @@ final class CreateConnectionProcessor {
         }
     }
 
+    // If there exists a registered Wi-Fi calling service, use it.
+    private void adjustAttemptsForWifi() {
+        switch (mAttemptRecords.size()) {
+            case 0:
+                return;
+            case 1:
+                break;
+            default:
+                Log.d(this, "Unexpectedly have > 1 attempt: %s", mAttemptRecords);
+                return;
+        }
+        PhoneAccountHandle simCallManager =
+                TelecommApp.getInstance().getPhoneAccountRegistrar().getSimCallManager();
+        if (simCallManager != null &&
+                !Objects.equals(simCallManager, mAttemptRecords.get(0).phoneAccount)) {
+            mAttemptRecords.set(
+                    0,
+                    new CallAttemptRecord(
+                            simCallManager,
+                            mAttemptRecords.get(0).phoneAccount));
+        }
+    }
+
     // If we are possibly attempting to call a local emergency number, ensure that the
     // plain PSTN connection services are listed, and nothing else.
-    private void adjustPhoneAccountsForEmergency()  {
+    private void adjustAttemptsForEmergency()  {
         if (TelephonyUtil.shouldProcessAsEmergency(TelecommApp.getInstance(), mCall.getHandle())) {
             Log.i(this, "Emergency number detected");
-            mPhoneAccountHandles.clear();
+            mAttemptRecords.clear();
             List<PhoneAccountHandle> allAccountHandles = TelecommApp.getInstance()
                     .getPhoneAccountRegistrar().getEnabledPhoneAccounts();
             for (int i = 0; i < allAccountHandles.size(); i++) {
                 if (TelephonyUtil.isPstnComponentName(
                         allAccountHandles.get(i).getComponentName())) {
                     Log.i(this, "Will try PSTN account %s for emergency", allAccountHandles.get(i));
-                    mPhoneAccountHandles.add(allAccountHandles.get(i));
+                    mAttemptRecords.add(
+                            new CallAttemptRecord(
+                                    allAccountHandles.get(i),
+                                    allAccountHandles.get(i)));
                 }
             }
         }
