@@ -32,8 +32,8 @@ import android.hardware.camera2.TotalCaptureResult;
 import android.media.MediaPlayer;
 import android.os.Handler;
 import android.telecomm.CallCameraCapabilities;
+import android.telecomm.ConnectionService;
 import android.telecomm.InCallService.VideoCall;
-import android.telecomm.VideoCallProvider;
 import android.telecomm.VideoCallProfile;
 import android.text.TextUtils;
 import android.util.Log;
@@ -46,7 +46,7 @@ import java.util.Random;
 /**
  * Implements the VideoCallProvider.
  */
-public class TestVideoCallProvider extends VideoCallProvider {
+public class TestVideoCallProvider extends ConnectionService.VideoCallProvider {
     private CallCameraCapabilities mCapabilities;
     private Random random;
     private Surface mDisplaySurface;
