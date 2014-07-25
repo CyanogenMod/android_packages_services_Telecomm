@@ -87,8 +87,7 @@ public final class TelecommApp extends Application {
                 PhoneAccount.CAPABILITY_CALL_PROVIDER,
                 R.drawable.stat_sys_phone_call,
                 "Wi-Fi calling",
-                "Wi-Fi calling by Google Hangouts",
-                false);
+                "Wi-Fi calling by Google Hangouts");
         mPhoneAccountRegistrar.clearAccounts(
                 hangouts.getAccountHandle().getComponentName().getPackageName());
         mPhoneAccountRegistrar.registerPhoneAccount(hangouts);

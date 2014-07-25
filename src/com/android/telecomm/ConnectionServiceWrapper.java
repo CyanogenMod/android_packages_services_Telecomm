@@ -29,6 +29,8 @@ import android.telecomm.ConnectionRequest;
 import android.telecomm.ConnectionService;
 import android.telecomm.GatewayInfo;
 import android.telecomm.ParcelableConnection;
+import android.telecomm.PhoneAccount;
+import android.telecomm.PhoneAccountHandle;
 import android.telecomm.StatusHints;
 import android.telephony.DisconnectCause;
 
@@ -39,8 +41,10 @@ import com.android.internal.telecomm.IVideoCallProvider;
 import com.android.internal.telecomm.RemoteServiceCallback;
 import com.google.common.base.Preconditions;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -534,11 +538,18 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
      *
      * @param componentName The component name of the service with which to bind.
      * @param connectionServiceRepository Connection service repository.
+     * @param phoneAccountRegistrar Phone account registrar
      */
     ConnectionServiceWrapper(
-            ComponentName componentName, ConnectionServiceRepository connectionServiceRepository) {
+            ComponentName componentName,
+            ConnectionServiceRepository connectionServiceRepository,
+            PhoneAccountRegistrar phoneAccountRegistrar) {
         super(ConnectionService.SERVICE_INTERFACE, componentName);
         mConnectionServiceRepository = connectionServiceRepository;
+        phoneAccountRegistrar.addListener(new PhoneAccountRegistrar.Listener() {
+            // TODO -- Upon changes to PhoneAccountRegistrar, need to re-wire connections
+            // To do this, we must proxy remote ConnectionService objects
+        });
     }
 
     /** See {@link IConnectionService#addConnectionServiceAdapter}. */
@@ -575,16 +586,18 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                             NewOutgoingCallIntentBroadcaster.EXTRA_GATEWAY_ORIGINAL_URI,
                             gatewayInfo.getOriginalHandle());
                 }
-                ConnectionRequest request = new ConnectionRequest(
-                        call.getPhoneAccount(),
-                        callId,
-                        call.getHandle(),
-                        call.getHandlePresentation(),
-                        extras,
-                        call.getVideoState());
 
                 try {
-                    mServiceInterface.createConnection(request, call.isIncoming());
+                    mServiceInterface.createConnection(
+                            call.getConnectionManagerPhoneAccount(),
+                            new ConnectionRequest(
+                                    call.getTargetPhoneAccount(),
+                                    callId,
+                                    call.getHandle(),
+                                    call.getHandlePresentation(),
+                                    extras,
+                                    call.getVideoState()),
+                            call.isIncoming());
                 } catch (RemoteException e) {
                     Log.e(this, e, "Failure to createConnection -- %s", getComponentName());
                     mPendingResponses.remove(callId).handleCreateConnectionFailed(
@@ -665,7 +678,7 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
         }
     }
 
-    /** @see ConnectionService#answer(String) */
+    /** @see ConnectionService#answer(String,int) */
     void answer(Call call, int videoState) {
         if (isServiceValid("answer")) {
             try {
@@ -842,43 +855,86 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
     }
 
     private void queryRemoteConnectionServices(final RemoteServiceCallback callback) {
-        final List<IBinder> connectionServices = new ArrayList<>();
-        final List<ComponentName> components = new ArrayList<>();
-        final List<ConnectionServiceWrapper> servicesAttempted = new ArrayList<>();
-        final Collection<ConnectionServiceWrapper> services =
-                mConnectionServiceRepository.lookupServices();
+        PhoneAccountRegistrar registrar = TelecommApp.getInstance().getPhoneAccountRegistrar();
 
-        Log.v(this, "queryRemoteConnectionServices, services: " + services.size());
+        // Only give remote connection services to this connection service if it is listed as
+        // the connection manager.
+        PhoneAccountHandle simCallManager = registrar.getSimCallManager();
+        if (simCallManager == null ||
+                !simCallManager.getComponentName().equals(getComponentName())) {
+            noRemoteServices(callback);
+            return;
+        }
 
-        for (ConnectionServiceWrapper cs : services) {
-            if (cs != this) {
-                final ConnectionServiceWrapper currentConnectionService = cs;
-                cs.mBinder.bind(new BindCallback() {
-                    @Override
-                    public void onSuccess() {
-                        Log.d(this, "Adding ***** %s", currentConnectionService.getComponentName());
-                        connectionServices.add(
-                                currentConnectionService.mServiceInterface.asBinder());
-                        components.add(currentConnectionService.getComponentName());
-                        maybeComplete();
-                    }
-
-                    @Override
-                    public void onFailure() {
-                        maybeComplete();
-                    }
-
-                    private void maybeComplete() {
-                        servicesAttempted.add(currentConnectionService);
-                        if (servicesAttempted.size() == services.size() - 1) {
-                            try {
-                                callback.onResult(components, connectionServices);
-                            } catch (RemoteException ignored) {
-                            }
-                        }
-                    }
-                });
+        // Make a list of ConnectionServices that are listed as being associated with SIM accounts
+        final Set<ConnectionServiceWrapper> simServices = new HashSet<>();
+        for (PhoneAccountHandle handle : registrar.getEnabledPhoneAccounts()) {
+            PhoneAccount account = registrar.getPhoneAccount(handle);
+            if ((account.getCapabilities() & PhoneAccount.CAPABILITY_SIM_SUBSCRIPTION) != 0) {
+                ConnectionServiceWrapper service =
+                        mConnectionServiceRepository.getService(handle.getComponentName());
+                if (service != null) {
+                    simServices.add(service);
+                }
             }
+        }
+
+        final List<ComponentName> simServiceComponentNames = new ArrayList<>();
+        final List<IBinder> simServiceBinders = new ArrayList<>();
+
+        Log.v(this, "queryRemoteConnectionServices, simServices = %s", simServices);
+
+        for (ConnectionServiceWrapper simService : simServices) {
+            if (simService == this) {
+                // Only happens in the unlikely case that a SIM service is also a SIM call manager
+                continue;
+            }
+
+            final ConnectionServiceWrapper currentSimService = simService;
+
+            currentSimService.mBinder.bind(new BindCallback() {
+                @Override
+                public void onSuccess() {
+                    Log.d(this, "Adding simService %s", currentSimService.getComponentName());
+                    simServiceComponentNames.add(currentSimService.getComponentName());
+                    simServiceBinders.add(currentSimService.mServiceInterface.asBinder());
+                    maybeComplete();
+                }
+
+                @Override
+                public void onFailure() {
+                    Log.d(this, "Failed simService %s", currentSimService.getComponentName());
+                    // We know maybeComplete() will always be a no-op from now on, so go ahead and
+                    // signal failure of the entire request
+                    noRemoteServices(callback);
+                }
+
+                private void maybeComplete() {
+                    if (simServiceComponentNames.size() == simServices.size()) {
+                        setRemoteServices(callback, simServiceComponentNames, simServiceBinders);
+                    }
+                }
+            });
+        }
+    }
+
+    private void setRemoteServices(
+            RemoteServiceCallback callback,
+            List<ComponentName> componentNames,
+            List<IBinder> binders) {
+        try {
+            callback.onResult(componentNames, binders);
+        } catch (RemoteException e) {
+            Log.e(this, e, "Contacting ConnectionService %s",
+                    ConnectionServiceWrapper.this.getComponentName());
+        }
+    }
+
+    private void noRemoteServices(RemoteServiceCallback callback) {
+        try {
+            callback.onResult(Collections.EMPTY_LIST, Collections.EMPTY_LIST);
+        } catch (RemoteException e) {
+            Log.e(this, e, "Contacting ConnectionService %s", this.getComponentName());
         }
     }
 }

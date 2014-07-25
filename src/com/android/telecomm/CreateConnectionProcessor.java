@@ -39,23 +39,23 @@ final class CreateConnectionProcessor {
     private static class CallAttemptRecord {
         // The PhoneAccount describing the target connection service which we will
         // contact in order to process an attempt
-        public final PhoneAccountHandle targetConnectionServiceAccount;
+        public final PhoneAccountHandle connectionManagerPhoneAccount;
         // The PhoneAccount which we will tell the target connection service to use
         // for attempting to make the actual phone call
-        public final PhoneAccountHandle phoneAccount;
+        public final PhoneAccountHandle targetPhoneAccount;
 
         public CallAttemptRecord(
-                PhoneAccountHandle targetConnectionServiceAccount,
-                PhoneAccountHandle phoneAccount) {
-            this.targetConnectionServiceAccount = targetConnectionServiceAccount;
-            this.phoneAccount = phoneAccount;
+                PhoneAccountHandle connectionManagerPhoneAccount,
+                PhoneAccountHandle targetPhoneAccount) {
+            this.connectionManagerPhoneAccount = connectionManagerPhoneAccount;
+            this.targetPhoneAccount = targetPhoneAccount;
         }
 
         @Override
         public String toString() {
             return "CallAttemptRecord("
-                    + Objects.toString(targetConnectionServiceAccount) + ","
-                    + Objects.toString(phoneAccount) + ")";
+                    + Objects.toString(connectionManagerPhoneAccount) + ","
+                    + Objects.toString(targetPhoneAccount) + ")";
         }
     }
 
@@ -77,9 +77,9 @@ final class CreateConnectionProcessor {
     void process() {
         Log.v(this, "process");
         mAttemptRecords = new ArrayList<>();
-        if (mCall.getPhoneAccount() != null) {
+        if (mCall.getTargetPhoneAccount() != null) {
             mAttemptRecords.add(
-                    new CallAttemptRecord(mCall.getPhoneAccount(), mCall.getPhoneAccount()));
+                    new CallAttemptRecord(mCall.getTargetPhoneAccount(), mCall.getTargetPhoneAccount()));
         }
         adjustAttemptsForWifi();
         adjustAttemptsForEmergency();
@@ -112,12 +112,14 @@ final class CreateConnectionProcessor {
             CallAttemptRecord attempt = mAttemptRecordIterator.next();
             Log.i(this, "Trying attempt %s", attempt);
             ConnectionServiceWrapper service =
-                    mRepository.getService(attempt.targetConnectionServiceAccount.getComponentName());
+                    mRepository.getService(
+                            attempt.connectionManagerPhoneAccount.getComponentName());
             if (service == null) {
                 Log.i(this, "Found no connection service for attempt %s", attempt);
                 attemptNextPhoneAccount();
             } else {
-                mCall.setPhoneAccount(attempt.phoneAccount);
+                mCall.setConnectionManagerPhoneAccount(attempt.connectionManagerPhoneAccount);
+                mCall.setTargetPhoneAccount(attempt.targetPhoneAccount);
                 mCall.setConnectionService(service);
                 Log.i(this, "Attempting to call from %s", service.getComponentName());
                 service.createConnection(mCall, new Response(service));
@@ -146,12 +148,12 @@ final class CreateConnectionProcessor {
         PhoneAccountHandle simCallManager =
                 TelecommApp.getInstance().getPhoneAccountRegistrar().getSimCallManager();
         if (simCallManager != null &&
-                !Objects.equals(simCallManager, mAttemptRecords.get(0).phoneAccount)) {
+                !Objects.equals(simCallManager, mAttemptRecords.get(0).targetPhoneAccount)) {
             mAttemptRecords.set(
                     0,
                     new CallAttemptRecord(
                             simCallManager,
-                            mAttemptRecords.get(0).phoneAccount));
+                            mAttemptRecords.get(0).targetPhoneAccount));
         }
     }
 

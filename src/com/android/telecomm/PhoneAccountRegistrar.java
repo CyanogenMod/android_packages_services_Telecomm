@@ -16,23 +16,36 @@
 
 package com.android.telecomm;
 
+import com.android.internal.annotations.VisibleForTesting;
+import com.android.internal.util.FastXmlSerializer;
+import com.android.internal.util.XmlUtils;
+
 import android.telecomm.PhoneAccount;
 import android.telecomm.PhoneAccountHandle;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-import org.json.JSONTokener;
+
+import org.xmlpull.v1.XmlPullParser;
+import org.xmlpull.v1.XmlPullParserException;
+import org.xmlpull.v1.XmlSerializer;
 
 import android.content.ComponentName;
 import android.content.Context;
 
-import android.content.SharedPreferences;
 import android.net.Uri;
 import android.telecomm.TelecommManager;
+import android.util.AtomicFile;
+import android.util.Xml;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * Handles writing and reading PhoneAccountHandle registration entries. This is a simple verbatim
@@ -40,20 +53,31 @@ import java.util.Objects;
  * {@link TelecommServiceImpl}, with the notable exception that {@link TelecommServiceImpl} is
  * responsible for security checking to make sure that the caller has proper authority over
  * the {@code ComponentName}s they are declaring in their {@code PhoneAccountHandle}s.
- *
- * TODO(santoscordon): Replace this implementation with a proper database stored in a Telecomm
- * provider.
  */
-final class PhoneAccountRegistrar {
-    private static final String TELECOMM_PREFERENCES = "telecomm_prefs";
-    private static final String PREFERENCE_PHONE_ACCOUNTS = "phone_accounts";
+public final class PhoneAccountRegistrar {
 
-    private final Context mContext;
-    private final State mState;
+    public abstract static class Listener {
+        public void onAccountsChanged(PhoneAccountRegistrar registrar) {}
+        public void onDefaultOutgoingChanged(PhoneAccountRegistrar registrar) {}
+        public void onSimCallManagerChanged(PhoneAccountRegistrar registrar) {}
+    }
+
+    private static final String FILE_NAME = "phone-account-registrar-state.xml";
+
+    private final List<Listener> mListeners = new CopyOnWriteArrayList<>();
+    private final AtomicFile mAtomicFile;
+    private State mState;
 
     PhoneAccountRegistrar(Context context) {
-        mContext = context;
-        mState = readState();
+        this(context, FILE_NAME);
+    }
+
+    @VisibleForTesting
+    public PhoneAccountRegistrar(Context context, String fileName) {
+        // TODO: Change file location when Telecomm is part of system
+        mAtomicFile = new AtomicFile(new File(context.getFilesDir(), fileName));
+        mState = new State();
+        read();
     }
 
     public PhoneAccountHandle getDefaultOutgoingPhoneAccount() {
@@ -97,7 +121,13 @@ final class PhoneAccountRegistrar {
             }
 
             if (!found) {
-                Log.w(this, "Trying to set nonexistent default outgoing phone accountHandle %s",
+                Log.w(this, "Trying to set nonexistent default outgoing %s",
+                        accountHandle);
+                return;
+            }
+
+            if (!has(getPhoneAccount(accountHandle), PhoneAccount.CAPABILITY_CALL_PROVIDER)) {
+                Log.w(this, "Trying to set non-call-provider default outgoing %s",
                         accountHandle);
                 return;
             }
@@ -106,6 +136,7 @@ final class PhoneAccountRegistrar {
         }
 
         write();
+        fireDefaultOutgoingChanged();
     }
 
     public void setSimCallManager(PhoneAccountHandle callManager) {
@@ -114,17 +145,27 @@ final class PhoneAccountRegistrar {
             if (callManagerAccount == null) {
                 Log.d(this, "setSimCallManager: Nonexistent call manager: %s", callManager);
                 return;
-            } else if (!has(callManagerAccount, PhoneAccount.CAPABILITY_SIM_CALL_MANAGER)) {
+            } else if (!has(callManagerAccount, PhoneAccount.CAPABILITY_CONNECTION_MANAGER)) {
                 Log.d(this, "setSimCallManager: Not a call manager: %s", callManagerAccount);
                 return;
             }
         }
         mState.simCallManager = callManager;
         write();
+        fireSimCallManagerChanged();
     }
 
     public PhoneAccountHandle getSimCallManager() {
-        return mState.simCallManager;
+        if (mState.simCallManager != null) {
+            // Return the registered sim call manager iff it still exists (we keep a sticky
+            // setting to survive account deletion and re-addition)
+            for (int i = 0; i < mState.accounts.size(); i++) {
+                if (mState.accounts.get(i).getAccountHandle().equals(mState.simCallManager)) {
+                    return mState.simCallManager;
+                }
+            }
+        }
+        return null;
     }
 
     public List<PhoneAccountHandle> getAllPhoneAccountHandles() {
@@ -169,6 +210,7 @@ final class PhoneAccountRegistrar {
         }
 
         write();
+        fireAccountsChanged();
     }
 
     // STOPSHIP: Hack to edit the account registered by Babel so it shows up properly
@@ -179,11 +221,10 @@ final class PhoneAccountRegistrar {
                         account.getAccountHandle(),
                         account.getHandle(),
                         account.getSubscriptionNumber(),
-                        PhoneAccount.CAPABILITY_SIM_CALL_MANAGER,
+                        PhoneAccount.CAPABILITY_CONNECTION_MANAGER,
                         account.getIconResId(),
                         account.getLabel(),
-                        account.getShortDescription(),
-                        account.isVideoCallingSupported())
+                        account.getShortDescription())
                 : account;
     }
 
@@ -196,6 +237,7 @@ final class PhoneAccountRegistrar {
         }
 
         write();
+        fireAccountsChanged();
     }
 
     public void clearAccounts(String packageName) {
@@ -209,6 +251,33 @@ final class PhoneAccountRegistrar {
         }
 
         write();
+        fireAccountsChanged();
+    }
+
+    public void addListener(Listener l) {
+        mListeners.add(l);
+    }
+
+    public void removeListener(Listener l) {
+        mListeners.remove(l);
+    }
+
+    private void fireAccountsChanged() {
+        for (Listener l : mListeners) {
+            l.onAccountsChanged(this);
+        }
+    }
+
+    private void fireDefaultOutgoingChanged() {
+        for (Listener l : mListeners) {
+            l.onDefaultOutgoingChanged(this);
+        }
+    }
+
+    private void fireSimCallManagerChanged() {
+        for (Listener l : mListeners) {
+            l.onSimCallManagerChanged(this);
+        }
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -232,7 +301,8 @@ final class PhoneAccountRegistrar {
     /**
      * The state of this {@code PhoneAccountRegistrar}.
      */
-    private static class State {
+    @VisibleForTesting
+    public static class State {
         /**
          * The account selected by the user to be employed by default for making outgoing calls.
          * If the user has not made such a selection, then this is null.
@@ -240,7 +310,7 @@ final class PhoneAccountRegistrar {
         public PhoneAccountHandle defaultOutgoing = null;
 
         /**
-         * A {@code PhoneAccount} having {@link PhoneAccount#CAPABILITY_SIM_CALL_MANAGER} which
+         * A {@code PhoneAccount} having {@link PhoneAccount#CAPABILITY_CONNECTION_MANAGER} which
          * manages and optimizes a user's PSTN SIM connections.
          */
         public PhoneAccountHandle simCallManager;
@@ -257,176 +327,296 @@ final class PhoneAccountRegistrar {
     //
 
     private void write() {
-        writeState(mState);
-    }
-
-    private State readState() {
+        final FileOutputStream os;
         try {
-            String serialized = getPreferences().getString(PREFERENCE_PHONE_ACCOUNTS, null);
-            Log.v(this, "read() obtained serialized state: %s", serialized);
-            State state = serialized == null
-                    ? new State()
-                    : deserializeState(serialized);
-            Log.v(this, "read() obtained state: %s", state);
-            return state;
-        } catch (JSONException e) {
-            Log.e(this, e, "read");
-            return new State();
+            os = mAtomicFile.startWrite();
+            boolean success = false;
+            try {
+                XmlSerializer serializer = new FastXmlSerializer();
+                serializer.setOutput(new BufferedOutputStream(os), "utf-8");
+                writeToXml(mState, serializer);
+                serializer.flush();
+                success = true;
+            } finally {
+                if (success) {
+                    mAtomicFile.finishWrite(os);
+                } else {
+                    mAtomicFile.failWrite(os);
+                }
+            }
+        } catch (IOException e) {
+            Log.e(this, e, "Writing state to XML file");
         }
     }
 
-    private boolean writeState(State state) {
+    private void read() {
+        final InputStream is;
         try {
-            Log.v(this, "write() writing state: %s", state);
-            String serialized = serializeState(state);
-            Log.v(this, "write() writing serialized state: %s", serialized);
-            boolean success = getPreferences()
-                    .edit()
-                    .putString(PREFERENCE_PHONE_ACCOUNTS, serialized)
-                    .commit();
-            Log.v(this, "serialized state was written with success = %b", success);
-            return success;
-        } catch (JSONException e) {
-            Log.e(this, e, "write");
-            return false;
+            is = mAtomicFile.openRead();
+        } catch (FileNotFoundException ex) {
+            return;
+        }
+
+        XmlPullParser parser;
+        try {
+            parser = Xml.newPullParser();
+            parser.setInput(new BufferedInputStream(is), null);
+            parser.nextTag();
+            mState = readFromXml(parser);
+        } catch (IOException | XmlPullParserException e) {
+            Log.e(this, e, "Reading state from XML file");
+            mState = new State();
+        } finally {
+            try {
+                is.close();
+            } catch (IOException e) {
+                Log.e(this, e, "Closing InputStream");
+            }
         }
     }
 
-    private SharedPreferences getPreferences() {
-        return mContext.getSharedPreferences(TELECOMM_PREFERENCES, Context.MODE_PRIVATE);
+    private static void writeToXml(State state, XmlSerializer serializer)
+            throws IOException {
+        sStateXml.writeToXml(state, serializer);
     }
 
-    private String serializeState(State s) throws JSONException {
-        // TODO: If this is used in production, remove the indent (=> do not pretty print)
-        return sStateJson.toJson(s).toString(2);
-    }
-
-    private State deserializeState(String s) throws JSONException {
-        return sStateJson.fromJson(new JSONObject(new JSONTokener(s)));
+    private static State readFromXml(XmlPullParser parser)
+            throws IOException, XmlPullParserException {
+        State s = sStateXml.readFromXml(parser);
+        return s != null ? s : new State();
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
     //
-    // JSON serialization
+    // XML serialization
     //
 
-    private interface Json<T> {
-        JSONObject toJson(T o) throws JSONException;
-        T fromJson(JSONObject json) throws JSONException;
+    @VisibleForTesting
+    public interface XmlSerialization<T> {
+        /**
+         * Write the supplied object to XML
+         */
+        void writeToXml(T o, XmlSerializer serializer) throws IOException;
+
+        /**
+         * Read from the supplied XML into a new object, returning null in case of an
+         * unrecoverable schema mismatch or other data error. 'parser' must be already
+         * positioned at the first tag that is expected to have been emitted by this
+         * object's writeToXml(). This object tries to fail early without modifying
+         * 'parser' if it does not recognize the data it sees.
+         */
+        T readFromXml(XmlPullParser parser) throws IOException, XmlPullParserException;
     }
 
-    private static final Json<State> sStateJson =
-            new Json<State>() {
+    @VisibleForTesting
+    public static final XmlSerialization<State> sStateXml =
+            new XmlSerialization<State>() {
+        private static final String CLASS_STATE = "phone_account_registrar_state";
         private static final String DEFAULT_OUTGOING = "default_outgoing";
         private static final String SIM_CALL_MANAGER = "sim_call_manager";
         private static final String ACCOUNTS = "accounts";
 
         @Override
-        public JSONObject toJson(State o) throws JSONException {
-            JSONObject json = new JSONObject();
+        public void writeToXml(State o, XmlSerializer serializer)
+                throws IOException {
+            serializer.startTag(null, CLASS_STATE);
+
             if (o.defaultOutgoing != null) {
-                json.put(DEFAULT_OUTGOING, sPhoneAccountHandleJson.toJson(o.defaultOutgoing));
+                serializer.startTag(null, DEFAULT_OUTGOING);
+                sPhoneAccountHandleXml.writeToXml(o.defaultOutgoing, serializer);
+                serializer.endTag(null, DEFAULT_OUTGOING);
             }
+
             if (o.simCallManager != null) {
-                json.put(SIM_CALL_MANAGER, sPhoneAccountHandleJson.toJson(o.simCallManager));
+                serializer.startTag(null, SIM_CALL_MANAGER);
+                sPhoneAccountHandleXml.writeToXml(o.simCallManager, serializer);
+                serializer.endTag(null, SIM_CALL_MANAGER);
             }
-            JSONArray accounts = new JSONArray();
+
+            serializer.startTag(null, ACCOUNTS);
             for (PhoneAccount m : o.accounts) {
-                accounts.put(sPhoneAccountJson.toJson(m));
+                sPhoneAccountXml.writeToXml(m, serializer);
             }
-            json.put(ACCOUNTS, accounts);
-            return json;
+            serializer.endTag(null, ACCOUNTS);
+
+            serializer.endTag(null, CLASS_STATE);
         }
 
         @Override
-        public State fromJson(JSONObject json) throws JSONException {
-            State s = new State();
-            if (json.has(DEFAULT_OUTGOING)) {
-                try {
-                    s.defaultOutgoing = sPhoneAccountHandleJson.fromJson(
-                            (JSONObject) json.get(DEFAULT_OUTGOING));
-                } catch (Exception e) {
-                    Log.e(this, e, "Extracting PhoneAccountHandle");
-                }
-            }
-            if (json.has(SIM_CALL_MANAGER)) {
-                try {
-                    s.simCallManager = sPhoneAccountHandleJson.fromJson(
-                            (JSONObject) json.get(SIM_CALL_MANAGER));
-                } catch (Exception e) {
-                    Log.e(this, e, "Extracting PhoneAccountHandle");
-                }
-            }
-            if (json.has(ACCOUNTS)) {
-                JSONArray accounts = (JSONArray) json.get(ACCOUNTS);
-                for (int i = 0; i < accounts.length(); i++) {
-                    try {
-                        s.accounts.add(sPhoneAccountJson.fromJson(
-                                (JSONObject) accounts.get(i)));
-                    } catch (Exception e) {
-                        Log.e(this, e, "Extracting phone account");
+        public State readFromXml(XmlPullParser parser)
+                throws IOException, XmlPullParserException {
+            if (parser.getName().equals(CLASS_STATE)) {
+                State s = new State();
+                int outerDepth = parser.getDepth();
+                while (XmlUtils.nextElementWithin(parser, outerDepth)) {
+                    if (parser.getName().equals(DEFAULT_OUTGOING)) {
+                        parser.nextTag();
+                        s.defaultOutgoing = sPhoneAccountHandleXml.readFromXml(parser);
+                    } else if (parser.getName().equals(SIM_CALL_MANAGER)) {
+                        parser.nextTag();
+                        s.simCallManager = sPhoneAccountHandleXml.readFromXml(parser);
+                    } else if (parser.getName().equals(ACCOUNTS)) {
+                        int accountsDepth = parser.getDepth();
+                        while (XmlUtils.nextElementWithin(parser, accountsDepth)) {
+                            PhoneAccount account = sPhoneAccountXml.readFromXml(parser);
+                            if (account != null) {
+                                s.accounts.add(account);
+                            }
+                        }
                     }
                 }
+                return s;
             }
-            return s;
+            return null;
         }
     };
 
-    private static final Json<PhoneAccount> sPhoneAccountJson =
-            new Json<PhoneAccount>() {
-        private static final String ACCOUNT = "account";
+    @VisibleForTesting
+    public static final XmlSerialization<PhoneAccount> sPhoneAccountXml =
+            new XmlSerialization<PhoneAccount>() {
+        private static final String CLASS_PHONE_ACCOUNT = "phone_account";
+        private static final String ACCOUNT_HANDLE = "account_handle";
         private static final String HANDLE = "handle";
         private static final String SUBSCRIPTION_NUMBER = "subscription_number";
         private static final String CAPABILITIES = "capabilities";
         private static final String ICON_RES_ID = "icon_res_id";
         private static final String LABEL = "label";
         private static final String SHORT_DESCRIPTION = "short_description";
-        private static final String VIDEO_CALLING_SUPPORTED = "video_calling_supported";
 
         @Override
-        public JSONObject toJson(PhoneAccount o) throws JSONException {
-            return new JSONObject()
-                    .put(ACCOUNT, sPhoneAccountHandleJson.toJson(o.getAccountHandle()))
-                    .put(HANDLE, o.getHandle().toString())
-                    .put(SUBSCRIPTION_NUMBER, o.getSubscriptionNumber())
-                    .put(CAPABILITIES, o.getCapabilities())
-                    .put(ICON_RES_ID, o.getIconResId())
-                    .put(LABEL, o.getLabel())
-                    .put(SHORT_DESCRIPTION, o.getShortDescription())
-                    .put(VIDEO_CALLING_SUPPORTED, (Boolean) o.isVideoCallingSupported());
+        public void writeToXml(PhoneAccount o, XmlSerializer serializer)
+                throws IOException {
+            serializer.startTag(null, CLASS_PHONE_ACCOUNT);
+
+            serializer.startTag(null, ACCOUNT_HANDLE);
+            sPhoneAccountHandleXml.writeToXml(o.getAccountHandle(), serializer);
+            serializer.endTag(null, ACCOUNT_HANDLE);
+
+            serializer.startTag(null, HANDLE);
+            serializer.text(o.getHandle().toString());
+            serializer.endTag(null, HANDLE);
+
+            serializer.startTag(null, SUBSCRIPTION_NUMBER);
+            serializer.text(o.getSubscriptionNumber());
+            serializer.endTag(null, SUBSCRIPTION_NUMBER);
+
+            serializer.startTag(null, CAPABILITIES);
+            serializer.text(Integer.toString(o.getCapabilities()));
+            serializer.endTag(null, CAPABILITIES);
+
+            serializer.startTag(null, ICON_RES_ID);
+            serializer.text(Integer.toString(o.getIconResId()));
+            serializer.endTag(null, ICON_RES_ID);
+
+            serializer.startTag(null, LABEL);
+            serializer.text(Objects.toString(o.getLabel()));
+            serializer.endTag(null, LABEL);
+
+            serializer.startTag(null, SHORT_DESCRIPTION);
+            serializer.text(Objects.toString(o.getShortDescription()));
+            serializer.endTag(null, SHORT_DESCRIPTION);
+
+            serializer.endTag(null, CLASS_PHONE_ACCOUNT);
         }
 
         @Override
-        public PhoneAccount fromJson(JSONObject json) throws JSONException {
-            return new PhoneAccount(
-                    sPhoneAccountHandleJson.fromJson((JSONObject) json.get(ACCOUNT)),
-                    Uri.parse((String) json.get(HANDLE)),
-                    (String) json.get(SUBSCRIPTION_NUMBER),
-                    (int) json.get(CAPABILITIES),
-                    (int) json.get(ICON_RES_ID),
-                    (String) json.get(LABEL),
-                    (String) json.get(SHORT_DESCRIPTION),
-                    (Boolean) json.get(VIDEO_CALLING_SUPPORTED));
+        public PhoneAccount readFromXml(XmlPullParser parser)
+                throws IOException, XmlPullParserException {
+            if (parser.getName().equals(CLASS_PHONE_ACCOUNT)) {
+                int outerDepth = parser.getDepth();
+                PhoneAccountHandle accountHandle = null;
+                Uri handle = null;
+                String subscriptionNumber = null;
+                int capabilities = 0;
+                int iconResId = 0;
+                String label = null;
+                String shortDescription = null;
+
+                while (XmlUtils.nextElementWithin(parser, outerDepth)) {
+                    if (parser.getName().equals(ACCOUNT_HANDLE)) {
+                        parser.nextTag();
+                        accountHandle = sPhoneAccountHandleXml.readFromXml(parser);
+                    } else if (parser.getName().equals(HANDLE)) {
+                        parser.next();
+                        handle = Uri.parse(parser.getText());
+                    } else if (parser.getName().equals(SUBSCRIPTION_NUMBER)) {
+                        parser.next();
+                        subscriptionNumber = parser.getText();
+                    } else if (parser.getName().equals(CAPABILITIES)) {
+                        parser.next();
+                        capabilities = Integer.parseInt(parser.getText());
+                    } else if (parser.getName().equals(ICON_RES_ID)) {
+                        parser.next();
+                        iconResId = Integer.parseInt(parser.getText());
+                    } else if (parser.getName().equals(LABEL)) {
+                        parser.next();
+                        label = parser.getText();
+                    } else if (parser.getName().equals(SHORT_DESCRIPTION)) {
+                        parser.next();
+                        shortDescription = parser.getText();
+                    }
+                }
+                if (accountHandle != null) {
+                    return new PhoneAccount(
+                            accountHandle,
+                            handle,
+                            subscriptionNumber,
+                            capabilities,
+                            iconResId,
+                            label,
+                            shortDescription);
+                }
+            }
+            return null;
         }
     };
 
-    private static final Json<PhoneAccountHandle> sPhoneAccountHandleJson =
-            new Json<PhoneAccountHandle>() {
+    @VisibleForTesting
+    public static final XmlSerialization<PhoneAccountHandle> sPhoneAccountHandleXml =
+            new XmlSerialization<PhoneAccountHandle>() {
+        private static final String CLASS_PHONE_ACCOUNT_HANDLE = "phone_account_handle";
         private static final String COMPONENT_NAME = "component_name";
         private static final String ID = "id";
 
         @Override
-        public JSONObject toJson(PhoneAccountHandle o) throws JSONException {
-            return new JSONObject()
-                    .put(COMPONENT_NAME, o.getComponentName().flattenToString())
-                    .put(ID, o.getId());
+        public void writeToXml(PhoneAccountHandle o, XmlSerializer serializer)
+                throws IOException {
+            serializer.startTag(null, CLASS_PHONE_ACCOUNT_HANDLE);
+
+            serializer.startTag(null, COMPONENT_NAME);
+            serializer.text(o.getComponentName().flattenToString());
+            serializer.endTag(null, COMPONENT_NAME);
+
+            serializer.startTag(null, ID);
+            serializer.text(o.getId());
+            serializer.endTag(null, ID);
+
+            serializer.endTag(null, CLASS_PHONE_ACCOUNT_HANDLE);
         }
 
         @Override
-        public PhoneAccountHandle fromJson(JSONObject json) throws JSONException {
-            return new PhoneAccountHandle(
-                    ComponentName.unflattenFromString((String) json.get(COMPONENT_NAME)),
-                    (String) json.get(ID));
+        public PhoneAccountHandle readFromXml(XmlPullParser parser)
+                throws IOException, XmlPullParserException {
+            if (parser.getName().equals(CLASS_PHONE_ACCOUNT_HANDLE)) {
+                String componentNameString = null;
+                String idString = null;
+                int outerDepth = parser.getDepth();
+                while (XmlUtils.nextElementWithin(parser, outerDepth)) {
+                    if (parser.getName().equals(COMPONENT_NAME)) {
+                        parser.next();
+                        componentNameString = parser.getText();
+                    } else if (parser.getName().equals(ID)) {
+                        parser.next();
+                        idString = parser.getText();
+                    }
+                }
+                if (componentNameString != null && idString != null) {
+                    return new PhoneAccountHandle(
+                            ComponentName.unflattenFromString(componentNameString),
+                            idString);
+                }
+            }
+            return null;
         }
     };
 }
