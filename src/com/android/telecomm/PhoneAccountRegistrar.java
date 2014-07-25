@@ -184,11 +184,11 @@ final class PhoneAccountRegistrar {
     private State read() {
         try {
             String serialized = getPreferences().getString(PREFERENCE_PHONE_ACCOUNTS, null);
-            Log.d(this, "read() obtained serialized state: %s", serialized);
+            Log.v(this, "read() obtained serialized state: %s", serialized);
             State state = serialized == null
                     ? new State()
                     : deserializeState(serialized);
-            Log.d(this, "read() obtained state: %s", state);
+            Log.v(this, "read() obtained state: %s", state);
             return state;
         } catch (JSONException e) {
             Log.e(this, e, "read");
@@ -198,14 +198,14 @@ final class PhoneAccountRegistrar {
 
     private boolean write(State state) {
         try {
-            Log.d(this, "write() writing state: %s", state);
+            Log.v(this, "write() writing state: %s", state);
             String serialized = serializeState(state);
-            Log.d(this, "write() writing serialized state: %s", serialized);
+            Log.v(this, "write() writing serialized state: %s", serialized);
             boolean success = getPreferences()
                     .edit()
                     .putString(PREFERENCE_PHONE_ACCOUNTS, serialized)
                     .commit();
-            Log.d(this, "serialized state was written with succcess = %b", success);
+            Log.v(this, "serialized state was written with success = %b", success);
             return success;
         } catch (JSONException e) {
             Log.e(this, e, "write");
