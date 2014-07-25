@@ -29,6 +29,7 @@ import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 
@@ -288,6 +289,7 @@ public final class CallsManager extends Call.ListenerBase {
     void placeOutgoingCall(Uri handle, GatewayInfo gatewayInfo, PhoneAccountHandle accountHandle,
             boolean speakerphoneOn, int videoState) {
 
+        TelecommApp app = TelecommApp.getInstance();
         final Uri uriHandle = (gatewayInfo == null) ? handle : gatewayInfo.getGatewayHandle();
 
         if (gatewayInfo == null) {
@@ -295,6 +297,16 @@ public final class CallsManager extends Call.ListenerBase {
         } else {
             Log.i(this, "Creating a new outgoing call with gateway handle: %s, original handle: %s",
                     Log.pii(uriHandle), Log.pii(handle));
+        }
+
+        // Only dial with the requested phoneAccount if it is still valid. Otherwise treat this call
+        // as if a phoneAccount was not specified (does the default behavior instead).
+        if (accountHandle != null) {
+            List<PhoneAccountHandle> enabledAccounts =
+                    app.getPhoneAccountRegistrar().getEnabledPhoneAccounts();
+            if (!enabledAccounts.contains(accountHandle)) {
+                accountHandle = null;
+            }
         }
 
         Call call = new Call(
@@ -312,17 +324,17 @@ public final class CallsManager extends Call.ListenerBase {
         addCall(call);
 
         // This block of code will attempt to pre-determine a phone account
-        final boolean emergencyCall = TelephonyUtil.shouldProcessAsEmergency(
-                TelecommApp.getInstance(), call.getHandle());
+        final boolean emergencyCall = TelephonyUtil.shouldProcessAsEmergency(app, call.getHandle());
         if (emergencyCall) {
             // Emergency -- CreateConnectionProcessor will choose accounts automatically
             call.setPhoneAccount(null);
         } else if (accountHandle != null) {
+            Log.d(this, "CALL with phone account: " + accountHandle);
             call.setPhoneAccount(accountHandle);
         } else {
             // No preset account, check if default exists
-            PhoneAccountHandle defaultAccountHandle = TelecommApp.getInstance()
-                    .getPhoneAccountRegistrar().getDefaultOutgoingPhoneAccount();
+            PhoneAccountHandle defaultAccountHandle =
+                    app.getPhoneAccountRegistrar().getDefaultOutgoingPhoneAccount();
             if (defaultAccountHandle != null) {
                 call.setPhoneAccount(defaultAccountHandle);
             }
