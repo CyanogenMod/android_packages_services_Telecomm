@@ -33,9 +33,9 @@ import android.telecomm.StatusHints;
 import android.telephony.DisconnectCause;
 
 import com.android.internal.os.SomeArgs;
-import com.android.internal.telecomm.ICallVideoProvider;
 import com.android.internal.telecomm.IConnectionService;
 import com.android.internal.telecomm.IConnectionServiceAdapter;
+import com.android.internal.telecomm.IVideoCallProvider;
 import com.android.internal.telecomm.RemoteServiceCallback;
 import com.google.common.base.Preconditions;
 
@@ -250,9 +250,9 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                     SomeArgs args = (SomeArgs) msg.obj;
                     try {
                         call = mCallIdMapper.getCall(args.arg1);
-                        ICallVideoProvider callVideoProvider = (ICallVideoProvider) args.arg2;
+                        IVideoCallProvider videoCallProvider = (IVideoCallProvider) args.arg2;
                         if (call != null) {
-                            call.setCallVideoProvider(callVideoProvider);
+                            call.setVideoCallProvider(videoCallProvider);
                         }
                     } finally {
                         args.recycle();
@@ -373,12 +373,12 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
         }
 
         @Override
-        public void setCallVideoProvider(String callId, ICallVideoProvider callVideoProvider) {
-            logIncoming("setCallVideoProvider %s", callId);
+        public void setVideoCallProvider(String callId, IVideoCallProvider videoCallProvider) {
+            logIncoming("setVideoCallProvider %s", callId);
             mCallIdMapper.checkValidCallId(callId);
             SomeArgs args = SomeArgs.obtain();
             args.arg1 = callId;
-            args.arg2 = callVideoProvider;
+            args.arg2 = videoCallProvider;
             mHandler.obtainMessage(MSG_SET_CALL_VIDEO_PROVIDER, args).sendToTarget();
         }
 

@@ -35,7 +35,7 @@ import android.telephony.DisconnectCause;
 import android.telephony.PhoneNumberUtils;
 import android.text.TextUtils;
 
-import com.android.internal.telecomm.ICallVideoProvider;
+import com.android.internal.telecomm.IVideoCallProvider;
 import com.android.internal.telephony.CallerInfo;
 import com.android.internal.telephony.CallerInfoAsyncQuery;
 import com.android.internal.telephony.CallerInfoAsyncQuery.OnQueryCompleteListener;
@@ -74,7 +74,7 @@ final class Call implements CreateConnectionResponse {
         void onParentChanged(Call call);
         void onChildrenChanged(Call call);
         void onCannedSmsResponsesLoaded(Call call);
-        void onCallVideoProviderChanged(Call call);
+        void onVideoCallProviderChanged(Call call);
         void onCallerInfoChanged(Call call);
         void onAudioModeIsVoipChanged(Call call);
         void onStatusHintsChanged(Call call);
@@ -113,7 +113,7 @@ final class Call implements CreateConnectionResponse {
         @Override
         public void onCannedSmsResponsesLoaded(Call call) {}
         @Override
-        public void onCallVideoProviderChanged(Call call) {}
+        public void onVideoCallProviderChanged(Call call) {}
         @Override
         public void onCallerInfoChanged(Call call) {}
         @Override
@@ -260,7 +260,7 @@ final class Call implements CreateConnectionResponse {
     /** Whether an attempt has been made to load the text message responses. */
     private boolean mCannedSmsResponsesLoadingStarted = false;
 
-    private ICallVideoProvider mCallVideoProvider;
+    private IVideoCallProvider mVideoCallProvider;
 
     private boolean mAudioModeIsVoip;
     private StatusHints mStatusHints;
@@ -577,7 +577,8 @@ final class Call implements CreateConnectionResponse {
         setHandle(connection.getHandle(), connection.getHandlePresentation());
         setCallerDisplayName(
                 connection.getCallerDisplayName(), connection.getCallerDisplayNamePresentation());
-        setCallVideoProvider(connection.getCallVideoProvider());
+
+        setVideoCallProvider(connection.getVideoCallProvider());
         setVideoState(connection.getVideoState());
 
         if (mIsIncoming) {
@@ -1060,20 +1061,20 @@ final class Call implements CreateConnectionResponse {
     }
 
     /**
-     * Sets a call video provider for the call.
+     * Sets a video call provider for the call.
      */
-    public void setCallVideoProvider(ICallVideoProvider callVideoProvider) {
-        mCallVideoProvider = callVideoProvider;
+    public void setVideoCallProvider(IVideoCallProvider videoCallProvider) {
+        mVideoCallProvider = videoCallProvider;
         for (Listener l : mListeners) {
-            l.onCallVideoProviderChanged(Call.this);
+            l.onVideoCallProviderChanged(Call.this);
         }
     }
 
     /**
-     * @return Return the call video Provider binder.
+     * @return Return the {@link VideoCallProvider} binder.
      */
-    public ICallVideoProvider getCallVideoProvider() {
-        return mCallVideoProvider;
+    public IVideoCallProvider getVideoCallProvider() {
+        return mVideoCallProvider;
     }
 
     /**
