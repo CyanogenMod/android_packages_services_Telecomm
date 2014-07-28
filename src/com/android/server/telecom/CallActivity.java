@@ -17,11 +17,14 @@
 package com.android.server.telecom;
 
 import android.app.Activity;
+import android.app.ActivityManagerNative;
+import android.app.AppOpsManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.RemoteException;
 import android.os.UserHandle;
 import android.os.UserManager;
 import android.telecom.PhoneAccount;
@@ -120,6 +123,25 @@ public class CallActivity extends Activity {
                     Toast.LENGTH_SHORT).show();
             Log.d(this, "Rejecting non-emergency phone call due to DISALLOW_OUTGOING_CALLS "
                     + "restriction");
+            return;
+        }
+
+        AppOpsManager appOps = (AppOpsManager) getSystemService(Context.APP_OPS_SERVICE);
+        int launchedFromUid;
+        String launchedFromPackage;
+        try {
+            launchedFromUid = ActivityManagerNative.getDefault()
+                    .getLaunchedFromUid(getActivityToken());
+            launchedFromPackage = ActivityManagerNative.getDefault()
+                    .getLaunchedFromPackage(getActivityToken());
+        } catch (RemoteException e) {
+            launchedFromUid = -1;
+            launchedFromPackage = null;
+        }
+        if (appOps.noteOpNoThrow(AppOpsManager.OP_CALL_PHONE, launchedFromUid,
+                launchedFromPackage) != AppOpsManager.MODE_ALLOWED) {
+            Log.w(this, "Rejecting call from uid " + launchedFromUid
+                    + " package " + launchedFromPackage);
             return;
         }
 
