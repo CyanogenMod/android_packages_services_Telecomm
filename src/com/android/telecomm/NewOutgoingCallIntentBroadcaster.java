@@ -70,10 +70,17 @@ class NewOutgoingCallIntentBroadcaster {
 
     private final CallsManager mCallsManager;
     private final Intent mIntent;
+    /*
+     * Whether or not the outgoing call intent originated from the default phone application. If
+     * so, it will be allowed to make emergency calls, even with the ACTION_CALL intent.
+     */
+    private final boolean mIsDefaultOrSystemPhoneApp;
 
-    NewOutgoingCallIntentBroadcaster(CallsManager callsManager, Intent intent) {
+    NewOutgoingCallIntentBroadcaster(CallsManager callsManager, Intent intent,
+            boolean isDefaultPhoneApp) {
         mCallsManager = callsManager;
         mIntent = intent;
+        mIsDefaultOrSystemPhoneApp = isDefaultPhoneApp;
     }
 
     /**
@@ -134,8 +141,10 @@ class NewOutgoingCallIntentBroadcaster {
      * - CALL (intent launched by all third party dialers)
      * - CALL_PRIVILEGED (intent launched by system apps e.g. system Dialer, voice Dialer)
      * - CALL_EMERGENCY (intent launched by lock screen emergency dialer)
+     *
+     * @return whether or not the caller was allowed to start the outgoing call.
      */
-    void processIntent() {
+    boolean processIntent() {
         Log.v(this, "Processing call intent in OutgoingCallIntentBroadcaster.");
 
         final Context context = TelecommApp.getInstance();
@@ -145,7 +154,7 @@ class NewOutgoingCallIntentBroadcaster {
 
         if (TextUtils.isEmpty(handle)) {
             Log.w(this, "Empty handle obtained from the call intent.");
-            return;
+            return false;
         }
 
         boolean isUriNumber = PhoneNumberUtils.isUriNumber(handle);
@@ -166,21 +175,25 @@ class NewOutgoingCallIntentBroadcaster {
         String action = intent.getAction();
         if (Intent.ACTION_CALL.equals(action)) {
             if (isPotentialEmergencyNumber) {
-                Log.w(this, "Cannot call potential emergency number %s with CALL Intent %s.",
-                        handle, intent);
-                launchSystemDialer(context, intent.getData());
+                if (!mIsDefaultOrSystemPhoneApp) {
+                    Log.w(this, "Cannot call potential emergency number %s with CALL Intent %s "
+                            + "unless caller is system or default dialer.", handle, intent);
+                    launchSystemDialer(context, intent.getData());
+                    return false;
+                } else {
+                    callImmediately = true;
+                }
             }
-            callImmediately = false;
         } else if (Intent.ACTION_CALL_EMERGENCY.equals(action)) {
             if (!isPotentialEmergencyNumber) {
                 Log.w(this, "Cannot call non-potential-emergency number %s with EMERGENCY_CALL "
                         + "Intent %s.", handle, intent);
-                return;
+                return false;
             }
             callImmediately = true;
         } else {
             Log.w(this, "Unhandled Intent %s. Ignoring and not placing call.", intent);
-            return;
+            return false;
         }
 
         if (callImmediately) {
@@ -202,6 +215,7 @@ class NewOutgoingCallIntentBroadcaster {
         }
 
         broadcastIntent(intent, handle, context, !callImmediately);
+        return true;
     }
 
     /**
