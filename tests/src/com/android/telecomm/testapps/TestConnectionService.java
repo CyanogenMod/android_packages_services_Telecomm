@@ -454,8 +454,8 @@ public class TestConnectionService extends ConnectionService {
             connection.setCallCapabilities(capabilities);
 
             int videoState = isVideoCall ?
-                    VideoCallProfile.VIDEO_STATE_BIDIRECTIONAL :
-                    VideoCallProfile.VIDEO_STATE_AUDIO_ONLY;
+                    VideoCallProfile.VideoState.BIDIRECTIONAL :
+                    VideoCallProfile.VideoState.AUDIO_ONLY;
             connection.setVideoState(videoState);
             connection.setHandle(handle, CallPropertyPresentation.ALLOWED);
 

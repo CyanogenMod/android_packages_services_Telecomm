@@ -128,7 +128,7 @@ class NewOutgoingCallIntentBroadcaster {
                     mIntent.getBooleanExtra(TelecommManager.EXTRA_START_CALL_WITH_SPEAKERPHONE,
                             false),
                     mIntent.getIntExtra(TelecommManager.EXTRA_START_CALL_WITH_VIDEO_STATE,
-                            VideoCallProfile.VIDEO_STATE_AUDIO_ONLY));
+                            VideoCallProfile.VideoState.AUDIO_ONLY));
         }
     }
 
@@ -204,7 +204,7 @@ class NewOutgoingCallIntentBroadcaster {
                     TelecommManager.EXTRA_START_CALL_WITH_SPEAKERPHONE, false);
             int videoState = mIntent.getIntExtra(
                     TelecommManager.EXTRA_START_CALL_WITH_VIDEO_STATE,
-                    VideoCallProfile.VIDEO_STATE_AUDIO_ONLY);
+                    VideoCallProfile.VideoState.AUDIO_ONLY);
             mCallsManager.placeOutgoingCall(
                     Uri.fromParts(scheme, handle, null), null, null, speakerphoneOn, videoState);
 
