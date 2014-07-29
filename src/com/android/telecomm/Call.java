@@ -28,6 +28,7 @@ import android.telecomm.Connection;
 import android.telecomm.ConnectionRequest;
 import android.telecomm.GatewayInfo;
 import android.telecomm.ParcelableConnection;
+import android.telecomm.PhoneAccount;
 import android.telecomm.PhoneAccountHandle;
 import android.telecomm.Response;
 import android.telecomm.StatusHints;
@@ -82,7 +83,8 @@ final class Call implements CreateConnectionResponse {
         void onCallerDisplayNameChanged(Call call);
         void onVideoStateChanged(Call call);
         void onStartActivityFromInCall(Call call, PendingIntent intent);
-        void onPhoneAccountChanged(Call call);
+        void onTargetPhoneAccountChanged(Call call);
+        void onConnectionManagerPhoneAccountChanged(Call call);
     }
 
     abstract static class ListenerBase implements Listener {
@@ -129,7 +131,9 @@ final class Call implements CreateConnectionResponse {
         @Override
         public void onStartActivityFromInCall(Call call, PendingIntent intent) {}
         @Override
-        public void onPhoneAccountChanged(Call call) {}
+        public void onTargetPhoneAccountChanged(Call call) {}
+        @Override
+        public void onConnectionManagerPhoneAccountChanged(Call call) {}
     }
 
     private static final OnQueryCompleteListener sCallerInfoQueryListener =
@@ -177,7 +181,9 @@ final class Call implements CreateConnectionResponse {
      * service. */
     private final GatewayInfo mGatewayInfo;
 
-    private PhoneAccountHandle mPhoneAccountHandle;
+    private PhoneAccountHandle mConnectionManagerPhoneAccountHandle;
+
+    private PhoneAccountHandle mTargetPhoneAccountHandle;
 
     private final Handler mHandler = new Handler();
 
@@ -271,21 +277,27 @@ final class Call implements CreateConnectionResponse {
      *
      * @param handle The handle to dial.
      * @param gatewayInfo Gateway information to use for the call.
-     * @param accountHandle Account information to use for the call.
+     * @param connectionManagerPhoneAccountHandle Account to use for the service managing the call.
+     *         This account must be one that was registered with the
+     *         {@link PhoneAccount#CAPABILITY_CONNECTION_MANAGER} flag.
+     * @param targetPhoneAccountHandle Account information to use for the call. This account must be
+     *         one that was registered with the {@link PhoneAccount#CAPABILITY_CALL_PROVIDER} flag.
      * @param isIncoming True if this is an incoming call.
      */
     Call(
             ConnectionServiceRepository repository,
             Uri handle,
             GatewayInfo gatewayInfo,
-            PhoneAccountHandle accountHandle,
+            PhoneAccountHandle connectionManagerPhoneAccountHandle,
+            PhoneAccountHandle targetPhoneAccountHandle,
             boolean isIncoming,
             boolean isConference) {
         mState = isConference ? CallState.ACTIVE : CallState.NEW;
         mRepository = repository;
         setHandle(handle, CallPropertyPresentation.ALLOWED);
         mGatewayInfo = gatewayInfo;
-        mPhoneAccountHandle = accountHandle;
+        mConnectionManagerPhoneAccountHandle = connectionManagerPhoneAccountHandle;
+        mTargetPhoneAccountHandle = targetPhoneAccountHandle;
         mIsIncoming = isIncoming;
         mIsConference = isConference;
         maybeLoadCannedSmsResponses();
@@ -440,15 +452,29 @@ final class Call implements CreateConnectionResponse {
         return mGatewayInfo;
     }
 
-    PhoneAccountHandle getPhoneAccount() {
-        return mPhoneAccountHandle;
+    PhoneAccountHandle getConnectionManagerPhoneAccount() {
+        return mConnectionManagerPhoneAccountHandle;
     }
 
-    void setPhoneAccount(PhoneAccountHandle accountHandle) {
-        if (!Objects.equals(mPhoneAccountHandle, accountHandle)) {
-            mPhoneAccountHandle = accountHandle;
+    void setConnectionManagerPhoneAccount(PhoneAccountHandle accountHandle) {
+        if (!Objects.equals(mConnectionManagerPhoneAccountHandle, accountHandle)) {
+            mConnectionManagerPhoneAccountHandle = accountHandle;
             for (Listener l : mListeners) {
-                l.onPhoneAccountChanged(this);
+                l.onConnectionManagerPhoneAccountChanged(this);
+            }
+        }
+
+    }
+
+    PhoneAccountHandle getTargetPhoneAccount() {
+        return mTargetPhoneAccountHandle;
+    }
+
+    void setTargetPhoneAccount(PhoneAccountHandle accountHandle) {
+        if (!Objects.equals(mTargetPhoneAccountHandle, accountHandle)) {
+            mTargetPhoneAccountHandle = accountHandle;
+            for (Listener l : mListeners) {
+                l.onTargetPhoneAccountChanged(this);
             }
         }
     }
@@ -573,7 +599,7 @@ final class Call implements CreateConnectionResponse {
             ConnectionRequest request, ParcelableConnection connection) {
         mCreateConnectionProcessor = null;
         setState(getStateFromConnectionState(connection.getState()));
-        setPhoneAccount(connection.getPhoneAccount());
+        setTargetPhoneAccount(connection.getPhoneAccount());
         setHandle(connection.getHandle(), connection.getHandlePresentation());
         setCallerDisplayName(
                 connection.getCallerDisplayName(), connection.getCallerDisplayNamePresentation());

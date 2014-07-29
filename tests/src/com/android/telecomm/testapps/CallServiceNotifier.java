@@ -97,8 +97,7 @@ public class CallServiceNotifier {
                 PhoneAccount.CAPABILITY_CALL_PROVIDER,
                 0,  // iconResId
                 "Dummy Service",
-                "a short description for the dummy service",
-                false);
+                "a short description for the dummy service");
         TelecommManager telecommManager =
                 (TelecommManager) context.getSystemService(Context.TELECOMM_SERVICE);
         telecommManager.registerPhoneAccount(account);
