@@ -44,6 +44,8 @@ class InCallAdapter extends IInCallAdapter.Stub {
     private static final int MSG_SPLIT_FROM_CONFERENCE = 12;
     private static final int MSG_SWAP_WITH_BACKGROUND_CALL = 13;
     private static final int MSG_PHONE_ACCOUNT_SELECTED = 14;
+    private static final int MSG_TURN_ON_PROXIMITY_SENSOR = 15;
+    private static final int MSG_TURN_OFF_PROXIMITY_SENSOR = 16;
 
     private final class InCallAdapterHandler extends Handler {
         @Override
@@ -183,6 +185,12 @@ class InCallAdapter extends IInCallAdapter.Stub {
                         Log.w(this, "swapWithBackgroundCall, unknown call id: %s", msg.obj);
                     }
                     break;
+                case MSG_TURN_ON_PROXIMITY_SENSOR:
+                    mCallsManager.turnOnProximitySensor();
+                    break;
+                case MSG_TURN_OFF_PROXIMITY_SENSOR:
+                    mCallsManager.turnOffProximitySensor((boolean) msg.obj);
+                    break;
             }
         }
     }
@@ -297,5 +305,15 @@ class InCallAdapter extends IInCallAdapter.Stub {
     @Override
     public void swapWithBackgroundCall(String callId) {
         mHandler.obtainMessage(MSG_SWAP_WITH_BACKGROUND_CALL, callId).sendToTarget();
+    }
+
+    @Override
+    public void turnOnProximitySensor() {
+        mHandler.obtainMessage(MSG_TURN_ON_PROXIMITY_SENSOR).sendToTarget();
+    }
+
+    @Override
+    public void turnOffProximitySensor(boolean screenOnImmediately) {
+        mHandler.obtainMessage(MSG_TURN_OFF_PROXIMITY_SENSOR, screenOnImmediately).sendToTarget();
     }
 }
