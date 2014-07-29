@@ -79,6 +79,7 @@ public final class CallsManager extends Call.ListenerBase {
     private final HeadsetMediaButton mHeadsetMediaButton;
     private final WiredHeadsetManager mWiredHeadsetManager;
     private final TtyManager mTtyManager;
+    private final ProximitySensorManager mProximitySensorManager;
 
     /**
      * The call the user is currently interacting with. This is the call that should have audio
@@ -104,6 +105,7 @@ public final class CallsManager extends Call.ListenerBase {
         mRinger = new Ringer(mCallAudioManager, this, playerFactory, app);
         mHeadsetMediaButton = new HeadsetMediaButton(app, this);
         mTtyManager = new TtyManager(app, mWiredHeadsetManager);
+        mProximitySensorManager = new ProximitySensorManager(app);
 
         mListeners.add(statusBarNotifier);
         mListeners.add(new CallLogManager(app));
@@ -117,6 +119,7 @@ public final class CallsManager extends Call.ListenerBase {
         mListeners.add(mDtmfLocalTonePlayer);
         mListeners.add(mHeadsetMediaButton);
         mListeners.add(RespondViaSmsManager.getInstance());
+        mListeners.add(mProximitySensorManager);
     }
 
     @Override
@@ -508,6 +511,20 @@ public final class CallsManager extends Call.ListenerBase {
       */
     void setAudioRoute(int route) {
         mCallAudioManager.setAudioRoute(route);
+    }
+
+    /** Called by the in-call UI to turn the proximity sensor on. */
+    void turnOnProximitySensor() {
+        mProximitySensorManager.turnOn();
+    }
+
+    /**
+     * Called by the in-call UI to turn the proximity sensor off.
+     * @param screenOnImmediately If true, the screen will be turned on immediately. Otherwise,
+     *        the screen will be kept off until the proximity sensor goes negative.
+     */
+    void turnOffProximitySensor(boolean screenOnImmediately) {
+        mProximitySensorManager.turnOff(screenOnImmediately);
     }
 
     void phoneAccountClicked(Call call) {
