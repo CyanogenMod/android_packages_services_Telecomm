@@ -161,14 +161,21 @@ class InCallAdapter extends IInCallAdapter.Stub {
                 case MSG_SET_AUDIO_ROUTE:
                     mCallsManager.setAudioRoute(msg.arg1);
                     break;
-                case MSG_CONFERENCE:
-                    call = mCallIdMapper.getCall(msg.obj);
-                    if (call != null) {
-                        mCallsManager.conference(call);
-                    } else {
-                        Log.w(this, "conference, unknown call id: %s", msg.obj);
+                case MSG_CONFERENCE: {
+                    SomeArgs args = (SomeArgs) msg.obj;
+                    try {
+                        call = mCallIdMapper.getCall(args.arg1);
+                        Call otherCall = mCallIdMapper.getCall(args.arg2);
+                        if (call != null && otherCall != null) {
+                            mCallsManager.conference(call, otherCall);
+                        } else {
+                            Log.w(this, "conference, unknown call id: %s", msg.obj);
+                        }
+                    } finally {
+                        args.recycle();
                     }
                     break;
+                }
                 case MSG_SPLIT_FROM_CONFERENCE:
                     call = mCallIdMapper.getCall(msg.obj);
                     if (call != null) {
@@ -293,8 +300,11 @@ class InCallAdapter extends IInCallAdapter.Stub {
     }
 
     @Override
-    public void conference(String callId) {
-        mHandler.obtainMessage(MSG_CONFERENCE, callId).sendToTarget();
+    public void conference(String callId, String otherCallId) {
+        SomeArgs args = SomeArgs.obtain();
+        args.arg1 = callId;
+        args.arg2 = otherCallId;
+        mHandler.obtainMessage(MSG_CONFERENCE, args).sendToTarget();
     }
 
     @Override

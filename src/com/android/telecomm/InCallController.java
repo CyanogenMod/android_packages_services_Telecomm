@@ -112,6 +112,11 @@ public final class InCallController extends CallsManagerListenerBase {
         public void onTargetPhoneAccountChanged(Call call) {
             updateCall(call);
         }
+
+        @Override
+        public void onConferenceableCallsChanged(Call call) {
+            updateCall(call);
+        }
     };
 
     /** Maintains a binding connection to the in-call app. */
@@ -336,6 +341,15 @@ public final class InCallController extends CallsManagerListenerBase {
         String callerDisplayName = call.getCallerDisplayNamePresentation() ==
                 CallPropertyPresentation.ALLOWED ?  call.getCallerDisplayName() : null;
 
+        List<Call> conferenceableCalls = call.getConferenceableCalls();
+        List<String> conferenceableCallIds = new ArrayList<String>(conferenceableCalls.size());
+        for (Call otherCall : conferenceableCalls) {
+            String otherId = mCallIdMapper.getCallId(otherCall);
+            if (otherId != null) {
+                conferenceableCallIds.add(otherId);
+            }
+        }
+
         return new ParcelableCall(
                 callId,
                 state,
@@ -354,6 +368,7 @@ public final class InCallController extends CallsManagerListenerBase {
                 parentCallId,
                 childCallIds,
                 call.getStatusHints(),
-                call.getVideoState());
+                call.getVideoState(),
+                conferenceableCallIds);
     }
 }
