@@ -16,24 +16,18 @@
 
 package com.android.telecomm;
 
-import com.android.internal.annotations.VisibleForTesting;
-import com.android.internal.util.FastXmlSerializer;
-import com.android.internal.util.XmlUtils;
-
 import android.telecomm.PhoneAccount;
 import android.telecomm.PhoneAccountHandle;
-
-import org.xmlpull.v1.XmlPullParser;
-import org.xmlpull.v1.XmlPullParserException;
-import org.xmlpull.v1.XmlSerializer;
-
 import android.content.ComponentName;
 import android.content.Context;
-
 import android.net.Uri;
 import android.telecomm.TelecommManager;
 import android.util.AtomicFile;
 import android.util.Xml;
+
+import com.android.internal.annotations.VisibleForTesting;
+import com.android.internal.util.FastXmlSerializer;
+import com.android.internal.util.XmlUtils;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -46,6 +40,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
+
+import org.xmlpull.v1.XmlPullParser;
+import org.xmlpull.v1.XmlPullParserException;
+import org.xmlpull.v1.XmlSerializer;
 
 /**
  * Handles writing and reading PhoneAccountHandle registration entries. This is a simple verbatim
@@ -197,7 +195,6 @@ public final class PhoneAccountRegistrar {
     // TODO: Should we implement an artificial limit for # of accounts associated with a single
     // ComponentName?
     public void registerPhoneAccount(PhoneAccount account) {
-        account = hackFixBabelAccount(account);
         mState.accounts.add(account);
         // Search for duplicates and remove any that are found.
         for (int i = 0; i < mState.accounts.size() - 1; i++) {
@@ -211,21 +208,6 @@ public final class PhoneAccountRegistrar {
 
         write();
         fireAccountsChanged();
-    }
-
-    // STOPSHIP: Hack to edit the account registered by Babel so it shows up properly
-    private PhoneAccount hackFixBabelAccount(PhoneAccount account) {
-        String pkg = account.getAccountHandle().getComponentName().getPackageName();
-        return "com.google.android.talk".equals(pkg)
-                ? new PhoneAccount(
-                        account.getAccountHandle(),
-                        account.getHandle(),
-                        account.getSubscriptionNumber(),
-                        PhoneAccount.CAPABILITY_CONNECTION_MANAGER,
-                        account.getIconResId(),
-                        account.getLabel(),
-                        account.getShortDescription())
-                : account;
     }
 
     public void unregisterPhoneAccount(PhoneAccountHandle accountHandle) {

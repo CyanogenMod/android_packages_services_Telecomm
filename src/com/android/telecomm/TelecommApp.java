@@ -17,10 +17,7 @@
 package com.android.telecomm;
 
 import android.app.Application;
-import android.content.ComponentName;
-import android.net.Uri;
 import android.os.UserHandle;
-import android.telecomm.PhoneAccount;
 import android.telecomm.PhoneAccountHandle;
 
 /**
@@ -50,8 +47,6 @@ public final class TelecommApp extends Application {
         mMissedCallNotifier = new MissedCallNotifier(this);
         mPhoneAccountRegistrar = new PhoneAccountRegistrar(this);
 
-        addHangoutsAccount();
-
         if (UserHandle.myUserId() == UserHandle.USER_OWNER) {
             TelecommServiceImpl.init(mMissedCallNotifier, mPhoneAccountRegistrar);
         }
@@ -70,26 +65,5 @@ public final class TelecommApp extends Application {
 
     PhoneAccountRegistrar getPhoneAccountRegistrar() {
         return mPhoneAccountRegistrar;
-    }
-
-    private void addHangoutsAccount() {
-        // TODO: STOPSHIP. We are adding a hacked PhoneAccountHandle to ensure that Wi-Fi calling in
-        // Hangouts continues to work. This needs to be replaced with proper Wi-Fi calling wiring
-        // to the appropriate Connection Services.
-        PhoneAccount hangouts = new PhoneAccount(
-                new PhoneAccountHandle(
-                        new ComponentName(
-                                "com.google.android.talk",
-                                "com.google.android.apps.babel.telephony.TeleConnectionService"),
-                        "null_id"),
-                Uri.fromParts("tel", "null_uri", null),
-                "650-253-0000",
-                PhoneAccount.CAPABILITY_CALL_PROVIDER,
-                R.drawable.stat_sys_phone_call,
-                "Wi-Fi calling",
-                "Wi-Fi calling by Google Hangouts");
-        mPhoneAccountRegistrar.clearAccounts(
-                hangouts.getAccountHandle().getComponentName().getPackageName());
-        mPhoneAccountRegistrar.registerPhoneAccount(hangouts);
     }
 }
