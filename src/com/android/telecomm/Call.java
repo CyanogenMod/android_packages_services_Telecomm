@@ -188,7 +188,7 @@ final class Call implements CreateConnectionResponse {
      * that the user is attempting to connect to via the gateway, the actual handle to dial in
      * order to connect the call via the gateway, as well as the package name of the gateway
      * service. */
-    private final GatewayInfo mGatewayInfo;
+    private GatewayInfo mGatewayInfo;
 
     private PhoneAccountHandle mConnectionManagerPhoneAccountHandle;
 
@@ -307,7 +307,7 @@ final class Call implements CreateConnectionResponse {
             boolean isConference) {
         mState = isConference ? CallState.ACTIVE : CallState.NEW;
         mRepository = repository;
-        setHandle(handle, CallPropertyPresentation.ALLOWED);
+        setHandle(handle);
         mGatewayInfo = gatewayInfo;
         mConnectionManagerPhoneAccountHandle = connectionManagerPhoneAccountHandle;
         mTargetPhoneAccountHandle = targetPhoneAccountHandle;
@@ -381,6 +381,11 @@ final class Call implements CreateConnectionResponse {
 
     int getHandlePresentation() {
         return mHandlePresentation;
+    }
+
+
+    void setHandle(Uri handle) {
+        setHandle(handle, CallPropertyPresentation.ALLOWED);
     }
 
     void setHandle(Uri handle, int presentation) {
@@ -464,6 +469,10 @@ final class Call implements CreateConnectionResponse {
 
     GatewayInfo getGatewayInfo() {
         return mGatewayInfo;
+    }
+
+    void setGatewayInfo(GatewayInfo gatewayInfo) {
+        mGatewayInfo = gatewayInfo;
     }
 
     PhoneAccountHandle getConnectionManagerPhoneAccount() {

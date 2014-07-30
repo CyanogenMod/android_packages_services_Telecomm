@@ -69,6 +69,7 @@ class NewOutgoingCallIntentBroadcaster {
     private static final String SCHEME_SIP = "sip";
 
     private final CallsManager mCallsManager;
+    private final Call mCall;
     private final Intent mIntent;
     /*
      * Whether or not the outgoing call intent originated from the default phone application. If
@@ -76,9 +77,10 @@ class NewOutgoingCallIntentBroadcaster {
      */
     private final boolean mIsDefaultOrSystemPhoneApp;
 
-    NewOutgoingCallIntentBroadcaster(CallsManager callsManager, Intent intent,
+    NewOutgoingCallIntentBroadcaster(CallsManager callsManager, Call call, Intent intent,
             boolean isDefaultPhoneApp) {
         mCallsManager = callsManager;
+        mCall = call;
         mIntent = intent;
         mIsDefaultOrSystemPhoneApp = isDefaultPhoneApp;
     }
@@ -124,7 +126,7 @@ class NewOutgoingCallIntentBroadcaster {
 
             GatewayInfo gatewayInfo = getGateWayInfoFromIntent(intent, resultHandleUri);
             PhoneAccountHandle accountHandle = getAccountHandleFromIntent(intent);
-            mCallsManager.placeOutgoingCall(resultHandleUri, gatewayInfo, accountHandle,
+            mCallsManager.placeOutgoingCall(mCall, resultHandleUri, gatewayInfo, accountHandle,
                     mIntent.getBooleanExtra(TelecommManager.EXTRA_START_CALL_WITH_SPEAKERPHONE,
                             false),
                     mIntent.getIntExtra(TelecommManager.EXTRA_START_CALL_WITH_VIDEO_STATE,
@@ -205,8 +207,8 @@ class NewOutgoingCallIntentBroadcaster {
             int videoState = mIntent.getIntExtra(
                     TelecommManager.EXTRA_START_CALL_WITH_VIDEO_STATE,
                     VideoCallProfile.VideoState.AUDIO_ONLY);
-            mCallsManager.placeOutgoingCall(
-                    Uri.fromParts(scheme, handle, null), null, null, speakerphoneOn, videoState);
+            mCallsManager.placeOutgoingCall(mCall, Uri.fromParts(scheme, handle, null), null, null,
+                    speakerphoneOn, videoState);
 
             // Don't return but instead continue and send the ACTION_NEW_OUTGOING_CALL broadcast
             // so that third parties can still inspect (but not intercept) the outgoing call. When
