@@ -68,7 +68,7 @@ public final class PhoneAccountRegistrar {
     private final AtomicFile mAtomicFile;
     private State mState;
 
-    PhoneAccountRegistrar(Context context) {
+    public PhoneAccountRegistrar(Context context) {
         this(context, FILE_NAME);
     }
 
@@ -392,11 +392,12 @@ public final class PhoneAccountRegistrar {
     //
 
     @VisibleForTesting
-    public interface XmlSerialization<T> {
+    public abstract static class XmlSerialization<T> {
         /**
          * Write the supplied object to XML
          */
-        void writeToXml(T o, XmlSerializer serializer) throws IOException;
+        public abstract void writeToXml(T o, XmlSerializer serializer)
+                throws IOException;
 
         /**
          * Read from the supplied XML into a new object, returning null in case of an
@@ -405,7 +406,17 @@ public final class PhoneAccountRegistrar {
          * object's writeToXml(). This object tries to fail early without modifying
          * 'parser' if it does not recognize the data it sees.
          */
-        T readFromXml(XmlPullParser parser) throws IOException, XmlPullParserException;
+        public abstract T readFromXml(XmlPullParser parser)
+                throws IOException, XmlPullParserException;
+
+        protected void writeTextSafely(String tagName, Object value, XmlSerializer serializer)
+                throws IOException {
+            if (value != null) {
+                serializer.startTag(null, tagName);
+                serializer.text(Objects.toString(value));
+                serializer.endTag(null, tagName);
+            }
+        }
     }
 
     @VisibleForTesting
@@ -419,27 +430,29 @@ public final class PhoneAccountRegistrar {
         @Override
         public void writeToXml(State o, XmlSerializer serializer)
                 throws IOException {
-            serializer.startTag(null, CLASS_STATE);
+            if (o != null) {
+                serializer.startTag(null, CLASS_STATE);
 
-            if (o.defaultOutgoing != null) {
-                serializer.startTag(null, DEFAULT_OUTGOING);
-                sPhoneAccountHandleXml.writeToXml(o.defaultOutgoing, serializer);
-                serializer.endTag(null, DEFAULT_OUTGOING);
+                if (o.defaultOutgoing != null) {
+                    serializer.startTag(null, DEFAULT_OUTGOING);
+                    sPhoneAccountHandleXml.writeToXml(o.defaultOutgoing, serializer);
+                    serializer.endTag(null, DEFAULT_OUTGOING);
+                }
+
+                if (o.simCallManager != null) {
+                    serializer.startTag(null, SIM_CALL_MANAGER);
+                    sPhoneAccountHandleXml.writeToXml(o.simCallManager, serializer);
+                    serializer.endTag(null, SIM_CALL_MANAGER);
+                }
+
+                serializer.startTag(null, ACCOUNTS);
+                for (PhoneAccount m : o.accounts) {
+                    sPhoneAccountXml.writeToXml(m, serializer);
+                }
+                serializer.endTag(null, ACCOUNTS);
+
+                serializer.endTag(null, CLASS_STATE);
             }
-
-            if (o.simCallManager != null) {
-                serializer.startTag(null, SIM_CALL_MANAGER);
-                sPhoneAccountHandleXml.writeToXml(o.simCallManager, serializer);
-                serializer.endTag(null, SIM_CALL_MANAGER);
-            }
-
-            serializer.startTag(null, ACCOUNTS);
-            for (PhoneAccount m : o.accounts) {
-                sPhoneAccountXml.writeToXml(m, serializer);
-            }
-            serializer.endTag(null, ACCOUNTS);
-
-            serializer.endTag(null, CLASS_STATE);
         }
 
         @Override
@@ -486,37 +499,24 @@ public final class PhoneAccountRegistrar {
         @Override
         public void writeToXml(PhoneAccount o, XmlSerializer serializer)
                 throws IOException {
-            serializer.startTag(null, CLASS_PHONE_ACCOUNT);
+            if (o != null) {
+                serializer.startTag(null, CLASS_PHONE_ACCOUNT);
 
-            serializer.startTag(null, ACCOUNT_HANDLE);
-            sPhoneAccountHandleXml.writeToXml(o.getAccountHandle(), serializer);
-            serializer.endTag(null, ACCOUNT_HANDLE);
+                if (o.getAccountHandle() != null) {
+                    serializer.startTag(null, ACCOUNT_HANDLE);
+                    sPhoneAccountHandleXml.writeToXml(o.getAccountHandle(), serializer);
+                    serializer.endTag(null, ACCOUNT_HANDLE);
+                }
 
-            serializer.startTag(null, HANDLE);
-            serializer.text(o.getHandle().toString());
-            serializer.endTag(null, HANDLE);
+                writeTextSafely(HANDLE, o.getHandle(), serializer);
+                writeTextSafely(SUBSCRIPTION_NUMBER, o.getSubscriptionNumber(), serializer);
+                writeTextSafely(CAPABILITIES, Integer.toString(o.getCapabilities()), serializer);
+                writeTextSafely(ICON_RES_ID, Integer.toString(o.getIconResId()), serializer);
+                writeTextSafely(LABEL, o.getLabel(), serializer);
+                writeTextSafely(SHORT_DESCRIPTION, o.getShortDescription(), serializer);
 
-            serializer.startTag(null, SUBSCRIPTION_NUMBER);
-            serializer.text(o.getSubscriptionNumber());
-            serializer.endTag(null, SUBSCRIPTION_NUMBER);
-
-            serializer.startTag(null, CAPABILITIES);
-            serializer.text(Integer.toString(o.getCapabilities()));
-            serializer.endTag(null, CAPABILITIES);
-
-            serializer.startTag(null, ICON_RES_ID);
-            serializer.text(Integer.toString(o.getIconResId()));
-            serializer.endTag(null, ICON_RES_ID);
-
-            serializer.startTag(null, LABEL);
-            serializer.text(Objects.toString(o.getLabel()));
-            serializer.endTag(null, LABEL);
-
-            serializer.startTag(null, SHORT_DESCRIPTION);
-            serializer.text(Objects.toString(o.getShortDescription()));
-            serializer.endTag(null, SHORT_DESCRIPTION);
-
-            serializer.endTag(null, CLASS_PHONE_ACCOUNT);
+                serializer.endTag(null, CLASS_PHONE_ACCOUNT);
+            }
         }
 
         @Override
@@ -556,16 +556,14 @@ public final class PhoneAccountRegistrar {
                         shortDescription = parser.getText();
                     }
                 }
-                if (accountHandle != null) {
-                    return new PhoneAccount(
-                            accountHandle,
-                            handle,
-                            subscriptionNumber,
-                            capabilities,
-                            iconResId,
-                            label,
-                            shortDescription);
-                }
+                return new PhoneAccount(
+                        accountHandle,
+                        handle,
+                        subscriptionNumber,
+                        capabilities,
+                        iconResId,
+                        label,
+                        shortDescription);
             }
             return null;
         }
@@ -581,17 +579,18 @@ public final class PhoneAccountRegistrar {
         @Override
         public void writeToXml(PhoneAccountHandle o, XmlSerializer serializer)
                 throws IOException {
-            serializer.startTag(null, CLASS_PHONE_ACCOUNT_HANDLE);
+            if (o != null) {
+                serializer.startTag(null, CLASS_PHONE_ACCOUNT_HANDLE);
 
-            serializer.startTag(null, COMPONENT_NAME);
-            serializer.text(o.getComponentName().flattenToString());
-            serializer.endTag(null, COMPONENT_NAME);
+                if (o.getComponentName() != null) {
+                    writeTextSafely(
+                            COMPONENT_NAME, o.getComponentName().flattenToString(), serializer);
+                }
 
-            serializer.startTag(null, ID);
-            serializer.text(o.getId());
-            serializer.endTag(null, ID);
+                writeTextSafely(ID, o.getId(), serializer);
 
-            serializer.endTag(null, CLASS_PHONE_ACCOUNT_HANDLE);
+                serializer.endTag(null, CLASS_PHONE_ACCOUNT_HANDLE);
+            }
         }
 
         @Override
@@ -610,7 +609,7 @@ public final class PhoneAccountRegistrar {
                         idString = parser.getText();
                     }
                 }
-                if (componentNameString != null && idString != null) {
+                if (componentNameString != null) {
                     return new PhoneAccountHandle(
                             ComponentName.unflattenFromString(componentNameString),
                             idString);
