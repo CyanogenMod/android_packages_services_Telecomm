@@ -56,7 +56,10 @@ final class ConnectionServiceRepository
     ConnectionServiceWrapper getService(ComponentName componentName) {
         ConnectionServiceWrapper service = mServiceCache.get(componentName);
         if (service == null) {
-            service = new ConnectionServiceWrapper(componentName, this);
+            service = new ConnectionServiceWrapper(
+                    componentName,
+                    this,
+                    TelecommApp.getInstance().getPhoneAccountRegistrar());
             service.addListener(this);
             mServiceCache.put(componentName, service);
         }

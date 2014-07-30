@@ -89,7 +89,7 @@ public class PhoneAccountPreferencesActivity extends Activity {
             List<PhoneAccountHandle> allAccounts = registrar.getAllPhoneAccountHandles();
             for (int i = 0; i < allAccounts.size(); i++) {
                 PhoneAccount account = registrar.getPhoneAccount(allAccounts.get(i));
-                if ((account.getCapabilities() & PhoneAccount.CAPABILITY_SIM_CALL_MANAGER) != 0) {
+                if ((account.getCapabilities() & PhoneAccount.CAPABILITY_CONNECTION_MANAGER) != 0) {
                     simCallManagers.add(allAccounts.get(i));
                 }
             }

@@ -109,7 +109,7 @@ public final class InCallController extends CallsManagerListenerBase {
         }
 
         @Override
-        public void onPhoneAccountChanged(Call call) {
+        public void onTargetPhoneAccountChanged(Call call) {
             updateCall(call);
         }
     };
@@ -349,7 +349,7 @@ public final class InCallController extends CallsManagerListenerBase {
                 callerDisplayName,
                 call.getCallerDisplayNamePresentation(),
                 call.getGatewayInfo(),
-                call.getPhoneAccount(),
+                call.getTargetPhoneAccount(),
                 call.getVideoCallProvider(),
                 parentCallId,
                 childCallIds,
