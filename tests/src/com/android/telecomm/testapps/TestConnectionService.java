@@ -359,6 +359,9 @@ public class TestConnectionService extends ConnectionService {
     private void destroyCall(TestConnection connection) {
         mCalls.remove(connection);
 
+        // Ensure any playing media and camera resources are released.
+        connection.stopAndCleanupMedia();
+
         // Stops audio if there are no more calls.
         if (mCalls.isEmpty() && mMediaPlayer != null && mMediaPlayer.isPlaying()) {
             mMediaPlayer.stop();
@@ -455,6 +458,7 @@ public class TestConnectionService extends ConnectionService {
             // Assume all calls are video capable.
             int capabilities = connection.getCallCapabilities();
             capabilities |= CallCapabilities.SUPPORTS_VT_LOCAL;
+            capabilities |= CallCapabilities.ALL;
             connection.setCallCapabilities(capabilities);
 
             int videoState = isVideoCall ?
