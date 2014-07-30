@@ -22,13 +22,16 @@ import com.android.ex.camera2.blocking.BlockingSessionListener;
 import com.android.telecomm.tests.R;
 
 import android.content.Context;
+import android.graphics.SurfaceTexture;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCaptureSession;
+import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraDevice;
 import android.hardware.camera2.CameraManager;
 import android.hardware.camera2.CaptureFailure;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.TotalCaptureResult;
+import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.MediaPlayer;
 import android.os.Handler;
 import android.telecomm.CallCameraCapabilities;
@@ -37,8 +40,11 @@ import android.telecomm.InCallService.VideoCall;
 import android.telecomm.VideoCallProfile;
 import android.text.TextUtils;
 import android.util.Log;
+import android.util.Size;
 import android.view.Surface;
 
+import java.lang.IllegalArgumentException;
+import java.lang.String;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -47,7 +53,7 @@ import java.util.Random;
  * Implements the VideoCallProvider.
  */
 public class TestVideoCallProvider extends ConnectionService.VideoCallProvider {
-    private CallCameraCapabilities mCapabilities;
+    private CallCameraCapabilities mCameraCapabilities;
     private Random random;
     private Surface mDisplaySurface;
     private Surface mPreviewSurface;
@@ -66,7 +72,6 @@ public class TestVideoCallProvider extends ConnectionService.VideoCallProvider {
 
     public TestVideoCallProvider(Context context) {
         mContext = context;
-        mCapabilities = new CallCameraCapabilities(false /* zoomSupported */, 0 /* maxZoom */);
         random = new Random();
         mCameraManager = (CameraManager) context.getSystemService(Context.CAMERA_SERVICE);
     }
@@ -75,19 +80,21 @@ public class TestVideoCallProvider extends ConnectionService.VideoCallProvider {
     public void onSetCamera(String cameraId) {
         log("Set camera to " + cameraId);
         mCameraId = cameraId;
-        if (mPreviewSurface != null && mCameraId != null) {
-            startCamera(cameraId);
-        }
+
+        stopCamera();
+        // Get the capabilities of the camera and send it back to the in-call UI.
+        setCameraCapabilities(mCameraId);
+        changeCameraCapabilities(mCameraCapabilities);
     }
 
     @Override
     public void onSetPreviewSurface(Surface surface) {
         log("Set preview surface " + (surface == null ? "unset" : "set"));
-        mPreviewSurface = surface;
-
-        if (mPreviewSurface == null) {
+        if (mPreviewSurface != null) {
             stopCamera();
         }
+
+        mPreviewSurface = surface;
 
         if (!TextUtils.isEmpty(mCameraId) && mPreviewSurface != null) {
             startCamera(mCameraId);
@@ -101,7 +108,8 @@ public class TestVideoCallProvider extends ConnectionService.VideoCallProvider {
 
         if (mDisplaySurface != null) {
             if (mIncomingMediaPlayer == null) {
-                mIncomingMediaPlayer = createMediaPlayer(mDisplaySurface, R.raw.test_video);
+                // For a Rick-Rolling good time use R.raw.test_video
+                mIncomingMediaPlayer = createMediaPlayer(mDisplaySurface, R.raw.test_pattern);
             }
             mIncomingMediaPlayer.setSurface(mDisplaySurface);
             if (!mIncomingMediaPlayer.isPlaying()) {
@@ -117,7 +125,7 @@ public class TestVideoCallProvider extends ConnectionService.VideoCallProvider {
 
     @Override
     public void onSetDeviceOrientation(int rotation) {
-        log("Set device orientation");
+        log("Set device orientation " + rotation);
     }
 
     /**
@@ -127,14 +135,6 @@ public class TestVideoCallProvider extends ConnectionService.VideoCallProvider {
     @Override
     public void onSetZoom(float value) {
         log("Set zoom to " + value);
-
-        if (value <= 0) {
-            mCapabilities = new CallCameraCapabilities(false /* zoomSupported */, 0 /* maxZoom */);
-        } else {
-            mCapabilities = new CallCameraCapabilities(true /* zoomSupported */, value);
-        }
-
-        changeCameraCapabilities(mCapabilities);
     }
 
     /**
@@ -164,7 +164,7 @@ public class TestVideoCallProvider extends ConnectionService.VideoCallProvider {
     @Override
     public void onRequestCameraCapabilities() {
         log("Requested camera capabilities");
-        changeCameraCapabilities(mCapabilities);
+        changeCameraCapabilities(mCameraCapabilities);
     }
 
     /**
@@ -305,6 +305,32 @@ public class TestVideoCallProvider extends ConnectionService.VideoCallProvider {
         @Override
         public void onCaptureFailed(CameraCaptureSession camera, CaptureRequest request,
                 CaptureFailure failure) {
+        }
+    }
+
+    /**
+     * Uses the camera manager to retrieve the camera capabilities for the chosen camera.
+     *
+     * @param cameraId The camera ID to get the capabilities for.
+     */
+    private void setCameraCapabilities(String cameraId) {
+        CameraManager cameraManager = (CameraManager) mContext.getSystemService(
+                Context.CAMERA_SERVICE);
+
+        CameraCharacteristics c = null;
+        try {
+            c = cameraManager.getCameraCharacteristics(cameraId);
+        } catch (IllegalArgumentException | CameraAccessException e) {
+            // Ignoring camera problems.
+        }
+        if (c != null) {
+            // Get the video size for the camera
+            StreamConfigurationMap map = c.get(
+                    CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
+            Size previewSize = map.getOutputSizes(SurfaceTexture.class)[0];
+
+            mCameraCapabilities = new CallCameraCapabilities(true, 1.0f, previewSize.getWidth(),
+                    previewSize.getHeight());
         }
     }
 }
