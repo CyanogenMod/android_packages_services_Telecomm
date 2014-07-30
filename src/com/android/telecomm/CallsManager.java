@@ -270,6 +270,7 @@ public final class CallsManager extends Call.ListenerBase {
                 mConnectionServiceRepository,
                 null /* handle */,
                 null /* gatewayInfo */,
+                null /* connectionManagerPhoneAccount */,
                 phoneAccountHandle,
                 true /* isIncoming */,
                 false /* isConference */);
@@ -316,6 +317,7 @@ public final class CallsManager extends Call.ListenerBase {
                 mConnectionServiceRepository,
                 uriHandle,
                 gatewayInfo,
+                null /* connectionManagerPhoneAccount */,
                 accountHandle,
                 false /* isIncoming */,
                 false /* isConference */);
@@ -330,20 +332,20 @@ public final class CallsManager extends Call.ListenerBase {
         final boolean emergencyCall = TelephonyUtil.shouldProcessAsEmergency(app, call.getHandle());
         if (emergencyCall) {
             // Emergency -- CreateConnectionProcessor will choose accounts automatically
-            call.setPhoneAccount(null);
+            call.setTargetPhoneAccount(null);
         } else if (accountHandle != null) {
             Log.d(this, "CALL with phone account: " + accountHandle);
-            call.setPhoneAccount(accountHandle);
+            call.setTargetPhoneAccount(accountHandle);
         } else {
             // No preset account, check if default exists
             PhoneAccountHandle defaultAccountHandle =
                     app.getPhoneAccountRegistrar().getDefaultOutgoingPhoneAccount();
             if (defaultAccountHandle != null) {
-                call.setPhoneAccount(defaultAccountHandle);
+                call.setTargetPhoneAccount(defaultAccountHandle);
             }
         }
 
-        if (call.getPhoneAccount() != null || emergencyCall) {
+        if (call.getTargetPhoneAccount() != null || emergencyCall) {
             // If the account is selected, proceed to place the outgoing call
             call.startCreateConnection();
         } else {
@@ -362,7 +364,8 @@ public final class CallsManager extends Call.ListenerBase {
                 mConnectionServiceRepository,
                 null /* handle */,
                 null /* gatewayInfo */,
-                null /* phoneAccount */,
+                null /* connectionManagerPhoneAccount */,
+                null /* targetPhoneAccount */,
                 false /* isIncoming */,
                 true /* isConference */);
         conferenceCall.addListener(this);
@@ -539,7 +542,7 @@ public final class CallsManager extends Call.ListenerBase {
         if (!mCalls.contains(call)) {
             Log.i(this, "Attemped to add account to unknown call %s", call);
         } else {
-            call.setPhoneAccount(account);
+            call.setTargetPhoneAccount(account);
             call.startCreateConnection();
         }
     }

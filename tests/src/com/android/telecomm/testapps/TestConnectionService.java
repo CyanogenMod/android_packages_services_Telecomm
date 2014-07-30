@@ -316,9 +316,9 @@ public class TestConnectionService extends ConnectionService {
                         mOriginalRequest.getVideoState());
                 RemoteConnection remoteConnection;
                 if (mIsIncoming) {
-                    remoteConnection = createRemoteIncomingConnection(connectionRequest);
+                    remoteConnection = createRemoteIncomingConnection(null, connectionRequest);
                 } else {
-                    remoteConnection = createRemoteOutgoingConnection(connectionRequest);
+                    remoteConnection = createRemoteOutgoingConnection(null, connectionRequest);
                 }
                 if (remoteConnection != null) {
                     remoteConnection.addListener(mRemoteListener);
@@ -380,7 +380,9 @@ public class TestConnectionService extends ConnectionService {
 
     /** ${inheritDoc} */
     @Override
-    public Connection onCreateOutgoingConnection(final ConnectionRequest originalRequest) {
+    public Connection onCreateOutgoingConnection(
+            PhoneAccountHandle connectionManagerAccount,
+            final ConnectionRequest originalRequest) {
 
         final Uri handle = originalRequest.getHandle();
         String number = originalRequest.getHandle().getSchemeSpecificPart();
@@ -426,7 +428,9 @@ public class TestConnectionService extends ConnectionService {
 
     /** ${inheritDoc} */
     @Override
-    public Connection onCreateIncomingConnection(final ConnectionRequest request) {
+    public Connection onCreateIncomingConnection(
+            PhoneAccountHandle connectionManagerAccount,
+            final ConnectionRequest request) {
         PhoneAccountHandle accountHandle = request.getAccountHandle();
         ComponentName componentName = new ComponentName(this, TestConnectionService.class);
 
