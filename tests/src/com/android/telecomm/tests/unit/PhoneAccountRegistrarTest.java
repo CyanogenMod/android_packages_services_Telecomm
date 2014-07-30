@@ -117,31 +117,51 @@ public class PhoneAccountRegistrarTest extends AndroidTestCase {
     }
 
     private void assertPhoneAccountHandleEquals(PhoneAccountHandle a, PhoneAccountHandle b) {
-        assertEquals(a.getComponentName().getPackageName(), b.getComponentName().getPackageName());
-        assertEquals(a.getComponentName().getClassName(), b.getComponentName().getClassName());
-        assertEquals(a.getId(), b.getId());
+        if (a != b) {
+            assertEquals(
+                    a.getComponentName().getPackageName(),
+                    b.getComponentName().getPackageName());
+            assertEquals(
+                    a.getComponentName().getClassName(),
+                    b.getComponentName().getClassName());
+            assertEquals(a.getId(), b.getId());
+        }
     }
 
     public void testPhoneAccountHandle() throws Exception {
         PhoneAccountHandle input = new PhoneAccountHandle(new ComponentName("pkg0", "cls0"), "id0");
         PhoneAccountHandle result = roundTrip(this, input, PhoneAccountRegistrar.sPhoneAccountHandleXml);
         assertPhoneAccountHandleEquals(input, result);
+        PhoneAccountHandle inputN =
+                new PhoneAccountHandle(
+                        new ComponentName(
+                                "pkg0",  // ctor does not allow null
+                                "cls0"), // ctor does not allow null
+                        null);
+        PhoneAccountHandle resultN = roundTrip(this, inputN, PhoneAccountRegistrar.sPhoneAccountHandleXml);
+        Log.i(this, "inputN = %s, resultN = %s", inputN, resultN);
+        assertPhoneAccountHandleEquals(inputN, resultN);
     }
 
     private void assertPhoneAccountEquals(PhoneAccount a, PhoneAccount b) {
-        assertPhoneAccountHandleEquals(a.getAccountHandle(), b.getAccountHandle());
-        assertEquals(a.getHandle(), b.getHandle());
-        assertEquals(a.getSubscriptionNumber(), b.getSubscriptionNumber());
-        assertEquals(a.getCapabilities(), b.getCapabilities());
-        assertEquals(a.getIconResId(), b.getIconResId());
-        assertEquals(a.getLabel(), b.getLabel());
-        assertEquals(a.getShortDescription(), b.getShortDescription());
+        if (a != b) {
+            assertPhoneAccountHandleEquals(a.getAccountHandle(), b.getAccountHandle());
+            assertEquals(a.getHandle(), b.getHandle());
+            assertEquals(a.getSubscriptionNumber(), b.getSubscriptionNumber());
+            assertEquals(a.getCapabilities(), b.getCapabilities());
+            assertEquals(a.getIconResId(), b.getIconResId());
+            assertEquals(a.getLabel(), b.getLabel());
+            assertEquals(a.getShortDescription(), b.getShortDescription());
+        }
     }
 
     public void testPhoneAccount() throws Exception {
         PhoneAccount input = makeQuickAccount("pkg0", "cls0", "id0", 0);
         PhoneAccount result = roundTrip(this, input, PhoneAccountRegistrar.sPhoneAccountXml);
         assertPhoneAccountEquals(input, result);
+        PhoneAccount inputN = new PhoneAccount(null, null, null, 0, 0, null, null);
+        PhoneAccount resultN = roundTrip(this, inputN, PhoneAccountRegistrar.sPhoneAccountXml);
+        assertPhoneAccountEquals(inputN, resultN);
     }
 
     private void assertStateEquals(PhoneAccountRegistrar.State a, PhoneAccountRegistrar.State b) {
