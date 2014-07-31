@@ -16,18 +16,28 @@
 
 package com.android.telecomm;
 
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
+import android.content.res.Resources;
+import android.telecomm.ConnectionService;
 import android.telecomm.PhoneAccount;
 import android.telecomm.PhoneAccountHandle;
 import android.content.ComponentName;
 import android.content.Context;
 import android.net.Uri;
 import android.telecomm.TelecommManager;
+import android.text.TextUtils;
 import android.util.AtomicFile;
 import android.util.Xml;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.util.FastXmlSerializer;
 import com.android.internal.util.XmlUtils;
+
+import org.xmlpull.v1.XmlPullParser;
+import org.xmlpull.v1.XmlPullParserException;
+import org.xmlpull.v1.XmlSerializer;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -40,10 +50,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
-
-import org.xmlpull.v1.XmlPullParser;
-import org.xmlpull.v1.XmlPullParserException;
-import org.xmlpull.v1.XmlSerializer;
 
 /**
  * Handles writing and reading PhoneAccountHandle registration entries. This is a simple verbatim
@@ -163,6 +169,36 @@ public final class PhoneAccountRegistrar {
                 }
             }
         }
+
+        // See if the OEM has specified a default one.
+        Context context = TelecommApp.getInstance();
+        String defaultConnectionMgr =
+                context.getResources().getString(R.string.default_connection_manager_component);
+        if (!TextUtils.isEmpty(defaultConnectionMgr)) {
+            PackageManager pm = context.getPackageManager();
+
+            ComponentName componentName = ComponentName.unflattenFromString(defaultConnectionMgr);
+            Intent intent = new Intent(ConnectionService.SERVICE_INTERFACE);
+            intent.setComponent(componentName);
+
+            // Make sure that the component can be resolved.
+            List<ResolveInfo> resolveInfos = pm.queryIntentServices(intent, 0);
+            if (!resolveInfos.isEmpty()) {
+                // See if there is registered PhoneAccount by this component.
+                List<PhoneAccountHandle> handles = getAllPhoneAccountHandles();
+                for (PhoneAccountHandle handle : handles) {
+                    if (componentName.equals(handle.getComponentName())) {
+                        return handle;
+                    }
+                }
+                Log.d(this, "%s does not have a PhoneAccount; not using as default", componentName);
+            } else {
+                Log.d(this, "%s could not be resolved; not using as default", componentName);
+            }
+        } else {
+            Log.v(this, "No default connection manager specified");
+        }
+
         return null;
     }
 
