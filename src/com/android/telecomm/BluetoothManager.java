@@ -140,12 +140,12 @@ public class BluetoothManager {
             List<BluetoothDevice> deviceList = mBluetoothHeadset.getConnectedDevices();
 
             if (deviceList.size() > 0) {
-                BluetoothDevice device = deviceList.get(0);
                 isConnected = true;
-
-                Log.v(this, "  - headset state = " + mBluetoothHeadset.getConnectionState(device));
-                Log.v(this, "  - headset address: " + device);
-                Log.v(this, "  - isConnected: " + isConnected);
+                for (int i = 0; i < deviceList.size(); i++) {
+                    BluetoothDevice device = deviceList.get(i);
+                    Log.v(this, "state = " + mBluetoothHeadset.getConnectionState(device)
+                            + "for headset: " + device);
+                }
             }
         }
 
@@ -166,10 +166,16 @@ public class BluetoothManager {
         if (deviceList.isEmpty()) {
             return false;
         }
-        BluetoothDevice device = deviceList.get(0);
-        boolean isAudioOn = mBluetoothHeadset.isAudioConnected(device);
-        Log.v(this, "isBluetoothAudioConnected: ==> isAudioOn = " + isAudioOn);
-        return isAudioOn;
+        for (int i = 0; i < deviceList.size(); i++) {
+            BluetoothDevice device = deviceList.get(i);
+            boolean isAudioOn = mBluetoothHeadset.isAudioConnected(device);
+            Log.v(this, "isBluetoothAudioConnected: ==> isAudioOn = " + isAudioOn
+                    + "for headset: " + device);
+            if (isAudioOn) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
