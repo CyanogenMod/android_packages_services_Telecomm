@@ -16,8 +16,7 @@
 
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <!-- no translation found for telecommAppLabel (3477737022166975496) -->
-    <skip />
+    <string name="telecommAppLabel" product="default" msgid="3477737022166975496">"ტელეფონი"</string>
     <string name="unknown" msgid="6878797917991465859">"უცნობი"</string>
     <string name="notification_missedCallTitle" msgid="7554385905572364535">"გამოტოვებული ზარი"</string>
     <string name="notification_missedCallsTitle" msgid="1361677948941502522">"გამოტოვებული ზარები"</string>
@@ -37,14 +36,9 @@
     <string name="respond_via_sms_edittext_dialog_title" msgid="20379890418289778">"სწრაფი პასუხი"</string>
     <string name="respond_via_sms_menu_reset_default_activity" msgid="1461742052902053466">"ნაგულისხმევი აპის ისევ დაყენება"</string>
     <string name="respond_via_sms_confirmation_format" msgid="7229149977515784269">"შეტყობინება გაიგზავნა <xliff:g id="PHONE_NUMBER">%s</xliff:g>-თან."</string>
-    <!-- no translation found for phone_account_preferences_title (3932310998135189661) -->
-    <skip />
-    <!-- no translation found for default_outgoing_account_title (8261079649574578970) -->
-    <skip />
-    <!-- no translation found for sim_call_manager_account (2559930293628077755) -->
-    <skip />
-    <!-- no translation found for account_ask_every_time (944077828070287407) -->
-    <skip />
-    <!-- no translation found for do_not_use_sim_call_manager (5519252524007323694) -->
-    <skip />
+    <string name="phone_account_preferences_title" msgid="3932310998135189661">"ტელეფონის ანგარიშის პარამეტრები"</string>
+    <string name="default_outgoing_account_title" msgid="8261079649574578970">"ნაგულისხმევი გამავალი ანგარიში"</string>
+    <string name="sim_call_manager_account" msgid="2559930293628077755">"ანგარიში Wi-Fi დარეკვისთვის"</string>
+    <string name="account_ask_every_time" msgid="944077828070287407">"მკითხე ყოველ ჯერზე"</string>
+    <string name="do_not_use_sim_call_manager" msgid="5519252524007323694">"Wi-Fi დარეკვა არ გამოიყენო"</string>
 </resources>
