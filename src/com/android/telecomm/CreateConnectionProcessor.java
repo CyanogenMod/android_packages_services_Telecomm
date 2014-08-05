@@ -147,6 +147,8 @@ final class CreateConnectionProcessor {
         }
         PhoneAccountHandle simCallManager =
                 TelecommApp.getInstance().getPhoneAccountRegistrar().getSimCallManager();
+
+        Log.d(this, "adjustAttemptsForWifi finds simCallManager = %s", simCallManager);
         if (simCallManager != null &&
                 !Objects.equals(simCallManager, mAttemptRecords.get(0).targetPhoneAccount)) {
             mAttemptRecords.set(

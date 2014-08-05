@@ -860,6 +860,7 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
         // Only give remote connection services to this connection service if it is listed as
         // the connection manager.
         PhoneAccountHandle simCallManager = registrar.getSimCallManager();
+        Log.d(this, "queryRemoteConnectionServices finds simCallManager = %s", simCallManager);
         if (simCallManager == null ||
                 !simCallManager.getComponentName().equals(getComponentName())) {
             noRemoteServices(callback);

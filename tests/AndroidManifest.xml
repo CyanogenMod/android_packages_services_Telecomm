@@ -15,10 +15,13 @@
 -->
 
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-        package="com.android.telecomm.tests">
+          coreApp="true"
+          package="com.android.telecomm.tests">
 
     <!-- Test connection service outgoing video preview. -->
     <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission
+            android:name="com.android.telecomm.permission.REGISTER_PROVIDER_OR_SUBSCRIPTION" />
 
     <application android:label="@string/app_name">
         <uses-library android:name="android.test.runner" />
@@ -26,6 +29,12 @@
         <!-- Miscellaneous telecomm app-related test activities. -->
 
         <service android:name="com.android.telecomm.testapps.TestConnectionService">
+            <intent-filter>
+                <action android:name="android.telecomm.ConnectionService" />
+            </intent-filter>
+        </service>
+
+        <service android:name="com.android.telecomm.testapps.TestConnectionManager">
             <intent-filter>
                 <action android:name="android.telecomm.ConnectionService" />
             </intent-filter>
