@@ -79,7 +79,8 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
     private static final int MSG_SET_HANDLE = 19;
     private static final int MSG_SET_CALLER_DISPLAY_NAME = 20;
     private static final int MSG_SET_VIDEO_STATE = 21;
-    private static final int MSG_START_ACTIVITY_FROM_IN_CALL = 22;
+    private static final int MSG_SET_CONFERENCEABLE_CONNECTIONS = 22;
+    private static final int MSG_START_ACTIVITY_FROM_IN_CALL = 23;
 
     private final Handler mHandler = new Handler() {
         @Override
@@ -314,6 +315,28 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                     }
                     break;
                 }
+                case MSG_SET_CONFERENCEABLE_CONNECTIONS: {
+                    SomeArgs args = (SomeArgs) msg.obj;
+                    try {
+                        call = mCallIdMapper.getCall(args.arg1);
+                        if (call != null ){
+                            @SuppressWarnings("unchecked")
+                            List<String> conferenceableIds = (List<String>) args.arg2;
+                            List<Call> conferenceableCalls =
+                                    new ArrayList<>(conferenceableIds.size());
+                            for (String otherId : (List<String>) args.arg2) {
+                                Call otherCall = mCallIdMapper.getCall(otherId);
+                                if (otherCall != null && otherCall != call) {
+                                    conferenceableCalls.add(otherCall);
+                                }
+                            }
+                            call.setConferenceableCalls(conferenceableCalls);
+                        }
+                    } finally {
+                        args.recycle();
+                    }
+                    break;
+                }
                 case MSG_START_ACTIVITY_FROM_IN_CALL: {
                     SomeArgs args = (SomeArgs) msg.obj;
                     try {
@@ -510,6 +533,17 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
             args.arg2 = callerDisplayName;
             args.argi1 = presentation;
             mHandler.obtainMessage(MSG_SET_CALLER_DISPLAY_NAME, args).sendToTarget();
+        }
+
+        @Override
+        public void setConferenceableConnections(
+                String callId, List<String> conferenceableCallIds) {
+            logIncoming("setConferenceableConnections %s %s", callId, conferenceableCallIds);
+            mCallIdMapper.checkValidCallId(callId);
+            SomeArgs args = SomeArgs.obtain();
+            args.arg1 = callId;
+            args.arg2 = conferenceableCallIds;
+            mHandler.obtainMessage(MSG_SET_CONFERENCEABLE_CONNECTIONS, args).sendToTarget();
         }
 
         @Override
