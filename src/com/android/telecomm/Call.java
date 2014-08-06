@@ -581,15 +581,15 @@ final class Call implements CreateConnectionResponse {
         if (mDirectToVoicemailQueryPending) {
             if (mCallerInfo != null && mCallerInfo.shouldSendToVoicemail) {
                 Log.i(this, "Directing call to voicemail: %s.", this);
-                // TODO(santoscordon): Once we move State handling from CallsManager to Call, we
+                // TODO: Once we move State handling from CallsManager to Call, we
                 // will not need to set RINGING state prior to calling reject.
                 setState(CallState.RINGING);
                 reject(false, null);
             } else {
-                // TODO(santoscordon): Make this class (not CallsManager) responsible for changing
+                // TODO: Make this class (not CallsManager) responsible for changing
                 // the call state to RINGING.
 
-                // TODO(santoscordon): Replace this with state transition to RINGING.
+                // TODO: Replace this with state transition to RINGING.
                 for (Listener l : mListeners) {
                     l.onSuccessfulIncomingCall(this);
                 }
@@ -857,7 +857,7 @@ final class Call implements CreateConnectionResponse {
     }
 
     void splitFromConference() {
-        // TODO(santoscordon): todo
+        // TODO: todo
     }
 
     void swapWithBackgroundCall() {
