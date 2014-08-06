@@ -44,7 +44,8 @@ import java.util.List;
  * Implementation of the ITelecomm interface.
  */
 public class TelecommServiceImpl extends ITelecommService.Stub {
-    private static final String TELEPHONY_PACKAGE_NAME = "com.android.phone";
+    private static final String REGISTER_PROVIDER_OR_SUBSCRIPTION =
+            "com.android.telecomm.permission.REGISTER_PROVIDER_OR_SUBSCRIPTION";
 
     /** ${inheritDoc} */
     @Override
@@ -195,7 +196,7 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
                     account.getAccountHandle().getComponentName().getPackageName());
             if (PhoneAccountRegistrar.has(account, PhoneAccount.CAPABILITY_CALL_PROVIDER) ||
                 PhoneAccountRegistrar.has(account, PhoneAccount.CAPABILITY_SIM_SUBSCRIPTION)) {
-                enforceModifyPermissionOrCallingPackage(TELEPHONY_PACKAGE_NAME);
+                enforceRegisterProviderOrSubscriptionPermission();
             }
             mPhoneAccountRegistrar.registerPhoneAccount(account);
         } catch (Exception e) {
@@ -408,6 +409,11 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
         if (!isDefaultDialerCalling()) {
             enforceModifyPermission();
         }
+    }
+
+    private void enforceRegisterProviderOrSubscriptionPermission() {
+        TelecommApp.getInstance().enforceCallingOrSelfPermission(
+                REGISTER_PROVIDER_OR_SUBSCRIPTION, null);
     }
 
     private void enforceModifyPermissionOrCallingPackage(String packageName) {
