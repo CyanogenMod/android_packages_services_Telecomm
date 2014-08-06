@@ -16,6 +16,8 @@
 
 package com.android.telecomm.testapps;
 
+import com.android.telecomm.tests.R;
+
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -88,19 +90,28 @@ public class CallServiceNotifier {
      * Registers a phone account with telecomm.
      */
     public void registerPhoneAccount(Context context) {
-        PhoneAccount account = new PhoneAccount(
+        TelecommManager telecommManager =
+                (TelecommManager) context.getSystemService(Context.TELECOMM_SERVICE);
+        telecommManager.registerPhoneAccount(new PhoneAccount(
                 new PhoneAccountHandle(
                         new ComponentName(context, TestConnectionService.class),
                         PHONE_ACCOUNT_ID),
                 Uri.parse("tel:555-TEST"),
                 "555-TEST",
                 PhoneAccount.CAPABILITY_CALL_PROVIDER,
-                0,  // iconResId
+                R.drawable.stat_sys_phone_call,
                 "Dummy Service",
-                "a short description for the dummy service");
-        TelecommManager telecommManager =
-                (TelecommManager) context.getSystemService(Context.TELECOMM_SERVICE);
-        telecommManager.registerPhoneAccount(account);
+                "a short description for the dummy service"));
+        telecommManager.registerPhoneAccount(new PhoneAccount(
+                new PhoneAccountHandle(
+                        new ComponentName(context, TestConnectionManager.class),
+                        PHONE_ACCOUNT_ID),
+                Uri.parse("tel:555-CMGR"),
+                "555-CMGR",
+                PhoneAccount.CAPABILITY_CONNECTION_MANAGER,
+                R.drawable.stat_sys_phone_call,
+                "Dummy Connection Manager",
+                "a short description for the dummy connection manager"));
     }
 
     /**
