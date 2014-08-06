@@ -22,10 +22,12 @@ import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
+import android.telecomm.CallCapabilities;
 import android.telecomm.CallPropertyPresentation;
 import android.telecomm.CallState;
 import android.telecomm.Connection;
 import android.telecomm.ConnectionRequest;
+import android.telecomm.ConnectionService.VideoCallProvider;
 import android.telecomm.GatewayInfo;
 import android.telecomm.ParcelableConnection;
 import android.telecomm.PhoneAccount;
@@ -44,6 +46,7 @@ import com.android.internal.telephony.SmsApplication;
 import com.android.telecomm.ContactsAsyncHelper.OnImageLoadCompleteListener;
 import com.google.common.base.Preconditions;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -85,6 +88,8 @@ final class Call implements CreateConnectionResponse {
         void onStartActivityFromInCall(Call call, PendingIntent intent);
         void onTargetPhoneAccountChanged(Call call);
         void onConnectionManagerPhoneAccountChanged(Call call);
+        void onPhoneAccountChanged(Call call);
+        void onConferenceableCallsChanged(Call call);
     }
 
     abstract static class ListenerBase implements Listener {
@@ -134,6 +139,10 @@ final class Call implements CreateConnectionResponse {
         public void onTargetPhoneAccountChanged(Call call) {}
         @Override
         public void onConnectionManagerPhoneAccountChanged(Call call) {}
+        @Override
+        public void onPhoneAccountChanged(Call call) {}
+        @Override
+        public void onConferenceableCallsChanged(Call call) {}
     }
 
     private static final OnQueryCompleteListener sCallerInfoQueryListener =
@@ -186,6 +195,10 @@ final class Call implements CreateConnectionResponse {
     private PhoneAccountHandle mTargetPhoneAccountHandle;
 
     private final Handler mHandler = new Handler();
+
+    private final List<Call> mConferenceableCalls = new ArrayList<>();
+
+    private PhoneAccountHandle mPhoneAccountHandle;
 
     private long mConnectTimeMillis;
 
@@ -312,7 +325,8 @@ final class Call implements CreateConnectionResponse {
     }
 
     /** {@inheritDoc} */
-    @Override public String toString() {
+    @Override
+    public String toString() {
         String component = null;
         if (mConnectionService != null && mConnectionService.getComponentName() != null) {
             component = mConnectionService.getComponentName().flattenToShortString();
@@ -513,8 +527,9 @@ final class Call implements CreateConnectionResponse {
     }
 
     void setCallCapabilities(int callCapabilities) {
+        Log.v(this, "setCallCapabilities: %s", CallCapabilities.toString(callCapabilities));
         if (mCallCapabilities != callCapabilities) {
-            mCallCapabilities = callCapabilities;
+           mCallCapabilities = callCapabilities;
             for (Listener l : mListeners) {
                 l.onCallCapabilitiesChanged(this);
             }
@@ -597,6 +612,7 @@ final class Call implements CreateConnectionResponse {
     @Override
     public void handleCreateConnectionSuccessful(
             ConnectionRequest request, ParcelableConnection connection) {
+        Log.v(this, "handleCreateConnectionSuccessful %s", connection);
         mCreateConnectionProcessor = null;
         setState(getStateFromConnectionState(connection.getState()));
         setTargetPhoneAccount(connection.getPhoneAccount());
@@ -867,6 +883,15 @@ final class Call implements CreateConnectionResponse {
         for (Listener l : mListeners) {
             l.onParentChanged(this);
         }
+    }
+
+    void setConferenceableCalls(List<Call> conferenceableCalls) {
+        mConferenceableCalls.clear();
+        mConferenceableCalls.addAll(conferenceableCalls);
+    }
+
+    List<Call> getConferenceableCalls() {
+        return mConferenceableCalls;
     }
 
     private void addChildCall(Call call) {

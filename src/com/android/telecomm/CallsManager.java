@@ -357,9 +357,10 @@ public final class CallsManager extends Call.ListenerBase {
     /**
      * Attempts to start a conference call for the specified call.
      *
-     * @param call The call to conference with.
+     * @param call The call to conference.
+     * @param otherCall The other call to conference with.
      */
-    void conference(Call call) {
+    void conference(Call call, Call otherCall) {
         Call conferenceCall = new Call(
                 mConnectionServiceRepository,
                 null /* handle */,
