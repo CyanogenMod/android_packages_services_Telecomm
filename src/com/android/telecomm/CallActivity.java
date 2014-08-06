@@ -56,7 +56,7 @@ public class CallActivity extends Activity {
     protected void onCreate(Bundle bundle) {
         super.onCreate(bundle);
 
-        // TODO(santoscordon): This activity will be displayed until the next screen which could be
+        // TODO: This activity will be displayed until the next screen which could be
         // the in-call UI and error dialog or potentially a call-type selection dialog.
         // Traditionally, this has been a black screen with a spinner. We need to reevaluate if this
         // is still desired and add back if necessary. Currently, the activity is set to NoDisplay
@@ -69,7 +69,7 @@ public class CallActivity extends Activity {
         Log.d(this, " - intent = %s", intent);
         Log.d(this, " - configuration = %s", configuration);
 
-        // TODO(santoscordon): Figure out if there is something to restore from bundle.
+        // TODO: Figure out if there is something to restore from bundle.
         // See OutgoingCallBroadcaster in services/Telephony for more.
 
         processIntent(intent);

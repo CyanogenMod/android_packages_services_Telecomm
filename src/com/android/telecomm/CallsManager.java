@@ -42,7 +42,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
  */
 public final class CallsManager extends Call.ListenerBase {
 
-    // TODO(santoscordon): Consider renaming this CallsManagerPlugin.
+    // TODO: Consider renaming this CallsManagerPlugin.
     interface CallsManagerListener {
         void onCallAdded(Call call);
         void onCallRemoved(Call call);
@@ -276,7 +276,7 @@ public final class CallsManager extends Call.ListenerBase {
                 false /* isConference */);
 
         call.setExtras(extras);
-        // TODO(santoscordon): Move this to be a part of addCall()
+        // TODO: Move this to be a part of addCall()
         call.addListener(this);
         call.startCreateConnection();
     }
@@ -324,7 +324,7 @@ public final class CallsManager extends Call.ListenerBase {
         call.setStartWithSpeakerphoneOn(speakerphoneOn);
         call.setVideoState(videoState);
 
-        // TODO(santoscordon): Move this to be a part of addCall()
+        // TODO: Move this to be a part of addCall()
         call.addListener(this);
         addCall(call);
 
@@ -393,9 +393,9 @@ public final class CallsManager extends Call.ListenerBase {
                 Log.v(this, "Holding active/dialing call %s before answering incoming call %s.",
                         mForegroundCall, call);
                 mForegroundCall.hold();
-                // TODO(santoscordon): Wait until we get confirmation of the active call being
+                // TODO: Wait until we get confirmation of the active call being
                 // on-hold before answering the new call.
-                // TODO(santoscordon): Import logic from CallManager.acceptCall()
+                // TODO: Import logic from CallManager.acceptCall()
             }
 
             for (CallsManagerListener listener : mListeners) {
@@ -695,7 +695,7 @@ public final class CallsManager extends Call.ListenerBase {
     private void addCall(Call call) {
         mCalls.add(call);
 
-        // TODO(santoscordon): Update mForegroundCall prior to invoking
+        // TODO: Update mForegroundCall prior to invoking
         // onCallAdded for calls which immediately take the foreground (like the first call).
         for (CallsManagerListener listener : mListeners) {
             listener.onCallAdded(call);
@@ -738,9 +738,9 @@ public final class CallsManager extends Call.ListenerBase {
             // Unfortunately, in the telephony world the radio is king. So if the call notifies
             // us that the call is in a particular state, we allow it even if it doesn't make
             // sense (e.g., ACTIVE -> RINGING).
-            // TODO(santoscordon): Consider putting a stop to the above and turning CallState
+            // TODO: Consider putting a stop to the above and turning CallState
             // into a well-defined state machine.
-            // TODO(santoscordon): Define expected state transitions here, and log when an
+            // TODO: Define expected state transitions here, and log when an
             // unexpected transition occurs.
             call.setState(newState);
 
@@ -760,7 +760,7 @@ public final class CallsManager extends Call.ListenerBase {
     private void updateForegroundCall() {
         Call newForegroundCall = null;
         for (Call call : mCalls) {
-            // TODO(santoscordon): Foreground-ness needs to be explicitly set. No call, regardless
+            // TODO: Foreground-ness needs to be explicitly set. No call, regardless
             // of its state will be foreground by default and instead the connection service should
             // be notified when its calls enter and exit foreground state. Foreground will mean that
             // the call should play audio and listen to microphone if it wants.

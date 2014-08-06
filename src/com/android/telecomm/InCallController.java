@@ -151,7 +151,7 @@ public final class InCallController extends CallsManagerListenerBase {
     @Override
     public void onCallRemoved(Call call) {
         if (CallsManager.getInstance().getCalls().isEmpty()) {
-            // TODO(sail): Wait for all messages to be delivered to the service before unbinding.
+            // TODO: Wait for all messages to be delivered to the service before unbinding.
             unbind();
         }
         call.removeListener(mCallListener);
@@ -243,7 +243,7 @@ public final class InCallController extends CallsManagerListenerBase {
                     UserHandle.CURRENT)) {
                 Log.w(this, "Could not connect to the in-call app (%s)", component);
 
-                // TODO(santoscordon): Implement retry or fall-back-to-default logic.
+                // TODO: Implement retry or fall-back-to-default logic.
             }
         }
     }
