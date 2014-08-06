@@ -293,6 +293,14 @@ public final class CallsManager extends Call.ListenerBase {
     void placeOutgoingCall(Uri handle, GatewayInfo gatewayInfo, PhoneAccountHandle accountHandle,
             boolean speakerphoneOn, int videoState) {
 
+        // We only allow a single outgoing call at any given time. Before placing a call, make sure
+        // there doesn't already exist another outgoing call.
+        Call currentOutgoing = getFirstCallWithState(CallState.NEW, CallState.DIALING);
+        if (currentOutgoing != null) {
+            Log.i(this, "Canceling simultaneous outgoing call.");
+            return;
+        }
+
         TelecommApp app = TelecommApp.getInstance();
         final Uri uriHandle = (gatewayInfo == null) ? handle : gatewayInfo.getGatewayHandle();
 
