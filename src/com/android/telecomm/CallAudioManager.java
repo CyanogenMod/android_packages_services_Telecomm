@@ -74,6 +74,7 @@ final class CallAudioManager extends CallsManagerListenerBase
         if (CallsManager.getInstance().getCalls().isEmpty()) {
             Log.v(this, "all calls removed, reseting system audio to default state");
             setInitialAudioState(null);
+            mWasSpeakerOn = false;
         }
         updateAudioStreamAndMode();
     }
