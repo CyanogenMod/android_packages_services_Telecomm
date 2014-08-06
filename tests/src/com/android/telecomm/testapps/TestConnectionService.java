@@ -47,7 +47,7 @@ import java.util.Random;
 
 /**
  * Service which provides fake calls to test the ConnectionService interface.
- * TODO(santoscordon): Rename all classes in the directory to Dummy* (e.g., DummyConnectionService).
+ * TODO: Rename all classes in the directory to Dummy* (e.g., DummyConnectionService).
  */
 public class TestConnectionService extends ConnectionService {
     public static final String EXTRA_GATEWAY_PROVIDER_PACKAGE =
@@ -407,7 +407,7 @@ public class TestConnectionService extends ConnectionService {
 
         // If the number starts with 555, then we handle it ourselves. If not, then we
         // use a remote connection service.
-        // TODO(santoscordon): Have a special phone number to test the account-picker dialog flow.
+        // TODO: Have a special phone number to test the account-picker dialog flow.
         if (number != null && number.startsWith("555")) {
             // Normally we would use the original request as is, but for testing purposes, we are
             // adding ".." to the end of the number to follow its path more easily through the logs.

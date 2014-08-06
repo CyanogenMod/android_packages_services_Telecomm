@@ -39,7 +39,7 @@ import android.text.TextUtils;
 
 /**
  * Creates a notification for calls that the user missed (neither answered nor rejected).
- * TODO(santoscordon): Make TelephonyManager.clearMissedCalls call into this class.
+ * TODO: Make TelephonyManager.clearMissedCalls call into this class.
  * STOPSHIP: Resolve b/13769374 about moving this class to InCall.
  */
 class MissedCallNotifier extends CallsManagerListenerBase {
@@ -183,7 +183,7 @@ class MissedCallNotifier extends CallsManagerListenerBase {
         } else if (!TextUtils.isEmpty(handle)) {
             // A handle should always be displayed LTR using {@link BidiFormatter} regardless of the
             // content of the rest of the notification.
-            // TODO(santoscordon): Does this apply to SIP addresses?
+            // TODO: Does this apply to SIP addresses?
             BidiFormatter bidiFormatter = BidiFormatter.getInstance();
             return bidiFormatter.unicodeWrap(handle, TextDirectionHeuristics.LTR);
         } else {

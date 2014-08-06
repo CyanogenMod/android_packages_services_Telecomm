@@ -193,10 +193,10 @@ public final class InCallTonePlayer extends Thread {
                 return;
             }
 
-            // TODO(santoscordon): Certain CDMA tones need to check the ringer-volume state before
+            // TODO: Certain CDMA tones need to check the ringer-volume state before
             // playing. See CallNotifier.InCallTonePlayer.
 
-            // TODO(santoscordon): Some tones play through the end of a call so we need to inform
+            // TODO: Some tones play through the end of a call so we need to inform
             // CallAudioManager that we want focus the same way that Ringer does.
 
             synchronized (this) {

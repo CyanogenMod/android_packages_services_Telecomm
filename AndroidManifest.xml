@@ -130,7 +130,7 @@
              CALL_PRIVILEGED permission or the broadcast will not be processed. High priority of
              1000 is used in all intent filters to prevent anything but the system from processing
              this intent (b/8871505). -->
-        <!-- TODO(santoscordon): Is there really a notion of an emergency SIP number? If not, can
+        <!-- TODO: Is there really a notion of an emergency SIP number? If not, can
              that scheme be removed from this activity? -->
         <activity-alias android:name="EmergencyCallActivity"
                 android:targetActivity="CallActivity"
