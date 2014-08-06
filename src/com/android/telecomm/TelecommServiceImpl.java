@@ -417,7 +417,7 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
     }
 
     private void enforceModifyPermissionOrCallingPackage(String packageName) {
-        // TODO(santoscordon): Use a new telecomm permission for this instead of reusing modify.
+        // TODO: Use a new telecomm permission for this instead of reusing modify.
         try {
             enforceModifyPermission();
         } catch (SecurityException e) {
