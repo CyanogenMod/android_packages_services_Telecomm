@@ -129,19 +129,22 @@ class MissedCallNotifier extends CallsManagerListenerBase {
                 .setDeleteIntent(createClearMissedCallsPendingIntent());
 
         Uri handleUri = call.getHandle();
-        String handle = handleUri.getSchemeSpecificPart();
+        String handle = handleUri == null ? null : handleUri.getSchemeSpecificPart();
 
         // Add additional actions when there is only 1 missed call, like call-back and SMS.
         if (mMissedCallCount == 1) {
             Log.d(this, "Add actions with number %s.", Log.piiHandle(handle));
 
-            builder.addAction(R.drawable.stat_sys_phone_call,
-                    mContext.getString(R.string.notification_missedCall_call_back),
-                    createCallBackPendingIntent(handleUri));
+            if (!TextUtils.isEmpty(handle)
+                    && !TextUtils.equals(handle, mContext.getString(R.string.handle_restricted))) {
+                builder.addAction(R.drawable.stat_sys_phone_call,
+                        mContext.getString(R.string.notification_missedCall_call_back),
+                        createCallBackPendingIntent(handleUri));
 
-            builder.addAction(R.drawable.ic_text_holo_dark,
-                    mContext.getString(R.string.notification_missedCall_message),
-                    createSendSmsFromNotificationPendingIntent(handleUri));
+                builder.addAction(R.drawable.ic_text_holo_dark,
+                        mContext.getString(R.string.notification_missedCall_message),
+                        createSendSmsFromNotificationPendingIntent(handleUri));
+            }
 
             Bitmap photoIcon = call.getPhotoIcon();
             if (photoIcon != null) {
@@ -175,7 +178,7 @@ class MissedCallNotifier extends CallsManagerListenerBase {
      * Returns the name to use in the missed call notification.
      */
     private String getNameForCall(Call call) {
-        String handle = call.getHandle().getSchemeSpecificPart();
+        String handle = call.getHandle() == null ? null : call.getHandle().getSchemeSpecificPart();
         String name = call.getName();
 
         if (!TextUtils.isEmpty(name) && TextUtils.isGraphic(name)) {
