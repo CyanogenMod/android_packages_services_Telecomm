@@ -23,6 +23,8 @@ import android.telecomm.CallState;
 
 import com.google.common.base.Preconditions;
 
+import java.util.Objects;
+
 /**
  * This class manages audio modes, streams and other properties.
  */
@@ -40,6 +42,7 @@ final class CallAudioManager extends CallsManagerListenerBase
     private boolean mIsRinging;
     private boolean mIsTonePlaying;
     private boolean mWasSpeakerOn;
+    private int mMostRecentlyUsedMode = AudioManager.MODE_IN_CALL;
 
     CallAudioManager(Context context, StatusBarNotifier statusBarNotifier,
             WiredHeadsetManager wiredHeadsetManager) {
@@ -59,29 +62,32 @@ final class CallAudioManager extends CallsManagerListenerBase
 
     @Override
     public void onCallAdded(Call call) {
-        updateAudioStreamAndMode();
-        if (CallsManager.getInstance().getCalls().size() == 1) {
-            Log.v(this, "first call added, reseting system audio to default state");
-            setInitialAudioState(call);
-        } else if (!call.isIncoming()) {
-            // Unmute new outgoing call.
-            setSystemAudioState(false, mAudioState.route, mAudioState.supportedRouteMask);
+        onCallUpdated(call);
+
+        if (hasFocus() && getForegroundCall() == call) {
+            if (!call.isIncoming()) {
+                // Unmute new outgoing call.
+                setSystemAudioState(false, mAudioState.route, mAudioState.supportedRouteMask);
+            }
         }
     }
 
     @Override
     public void onCallRemoved(Call call) {
-        if (CallsManager.getInstance().getCalls().isEmpty()) {
-            Log.v(this, "all calls removed, reseting system audio to default state");
-            setInitialAudioState(null);
-            mWasSpeakerOn = false;
+        // If we didn't already have focus, there's nothing to do.
+        if (hasFocus()) {
+            if (CallsManager.getInstance().getCalls().isEmpty()) {
+                Log.v(this, "all calls removed, reseting system audio to default state");
+                setInitialAudioState(null);
+                mWasSpeakerOn = false;
+            }
+            updateAudioStreamAndMode();
         }
-        updateAudioStreamAndMode();
     }
 
     @Override
     public void onCallStateChanged(Call call, CallState oldState, CallState newState) {
-        updateAudioStreamAndMode();
+        onCallUpdated(call);
     }
 
     @Override
@@ -102,7 +108,7 @@ final class CallAudioManager extends CallsManagerListenerBase
 
     @Override
     public void onForegroundCallChanged(Call oldForegroundCall, Call newForegroundCall) {
-        updateAudioStreamAndMode();
+        onCallUpdated(newForegroundCall);
         // Ensure that the foreground call knows about the latest audio state.
         updateAudioForForegroundCall();
     }
@@ -118,6 +124,11 @@ final class CallAudioManager extends CallsManagerListenerBase
       */
     @Override
     public void onWiredHeadsetPluggedInChanged(boolean oldIsPluggedIn, boolean newIsPluggedIn) {
+        // This can happen even when there are no calls and we don't have focus.
+        if (!hasFocus()) {
+            return;
+        }
+
         int newRoute = CallAudioState.ROUTE_EARPIECE;
         if (newIsPluggedIn) {
             newRoute = CallAudioState.ROUTE_WIRED_HEADSET;
@@ -136,6 +147,10 @@ final class CallAudioManager extends CallsManagerListenerBase
     }
 
     void mute(boolean shouldMute) {
+        if (!hasFocus()) {
+            return;
+        }
+
         Log.v(this, "mute, shouldMute: %b", shouldMute);
 
         // Don't mute if there are any emergency calls.
@@ -155,6 +170,11 @@ final class CallAudioManager extends CallsManagerListenerBase
      * @param route The new audio route to use. See {@link CallAudioState}.
      */
     void setAudioRoute(int route) {
+        // This can happen even when there are no calls and we don't have focus.
+        if (!hasFocus()) {
+            return;
+        }
+
         Log.v(this, "setAudioRoute, route: %s", CallAudioState.audioRouteToString(route));
 
         // Change ROUTE_WIRED_OR_EARPIECE to a single entry.
@@ -203,6 +223,11 @@ final class CallAudioManager extends CallsManagerListenerBase
      * Updates the audio routing according to the bluetooth state.
      */
     void onBluetoothStateChange(BluetoothManager bluetoothManager) {
+        // This can happen even when there are no calls and we don't have focus.
+        if (!hasFocus()) {
+            return;
+        }
+
         int newRoute = mAudioState.route;
         if (bluetoothManager.isBluetoothAudioConnectedOrPending()) {
             newRoute = CallAudioState.ROUTE_BLUETOOTH;
@@ -229,9 +254,26 @@ final class CallAudioManager extends CallsManagerListenerBase
         mStatusBarNotifier.notifySpeakerphone(mAudioState.route == CallAudioState.ROUTE_SPEAKER);
     }
 
+    private void onCallUpdated(Call call) {
+        boolean wasNotVoiceCall = mAudioFocusStreamType != AudioManager.STREAM_VOICE_CALL;
+        updateAudioStreamAndMode();
+
+        // If we transition from not voice call to voice call, we need to set an initial state.
+        if (wasNotVoiceCall && mAudioFocusStreamType == AudioManager.STREAM_VOICE_CALL) {
+            setInitialAudioState(call);
+        }
+    }
+
     private void setSystemAudioState(boolean isMuted, int route, int supportedRouteMask) {
+        if (!hasFocus()) {
+            return;
+        }
+
         CallAudioState oldAudioState = mAudioState;
         saveAudioState(new CallAudioState(isMuted, route, supportedRouteMask));
+        if (Objects.equals(oldAudioState, mAudioState)) {
+            return;
+        }
         Log.i(this, "changing audio state from %s to %s", oldAudioState, mAudioState);
 
         // Mute.
@@ -262,15 +304,16 @@ final class CallAudioManager extends CallsManagerListenerBase
     private void turnOnSpeaker(boolean on) {
         // Wired headset and earpiece work the same way
         if (mAudioManager.isSpeakerphoneOn() != on) {
-            Log.i(this, "turning speaker phone off");
+            Log.i(this, "turning speaker phone %s", on);
             mAudioManager.setSpeakerphoneOn(on);
         }
     }
 
     private void turnOnBluetooth(boolean on) {
         if (mBluetoothManager.isBluetoothAvailable()) {
-            boolean isAlreadyOn = mBluetoothManager.isBluetoothAudioConnected();
+            boolean isAlreadyOn = mBluetoothManager.isBluetoothAudioConnectedOrPending();
             if (on != isAlreadyOn) {
+                Log.i(this, "connecting bluetooth %s", on);
                 if (on) {
                     mBluetoothManager.connectBluetoothAudio();
                 } else {
@@ -293,8 +336,10 @@ final class CallAudioManager extends CallsManagerListenerBase
                 requestAudioFocusAndSetMode(AudioManager.STREAM_VOICE_CALL, mode);
             } else if (mIsTonePlaying) {
                 // There is no call, however, we are still playing a tone, so keep focus.
+                // Since there is no call from which to determine the mode, use the most
+                // recently used mode instead.
                 requestAudioFocusAndSetMode(
-                        AudioManager.STREAM_VOICE_CALL, AudioManager.MODE_IN_COMMUNICATION);
+                        AudioManager.STREAM_VOICE_CALL, mMostRecentlyUsedMode);
             } else {
                 abandonAudioFocus();
             }
@@ -302,7 +347,7 @@ final class CallAudioManager extends CallsManagerListenerBase
     }
 
     private void requestAudioFocusAndSetMode(int stream, int mode) {
-        Log.v(this, "setSystemAudioStreamAndMode, stream: %d -> %d", mAudioFocusStreamType, stream);
+        Log.v(this, "requestAudioFocusAndSetMode, stream: %d -> %d", mAudioFocusStreamType, stream);
         Preconditions.checkState(stream != STREAM_NONE);
 
         // Even if we already have focus, if the stream is different we update audio manager to give
@@ -313,11 +358,12 @@ final class CallAudioManager extends CallsManagerListenerBase
                     AudioManager.AUDIOFOCUS_GAIN_TRANSIENT);
         }
         mAudioFocusStreamType = stream;
+
         setMode(mode);
     }
 
     private void abandonAudioFocus() {
-        if (mAudioFocusStreamType != STREAM_NONE) {
+        if (hasFocus()) {
             setMode(AudioManager.MODE_NORMAL);
             Log.v(this, "abandoning audio focus");
             mAudioManager.abandonAudioFocusForCall();
@@ -331,11 +377,12 @@ final class CallAudioManager extends CallsManagerListenerBase
      * @param newMode Mode constant from AudioManager.MODE_*.
      */
     private void setMode(int newMode) {
-        Preconditions.checkState(mAudioFocusStreamType != STREAM_NONE);
+        Preconditions.checkState(hasFocus());
         int oldMode = mAudioManager.getMode();
         Log.v(this, "Request to change audio mode from %d to %d", oldMode, newMode);
         if (oldMode != newMode) {
             mAudioManager.setMode(newMode);
+            mMostRecentlyUsedMode = newMode;
         }
     }
 
@@ -385,10 +432,7 @@ final class CallAudioManager extends CallsManagerListenerBase
             switch(call.getState()) {
                 case ACTIVE:
                 case ON_HOLD:
-                    if (mBluetoothManager.isBluetoothAudioConnectedOrPending()) {
-                        route = CallAudioState.ROUTE_BLUETOOTH;
-                    }
-                    break;
+                case DIALING:
                 case RINGING:
                     route = CallAudioState.ROUTE_BLUETOOTH;
                     break;
@@ -402,6 +446,7 @@ final class CallAudioManager extends CallsManagerListenerBase
 
     private void setInitialAudioState(Call call) {
         CallAudioState audioState = getInitialAudioState(call);
+        Log.v(this, "setInitialAudioState %s, %s", audioState, call);
         setSystemAudioState(audioState.isMuted, audioState.route, audioState.supportedRouteMask);
     }
 
@@ -424,5 +469,9 @@ final class CallAudioManager extends CallsManagerListenerBase
             call = null;
         }
         return call;
+    }
+
+    private boolean hasFocus() {
+        return mAudioFocusStreamType != STREAM_NONE;
     }
 }
