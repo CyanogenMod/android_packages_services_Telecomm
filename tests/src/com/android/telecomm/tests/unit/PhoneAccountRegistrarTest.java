@@ -44,38 +44,48 @@ public class PhoneAccountRegistrarTest extends AndroidTestCase {
     @Override
     public void setUp() {
         mRegistrar = new PhoneAccountRegistrar(getContext(), FILE_NAME);
-        mRegistrar.registerPhoneAccount(new PhoneAccount(
-                new PhoneAccountHandle(new ComponentName("pkg0", "cls0"), "id0"),
-                Uri.parse("tel:555-1212"),
-                "555-1212",
-                PhoneAccount.CAPABILITY_CONNECTION_MANAGER,
-                0,
-                "label0",
-                "desc0"));
-        mRegistrar.registerPhoneAccount(new PhoneAccount(
-                new PhoneAccountHandle(new ComponentName("pkg0", "cls0"), "id1"),
-                Uri.parse("tel:555-1212"),
-                "555-1212",
-                PhoneAccount.CAPABILITY_CALL_PROVIDER | PhoneAccount.CAPABILITY_SIM_SUBSCRIPTION,
-                0,
-                "label1",
-                "desc1"));
-        mRegistrar.registerPhoneAccount(new PhoneAccount(
-                new PhoneAccountHandle(new ComponentName("pkg1", "cls1"), "id2"),
-                Uri.parse("tel:555-1212"),
-                "555-1212",
-                PhoneAccount.CAPABILITY_CALL_PROVIDER,
-                0,
-                "label2",
-                "desc2"));
-        mRegistrar.registerPhoneAccount(new PhoneAccount(
-                new PhoneAccountHandle(new ComponentName("pkg1", "cls1"), "id3"),
-                Uri.parse("tel:555-1212"),
-                "555-1212",
-                PhoneAccount.CAPABILITY_CALL_PROVIDER,
-                0,
-                "label2",
-                "desc2"));
+        mRegistrar.registerPhoneAccount(PhoneAccount.builder()
+                .withAccountHandle(
+                        new PhoneAccountHandle(new ComponentName("pkg0", "cls0"), "id0"))
+                .withHandle(Uri.parse("tel:555-1212"))
+                .withSubscriptionNumber("555-1212")
+                .withCapabilities(PhoneAccount.CAPABILITY_CONNECTION_MANAGER)
+                .withIconResId(0)
+                .withLabel("label0")
+                .withShortDescription("desc0")
+                .build());
+        mRegistrar.registerPhoneAccount(PhoneAccount.builder()
+                .withAccountHandle(
+                        new PhoneAccountHandle(new ComponentName("pkg0", "cls0"), "id1"))
+                .withHandle(Uri.parse("tel:555-1212"))
+                .withSubscriptionNumber("555-1212")
+                .withCapabilities(
+                        PhoneAccount.CAPABILITY_CALL_PROVIDER
+                                | PhoneAccount.CAPABILITY_SIM_SUBSCRIPTION)
+                .withIconResId(0)
+                .withLabel("label1")
+                .withShortDescription("desc1")
+                .build());
+        mRegistrar.registerPhoneAccount(PhoneAccount.builder()
+                .withAccountHandle(
+                        new PhoneAccountHandle(new ComponentName("pkg1", "cls1"), "id2"))
+                .withHandle(Uri.parse("tel:555-1212"))
+                .withSubscriptionNumber("555-1212")
+                .withCapabilities(PhoneAccount.CAPABILITY_CALL_PROVIDER)
+                .withIconResId(0)
+                .withLabel("label2")
+                .withShortDescription("desc2")
+                .build());
+        mRegistrar.registerPhoneAccount(PhoneAccount.builder()
+                .withAccountHandle(
+                        new PhoneAccountHandle(new ComponentName("pkg1", "cls1"), "id3"))
+                .withHandle(Uri.parse("tel:555-1212"))
+                .withSubscriptionNumber("555-1212")
+                .withCapabilities(PhoneAccount.CAPABILITY_CALL_PROVIDER)
+                .withIconResId(0)
+                .withLabel("label2")
+                .withShortDescription("desc2")
+                .build());
     }
 
     @Override
@@ -159,7 +169,7 @@ public class PhoneAccountRegistrarTest extends AndroidTestCase {
         PhoneAccount input = makeQuickAccount("pkg0", "cls0", "id0", 0);
         PhoneAccount result = roundTrip(this, input, PhoneAccountRegistrar.sPhoneAccountXml);
         assertPhoneAccountEquals(input, result);
-        PhoneAccount inputN = new PhoneAccount(null, null, null, 0, 0, null, null);
+        PhoneAccount inputN = PhoneAccount.builder().build();
         PhoneAccount resultN = roundTrip(this, inputN, PhoneAccountRegistrar.sPhoneAccountXml);
         assertPhoneAccountEquals(inputN, resultN);
     }
@@ -181,7 +191,7 @@ public class PhoneAccountRegistrarTest extends AndroidTestCase {
 
     public void testAccounts() throws Exception {
         assertEquals(4, mRegistrar.getAllPhoneAccountHandles().size());
-        assertEquals(3, mRegistrar.getEnabledPhoneAccounts().size());
+        assertEquals(3, mRegistrar.getOutgoingPhoneAccounts().size());
         assertEquals(null, mRegistrar.getSimCallManager());
         assertEquals(null, mRegistrar.getDefaultOutgoingPhoneAccount());
     }
@@ -239,26 +249,28 @@ public class PhoneAccountRegistrarTest extends AndroidTestCase {
         // If have one account but not suitable, default returns null
         mRegistrar.unregisterPhoneAccount(
                 new PhoneAccountHandle(new ComponentName("pkg1", "cls1"), "id3"));
-        mRegistrar.registerPhoneAccount(new PhoneAccount(
-                new PhoneAccountHandle(new ComponentName("pkg0", "cls0"), "id0"),
-                Uri.parse("tel:555-1212"),
-                "555-1212",
-                PhoneAccount.CAPABILITY_CONNECTION_MANAGER,
-                0,
-                "label0",
-                "desc0"));
+        mRegistrar.registerPhoneAccount(PhoneAccount.builder()
+                .withAccountHandle(new PhoneAccountHandle(new ComponentName("pkg0", "cls0"), "id0"))
+                .withHandle(Uri.parse("tel:555-1212"))
+                .withSubscriptionNumber("555-1212")
+                .withCapabilities(PhoneAccount.CAPABILITY_CONNECTION_MANAGER)
+                .withIconResId(0)
+                .withLabel("label0")
+                .withShortDescription("desc0")
+                .build());
         assertEquals(null, mRegistrar.getDefaultOutgoingPhoneAccount());
     }
 
     private static PhoneAccount makeQuickAccount(String pkg, String cls, String id, int idx) {
-        return new PhoneAccount(
-                new PhoneAccountHandle(new ComponentName(pkg, cls), id),
-                Uri.parse("http://foo.com/" + idx),
-                "555-000" + idx,
-                idx,
-                idx,
-                "label" + idx,
-                "desc" + idx);
+        return PhoneAccount.builder()
+                .withAccountHandle(new PhoneAccountHandle(new ComponentName(pkg, cls), id))
+                .withHandle(Uri.parse("http://foo.com/" + idx))
+                .withSubscriptionNumber("555-000" + idx)
+                .withCapabilities(idx)
+                .withIconResId(idx)
+                .withLabel("label" + idx)
+                .withShortDescription("desc" + idx)
+                .build();
     }
 
     private static PhoneAccountRegistrar.State makeQuickState() {

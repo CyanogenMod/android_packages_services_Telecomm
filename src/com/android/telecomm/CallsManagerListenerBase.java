@@ -16,7 +16,7 @@
 
 package com.android.telecomm;
 
-import android.telecomm.CallAudioState;
+import android.telecomm.AudioState;
 import android.telecomm.CallState;
 
 /**
@@ -32,7 +32,7 @@ class CallsManagerListenerBase implements CallsManager.CallsManagerListener {
     }
 
     @Override
-    public void onCallStateChanged(Call call, CallState oldState, CallState newState) {
+    public void onCallStateChanged(Call call, int oldState, int newState) {
     }
 
     @Override
@@ -55,7 +55,7 @@ class CallsManagerListenerBase implements CallsManager.CallsManagerListener {
     }
 
     @Override
-    public void onAudioStateChanged(CallAudioState oldAudioState, CallAudioState newAudioState) {
+    public void onAudioStateChanged(AudioState oldAudioState, AudioState newAudioState) {
     }
 
     @Override

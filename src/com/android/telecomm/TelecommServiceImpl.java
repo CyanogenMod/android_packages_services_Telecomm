@@ -170,11 +170,11 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
     }
 
     @Override
-    public List<PhoneAccountHandle> getEnabledPhoneAccounts() {
+    public List<PhoneAccountHandle> getOutgoingPhoneAccounts() {
         try {
-            return mPhoneAccountRegistrar.getEnabledPhoneAccounts();
+            return mPhoneAccountRegistrar.getOutgoingPhoneAccounts();
         } catch (Exception e) {
-            Log.e(this, e, "getEnabledPhoneAccounts");
+            Log.e(this, e, "getOutgoingPhoneAccounts");
             throw e;
         }
     }

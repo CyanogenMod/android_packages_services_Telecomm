@@ -29,19 +29,19 @@ import android.telephony.TelephonyManager;
  */
 final class PhoneStateBroadcaster extends CallsManagerListenerBase {
     @Override
-    public void onCallStateChanged(Call call, CallState oldState, CallState newState) {
+    public void onCallStateChanged(Call call, int oldState, int newState) {
         final String phoneState;
         switch (newState) {
-            case DIALING:
-            case ACTIVE:
-            case ON_HOLD:
+            case CallState.DIALING:
+            case CallState.ACTIVE:
+            case CallState.ON_HOLD:
                 phoneState = TelephonyManager.EXTRA_STATE_OFFHOOK;
                 break;
-            case RINGING:
+            case CallState.RINGING:
                 phoneState = TelephonyManager.EXTRA_STATE_RINGING;
                 break;
-            case ABORTED:
-            case DISCONNECTED:
+            case CallState.ABORTED:
+            case CallState.DISCONNECTED:
                 phoneState = TelephonyManager.EXTRA_STATE_IDLE;
                 break;
             default:
