@@ -41,14 +41,16 @@ final class HeadsetMediaButton extends CallsManagerListenerBase {
 
     private final MediaSession.Callback mSessionCallback = new MediaSession.Callback() {
         @Override
-        public void onMediaButtonEvent(Intent intent) {
+        public boolean onMediaButtonEvent(Intent intent) {
             KeyEvent event = (KeyEvent) intent.getParcelableExtra(Intent.EXTRA_KEY_EVENT);
             Log.v(this, "SessionCallback.onMediaButton()...  event = %s.", event);
             if ((event != null) && (event.getKeyCode() == KeyEvent.KEYCODE_HEADSETHOOK)) {
                 Log.v(this, "SessionCallback: HEADSETHOOK");
                 boolean consumed = handleHeadsetHook(event);
                 Log.v(this, "==> handleHeadsetHook(): consumed = %b.", consumed);
+                return consumed;
             }
+            return true;
         }
     };
 
@@ -62,7 +64,7 @@ final class HeadsetMediaButton extends CallsManagerListenerBase {
         // Create a MediaSession but don't enable it yet. This is a
         // replacement for MediaButtonReceiver
         mSession = new MediaSession(context, HeadsetMediaButton.class.getSimpleName());
-        mSession.addCallback(mSessionCallback);
+        mSession.setCallback(mSessionCallback);
         mSession.setFlags(MediaSession.FLAG_EXCLUSIVE_GLOBAL_PRIORITY
                 | MediaSession.FLAG_HANDLES_MEDIA_BUTTONS);
         mSession.setPlaybackToLocal(AUDIO_ATTRIBUTES);
