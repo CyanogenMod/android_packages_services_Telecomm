@@ -82,9 +82,8 @@ public class TestVideoCallProvider extends ConnectionService.VideoCallProvider {
         mCameraId = cameraId;
 
         stopCamera();
-        // Get the capabilities of the camera and send it back to the in-call UI.
+        // Get the capabilities of the camera
         setCameraCapabilities(mCameraId);
-        changeCameraCapabilities(mCameraCapabilities);
     }
 
     @Override
