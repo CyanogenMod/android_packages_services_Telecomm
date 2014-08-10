@@ -40,7 +40,10 @@ import java.util.List;
 public class CallServiceNotifier {
     private static final CallServiceNotifier INSTANCE = new CallServiceNotifier();
 
-    static final String PHONE_ACCOUNT_ID = "testapps_TestConnectionService_Account_ID";
+    static final String CALL_PROVIDER_ID = "testapps_TestConnectionService_CALL_PROVIDER_ID";
+    static final String SIM_SUBSCRIPTION_ID = "testapps_TestConnectionService_SIM_SUBSCRIPTION_ID";
+    static final String CONNECTION_MANAGER_ID =
+            "testapps_TestConnectionService_CONNECTION_MANAGER_ID";
 
     /**
      * Static notification IDs.
@@ -92,26 +95,42 @@ public class CallServiceNotifier {
     public void registerPhoneAccount(Context context) {
         TelecommManager telecommManager =
                 (TelecommManager) context.getSystemService(Context.TELECOMM_SERVICE);
+
+        telecommManager.clearAccounts(context.getPackageName());
+
+        // Register a call provider. This is used by 3rd party apps to provide voip calls.
         telecommManager.registerPhoneAccount(new PhoneAccount(
                 new PhoneAccountHandle(
                         new ComponentName(context, TestConnectionService.class),
-                        PHONE_ACCOUNT_ID),
+                        CALL_PROVIDER_ID),
                 Uri.parse("tel:555-TEST"),
                 "555-TEST",
                 PhoneAccount.CAPABILITY_CALL_PROVIDER,
                 R.drawable.stat_sys_phone_call,
-                "Dummy Service",
-                "a short description for the dummy service"));
+                "TelecommTestApp Call Provider",
+                "a short description for the call provider"));
+
+        telecommManager.registerPhoneAccount(new PhoneAccount(
+                new PhoneAccountHandle(
+                        new ComponentName(context, TestConnectionService.class),
+                        SIM_SUBSCRIPTION_ID),
+                Uri.parse("tel:555-TSIM"),
+                "555-TSIM",
+                PhoneAccount.CAPABILITY_CALL_PROVIDER | PhoneAccount.CAPABILITY_SIM_SUBSCRIPTION,
+                R.drawable.stat_sys_phone_call,
+                "TelecommTestApp SIM Subscription",
+                "a short description for the sim subscription"));
+
         telecommManager.registerPhoneAccount(new PhoneAccount(
                 new PhoneAccountHandle(
                         new ComponentName(context, TestConnectionManager.class),
-                        PHONE_ACCOUNT_ID),
+                        CONNECTION_MANAGER_ID),
                 Uri.parse("tel:555-CMGR"),
                 "555-CMGR",
                 PhoneAccount.CAPABILITY_CONNECTION_MANAGER,
                 R.drawable.stat_sys_phone_call,
-                "Dummy Connection Manager",
-                "a short description for the dummy connection manager"));
+                "TelecommTestApp CONNECTION MANAGER",
+                "a short description for the connection manager"));
     }
 
     /**
