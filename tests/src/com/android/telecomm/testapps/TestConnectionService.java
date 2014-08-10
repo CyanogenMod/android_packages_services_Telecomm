@@ -153,10 +153,11 @@ public class TestConnectionService extends ConnectionService {
         }
 
         void startOutgoing() {
+            setDialing();
             mHandler.postDelayed(new Runnable() {
                 @Override
                 public void run() {
-                    TestConnection.this.setActive();
+                    setActive();
                     activateCall(TestConnection.this);
                 }
             }, 4000);
@@ -187,6 +188,27 @@ public class TestConnectionService extends ConnectionService {
                 setVideoState(videoState);
                 activateCall(this);
                 setActive();
+            }
+        }
+
+        /** ${inheritDoc} */
+        @Override
+        public void onPlayDtmfTone(char c) {
+             if (mRemoteConnection != null) {
+                mRemoteConnection.playDtmfTone(c);
+            } else {
+                if (c == '1') {
+                    setDialing();
+                }
+            }
+        }
+
+        /** ${inheritDoc} */
+        @Override
+        public void onStopDtmfTone() {
+             if (mRemoteConnection != null) {
+                mRemoteConnection.stopDtmfTone();
+            } else {
             }
         }
 
@@ -409,19 +431,7 @@ public class TestConnectionService extends ConnectionService {
         // use a remote connection service.
         // TODO: Have a special phone number to test the account-picker dialog flow.
         if (number != null && number.startsWith("555")) {
-            // Normally we would use the original request as is, but for testing purposes, we are
-            // adding ".." to the end of the number to follow its path more easily through the logs.
-            final ConnectionRequest request = new ConnectionRequest(
-                    originalRequest.getAccountHandle(),
-                    originalRequest.getCallId(),
-                    Uri.fromParts(handle.getScheme(),
-                    handle.getSchemeSpecificPart() + "..", ""),
-                    originalRequest.getHandlePresentation(),
-                    originalRequest.getExtras(),
-                    originalRequest.getVideoState());
-
             mCalls.add(connection);
-
             connection.startOutgoing();
         } else {
             log("Not a test number");
