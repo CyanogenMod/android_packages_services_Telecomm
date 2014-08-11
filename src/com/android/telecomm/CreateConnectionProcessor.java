@@ -18,6 +18,7 @@ package com.android.telecomm;
 
 import android.telecomm.ConnectionRequest;
 import android.telecomm.ParcelableConnection;
+import android.telecomm.PhoneAccount;
 import android.telecomm.PhoneAccountHandle;
 import android.telephony.DisconnectCause;
 
@@ -78,10 +79,10 @@ final class CreateConnectionProcessor {
         Log.v(this, "process");
         mAttemptRecords = new ArrayList<>();
         if (mCall.getTargetPhoneAccount() != null) {
-            mAttemptRecords.add(
-                    new CallAttemptRecord(mCall.getTargetPhoneAccount(), mCall.getTargetPhoneAccount()));
+            mAttemptRecords.add(new CallAttemptRecord(
+                    mCall.getTargetPhoneAccount(), mCall.getTargetPhoneAccount()));
         }
-        adjustAttemptsForWifi();
+        adjustAttemptsForConnectionManager();
         adjustAttemptsForEmergency();
         mAttemptRecordIterator = mAttemptRecords.iterator();
         attemptNextPhoneAccount();
@@ -134,28 +135,50 @@ final class CreateConnectionProcessor {
         }
     }
 
-    // If there exists a registered Wi-Fi calling service, use it.
-    private void adjustAttemptsForWifi() {
-        switch (mAttemptRecords.size()) {
-            case 0:
-                return;
-            case 1:
-                break;
-            default:
-                Log.d(this, "Unexpectedly have > 1 attempt: %s", mAttemptRecords);
-                return;
+    private boolean shouldSetConnectionManager() {
+        if (mAttemptRecords.size() == 0) {
+            return false;
         }
-        PhoneAccountHandle simCallManager =
-                TelecommApp.getInstance().getPhoneAccountRegistrar().getSimCallManager();
 
-        Log.d(this, "adjustAttemptsForWifi finds simCallManager = %s", simCallManager);
-        if (simCallManager != null &&
-                !Objects.equals(simCallManager, mAttemptRecords.get(0).targetPhoneAccount)) {
-            mAttemptRecords.set(
-                    0,
-                    new CallAttemptRecord(
-                            simCallManager,
-                            mAttemptRecords.get(0).targetPhoneAccount));
+        if (mAttemptRecords.size() > 1) {
+            Log.d(this, "shouldSetConnectionManager, error, mAttemptRecords should not have more "
+                    + "than 1 record");
+            return false;
+        }
+
+        PhoneAccountRegistrar registrar = TelecommApp.getInstance().getPhoneAccountRegistrar();
+        PhoneAccountHandle connectionManager = registrar.getSimCallManager();
+        if (connectionManager == null) {
+            return false;
+        }
+
+        PhoneAccountHandle targetPhoneAccountHandle = mAttemptRecords.get(0).targetPhoneAccount;
+        if (Objects.equals(connectionManager, targetPhoneAccountHandle)) {
+            return false;
+        }
+
+        // Connection managers are only allowed to manage SIM subscriptions.
+        PhoneAccount targetPhoneAccount = registrar.getPhoneAccount(targetPhoneAccountHandle);
+        boolean isSimSubscription = (targetPhoneAccount.getCapabilities() &
+                PhoneAccount.CAPABILITY_SIM_SUBSCRIPTION) != 0;
+        if (!isSimSubscription) {
+            return false;
+        }
+
+        return true;
+    }
+
+    // If there exists a registered connection manager then use it.
+    private void adjustAttemptsForConnectionManager() {
+        if (shouldSetConnectionManager()) {
+            CallAttemptRecord record = new CallAttemptRecord(
+                    TelecommApp.getInstance().getPhoneAccountRegistrar().getSimCallManager(),
+                    mAttemptRecords.get(0).targetPhoneAccount);
+            Log.v(this, "setConnectionManager, changing %s -> %s",
+                    mAttemptRecords.get(0).targetPhoneAccount, record);
+            mAttemptRecords.set(0, record);
+        } else {
+            Log.v(this, "setConnectionManager, not changing");
         }
     }
 
