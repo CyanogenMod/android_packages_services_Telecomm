@@ -16,7 +16,6 @@
 
 package com.android.telecomm;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.HashBiMap;
 
 /** Utility to map {@link Call} objects to unique IDs. IDs are generated when a call is added. */
@@ -39,7 +38,9 @@ class CallIdMapper {
     }
 
     void addCall(Call call, String id) {
-        Preconditions.checkNotNull(call);
+        if (call == null) {
+            return;
+        }
         ThreadUtil.checkOnMainThread();
         mCalls.put(id, call);
     }
@@ -50,8 +51,10 @@ class CallIdMapper {
     }
 
     void removeCall(Call call) {
+        if (call == null) {
+            return;
+        }
         ThreadUtil.checkOnMainThread();
-        Preconditions.checkNotNull(call);
         mCalls.inverse().remove(call);
     }
 
@@ -61,8 +64,10 @@ class CallIdMapper {
     }
 
     String getCallId(Call call) {
+        if (call == null) {
+            return null;
+        }
         ThreadUtil.checkOnMainThread();
-        Preconditions.checkNotNull(call);
         return mCalls.inverse().get(call);
     }
 
@@ -73,23 +78,15 @@ class CallIdMapper {
         if (objId instanceof String) {
             callId = (String) objId;
         }
-        checkValidCallId(callId);
+        if (!isValidCallId(callId)) {
+            return null;
+        }
 
         return mCalls.get(callId);
     }
 
     void clear() {
         mCalls.clear();
-    }
-
-    void checkValidCallId(String callId) {
-        // Note, no need for thread check, this method is thread safe.
-        if (!isValidCallId(callId)) {
-            // TODO: Re-enable this once we stop getting updates to
-            // ConnectionServiceWrapper for remote connections.
-            //throw new IllegalArgumentException(
-            //        "Invalid call ID for " + mCallIdPrefix + ": " + callId);
-        }
     }
 
     boolean isValidCallId(String callId) {
