@@ -216,77 +216,87 @@ class InCallAdapter extends IInCallAdapter.Stub {
     @Override
     public void answerCall(String callId, int videoState) {
         Log.d(this, "answerCall(%s,%d)", callId, videoState);
-        mCallIdMapper.checkValidCallId(callId);
-        SomeArgs args = SomeArgs.obtain();
-        args.arg1 = callId;
-        args.arg2 = videoState;
-        mHandler.obtainMessage(MSG_ANSWER_CALL, args).sendToTarget();
+        if (mCallIdMapper.isValidCallId(callId)) {
+            SomeArgs args = SomeArgs.obtain();
+            args.arg1 = callId;
+            args.arg2 = videoState;
+            mHandler.obtainMessage(MSG_ANSWER_CALL, args).sendToTarget();
+        }
     }
 
     @Override
     public void rejectCall(String callId, boolean rejectWithMessage, String textMessage) {
         Log.d(this, "rejectCall(%s,%b,%s)", callId, rejectWithMessage, textMessage);
-        mCallIdMapper.checkValidCallId(callId);
-        SomeArgs args = SomeArgs.obtain();
-        args.arg1 = callId;
-        args.argi1 = rejectWithMessage ? 1 : 0;
-        args.arg2 = textMessage;
-        mHandler.obtainMessage(MSG_REJECT_CALL, args).sendToTarget();
+        if (mCallIdMapper.isValidCallId(callId)) {
+            SomeArgs args = SomeArgs.obtain();
+            args.arg1 = callId;
+            args.argi1 = rejectWithMessage ? 1 : 0;
+            args.arg2 = textMessage;
+            mHandler.obtainMessage(MSG_REJECT_CALL, args).sendToTarget();
+        }
     }
 
     @Override
     public void playDtmfTone(String callId, char digit) {
         Log.d(this, "playDtmfTone(%s,%c)", callId, digit);
-        mCallIdMapper.checkValidCallId(callId);
-        mHandler.obtainMessage(MSG_PLAY_DTMF_TONE, (int) digit, 0, callId).sendToTarget();
+        if (mCallIdMapper.isValidCallId(callId)) {
+            mHandler.obtainMessage(MSG_PLAY_DTMF_TONE, (int) digit, 0, callId).sendToTarget();
+        }
     }
 
     @Override
     public void stopDtmfTone(String callId) {
         Log.d(this, "stopDtmfTone(%s)", callId);
-        mCallIdMapper.checkValidCallId(callId);
-        mHandler.obtainMessage(MSG_STOP_DTMF_TONE, callId).sendToTarget();
+        if (mCallIdMapper.isValidCallId(callId)) {
+            mHandler.obtainMessage(MSG_STOP_DTMF_TONE, callId).sendToTarget();
+        }
     }
 
     @Override
     public void postDialContinue(String callId, boolean proceed) {
         Log.d(this, "postDialContinue(%s)", callId);
-        mCallIdMapper.checkValidCallId(callId);
-        mHandler.obtainMessage(MSG_POST_DIAL_CONTINUE, proceed ? 1 : 0, 0, callId).sendToTarget();
+        if (mCallIdMapper.isValidCallId(callId)) {
+            mHandler.obtainMessage(MSG_POST_DIAL_CONTINUE, proceed ? 1 : 0, 0, callId).sendToTarget();
+        }
     }
 
     @Override
     public void disconnectCall(String callId) {
         Log.v(this, "disconnectCall: %s", callId);
-        mCallIdMapper.checkValidCallId(callId);
-        mHandler.obtainMessage(MSG_DISCONNECT_CALL, callId).sendToTarget();
+        if (mCallIdMapper.isValidCallId(callId)) {
+            mHandler.obtainMessage(MSG_DISCONNECT_CALL, callId).sendToTarget();
+        }
     }
 
     @Override
     public void holdCall(String callId) {
-        mCallIdMapper.checkValidCallId(callId);
-        mHandler.obtainMessage(MSG_HOLD_CALL, callId).sendToTarget();
+        if (mCallIdMapper.isValidCallId(callId)) {
+            mHandler.obtainMessage(MSG_HOLD_CALL, callId).sendToTarget();
+        }
     }
 
     @Override
     public void unholdCall(String callId) {
-        mCallIdMapper.checkValidCallId(callId);
-        mHandler.obtainMessage(MSG_UNHOLD_CALL, callId).sendToTarget();
+        if (mCallIdMapper.isValidCallId(callId)) {
+            mHandler.obtainMessage(MSG_UNHOLD_CALL, callId).sendToTarget();
+        }
     }
 
     @Override
     public void phoneAccountClicked(String callId) {
-        mCallIdMapper.checkValidCallId(callId);
-        mHandler.obtainMessage(MSG_PHONE_ACCOUNT_CLICKED, callId).sendToTarget();
+        if (mCallIdMapper.isValidCallId(callId)) {
+            mHandler.obtainMessage(MSG_PHONE_ACCOUNT_CLICKED, callId).sendToTarget();
+        }
     }
 
     @Override
     public void phoneAccountSelected(String callId, PhoneAccountHandle accountHandle) {
-        mCallIdMapper.checkValidCallId(callId);
-        SomeArgs args = SomeArgs.obtain();
-        args.arg1 = callId;
-        args.arg2 = accountHandle;
-        mHandler.obtainMessage(MSG_PHONE_ACCOUNT_SELECTED, args).sendToTarget();
+        if (mCallIdMapper.isValidCallId(callId)) {
+            SomeArgs args = SomeArgs.obtain();
+            args.arg1 = callId;
+            args.arg2 = accountHandle;
+            mHandler.obtainMessage(MSG_PHONE_ACCOUNT_SELECTED, args).sendToTarget();
+        }
     }
 
     @Override
@@ -301,20 +311,27 @@ class InCallAdapter extends IInCallAdapter.Stub {
 
     @Override
     public void conference(String callId, String otherCallId) {
-        SomeArgs args = SomeArgs.obtain();
-        args.arg1 = callId;
-        args.arg2 = otherCallId;
-        mHandler.obtainMessage(MSG_CONFERENCE, args).sendToTarget();
+        if (mCallIdMapper.isValidCallId(callId) &&
+                mCallIdMapper.isValidCallId(otherCallId)) {
+            SomeArgs args = SomeArgs.obtain();
+            args.arg1 = callId;
+            args.arg2 = otherCallId;
+            mHandler.obtainMessage(MSG_CONFERENCE, args).sendToTarget();
+        }
     }
 
     @Override
     public void splitFromConference(String callId) {
-        mHandler.obtainMessage(MSG_SPLIT_FROM_CONFERENCE, callId).sendToTarget();
+        if (mCallIdMapper.isValidCallId(callId)) {
+            mHandler.obtainMessage(MSG_SPLIT_FROM_CONFERENCE, callId).sendToTarget();
+        }
     }
 
     @Override
     public void swapWithBackgroundCall(String callId) {
-        mHandler.obtainMessage(MSG_SWAP_WITH_BACKGROUND_CALL, callId).sendToTarget();
+        if (mCallIdMapper.isValidCallId(callId)) {
+            mHandler.obtainMessage(MSG_SWAP_WITH_BACKGROUND_CALL, callId).sendToTarget();
+        }
     }
 
     @Override
