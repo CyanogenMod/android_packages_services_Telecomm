@@ -359,88 +359,98 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                 ConnectionRequest request, ParcelableConnection connection) {
 
             logIncoming("handleCreateConnectionSuccessful %s", request);
-            mCallIdMapper.checkValidCallId(request.getCallId());
-            SomeArgs args = SomeArgs.obtain();
-            args.arg1 = request;
-            args.arg2 = connection;
-            mHandler.obtainMessage(MSG_HANDLE_CREATE_CONNECTION_SUCCESSFUL, args).sendToTarget();
+            if (mCallIdMapper.isValidCallId(request.getCallId())) {
+                SomeArgs args = SomeArgs.obtain();
+                args.arg1 = request;
+                args.arg2 = connection;
+                mHandler.obtainMessage(MSG_HANDLE_CREATE_CONNECTION_SUCCESSFUL, args).sendToTarget();
+            }
         }
 
         @Override
         public void handleCreateConnectionFailed(
                 ConnectionRequest request, int errorCode, String errorMsg) {
             logIncoming("handleCreateConnectionFailed %s %d %s", request, errorCode, errorMsg);
-            mCallIdMapper.checkValidCallId(request.getCallId());
-            SomeArgs args = SomeArgs.obtain();
-            args.arg1 = request;
-            args.argi1 = errorCode;
-            args.arg2 = errorMsg;
-            mHandler.obtainMessage(MSG_HANDLE_CREATE_CONNECTION_FAILED, args).sendToTarget();
+            if (mCallIdMapper.isValidCallId(request.getCallId())) {
+                SomeArgs args = SomeArgs.obtain();
+                args.arg1 = request;
+                args.argi1 = errorCode;
+                args.arg2 = errorMsg;
+                mHandler.obtainMessage(MSG_HANDLE_CREATE_CONNECTION_FAILED, args).sendToTarget();
+            }
         }
 
         @Override
         public void handleCreateConnectionCancelled(ConnectionRequest request) {
             logIncoming("handleCreateConnectionCancelled %s", request);
-            mCallIdMapper.checkValidCallId(request.getCallId());
-            mHandler.obtainMessage(MSG_HANDLE_CREATE_CONNECTION_CANCELLED, request).sendToTarget();
+            if (mCallIdMapper.isValidCallId(request.getCallId())) {
+                mHandler.obtainMessage(MSG_HANDLE_CREATE_CONNECTION_CANCELLED, request).sendToTarget();
+            }
         }
 
         @Override
         public void setActive(String callId) {
             logIncoming("setActive %s", callId);
-            mCallIdMapper.checkValidCallId(callId);
-            mHandler.obtainMessage(MSG_SET_ACTIVE, callId).sendToTarget();
+            if (mCallIdMapper.isValidCallId(callId)) {
+                mHandler.obtainMessage(MSG_SET_ACTIVE, callId).sendToTarget();
+            }
         }
 
         @Override
         public void setRinging(String callId) {
             logIncoming("setRinging %s", callId);
-            mCallIdMapper.checkValidCallId(callId);
-            mHandler.obtainMessage(MSG_SET_RINGING, callId).sendToTarget();
+            if (mCallIdMapper.isValidCallId(callId)) {
+                mHandler.obtainMessage(MSG_SET_RINGING, callId).sendToTarget();
+            }
         }
 
         @Override
         public void setVideoCallProvider(String callId, IVideoCallProvider videoCallProvider) {
             logIncoming("setVideoCallProvider %s", callId);
-            mCallIdMapper.checkValidCallId(callId);
-            SomeArgs args = SomeArgs.obtain();
-            args.arg1 = callId;
-            args.arg2 = videoCallProvider;
-            mHandler.obtainMessage(MSG_SET_CALL_VIDEO_PROVIDER, args).sendToTarget();
+            if (mCallIdMapper.isValidCallId(callId)) {
+                SomeArgs args = SomeArgs.obtain();
+                args.arg1 = callId;
+                args.arg2 = videoCallProvider;
+                mHandler.obtainMessage(MSG_SET_CALL_VIDEO_PROVIDER, args).sendToTarget();
+            }
         }
 
         @Override
         public void setDialing(String callId) {
             logIncoming("setDialing %s", callId);
-            mCallIdMapper.checkValidCallId(callId);
-            mHandler.obtainMessage(MSG_SET_DIALING, callId).sendToTarget();
+            if (mCallIdMapper.isValidCallId(callId)) {
+                mHandler.obtainMessage(MSG_SET_DIALING, callId).sendToTarget();
+            }
         }
 
         @Override
         public void setDisconnected(
                 String callId, int disconnectCause, String disconnectMessage) {
             logIncoming("setDisconnected %s %d %s", callId, disconnectCause, disconnectMessage);
-            mCallIdMapper.checkValidCallId(callId);
-            SomeArgs args = SomeArgs.obtain();
-            args.arg1 = callId;
-            args.arg2 = disconnectMessage;
-            args.argi1 = disconnectCause;
-            mHandler.obtainMessage(MSG_SET_DISCONNECTED, args).sendToTarget();
+            if (mCallIdMapper.isValidCallId(callId)) {
+                SomeArgs args = SomeArgs.obtain();
+                args.arg1 = callId;
+                args.arg2 = disconnectMessage;
+                args.argi1 = disconnectCause;
+                mHandler.obtainMessage(MSG_SET_DISCONNECTED, args).sendToTarget();
+            }
         }
 
         @Override
         public void setOnHold(String callId) {
             logIncoming("setOnHold %s", callId);
-            mCallIdMapper.checkValidCallId(callId);
-            mHandler.obtainMessage(MSG_SET_ON_HOLD, callId).sendToTarget();
+            if (mCallIdMapper.isValidCallId(callId)) {
+                mHandler.obtainMessage(MSG_SET_ON_HOLD, callId).sendToTarget();
+            }
         }
 
         @Override
         public void setRequestingRingback(String callId, boolean ringback) {
             logIncoming("setRequestingRingback %s %b", callId, ringback);
-            mCallIdMapper.checkValidCallId(callId);
-            mHandler.obtainMessage(MSG_SET_REQUESTING_RINGBACK, ringback ? 1 : 0, 0, callId)
-                    .sendToTarget();
+            if (mCallIdMapper.isValidCallId(callId)) {
+                mHandler.obtainMessage(MSG_SET_REQUESTING_RINGBACK, ringback ? 1 : 0, 0, callId)
+                        .sendToTarget();
+            }
         }
 
         @Override
@@ -451,34 +461,41 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
         @Override
         public void setCallCapabilities(String callId, int callCapabilities) {
             logIncoming("setCallCapabilities %s %d", callId, callCapabilities);
-            mHandler.obtainMessage(MSG_SET_CALL_CAPABILITIES, callCapabilities, 0, callId)
-                    .sendToTarget();
+            if (mCallIdMapper.isValidCallId(callId)) {
+                mHandler.obtainMessage(MSG_SET_CALL_CAPABILITIES, callCapabilities, 0, callId)
+                        .sendToTarget();
+            }
         }
 
         @Override
         public void setIsConferenced(String callId, String conferenceCallId) {
             logIncoming("setIsConferenced %s %s", callId, conferenceCallId);
-            SomeArgs args = SomeArgs.obtain();
-            args.arg1 = callId;
-            args.arg2 = conferenceCallId;
-            mHandler.obtainMessage(MSG_SET_IS_CONFERENCED, args).sendToTarget();
+            if (mCallIdMapper.isValidCallId(callId) &&
+                    mCallIdMapper.isValidCallId(conferenceCallId)) {
+                SomeArgs args = SomeArgs.obtain();
+                args.arg1 = callId;
+                args.arg2 = conferenceCallId;
+                mHandler.obtainMessage(MSG_SET_IS_CONFERENCED, args).sendToTarget();
+            }
         }
 
         @Override
         public void addConferenceCall(String callId) {
             logIncoming("addConferenceCall %s", callId);
-            mCallIdMapper.checkValidCallId(callId);
-            mHandler.obtainMessage(MSG_ADD_CONFERENCE_CALL, callId).sendToTarget();
+            if (mCallIdMapper.isValidCallId(callId)) {
+                mHandler.obtainMessage(MSG_ADD_CONFERENCE_CALL, callId).sendToTarget();
+            }
         }
 
         @Override
         public void onPostDialWait(String callId, String remaining) throws RemoteException {
             logIncoming("onPostDialWait %s %s", callId, remaining);
-            mCallIdMapper.checkValidCallId(callId);
-            SomeArgs args = SomeArgs.obtain();
-            args.arg1 = callId;
-            args.arg2 = remaining;
-            mHandler.obtainMessage(MSG_ON_POST_DIAL_WAIT, args).sendToTarget();
+            if (mCallIdMapper.isValidCallId(callId)) {
+                SomeArgs args = SomeArgs.obtain();
+                args.arg1 = callId;
+                args.arg2 = remaining;
+                mHandler.obtainMessage(MSG_ON_POST_DIAL_WAIT, args).sendToTarget();
+            }
         }
 
         @Override
@@ -490,70 +507,77 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
         @Override
         public void setVideoState(String callId, int videoState) {
             logIncoming("setVideoState %s %d", callId, videoState);
-            mCallIdMapper.checkValidCallId(callId);
-            mHandler.obtainMessage(MSG_SET_VIDEO_STATE, videoState, 0, callId).sendToTarget();
+            if (mCallIdMapper.isValidCallId(callId)) {
+                mHandler.obtainMessage(MSG_SET_VIDEO_STATE, videoState, 0, callId).sendToTarget();
+            }
         }
 
         @Override
         public void setAudioModeIsVoip(String callId, boolean isVoip) {
             logIncoming("setAudioModeIsVoip %s %b", callId, isVoip);
-            mCallIdMapper.checkValidCallId(callId);
-            mHandler.obtainMessage(MSG_SET_AUDIO_MODE_IS_VOIP, isVoip ? 1 : 0, 0,
-                    callId).sendToTarget();
+            if (mCallIdMapper.isValidCallId(callId)) {
+                mHandler.obtainMessage(MSG_SET_AUDIO_MODE_IS_VOIP, isVoip ? 1 : 0, 0,
+                        callId).sendToTarget();
+            }
         }
 
         @Override
         public void setStatusHints(String callId, StatusHints statusHints) {
             logIncoming("setStatusHints %s %s", callId, statusHints);
-            mCallIdMapper.checkValidCallId(callId);
-            SomeArgs args = SomeArgs.obtain();
-            args.arg1 = callId;
-            args.arg2 = statusHints;
-            mHandler.obtainMessage(MSG_SET_STATUS_HINTS, args).sendToTarget();
+            if (mCallIdMapper.isValidCallId(callId)) {
+                SomeArgs args = SomeArgs.obtain();
+                args.arg1 = callId;
+                args.arg2 = statusHints;
+                mHandler.obtainMessage(MSG_SET_STATUS_HINTS, args).sendToTarget();
+            }
         }
 
         @Override
         public void setHandle(String callId, Uri handle, int presentation) {
             logIncoming("setHandle %s %s %d", callId, handle, presentation);
-            mCallIdMapper.checkValidCallId(callId);
-            SomeArgs args = SomeArgs.obtain();
-            args.arg1 = callId;
-            args.arg2 = handle;
-            args.argi1 = presentation;
-            mHandler.obtainMessage(MSG_SET_HANDLE, args).sendToTarget();
+            if (mCallIdMapper.isValidCallId(callId)) {
+                SomeArgs args = SomeArgs.obtain();
+                args.arg1 = callId;
+                args.arg2 = handle;
+                args.argi1 = presentation;
+                mHandler.obtainMessage(MSG_SET_HANDLE, args).sendToTarget();
+            }
         }
 
         @Override
         public void setCallerDisplayName(
                 String callId, String callerDisplayName, int presentation) {
             logIncoming("setCallerDisplayName %s %s %d", callId, callerDisplayName, presentation);
-            mCallIdMapper.checkValidCallId(callId);
-            SomeArgs args = SomeArgs.obtain();
-            args.arg1 = callId;
-            args.arg2 = callerDisplayName;
-            args.argi1 = presentation;
-            mHandler.obtainMessage(MSG_SET_CALLER_DISPLAY_NAME, args).sendToTarget();
+            if (mCallIdMapper.isValidCallId(callId)) {
+                SomeArgs args = SomeArgs.obtain();
+                args.arg1 = callId;
+                args.arg2 = callerDisplayName;
+                args.argi1 = presentation;
+                mHandler.obtainMessage(MSG_SET_CALLER_DISPLAY_NAME, args).sendToTarget();
+            }
         }
 
         @Override
         public void setConferenceableConnections(
                 String callId, List<String> conferenceableCallIds) {
             logIncoming("setConferenceableConnections %s %s", callId, conferenceableCallIds);
-            mCallIdMapper.checkValidCallId(callId);
-            SomeArgs args = SomeArgs.obtain();
-            args.arg1 = callId;
-            args.arg2 = conferenceableCallIds;
-            mHandler.obtainMessage(MSG_SET_CONFERENCEABLE_CONNECTIONS, args).sendToTarget();
+            if (mCallIdMapper.isValidCallId(callId)) {
+                SomeArgs args = SomeArgs.obtain();
+                args.arg1 = callId;
+                args.arg2 = conferenceableCallIds;
+                mHandler.obtainMessage(MSG_SET_CONFERENCEABLE_CONNECTIONS, args).sendToTarget();
+            }
         }
 
         @Override
         public void startActivityFromInCall(String callId, PendingIntent intent) {
             logIncoming("startActivityFromInCall %s %s", callId, intent);
-            mCallIdMapper.checkValidCallId(callId);
-            SomeArgs args = SomeArgs.obtain();
-            args.arg1 = callId;
-            args.arg2 = intent;
-            mHandler.obtainMessage(MSG_START_ACTIVITY_FROM_IN_CALL, args).sendToTarget();
+            if (mCallIdMapper.isValidCallId(callId)) {
+                SomeArgs args = SomeArgs.obtain();
+                args.arg1 = callId;
+                args.arg2 = intent;
+                mHandler.obtainMessage(MSG_START_ACTIVITY_FROM_IN_CALL, args).sendToTarget();
+            }
         }
     }
 
@@ -652,10 +676,10 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
     /** @see ConnectionService#abort(String) */
     void abort(Call call) {
         // Clear out any pending outgoing call data
-        String callId = mCallIdMapper.getCallId(call);
+        final String callId = mCallIdMapper.getCallId(call);
 
         // If still bound, tell the connection service to abort.
-        if (isServiceValid("abort")) {
+        if (callId != null && isServiceValid("abort")) {
             try {
                 logOutgoing("abort %s", callId);
                 mServiceInterface.abort(callId);
@@ -668,10 +692,11 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
 
     /** @see ConnectionService#hold(String) */
     void hold(Call call) {
-        if (isServiceValid("hold")) {
+        final String callId = mCallIdMapper.getCallId(call);
+        if (callId != null && isServiceValid("hold")) {
             try {
-                logOutgoing("hold %s", mCallIdMapper.getCallId(call));
-                mServiceInterface.hold(mCallIdMapper.getCallId(call));
+                logOutgoing("hold %s", callId);
+                mServiceInterface.hold(callId);
             } catch (RemoteException e) {
             }
         }
@@ -679,10 +704,11 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
 
     /** @see ConnectionService#unhold(String) */
     void unhold(Call call) {
-        if (isServiceValid("unhold")) {
+        final String callId = mCallIdMapper.getCallId(call);
+        if (callId != null && isServiceValid("unhold")) {
             try {
-                logOutgoing("unhold %s", mCallIdMapper.getCallId(call));
-                mServiceInterface.unhold(mCallIdMapper.getCallId(call));
+                logOutgoing("unhold %s", callId);
+                mServiceInterface.unhold(callId);
             } catch (RemoteException e) {
             }
         }
@@ -690,12 +716,11 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
 
     /** @see ConnectionService#onAudioStateChanged(String,CallAudioState) */
     void onAudioStateChanged(Call activeCall, CallAudioState audioState) {
-        if (isServiceValid("onAudioStateChanged")) {
+        final String callId = mCallIdMapper.getCallId(activeCall);
+        if (callId != null && isServiceValid("onAudioStateChanged")) {
             try {
-                logOutgoing("onAudioStateChanged %s %s",
-                        mCallIdMapper.getCallId(activeCall), audioState);
-                mServiceInterface.onAudioStateChanged(mCallIdMapper.getCallId(activeCall),
-                        audioState);
+                logOutgoing("onAudioStateChanged %s %s", callId, audioState);
+                mServiceInterface.onAudioStateChanged(callId, audioState);
             } catch (RemoteException e) {
             }
         }
@@ -703,10 +728,11 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
 
     /** @see ConnectionService#disconnect(String) */
     void disconnect(Call call) {
-        if (isServiceValid("disconnect")) {
+        final String callId = mCallIdMapper.getCallId(call);
+        if (callId != null && isServiceValid("disconnect")) {
             try {
-                logOutgoing("disconnect %s", mCallIdMapper.getCallId(call));
-                mServiceInterface.disconnect(mCallIdMapper.getCallId(call));
+                logOutgoing("disconnect %s", callId);
+                mServiceInterface.disconnect(callId);
             } catch (RemoteException e) {
             }
         }
@@ -714,10 +740,11 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
 
     /** @see ConnectionService#answer(String,int) */
     void answer(Call call, int videoState) {
-        if (isServiceValid("answer")) {
+        final String callId = mCallIdMapper.getCallId(call);
+        if (callId != null && isServiceValid("answer")) {
             try {
-                logOutgoing("answer %s %d", mCallIdMapper.getCallId(call), videoState);
-                mServiceInterface.answer(mCallIdMapper.getCallId(call), videoState);
+                logOutgoing("answer %s %d", callId, videoState);
+                mServiceInterface.answer(callId, videoState);
             } catch (RemoteException e) {
             }
         }
@@ -725,10 +752,11 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
 
     /** @see ConnectionService#reject(String) */
     void reject(Call call) {
-        if (isServiceValid("reject")) {
+        final String callId = mCallIdMapper.getCallId(call);
+        if (callId != null && isServiceValid("reject")) {
             try {
-                logOutgoing("reject %s", mCallIdMapper.getCallId(call));
-                mServiceInterface.reject(mCallIdMapper.getCallId(call));
+                logOutgoing("reject %s", callId);
+                mServiceInterface.reject(callId);
             } catch (RemoteException e) {
             }
         }
@@ -736,10 +764,11 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
 
     /** @see ConnectionService#playDtmfTone(String,char) */
     void playDtmfTone(Call call, char digit) {
-        if (isServiceValid("playDtmfTone")) {
+        final String callId = mCallIdMapper.getCallId(call);
+        if (callId != null && isServiceValid("playDtmfTone")) {
             try {
-                logOutgoing("playDtmfTone %s %c", mCallIdMapper.getCallId(call), digit);
-                mServiceInterface.playDtmfTone(mCallIdMapper.getCallId(call), digit);
+                logOutgoing("playDtmfTone %s %c", callId, digit);
+                mServiceInterface.playDtmfTone(callId, digit);
             } catch (RemoteException e) {
             }
         }
@@ -747,10 +776,11 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
 
     /** @see ConnectionService#stopDtmfTone(String) */
     void stopDtmfTone(Call call) {
-        if (isServiceValid("stopDtmfTone")) {
+        final String callId = mCallIdMapper.getCallId(call);
+        if (callId != null && isServiceValid("stopDtmfTone")) {
             try {
-                logOutgoing("stopDtmfTone %s", mCallIdMapper.getCallId(call));
-                mServiceInterface.stopDtmfTone(mCallIdMapper.getCallId(call));
+                logOutgoing("stopDtmfTone %s",callId);
+                mServiceInterface.stopDtmfTone(callId);
             } catch (RemoteException e) {
             }
         }
@@ -784,27 +814,32 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
     }
 
     void onPostDialContinue(Call call, boolean proceed) {
-        if (isServiceValid("onPostDialContinue")) {
+        final String callId = mCallIdMapper.getCallId(call);
+        if (callId != null && isServiceValid("onPostDialContinue")) {
             try {
-                logOutgoing("onPostDialContinue %s %b", mCallIdMapper.getCallId(call), proceed);
-                mServiceInterface.onPostDialContinue(mCallIdMapper.getCallId(call), proceed);
+                logOutgoing("onPostDialContinue %s %b", callId, proceed);
+                mServiceInterface.onPostDialContinue(callId, proceed);
             } catch (RemoteException ignored) {
             }
         }
     }
 
     void onPhoneAccountClicked(Call call) {
-        if (isServiceValid("onPhoneAccountClicked")) {
+        final String callId = mCallIdMapper.getCallId(call);
+        if (callId != null && isServiceValid("onPhoneAccountClicked")) {
             try {
-                logOutgoing("onPhoneAccountClicked %s", mCallIdMapper.getCallId(call));
-                mServiceInterface.onPhoneAccountClicked(mCallIdMapper.getCallId(call));
+                logOutgoing("onPhoneAccountClicked %s", callId);
+                mServiceInterface.onPhoneAccountClicked(callId);
             } catch (RemoteException ignored) {
             }
         }
     }
 
     void conference(final Call conferenceCall, Call call) {
-        if (isServiceValid("conference")) {
+        final String conferenceId = mCallIdMapper.getCallId(call);
+        final String callId = mCallIdMapper.getCallId(call);
+        if (conferenceId != null && callId != null &&
+                isServiceValid("conference")) {
             try {
                 conferenceCall.setConnectionService(this);
                 mPendingConferenceCalls.add(conferenceCall);
@@ -817,32 +852,30 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                     }
                 }, Timeouts.getConferenceCallExpireMillis());
 
-                logOutgoing("conference %s %s",
-                        mCallIdMapper.getCallId(conferenceCall),
-                        mCallIdMapper.getCallId(call));
-                mServiceInterface.conference(
-                        mCallIdMapper.getCallId(conferenceCall),
-                        mCallIdMapper.getCallId(call));
+                logOutgoing("conference %s %s", conferenceId, callId);
+                mServiceInterface.conference(conferenceId, callId);
             } catch (RemoteException ignored) {
             }
         }
     }
 
     void splitFromConference(Call call) {
-        if (isServiceValid("splitFromConference")) {
+        final String callId = mCallIdMapper.getCallId(call);
+        if (callId != null && isServiceValid("splitFromConference")) {
             try {
-                logOutgoing("splitFromConference %s", mCallIdMapper.getCallId(call));
-                mServiceInterface.splitFromConference(mCallIdMapper.getCallId(call));
+                logOutgoing("splitFromConference %s", callId);
+                mServiceInterface.splitFromConference(callId);
             } catch (RemoteException ignored) {
             }
         }
     }
 
     void swapWithBackgroundCall(Call call) {
-        if (isServiceValid("swapWithBackgroundCall")) {
+        final String callId = mCallIdMapper.getCallId(call);
+        if (callId != null && isServiceValid("swapWithBackgroundCall")) {
             try {
-                logOutgoing("swapWithBackgroundCall %s", mCallIdMapper.getCallId(call));
-                mServiceInterface.swapWithBackgroundCall(mCallIdMapper.getCallId(call));
+                logOutgoing("swapWithBackgroundCall %s", callId);
+                mServiceInterface.swapWithBackgroundCall(callId);
             } catch (RemoteException ignored) {
             }
         }
