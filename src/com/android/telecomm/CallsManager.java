@@ -259,7 +259,7 @@ public final class CallsManager extends Call.ListenerBase {
      * Starts the process to attach the call to a connection service.
      *
      * @param phoneAccountHandle The phone account which contains the component name of the connection
-     *                     serivce to use for this call.
+     *                     service to use for this call.
      * @param extras The optional extras Bundle passed with the intent used for the incoming call.
      */
     void processIncomingCallIntent(PhoneAccountHandle phoneAccountHandle, Bundle extras) {
@@ -281,6 +281,43 @@ public final class CallsManager extends Call.ListenerBase {
         call.startCreateConnection();
     }
 
+
+    /**
+     * Kicks off the first steps to creating an outgoing call so that InCallUI can launch.
+     *
+     * NOTE: emergency calls will never pass through this because they call
+     * placeOutgoingCall directly.
+     *
+     */
+    Call startOutgoingCall(Uri handle, PhoneAccountHandle phoneAccountHandle) {
+        // We only allow a single outgoing call at any given time. Before placing a call, make sure
+        // there doesn't already exist another outgoing call.
+        Call call = getFirstCallWithState(CallState.NEW, CallState.DIALING);
+
+        if (call != null) {
+            Log.i(this, "Canceling simultaneous outgoing call.");
+            return null;
+        }
+
+        // Create a call with original handle. The handle may be changed when the call is attached
+        // to a connection service, but in most cases will remain the same.
+        call = new Call(
+                mConnectionServiceRepository,
+                handle,
+                null /* gatewayInfo */,
+                null /* connectionManagerPhoneAccount */,
+                phoneAccountHandle,
+                false /* isIncoming */,
+                false /* isConference */);
+        call.setState(CallState.CONNECTING);
+
+        // TODO: Move this to be a part of addCall()
+        call.addListener(this);
+        addCall(call);
+
+        return call;
+    }
+
     /**
      * Attempts to issue/connect the specified call.
      *
@@ -290,14 +327,11 @@ public final class CallsManager extends Call.ListenerBase {
      * @param speakerphoneOn Whether or not to turn the speakerphone on once the call connects.
      * @param videoState The desired video state for the outgoing call.
      */
-    void placeOutgoingCall(Uri handle, GatewayInfo gatewayInfo, PhoneAccountHandle accountHandle,
-            boolean speakerphoneOn, int videoState) {
-
-        // We only allow a single outgoing call at any given time. Before placing a call, make sure
-        // there doesn't already exist another outgoing call.
-        Call currentOutgoing = getFirstCallWithState(CallState.NEW, CallState.DIALING);
-        if (currentOutgoing != null) {
-            Log.i(this, "Canceling simultaneous outgoing call.");
+    void placeOutgoingCall(Call call, Uri handle, GatewayInfo gatewayInfo,
+            PhoneAccountHandle accountHandle, boolean speakerphoneOn, int videoState) {
+        if (call == null) {
+            // don't do anything if the call no longer exists
+            Log.i(this, "Canceling unknown call.");
             return;
         }
 
@@ -311,6 +345,9 @@ public final class CallsManager extends Call.ListenerBase {
                     Log.pii(uriHandle), Log.pii(handle));
         }
 
+        //TODO: phone account is already set in {@link #startOutgoingCall}, refactor so this is
+        // not redundant.
+        //
         // Only dial with the requested phoneAccount if it is still valid. Otherwise treat this call
         // as if a phoneAccount was not specified (does the default behavior instead).
         if (accountHandle != null) {
@@ -321,20 +358,10 @@ public final class CallsManager extends Call.ListenerBase {
             }
         }
 
-        Call call = new Call(
-                mConnectionServiceRepository,
-                uriHandle,
-                gatewayInfo,
-                null /* connectionManagerPhoneAccount */,
-                accountHandle,
-                false /* isIncoming */,
-                false /* isConference */);
+        call.setHandle(uriHandle);
+        call.setGatewayInfo(gatewayInfo);
         call.setStartWithSpeakerphoneOn(speakerphoneOn);
         call.setVideoState(videoState);
-
-        // TODO: Move this to be a part of addCall()
-        call.addListener(this);
-        addCall(call);
 
         // This block of code will attempt to pre-determine a phone account
         final boolean emergencyCall = TelephonyUtil.shouldProcessAsEmergency(app, call.getHandle());
@@ -342,6 +369,8 @@ public final class CallsManager extends Call.ListenerBase {
             // Emergency -- CreateConnectionProcessor will choose accounts automatically
             call.setTargetPhoneAccount(null);
         } else if (accountHandle != null) {
+            // NOTE: this is currently not an option because no feature currently exists to
+            // preset a phone account
             Log.d(this, "CALL with phone account: " + accountHandle);
             call.setTargetPhoneAccount(accountHandle);
         } else {
