@@ -21,10 +21,12 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.Configuration;
+import android.net.Uri;
 import android.os.Bundle;
 import android.telecomm.PhoneAccountHandle;
 import android.telecomm.TelecommManager;
 import android.telecomm.TelecommManager;
+import android.telephony.PhoneNumberUtils;
 import android.text.TextUtils;
 
 /**
@@ -105,8 +107,17 @@ public class CallActivity extends Activity {
      * @param intent Call intent containing data about the handle to call.
      */
     private void processOutgoingCallIntent(Intent intent) {
+        String uriString = intent.getData().getSchemeSpecificPart();
+        Uri handle = Uri.fromParts(
+                PhoneNumberUtils.isUriNumber(uriString) ? "sip" : "tel", uriString, null);
+        PhoneAccountHandle phoneAccountHandle = intent.getParcelableExtra(
+                TelecommManager.EXTRA_PHONE_ACCOUNT_HANDLE);
+
+        // Send to CallsManager to ensure the InCallUI gets kicked off before the broadcast returns
+        Call call = mCallsManager.startOutgoingCall(handle, phoneAccountHandle);
+
         NewOutgoingCallIntentBroadcaster broadcaster = new NewOutgoingCallIntentBroadcaster(
-                mCallsManager, intent, isDefaultDialer());
+                mCallsManager, call, intent, isDefaultDialer());
         final boolean success = broadcaster.processIntent();
         setResult(success ? RESULT_OK : RESULT_CANCELED);
     }
