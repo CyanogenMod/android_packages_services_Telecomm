@@ -123,8 +123,9 @@ public final class CallsManager extends Call.ListenerBase {
     }
 
     @Override
-    public void onSuccessfulOutgoingCall(Call call) {
+    public void onSuccessfulOutgoingCall(Call call, CallState callState) {
         Log.v(this, "onSuccessfulOutgoingCall, %s", call);
+        setCallState(call, callState);
         if (mCalls.contains(call)) {
             // The call's ConnectionService has been updated.
             for (CallsManagerListener listener : mListeners) {
@@ -161,6 +162,7 @@ public final class CallsManager extends Call.ListenerBase {
 
     @Override
     public void onFailedIncomingCall(Call call) {
+        setCallState(call, CallState.DISCONNECTED);
         call.removeListener(this);
     }
 
