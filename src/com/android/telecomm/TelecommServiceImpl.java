@@ -348,6 +348,7 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
                     Binder.getCallingUid(), phoneAccountHandle.getComponentName().getPackageName());
 
             Intent intent = new Intent(TelecommManager.ACTION_INCOMING_CALL);
+            intent.setPackage(TelecommApp.getInstance().getPackageName());
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             intent.putExtra(TelecommManager.EXTRA_PHONE_ACCOUNT_HANDLE, phoneAccountHandle);
             if (extras != null) {
