@@ -65,7 +65,7 @@ final class Call implements CreateConnectionResponse {
      * Listener for events on the call.
      */
     interface Listener {
-        void onSuccessfulOutgoingCall(Call call);
+        void onSuccessfulOutgoingCall(Call call, CallState callState);
         void onFailedOutgoingCall(Call call, int errorCode, String errorMsg);
         void onCancelledOutgoingCall(Call call);
         void onSuccessfulIncomingCall(Call call);
@@ -94,7 +94,7 @@ final class Call implements CreateConnectionResponse {
 
     abstract static class ListenerBase implements Listener {
         @Override
-        public void onSuccessfulOutgoingCall(Call call) {}
+        public void onSuccessfulOutgoingCall(Call call, CallState callState) {}
         @Override
         public void onFailedOutgoingCall(Call call, int errorCode, String errorMsg) {}
         @Override
@@ -623,7 +623,6 @@ final class Call implements CreateConnectionResponse {
             ConnectionRequest request, ParcelableConnection connection) {
         Log.v(this, "handleCreateConnectionSuccessful %s", connection);
         mCreateConnectionProcessor = null;
-        setState(getStateFromConnectionState(connection.getState()));
         setTargetPhoneAccount(connection.getPhoneAccount());
         setHandle(connection.getHandle(), connection.getHandlePresentation());
         setCallerDisplayName(
@@ -644,7 +643,8 @@ final class Call implements CreateConnectionResponse {
             mHandler.postDelayed(mDirectToVoicemailRunnable, Timeouts.getDirectToVoicemailMillis());
         } else {
             for (Listener l : mListeners) {
-                l.onSuccessfulOutgoingCall(this);
+                l.onSuccessfulOutgoingCall(this,
+                        getStateFromConnectionState(connection.getState()));
             }
         }
     }
@@ -676,7 +676,6 @@ final class Call implements CreateConnectionResponse {
         if (mIsIncoming) {
             clearConnectionService();
             setDisconnectCause(DisconnectCause.OUTGOING_CANCELED, null);
-            setState(CallState.DISCONNECTED);
 
             Listener[] listeners = mListeners.toArray(new Listener[mListeners.size()]);
             for (int i = 0; i < listeners.length; i++) {
