@@ -133,6 +133,11 @@ public class TestConnectionManager extends ConnectionService {
             mRemoteConnection.disconnect();
         }
 
+        @Override
+        public void onPlayDtmfTone(char c) {
+            mRemoteConnection.playDtmfTone(c);
+        }
+
         /** ${inheritDoc} */
         @Override
         public void onHold() {
