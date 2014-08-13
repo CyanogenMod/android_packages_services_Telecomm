@@ -22,7 +22,7 @@ import android.os.AsyncTask;
 import android.provider.CallLog.Calls;
 import android.telecomm.CallState;
 import android.telecomm.PhoneAccountHandle;
-import android.telecomm.VideoCallProfile;
+import android.telecomm.VideoProfile;
 import android.telephony.PhoneNumberUtils;
 
 import com.android.internal.telephony.CallerInfo;
@@ -87,7 +87,7 @@ final class CallLogManager extends CallsManagerListenerBase {
     }
 
     @Override
-    public void onCallStateChanged(Call call, CallState oldState, CallState newState) {
+    public void onCallStateChanged(Call call, int oldState, int newState) {
         if ((newState == CallState.DISCONNECTED || newState == CallState.ABORTED) &&
                 oldState != CallState.PRE_DIAL_WAIT) {
             int type;
@@ -180,8 +180,8 @@ final class CallLogManager extends CallsManagerListenerBase {
      * @return The call features.
      */
     private static int getCallFeatures(int videoState) {
-        if ((videoState & VideoCallProfile.VideoState.TX_ENABLED)
-                == VideoCallProfile.VideoState.TX_ENABLED) {
+        if ((videoState & VideoProfile.VideoState.TX_ENABLED)
+                == VideoProfile.VideoState.TX_ENABLED) {
             return Calls.FEATURES_VIDEO;
         }
         return Calls.FEATURES_NONE;

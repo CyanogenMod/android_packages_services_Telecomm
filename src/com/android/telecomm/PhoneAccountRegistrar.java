@@ -19,7 +19,6 @@ package com.android.telecomm;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
-import android.content.res.Resources;
 import android.telecomm.ConnectionService;
 import android.telecomm.PhoneAccount;
 import android.telecomm.PhoneAccountHandle;
@@ -97,14 +96,14 @@ public final class PhoneAccountRegistrar {
             // as though there were no default
         }
 
-        List<PhoneAccountHandle> enabled = getEnabledPhoneAccounts();
-        switch (enabled.size()) {
+        List<PhoneAccountHandle> outgoing = getOutgoingPhoneAccounts();
+        switch (outgoing.size()) {
             case 0:
                 // There are no accounts, so there can be no default
                 return null;
             case 1:
                 // There is only one account, which is by definition the default
-                return enabled.get(0);
+                return outgoing.get(0);
             default:
                 // There are multiple accounts with no selected default
                 return null;
@@ -214,8 +213,7 @@ public final class PhoneAccountRegistrar {
         return new ArrayList<>(mState.accounts);
     }
 
-    // TODO: Rename systemwide to "getCallProviderPhoneAccounts"?
-    public List<PhoneAccountHandle> getEnabledPhoneAccounts() {
+    public List<PhoneAccountHandle> getOutgoingPhoneAccounts() {
         return getCallProviderAccountHandles();
     }
 
@@ -574,14 +572,15 @@ public final class PhoneAccountRegistrar {
                         shortDescription = parser.getText();
                     }
                 }
-                return new PhoneAccount(
-                        accountHandle,
-                        handle,
-                        subscriptionNumber,
-                        capabilities,
-                        iconResId,
-                        label,
-                        shortDescription);
+                return PhoneAccount.builder()
+                        .withAccountHandle(accountHandle)
+                        .withHandle(handle)
+                        .withSubscriptionNumber(subscriptionNumber)
+                        .withCapabilities(capabilities)
+                        .withIconResId(iconResId)
+                        .withLabel(label)
+                        .withShortDescription(shortDescription)
+                        .build();
             }
             return null;
         }

@@ -189,7 +189,7 @@ final class CreateConnectionProcessor {
             Log.i(this, "Emergency number detected");
             mAttemptRecords.clear();
             List<PhoneAccountHandle> allAccountHandles = TelecommApp.getInstance()
-                    .getPhoneAccountRegistrar().getEnabledPhoneAccounts();
+                    .getPhoneAccountRegistrar().getOutgoingPhoneAccounts();
             for (int i = 0; i < allAccountHandles.size(); i++) {
                 if (TelephonyUtil.isPstnComponentName(
                         allAccountHandles.get(i).getComponentName())) {

@@ -22,23 +22,23 @@ import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
-import android.telecomm.CallCapabilities;
-import android.telecomm.CallPropertyPresentation;
-import android.telecomm.CallState;
 import android.telecomm.Connection;
+import android.telecomm.PhoneCapabilities;
+import android.telecomm.PropertyPresentation;
+import android.telecomm.CallState;
 import android.telecomm.ConnectionRequest;
-import android.telecomm.ConnectionService.VideoCallProvider;
 import android.telecomm.GatewayInfo;
 import android.telecomm.ParcelableConnection;
 import android.telecomm.PhoneAccount;
 import android.telecomm.PhoneAccountHandle;
 import android.telecomm.Response;
 import android.telecomm.StatusHints;
+import android.telecomm.VideoProfile;
 import android.telephony.DisconnectCause;
 import android.telephony.PhoneNumberUtils;
 import android.text.TextUtils;
 
-import com.android.internal.telecomm.IVideoCallProvider;
+import com.android.internal.telecomm.IVideoProvider;
 import com.android.internal.telephony.CallerInfo;
 import com.android.internal.telephony.CallerInfoAsyncQuery;
 import com.android.internal.telephony.CallerInfoAsyncQuery.OnQueryCompleteListener;
@@ -65,7 +65,7 @@ final class Call implements CreateConnectionResponse {
      * Listener for events on the call.
      */
     interface Listener {
-        void onSuccessfulOutgoingCall(Call call, CallState callState);
+        void onSuccessfulOutgoingCall(Call call, int callState);
         void onFailedOutgoingCall(Call call, int errorCode, String errorMsg);
         void onCancelledOutgoingCall(Call call);
         void onSuccessfulIncomingCall(Call call);
@@ -94,7 +94,7 @@ final class Call implements CreateConnectionResponse {
 
     abstract static class ListenerBase implements Listener {
         @Override
-        public void onSuccessfulOutgoingCall(Call call, CallState callState) {}
+        public void onSuccessfulOutgoingCall(Call call, int callState) {}
         @Override
         public void onFailedOutgoingCall(Call call, int errorCode, String errorMsg) {}
         @Override
@@ -203,18 +203,18 @@ final class Call implements CreateConnectionResponse {
     private long mConnectTimeMillis;
 
     /** The state of the call. */
-    private CallState mState;
+    private int mState;
 
     /** The handle with which to establish this call. */
     private Uri mHandle;
 
-    /** The {@link CallPropertyPresentation} that controls how the handle is shown. */
+    /** The {@link PropertyPresentation} that controls how the handle is shown. */
     private int mHandlePresentation;
 
     /** The caller display name (CNAP) set by the connection service. */
     private String mCallerDisplayName;
 
-    /** The {@link CallPropertyPresentation} that controls how the caller display name is shown. */
+    /** The {@link PropertyPresentation} that controls how the caller display name is shown. */
     private int mCallerDisplayNamePresentation;
 
     /**
@@ -228,14 +228,14 @@ final class Call implements CreateConnectionResponse {
 
     /**
      * Tracks the video states which were applicable over the duration of a call.
-     * See {@link android.telecomm.VideoCallProfile} for a list of valid video states.
+     * See {@link VideoProfile} for a list of valid video states.
      */
     private int mVideoStateHistory;
 
     private int mVideoState;
 
     /**
-     * Disconnect cause for the call. Only valid if the state of the call is DISCONNECTED.
+     * Disconnect cause for the call. Only valid if the state of the call is STATE_DISCONNECTED.
      * See {@link android.telephony.DisconnectCause}.
      */
     private int mDisconnectCause = DisconnectCause.NOT_VALID;
@@ -279,7 +279,7 @@ final class Call implements CreateConnectionResponse {
     /** Whether an attempt has been made to load the text message responses. */
     private boolean mCannedSmsResponsesLoadingStarted = false;
 
-    private IVideoCallProvider mVideoCallProvider;
+    private IVideoProvider mVideoProvider;
 
     private boolean mAudioModeIsVoip;
     private StatusHints mStatusHints;
@@ -308,6 +308,7 @@ final class Call implements CreateConnectionResponse {
         mState = isConference ? CallState.ACTIVE : CallState.NEW;
         mRepository = repository;
         setHandle(handle);
+        setHandle(handle, PropertyPresentation.ALLOWED);
         mGatewayInfo = gatewayInfo;
         mConnectionManagerPhoneAccountHandle = connectionManagerPhoneAccountHandle;
         mTargetPhoneAccountHandle = targetPhoneAccountHandle;
@@ -336,7 +337,7 @@ final class Call implements CreateConnectionResponse {
                 Log.piiHandle(mHandle), getVideoState());
     }
 
-    CallState getState() {
+    int getState() {
         if (mIsConference) {
             if (!mChildCalls.isEmpty()) {
                 // If we have child calls, just return the child call.
@@ -354,7 +355,7 @@ final class Call implements CreateConnectionResponse {
      * misbehave and they do this very often. The result is that we do not enforce state transitions
      * and instead keep the code resilient to unexpected state changes.
      */
-    void setState(CallState newState) {
+    void setState(int newState) {
         Preconditions.checkState(newState != CallState.DISCONNECTED ||
                 mDisconnectCause != DisconnectCause.NOT_VALID);
         if (mState != newState) {
@@ -385,7 +386,7 @@ final class Call implements CreateConnectionResponse {
 
 
     void setHandle(Uri handle) {
-        setHandle(handle, CallPropertyPresentation.ALLOWED);
+        setHandle(handle, PropertyPresentation.ALLOWED);
     }
 
     void setHandle(Uri handle, int presentation) {
@@ -536,7 +537,7 @@ final class Call implements CreateConnectionResponse {
     }
 
     void setCallCapabilities(int callCapabilities) {
-        Log.v(this, "setCallCapabilities: %s", CallCapabilities.toString(callCapabilities));
+        Log.v(this, "setCallCapabilities: %s", PhoneCapabilities.toString(callCapabilities));
         if (mCallCapabilities != callCapabilities) {
            mCallCapabilities = callCapabilities;
             for (Listener l : mListeners) {
@@ -591,14 +592,14 @@ final class Call implements CreateConnectionResponse {
             if (mCallerInfo != null && mCallerInfo.shouldSendToVoicemail) {
                 Log.i(this, "Directing call to voicemail: %s.", this);
                 // TODO: Once we move State handling from CallsManager to Call, we
-                // will not need to set RINGING state prior to calling reject.
+                // will not need to set STATE_RINGING state prior to calling reject.
                 setState(CallState.RINGING);
                 reject(false, null);
             } else {
                 // TODO: Make this class (not CallsManager) responsible for changing
-                // the call state to RINGING.
+                // the call state to STATE_RINGING.
 
-                // TODO: Replace this with state transition to RINGING.
+                // TODO: Replace this with state transition to STATE_RINGING.
                 for (Listener l : mListeners) {
                     l.onSuccessfulIncomingCall(this);
                 }
@@ -628,7 +629,7 @@ final class Call implements CreateConnectionResponse {
         setCallerDisplayName(
                 connection.getCallerDisplayName(), connection.getCallerDisplayNamePresentation());
 
-        setVideoCallProvider(connection.getVideoCallProvider());
+        setVideoProvider(connection.getVideoProvider());
         setVideoState(connection.getVideoState());
 
         if (mIsIncoming) {
@@ -753,7 +754,7 @@ final class Call implements CreateConnectionResponse {
         if (isRinging("answer")) {
             // At this point, we are asking the connection service to answer but we don't assume
             // that it will work. Instead, we wait until confirmation from the connectino service
-            // that the call is in a non-RINGING state before changing the UI. See
+            // that the call is in a non-STATE_RINGING state before changing the UI. See
             // {@link ConnectionServiceAdapter#setActive} and other set* methods.
             mConnectionService.answer(this, videoState);
         }
@@ -800,10 +801,10 @@ final class Call implements CreateConnectionResponse {
     /** Checks if this is a live call or not. */
     boolean isAlive() {
         switch (mState) {
-            case NEW:
-            case RINGING:
-            case DISCONNECTED:
-            case ABORTED:
+            case CallState.NEW:
+            case CallState.RINGING:
+            case CallState.DISCONNECTED:
+            case CallState.ABORTED:
                 return false;
             default:
                 return true;
@@ -866,10 +867,6 @@ final class Call implements CreateConnectionResponse {
 
     void splitFromConference() {
         // TODO: todo
-    }
-
-    void swapWithBackgroundCall() {
-        mConnectionService.swapWithBackgroundCall(this);
     }
 
     void setParentCall(Call parentCall) {
@@ -1122,28 +1119,23 @@ final class Call implements CreateConnectionResponse {
     /**
      * Sets a video call provider for the call.
      */
-    public void setVideoCallProvider(IVideoCallProvider videoCallProvider) {
-        mVideoCallProvider = videoCallProvider;
+    public void setVideoProvider(IVideoProvider videoProvider) {
+        mVideoProvider = videoProvider;
         for (Listener l : mListeners) {
             l.onVideoCallProviderChanged(Call.this);
         }
     }
 
     /**
-     * @return Return the {@link VideoCallProvider} binder.
+     * @return Return the {@link Connection.VideoProvider} binder.
      */
-    public IVideoCallProvider getVideoCallProvider() {
-        return mVideoCallProvider;
+    public IVideoProvider getVideoProvider() {
+        return mVideoProvider;
     }
 
     /**
      * The current video state for the call.
-     * Valid values: {@link android.telecomm.VideoCallProfile#VIDEO_STATE_AUDIO_ONLY},
-     * {@link android.telecomm.VideoCallProfile#VIDEO_STATE_BIDIRECTIONAL},
-     * {@link android.telecomm.VideoCallProfile#VIDEO_STATE_TX_ENABLED},
-     * {@link android.telecomm.VideoCallProfile#VIDEO_STATE_RX_ENABLED}.
-     *
-     * @return True if video is enabled.
+     * Valid values: see {@link VideoProfile.VideoState}.
      */
     public int getVideoState() {
         return mVideoState;
@@ -1151,7 +1143,7 @@ final class Call implements CreateConnectionResponse {
 
     /**
      * Returns the video states which were applicable over the duration of a call.
-     * See {@link android.telecomm.VideoCallProfile} for a list of valid video states.
+     * See {@link VideoProfile} for a list of valid video states.
      *
      * @return The video states applicable over the duration of the call.
      */
@@ -1162,10 +1154,7 @@ final class Call implements CreateConnectionResponse {
     /**
      * Determines the current video state for the call.
      * For an outgoing call determines the desired video state for the call.
-     * Valid values: {@link android.telecomm.VideoCallProfile#VIDEO_STATE_AUDIO_ONLY},
-     * {@link android.telecomm.VideoCallProfile#VIDEO_STATE_BIDIRECTIONAL},
-     * {@link android.telecomm.VideoCallProfile#VIDEO_STATE_TX_ENABLED},
-     * {@link android.telecomm.VideoCallProfile#VIDEO_STATE_RX_ENABLED}.
+     * Valid values: see {@link VideoProfile.VideoState}
      *
      * @param videoState The video state for the call.
      */
@@ -1211,19 +1200,19 @@ final class Call implements CreateConnectionResponse {
         }
     }
 
-    private CallState getStateFromConnectionState(int state) {
+    private int getStateFromConnectionState(int state) {
         switch (state) {
-            case Connection.State.ACTIVE:
+            case Connection.STATE_ACTIVE:
                 return CallState.ACTIVE;
-            case Connection.State.DIALING:
+            case Connection.STATE_DIALING:
                 return CallState.DIALING;
-            case Connection.State.DISCONNECTED:
+            case Connection.STATE_DISCONNECTED:
                 return CallState.DISCONNECTED;
-            case Connection.State.HOLDING:
+            case Connection.STATE_HOLDING:
                 return CallState.ON_HOLD;
-            case Connection.State.NEW:
+            case Connection.STATE_NEW:
                 return CallState.NEW;
-            case Connection.State.RINGING:
+            case Connection.STATE_RINGING:
                 return CallState.RINGING;
         }
         return CallState.DISCONNECTED;

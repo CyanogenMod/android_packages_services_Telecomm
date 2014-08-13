@@ -34,10 +34,9 @@ import android.hardware.camera2.TotalCaptureResult;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.MediaPlayer;
 import android.os.Handler;
-import android.telecomm.CallCameraCapabilities;
-import android.telecomm.ConnectionService;
-import android.telecomm.InCallService.VideoCall;
-import android.telecomm.VideoCallProfile;
+import android.telecomm.CameraCapabilities;
+import android.telecomm.Connection;
+import android.telecomm.VideoProfile;
 import android.text.TextUtils;
 import android.util.Log;
 import android.util.Size;
@@ -52,8 +51,8 @@ import java.util.Random;
 /**
  * Implements the VideoCallProvider.
  */
-public class TestVideoCallProvider extends ConnectionService.VideoCallProvider {
-    private CallCameraCapabilities mCameraCapabilities;
+public class TestVideoProvider extends Connection.VideoProvider {
+    private CameraCapabilities mCameraCapabilities;
     private Random random;
     private Surface mDisplaySurface;
     private Surface mPreviewSurface;
@@ -70,7 +69,7 @@ public class TestVideoCallProvider extends ConnectionService.VideoCallProvider {
 
     private static final long SESSION_TIMEOUT_MS = 2000;
 
-    public TestVideoCallProvider(Context context) {
+    public TestVideoProvider(Context context) {
         mContext = context;
         random = new Random();
         mCameraManager = (CameraManager) context.getSystemService(Context.CAMERA_SERVICE);
@@ -141,19 +140,19 @@ public class TestVideoCallProvider extends ConnectionService.VideoCallProvider {
      * the response back via the CallVideoClient.
      */
     @Override
-    public void onSendSessionModifyRequest(VideoCallProfile requestProfile) {
+    public void onSendSessionModifyRequest(VideoProfile requestProfile) {
         log("Sent session modify request");
 
-        VideoCallProfile responseProfile = new VideoCallProfile(
+        VideoProfile responseProfile = new VideoProfile(
                 requestProfile.getVideoState(), requestProfile.getQuality());
         receiveSessionModifyResponse(
-                VideoCall.SESSION_MODIFY_REQUEST_SUCCESS,
+                SESSION_MODIFY_REQUEST_SUCCESS,
                 requestProfile,
                 responseProfile);
     }
 
     @Override
-    public void onSendSessionModifyResponse(VideoCallProfile responseProfile) {
+    public void onSendSessionModifyResponse(VideoProfile responseProfile) {
 
     }
 
@@ -328,7 +327,7 @@ public class TestVideoCallProvider extends ConnectionService.VideoCallProvider {
                     CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
             Size previewSize = map.getOutputSizes(SurfaceTexture.class)[0];
 
-            mCameraCapabilities = new CallCameraCapabilities(true, 1.0f, previewSize.getWidth(),
+            mCameraCapabilities = new CameraCapabilities(true, 1.0f, previewSize.getWidth(),
                     previewSize.getHeight());
         }
     }

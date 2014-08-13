@@ -184,14 +184,6 @@ class InCallAdapter extends IInCallAdapter.Stub {
                         Log.w(this, "splitFromConference, unknown call id: %s", msg.obj);
                     }
                     break;
-                case MSG_SWAP_WITH_BACKGROUND_CALL:
-                    call = mCallIdMapper.getCall(msg.obj);
-                    if (call != null) {
-                        call.swapWithBackgroundCall();
-                    } else {
-                        Log.w(this, "swapWithBackgroundCall, unknown call id: %s", msg.obj);
-                    }
-                    break;
                 case MSG_TURN_ON_PROXIMITY_SENSOR:
                     mCallsManager.turnOnProximitySensor();
                     break;
@@ -324,13 +316,6 @@ class InCallAdapter extends IInCallAdapter.Stub {
     public void splitFromConference(String callId) {
         if (mCallIdMapper.isValidCallId(callId)) {
             mHandler.obtainMessage(MSG_SPLIT_FROM_CONFERENCE, callId).sendToTarget();
-        }
-    }
-
-    @Override
-    public void swapWithBackgroundCall(String callId) {
-        if (mCallIdMapper.isValidCallId(callId)) {
-            mHandler.obtainMessage(MSG_SWAP_WITH_BACKGROUND_CALL, callId).sendToTarget();
         }
     }
 

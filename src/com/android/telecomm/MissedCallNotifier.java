@@ -71,7 +71,7 @@ class MissedCallNotifier extends CallsManagerListenerBase {
 
     /** {@inheritDoc} */
     @Override
-    public void onCallStateChanged(Call call, CallState oldState, CallState newState) {
+    public void onCallStateChanged(Call call, int oldState, int newState) {
         if (oldState == CallState.RINGING && newState == CallState.DISCONNECTED &&
                 call.getDisconnectCause() == DisconnectCause.INCOMING_MISSED) {
             showMissedCallNotification(call);

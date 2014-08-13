@@ -18,7 +18,7 @@ package com.android.telecomm;
 
 import android.net.Uri;
 import android.os.Bundle;
-import android.telecomm.CallAudioState;
+import android.telecomm.AudioState;
 import android.telecomm.CallState;
 import android.telecomm.GatewayInfo;
 import android.telecomm.PhoneAccountHandle;
@@ -46,7 +46,7 @@ public final class CallsManager extends Call.ListenerBase {
     interface CallsManagerListener {
         void onCallAdded(Call call);
         void onCallRemoved(Call call);
-        void onCallStateChanged(Call call, CallState oldState, CallState newState);
+        void onCallStateChanged(Call call, int oldState, int newState);
         void onConnectionServiceChanged(
                 Call call,
                 ConnectionServiceWrapper oldService,
@@ -54,7 +54,7 @@ public final class CallsManager extends Call.ListenerBase {
         void onIncomingCallAnswered(Call call);
         void onIncomingCallRejected(Call call, boolean rejectWithMessage, String textMessage);
         void onForegroundCallChanged(Call oldForegroundCall, Call newForegroundCall);
-        void onAudioStateChanged(CallAudioState oldAudioState, CallAudioState newAudioState);
+        void onAudioStateChanged(AudioState oldAudioState, AudioState newAudioState);
         void onRequestingRingback(Call call, boolean ringback);
         void onIsConferencedChanged(Call call);
         void onAudioModeIsVoipChanged(Call call);
@@ -123,7 +123,7 @@ public final class CallsManager extends Call.ListenerBase {
     }
 
     @Override
-    public void onSuccessfulOutgoingCall(Call call, CallState callState) {
+    public void onSuccessfulOutgoingCall(Call call, int callState) {
         Log.v(this, "onSuccessfulOutgoingCall, %s", call);
         setCallState(call, callState);
         if (mCalls.contains(call)) {
@@ -245,7 +245,7 @@ public final class CallsManager extends Call.ListenerBase {
         return false;
     }
 
-    CallAudioState getAudioState() {
+    AudioState getAudioState() {
         return mCallAudioManager.getAudioState();
     }
 
@@ -354,7 +354,7 @@ public final class CallsManager extends Call.ListenerBase {
         // as if a phoneAccount was not specified (does the default behavior instead).
         if (accountHandle != null) {
             List<PhoneAccountHandle> enabledAccounts =
-                    app.getPhoneAccountRegistrar().getEnabledPhoneAccounts();
+                    app.getPhoneAccountRegistrar().getOutgoingPhoneAccounts();
             if (!enabledAccounts.contains(accountHandle)) {
                 accountHandle = null;
             }
@@ -425,7 +425,7 @@ public final class CallsManager extends Call.ListenerBase {
             Log.i(this, "Request to answer a non-existent call %s", call);
         } else {
             // If the foreground call is not the ringing call and it is currently isActive() or
-            // DIALING, put it on hold before answering the call.
+            // STATE_DIALING, put it on hold before answering the call.
             if (mForegroundCall != null && mForegroundCall != call &&
                     (mForegroundCall.isActive() ||
                      mForegroundCall.getState() == CallState.DIALING)) {
@@ -588,7 +588,7 @@ public final class CallsManager extends Call.ListenerBase {
     }
 
     /** Called when the audio state changes. */
-    void onAudioStateChanged(CallAudioState oldAudioState, CallAudioState newAudioState) {
+    void onAudioStateChanged(AudioState oldAudioState, AudioState newAudioState) {
         Log.v(this, "onAudioStateChanged, audioState: %s -> %s", oldAudioState, newAudioState);
         for (CallsManagerListener listener : mListeners) {
             listener.onAudioStateChanged(oldAudioState, newAudioState);
@@ -610,7 +610,7 @@ public final class CallsManager extends Call.ListenerBase {
         setCallState(call, CallState.ACTIVE);
 
         if (call.getStartWithSpeakerphoneOn()) {
-            setAudioRoute(CallAudioState.ROUTE_SPEAKER);
+            setAudioRoute(AudioState.ROUTE_SPEAKER);
         }
     }
 
@@ -619,7 +619,7 @@ public final class CallsManager extends Call.ListenerBase {
     }
 
     /**
-     * Marks the specified call as DISCONNECTED and notifies the in-call app. If this was the last
+     * Marks the specified call as STATE_DISCONNECTED and notifies the in-call app. If this was the last
      * live call, then also disconnect from the in-call controller.
      *
      * @param disconnectCause The disconnect reason, see {@link android.telephony.DisconnectCause}.
@@ -710,8 +710,8 @@ public final class CallsManager extends Call.ListenerBase {
      * priority order so that any call with the first state will be returned before any call with
      * states listed later in the parameter list.
      */
-    Call getFirstCallWithState(CallState... states) {
-        for (CallState currentState : states) {
+    Call getFirstCallWithState(int... states) {
+        for (int currentState : states) {
             // check the foreground first
             if (mForegroundCall != null && mForegroundCall.getState() == currentState) {
                 return mForegroundCall;
@@ -769,14 +769,14 @@ public final class CallsManager extends Call.ListenerBase {
      * @param call The call.
      * @param newState The new state of the call.
      */
-    private void setCallState(Call call, CallState newState) {
+    private void setCallState(Call call, int newState) {
         Preconditions.checkNotNull(newState);
-        CallState oldState = call.getState();
+        int oldState = call.getState();
         Log.i(this, "setCallState %s -> %s, call: %s", oldState, newState, call);
         if (newState != oldState) {
             // Unfortunately, in the telephony world the radio is king. So if the call notifies
             // us that the call is in a particular state, we allow it even if it doesn't make
-            // sense (e.g., ACTIVE -> RINGING).
+            // sense (e.g., STATE_ACTIVE -> STATE_RINGING).
             // TODO: Consider putting a stop to the above and turning CallState
             // into a well-defined state machine.
             // TODO: Define expected state transitions here, and log when an
