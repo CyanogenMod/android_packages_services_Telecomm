@@ -23,11 +23,12 @@ import android.content.Intent;
 import android.content.res.Configuration;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.UserManager;
 import android.telecomm.PhoneAccountHandle;
 import android.telecomm.TelecommManager;
 import android.telephony.PhoneNumberUtils;
-import android.telephony.TelephonyManager;
 import android.text.TextUtils;
+import android.widget.Toast;
 
 /**
  * Activity that handles system CALL actions and forwards them to {@link CallsManager}.
@@ -120,6 +121,19 @@ public class CallActivity extends Activity {
         String uriString = intent.getData().getSchemeSpecificPart();
         Uri handle = Uri.fromParts(
                 PhoneNumberUtils.isUriNumber(uriString) ? "sip" : "tel", uriString, null);
+
+        UserManager userManager = (UserManager) getSystemService(Context.USER_SERVICE);
+        if (userManager.hasUserRestriction(UserManager.DISALLOW_OUTGOING_CALLS)
+                && !TelephonyUtil.shouldProcessAsEmergency(this, handle)) {
+            // Only emergency calls are allowed for users with the DISALLOW_OUTGOING_CALLS
+            // restriction.
+            Toast.makeText(this, getResources().getString(R.string.outgoing_call_not_allowed),
+                    Toast.LENGTH_SHORT).show();
+            Log.d(this, "Rejecting non-emergency phone call due to DISALLOW_OUTGOING_CALLS "
+                    + "restriction");
+            return;
+        }
+
         PhoneAccountHandle phoneAccountHandle = intent.getParcelableExtra(
                 TelecommManager.EXTRA_PHONE_ACCOUNT_HANDLE);
 
