@@ -48,6 +48,7 @@ class InCallAdapter extends IInCallAdapter.Stub {
     private static final int MSG_MERGE_CONFERENCE = 16;
     private static final int MSG_SWAP_CONFERENCE = 17;
     private static final int MSG_SET_SWITCH_SUBSCRIPTION = 18;
+    private static final int MSG_DEFLECT_CALL = 19;
 
     private final class InCallAdapterHandler extends Handler {
         @Override
@@ -200,7 +201,22 @@ class InCallAdapter extends IInCallAdapter.Stub {
                         Log.w(this, "swapConference, unknown call id: %s", msg.obj);
                     }
                     break;
-                case MSG_SET_SWITCH_SUBSCRIPTION:
+                case MSG_DEFLECT_CALL: {
+                    SomeArgs args = (SomeArgs) msg.obj;
+                    try {
+                        call = mCallIdMapper.getCall(args.arg1);
+                        String number = (String) args.arg2;
+                        if (call != null) {
+                            mCallsManager.deflectCall(call, number);
+                        } else {
+                            Log.w(this, "deflectCall, unknown call id: %s", args.arg1);
+                        }
+                    } finally {
+                        args.recycle();
+                    }
+                    break;
+                }
+                case MSG_SET_SWITCH_SUBSCRIPTION: {
                     SomeArgs args = (SomeArgs) msg.obj;
                     try {
                         Log.i(this, "MSG_SET_SWITCH_SUBSCRIPTION sub: %s, lchState: %b",
@@ -211,6 +227,7 @@ class InCallAdapter extends IInCallAdapter.Stub {
                         args.recycle();
                     }
                     break;
+                }
             }
         }
     }
@@ -234,6 +251,18 @@ class InCallAdapter extends IInCallAdapter.Stub {
             args.arg1 = callId;
             args.arg2 = videoState;
             mHandler.obtainMessage(MSG_ANSWER_CALL, args).sendToTarget();
+        }
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void deflectCall(String callId, String deflectNumber) {
+        Log.d(this, "deflectCall(%s)-(%s)", callId, deflectNumber);
+        if (mCallIdMapper.isValidCallId(callId)) {
+            SomeArgs args = SomeArgs.obtain();
+            args.arg1 = callId;
+            args.arg2 = deflectNumber;
+            mHandler.obtainMessage(MSG_DEFLECT_CALL, args).sendToTarget();
         }
     }
 

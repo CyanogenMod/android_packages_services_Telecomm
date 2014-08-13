@@ -843,6 +843,25 @@ final class Call implements CreateConnectionResponse {
     }
 
     /**
+     * Deflects the call if it is ringing.
+     *
+     * @param number Number to be deflected to.
+     */
+    void deflect(String number) {
+        Preconditions.checkNotNull(mConnectionService);
+
+        // Check to verify that the call is still in the ringing state. A call can change states
+        // between the time the user hits 'deflect' and Telecomm receives the command.
+        if (isRinging("deflect")) {
+            // At this point, we are asking the call service to deflect but we don't assume that
+            // it will work. Instead, we wait until confirmation from the call service that the
+            // call is in a non-RINGING state before changing the UI. See
+            // {@link CallServiceAdapter#setActive} and other set* methods.
+            mConnectionService.deflect(this, number);
+        }
+    }
+
+    /**
      * Rejects the call if it is ringing.
      *
      * @param rejectWithMessage Whether to send a text message as part of the call rejection.

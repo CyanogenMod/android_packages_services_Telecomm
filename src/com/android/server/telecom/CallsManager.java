@@ -609,6 +609,19 @@ public final class CallsManager extends Call.ListenerBase {
     }
 
     /**
+     * Instructs Telecomm to deflect the specified call. Intended to be invoked by the in-call
+     * app through {@link InCallAdapter} after Telecomm notifies it of an incoming call followed by
+     * the user opting to deflect said call.
+     */
+    void deflectCall(Call call, String number) {
+        if (!mCalls.contains(call)) {
+            Log.i(this, "Request to deflect a non-existent call %s", call);
+        } else {
+            call.deflect(number);
+        }
+    }
+
+    /**
      * Instructs Telecom to reject the specified call. Intended to be invoked by the in-call
      * app through {@link InCallAdapter} after Telecom notifies it of an incoming call followed by
      * the user opting to reject said call.

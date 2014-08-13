@@ -808,6 +808,18 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
         }
     }
 
+    /** @see ConnectionService#deflect(String, String) */
+    void deflect(Call call, String number) {
+        final String callId = mCallIdMapper.getCallId(call);
+        if (callId != null && isServiceValid("deflect")) {
+            try {
+                logOutgoing("deflect %s %s", callId, number);
+                mServiceInterface.deflect(callId, number);
+            } catch (RemoteException e) {
+            }
+        }
+    }
+
     /** @see ConnectionService#reject(String) */
     void reject(Call call) {
         final String callId = mCallIdMapper.getCallId(call);
