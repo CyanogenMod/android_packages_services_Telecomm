@@ -27,9 +27,9 @@ import android.net.Uri;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.os.UserHandle;
-import android.telecomm.CallAudioState;
-import android.telecomm.CallCapabilities;
-import android.telecomm.CallPropertyPresentation;
+import android.telecomm.AudioState;
+import android.telecomm.PhoneCapabilities;
+import android.telecomm.PropertyPresentation;
 import android.telecomm.CallState;
 import android.telecomm.ParcelableCall;
 
@@ -159,7 +159,7 @@ public final class InCallController extends CallsManagerListenerBase {
     }
 
     @Override
-    public void onCallStateChanged(Call call, CallState oldState, CallState newState) {
+    public void onCallStateChanged(Call call, int oldState, int newState) {
         updateCall(call);
     }
 
@@ -172,7 +172,7 @@ public final class InCallController extends CallsManagerListenerBase {
     }
 
     @Override
-    public void onAudioStateChanged(CallAudioState oldAudioState, CallAudioState newAudioState) {
+    public void onAudioStateChanged(AudioState oldAudioState, AudioState newAudioState) {
         if (mInCallService != null) {
             Log.i(this, "Calling onAudioStateChanged, audioState: %s -> %s", oldAudioState,
                     newAudioState);
@@ -304,13 +304,13 @@ public final class InCallController extends CallsManagerListenerBase {
 
         int capabilities = call.getCallCapabilities();
         if (CallsManager.getInstance().isAddCallCapable(call)) {
-            capabilities |= CallCapabilities.ADD_CALL;
+            capabilities |= PhoneCapabilities.ADD_CALL;
         }
         if (!call.isEmergencyCall()) {
-            capabilities |= CallCapabilities.MUTE;
+            capabilities |= PhoneCapabilities.MUTE;
         }
 
-        CallState state = call.getState();
+        int state = call.getState();
         if (state == CallState.ABORTED) {
             state = CallState.DISCONNECTED;
         }
@@ -333,13 +333,13 @@ public final class InCallController extends CallsManagerListenerBase {
         }
 
         if (call.isRespondViaSmsCapable()) {
-            capabilities |= CallCapabilities.RESPOND_VIA_TEXT;
+            capabilities |= PhoneCapabilities.RESPOND_VIA_TEXT;
         }
 
-        Uri handle = call.getHandlePresentation() == CallPropertyPresentation.ALLOWED ?
+        Uri handle = call.getHandlePresentation() == PropertyPresentation.ALLOWED ?
                 call.getHandle() : null;
         String callerDisplayName = call.getCallerDisplayNamePresentation() ==
-                CallPropertyPresentation.ALLOWED ?  call.getCallerDisplayName() : null;
+                PropertyPresentation.ALLOWED ?  call.getCallerDisplayName() : null;
 
         List<Call> conferenceableCalls = call.getConferenceableCalls();
         List<String> conferenceableCallIds = new ArrayList<String>(conferenceableCalls.size());
@@ -364,7 +364,7 @@ public final class InCallController extends CallsManagerListenerBase {
                 call.getCallerDisplayNamePresentation(),
                 call.getGatewayInfo(),
                 call.getTargetPhoneAccount(),
-                call.getVideoCallProvider(),
+                call.getVideoProvider(),
                 parentCallId,
                 childCallIds,
                 call.getStatusHints(),

@@ -56,7 +56,7 @@ public class PhoneAccountPreferencesActivity extends Activity {
 
             mDefaultOutgoingAccount.setModel(
                     registrar,
-                    registrar.getEnabledPhoneAccounts(),
+                    registrar.getOutgoingPhoneAccounts(),
                     registrar.getDefaultOutgoingPhoneAccount(),
                     getString(R.string.account_ask_every_time));
 

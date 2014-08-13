@@ -18,7 +18,7 @@ package com.android.telecomm.testapps;
 
 import android.app.PendingIntent;
 import android.net.Uri;
-import android.telecomm.CallAudioState;
+import android.telecomm.AudioState;
 import android.telecomm.Connection;
 import android.telecomm.ConnectionRequest;
 import android.telecomm.ConnectionService;
@@ -157,23 +157,23 @@ public class TestConnectionManager extends ConnectionService {
         }
 
         @Override
-        public void onSetAudioState(CallAudioState state) {
+        public void onSetAudioState(AudioState state) {
             mRemoteConnection.setAudioState(state);
         }
 
         private void setState(int state) {
             log("setState: " + state);
             switch (state) {
-                case State.ACTIVE:
+                case STATE_ACTIVE:
                     setActive();
                     break;
-                case State.HOLDING:
+                case STATE_HOLDING:
                     setOnHold();
                     break;
-                case State.DIALING:
+                case STATE_DIALING:
                     setDialing();
                     break;
-                case State.RINGING:
+                case STATE_RINGING:
                     setRinging();
                     break;
             }

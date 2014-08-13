@@ -16,7 +16,6 @@
 
 package com.android.telecomm;
 
-import android.telecomm.CallAudioState;
 import android.telecomm.CallState;
 import android.telephony.DisconnectCause;
 
@@ -37,7 +36,7 @@ public final class InCallToneMonitor extends CallsManagerListenerBase {
     }
 
     @Override
-    public void onCallStateChanged(Call call, CallState oldState, CallState newState) {
+    public void onCallStateChanged(Call call, int oldState, int newState) {
         if (mCallsManager.getForegroundCall() != call) {
             // We only play tones for foreground calls.
             return;
