@@ -27,6 +27,7 @@ import android.telecomm.PhoneAccountHandle;
 import android.telecomm.TelecommManager;
 import android.telecomm.TelecommManager;
 import android.telephony.PhoneNumberUtils;
+import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 
 /**
@@ -47,6 +48,7 @@ import android.text.TextUtils;
  */
 public class CallActivity extends Activity {
     private CallsManager mCallsManager = CallsManager.getInstance();
+    private boolean mIsVoiceCapable;
 
     /**
      * {@inheritDoc}
@@ -57,6 +59,8 @@ public class CallActivity extends Activity {
     @Override
     protected void onCreate(Bundle bundle) {
         super.onCreate(bundle);
+
+        mIsVoiceCapable = isVoiceCapable();
 
         // TODO: This activity will be displayed until the next screen which could be
         // the in-call UI and error dialog or potentially a call-type selection dialog.
@@ -88,6 +92,12 @@ public class CallActivity extends Activity {
      * @param intent The intent.
      */
     private void processIntent(Intent intent) {
+        // Ensure call intents are not processed on devices that are not capable of calling.
+        if (!mIsVoiceCapable) {
+            setResult(RESULT_CANCELED);
+            return;
+        }
+
         String action = intent.getAction();
 
         // TODO: Check for non-voice capable devices before reading any intents.
@@ -107,6 +117,7 @@ public class CallActivity extends Activity {
      * @param intent Call intent containing data about the handle to call.
      */
     private void processOutgoingCallIntent(Intent intent) {
+
         String uriString = intent.getData().getSchemeSpecificPart();
         Uri handle = Uri.fromParts(
                 PhoneNumberUtils.isUriNumber(uriString) ? "sip" : "tel", uriString, null);
@@ -164,5 +175,15 @@ public class CallActivity extends Activity {
         final ComponentName defaultPhoneApp = telecommManager.getDefaultPhoneApp();
         return (defaultPhoneApp != null
                 && TextUtils.equals(defaultPhoneApp.getPackageName(), packageName));
+    }
+
+    /**
+     * Returns whether the device is voice-capable (e.g. a phone vs a tablet).
+     *
+     * @return {@code True} if the device is voice-capable.
+     */
+    private boolean isVoiceCapable() {
+        return getApplicationContext().getResources().getBoolean(
+                com.android.internal.R.bool.config_voice_capable);
     }
 }
