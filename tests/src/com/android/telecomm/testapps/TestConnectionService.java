@@ -23,17 +23,16 @@ import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
-import android.telecomm.CallAudioState;
-import android.telecomm.CallCapabilities;
-import android.telecomm.CallPropertyPresentation;
+import android.telecomm.AudioState;
 import android.telecomm.Connection;
+import android.telecomm.PhoneCapabilities;
+import android.telecomm.PropertyPresentation;
 import android.telecomm.ConnectionRequest;
 import android.telecomm.ConnectionService;
 import android.telecomm.PhoneAccountHandle;
 import android.telecomm.RemoteConnection;
-import android.telecomm.SimpleResponse;
 import android.telecomm.StatusHints;
-import android.telecomm.VideoCallProfile;
+import android.telecomm.VideoProfile;
 import android.telephony.DisconnectCause;
 import android.util.Log;
 
@@ -138,7 +137,7 @@ public class TestConnectionService extends ConnectionService {
         private final boolean mIsIncoming;
 
         /** Used to cleanup camera and media when done with connection. */
-        private TestVideoCallProvider mTestVideoCallProvider;
+        private TestVideoProvider mTestVideoCallProvider;
 
         TestConnection(boolean isIncoming) {
             mIsIncoming = isIncoming;
@@ -148,7 +147,7 @@ public class TestConnectionService extends ConnectionService {
             mRemoteConnection = remoteConnection;
             if (mRemoteConnection != null) {
                 mRemoteConnection.addListener(mProxyListener);
-                setState(mIsIncoming ? State.RINGING : State.DIALING);
+                setState(mIsIncoming ? STATE_RINGING : STATE_DIALING);
             }
         }
 
@@ -257,7 +256,7 @@ public class TestConnectionService extends ConnectionService {
         }
 
         @Override
-        public void onSetAudioState(CallAudioState state) {
+        public void onSetAudioState(AudioState state) {
             if (mRemoteConnection != null) {
                 mRemoteConnection.setAudioState(state);
             }
@@ -266,22 +265,22 @@ public class TestConnectionService extends ConnectionService {
         private void setState(int state) {
             log("setState: " + state);
             switch (state) {
-                case Connection.State.ACTIVE:
+                case STATE_ACTIVE:
                     setActive();
                     break;
-                case Connection.State.HOLDING:
+                case STATE_HOLDING:
                     setOnHold();
                     break;
-                case Connection.State.DIALING:
+                case STATE_DIALING:
                     setDialing();
                     break;
-                case Connection.State.RINGING:
+                case STATE_RINGING:
                     setRinging();
                     break;
             }
         }
 
-        public void setTestVideoCallProvider(TestVideoCallProvider testVideoCallProvider) {
+        public void setTestVideoCallProvider(TestVideoProvider testVideoCallProvider) {
             mTestVideoCallProvider = testVideoCallProvider;
         }
 
@@ -305,7 +304,7 @@ public class TestConnectionService extends ConnectionService {
         private final RemoteConnection.Listener mRemoteListener = new RemoteConnection.Listener() {
             @Override
             public void onStateChanged(RemoteConnection conn, int newState) {
-                if (newState != Connection.State.INITIALIZING) {
+                if (newState != Connection.STATE_INITIALIZING) {
                     // Set the underlying connection
                     mTestConnection.setRemoteConnection(conn);
                 } else {
@@ -331,7 +330,6 @@ public class TestConnectionService extends ConnectionService {
             if (mAccountIterator.hasNext()) {
                 ConnectionRequest connectionRequest = new ConnectionRequest(
                         mAccountIterator.next(),
-                        mOriginalRequest.getCallId(),
                         mOriginalRequest.getHandle(),
                         mOriginalRequest.getHandlePresentation(),
                         null,
@@ -431,6 +429,16 @@ public class TestConnectionService extends ConnectionService {
         // use a remote connection service.
         // TODO: Have a special phone number to test the account-picker dialog flow.
         if (number != null && number.startsWith("555")) {
+            // Normally we would use the original request as is, but for testing purposes, we are
+            // adding ".." to the end of the number to follow its path more easily through the logs.
+            final ConnectionRequest request = new ConnectionRequest(
+                    originalRequest.getAccountHandle(),
+                    Uri.fromParts(handle.getScheme(),
+                    handle.getSchemeSpecificPart() + "..", ""),
+                    originalRequest.getHandlePresentation(),
+                    originalRequest.getExtras(),
+                    originalRequest.getVideoState());
+
             mCalls.add(connection);
             connection.startOutgoing();
         } else {
@@ -457,9 +465,9 @@ public class TestConnectionService extends ConnectionService {
             // Use dummy number for testing incoming calls.
             Uri handle = Uri.fromParts(SCHEME_TEL, getDummyNumber(isVideoCall), null);
             if (isVideoCall) {
-                TestVideoCallProvider testVideoCallProvider =
-                        new TestVideoCallProvider(getApplicationContext());
-                connection.setVideoCallProvider(testVideoCallProvider);
+                TestVideoProvider testVideoCallProvider =
+                        new TestVideoProvider(getApplicationContext());
+                connection.setVideoProvider(testVideoCallProvider);
 
                 // Keep reference to original so we can clean up the media players later.
                 connection.setTestVideoCallProvider(testVideoCallProvider);
@@ -467,27 +475,27 @@ public class TestConnectionService extends ConnectionService {
 
             // Assume all calls are video capable.
             int capabilities = connection.getCallCapabilities();
-            capabilities |= CallCapabilities.SUPPORTS_VT_LOCAL;
-            capabilities |= CallCapabilities.ALL;
+            capabilities |= PhoneCapabilities.SUPPORTS_VT_LOCAL;
+            capabilities |= PhoneCapabilities.ALL;
             connection.setCallCapabilities(capabilities);
 
             int videoState = isVideoCall ?
-                    VideoCallProfile.VideoState.BIDIRECTIONAL :
-                    VideoCallProfile.VideoState.AUDIO_ONLY;
+                    VideoProfile.VideoState.BIDIRECTIONAL :
+                    VideoProfile.VideoState.AUDIO_ONLY;
             connection.setVideoState(videoState);
-            connection.setHandle(handle, CallPropertyPresentation.ALLOWED);
+            connection.setHandle(handle, PropertyPresentation.ALLOWED);
 
             mCalls.add(connection);
 
             ConnectionRequest newRequest = new ConnectionRequest(
                     request.getAccountHandle(),
-                    request.getCallId(),
                     handle,
                     request.getHandlePresentation(),
                     request.getExtras(),
                     videoState);
             connection.setVideoState(videoState);
         } else {
+            /*
             SimpleResponse<Uri, List<PhoneAccountHandle>> accountResponse =
                     new SimpleResponse<Uri, List<PhoneAccountHandle>>() {
                         @Override
@@ -507,6 +515,7 @@ public class TestConnectionService extends ConnectionService {
                         }
                     };
             connection.setInitializing();
+            */
         }
         return connection;
     }

@@ -26,7 +26,7 @@ import android.os.UserHandle;
 import android.telecomm.GatewayInfo;
 import android.telecomm.PhoneAccountHandle;
 import android.telecomm.TelecommManager;
-import android.telecomm.VideoCallProfile;
+import android.telecomm.VideoProfile;
 import android.telephony.PhoneNumberUtils;
 import android.text.TextUtils;
 
@@ -130,7 +130,7 @@ class NewOutgoingCallIntentBroadcaster {
                     mIntent.getBooleanExtra(TelecommManager.EXTRA_START_CALL_WITH_SPEAKERPHONE,
                             false),
                     mIntent.getIntExtra(TelecommManager.EXTRA_START_CALL_WITH_VIDEO_STATE,
-                            VideoCallProfile.VideoState.AUDIO_ONLY));
+                            VideoProfile.VideoState.AUDIO_ONLY));
         }
     }
 
@@ -206,7 +206,7 @@ class NewOutgoingCallIntentBroadcaster {
                     TelecommManager.EXTRA_START_CALL_WITH_SPEAKERPHONE, false);
             int videoState = mIntent.getIntExtra(
                     TelecommManager.EXTRA_START_CALL_WITH_VIDEO_STATE,
-                    VideoCallProfile.VideoState.AUDIO_ONLY);
+                    VideoProfile.VideoState.AUDIO_ONLY);
             mCallsManager.placeOutgoingCall(mCall, Uri.fromParts(scheme, handle, null), null, null,
                     speakerphoneOn, videoState);
 

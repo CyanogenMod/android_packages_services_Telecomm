@@ -99,7 +99,7 @@ final class Ringer extends CallsManagerListenerBase {
     }
 
     @Override
-    public void onCallStateChanged(Call call, CallState oldState, CallState newState) {
+    public void onCallStateChanged(Call call, int oldState, int newState) {
         if (newState != CallState.RINGING) {
             removeFromUnansweredCall(call);
         }
@@ -139,8 +139,8 @@ final class Ringer extends CallsManagerListenerBase {
             stopCallWaiting();
         }
 
-        // We do not remove the call from mRingingCalls until the call state changes from RINGING
-        // or the call is removed. see onCallStateChanged or onCallRemoved.
+        // We do not remove the call from mRingingCalls until the call state changes from
+        // STATE_RINGING or the call is removed. see onCallStateChanged or onCallRemoved.
     }
 
     private Call getTopMostUnansweredCall() {
