@@ -182,6 +182,13 @@
             </intent-filter>
         </receiver>
 
+        <receiver android:name="PhoneAccountBroadcastReceiver">
+            <intent-filter>
+                <action android:name="android.intent.action.PACKAGE_REMOVED" />
+                <data android:scheme="package" />
+            </intent-filter>
+        </receiver>
+
         <activity android:name=".RespondViaSmsSettings$Settings"
                   android:label="@string/respond_via_sms_setting_title"
                   android:configChanges="orientation|screenSize|keyboardHidden">
