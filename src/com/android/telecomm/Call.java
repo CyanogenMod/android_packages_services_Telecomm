@@ -356,8 +356,6 @@ final class Call implements CreateConnectionResponse {
      * and instead keep the code resilient to unexpected state changes.
      */
     void setState(int newState) {
-        Preconditions.checkState(newState != CallState.DISCONNECTED ||
-                mDisconnectCause != DisconnectCause.NOT_VALID);
         if (mState != newState) {
             Log.v(this, "setState %s -> %s", mState, newState);
             mState = newState;
