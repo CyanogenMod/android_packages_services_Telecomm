@@ -46,7 +46,9 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.String;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -258,18 +260,29 @@ public final class PhoneAccountRegistrar {
         fireAccountsChanged();
     }
 
+    /**
+     * Un-registers all phone accounts associated with a specified package.
+     *
+     * @param packageName The package for which phone accounts will be removed.
+     */
     public void clearAccounts(String packageName) {
-        for (int i = 0; i < mState.accounts.size(); i++) {
+        boolean accountsRemoved = false;
+        Iterator<PhoneAccount> it = mState.accounts.iterator();
+        while (it.hasNext()) {
+            PhoneAccount phoneAccount = it.next();
             if (Objects.equals(
                     packageName,
-                    mState.accounts.get(i).getAccountHandle()
-                            .getComponentName().getPackageName())) {
-                mState.accounts.remove(i);
+                    phoneAccount.getAccountHandle().getComponentName().getPackageName())) {
+                Log.i(this, "Removing phone account " + phoneAccount.getLabel());
+                it.remove();
+                accountsRemoved = true;
             }
         }
 
-        write();
-        fireAccountsChanged();
+        if (accountsRemoved) {
+            write();
+            fireAccountsChanged();
+        }
     }
 
     public void addListener(Listener l) {
