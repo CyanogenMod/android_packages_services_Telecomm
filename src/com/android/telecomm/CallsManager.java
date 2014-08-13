@@ -24,7 +24,6 @@ import android.telecomm.GatewayInfo;
 import android.telecomm.PhoneAccountHandle;
 import android.telephony.DisconnectCause;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 
@@ -36,7 +35,7 @@ import java.util.concurrent.CopyOnWriteArraySet;
 /**
  * Singleton.
  *
- * NOTE(gilad): by design most APIs are package private, use the relevant adapter/s to allow
+ * NOTE: by design most APIs are package private, use the relevant adapter/s to allow
  * access from other packages specifically refraining from passing the CallsManager instance
  * beyond the com.android.telecomm package boundary.
  */
@@ -638,10 +637,11 @@ public final class CallsManager extends Call.ListenerBase {
      * @param service The connection service that disconnected.
      */
     void handleConnectionServiceDeath(ConnectionServiceWrapper service) {
-        Preconditions.checkNotNull(service);
-        for (Call call : ImmutableList.copyOf(mCalls)) {
-            if (call.getConnectionService() == service) {
-                markCallAsDisconnected(call, DisconnectCause.ERROR_UNSPECIFIED, null);
+        if (service != null) {
+            for (Call call : ImmutableList.copyOf(mCalls)) {
+                if (call.getConnectionService() == service) {
+                    markCallAsDisconnected(call, DisconnectCause.ERROR_UNSPECIFIED, null);
+                }
             }
         }
     }
@@ -770,7 +770,9 @@ public final class CallsManager extends Call.ListenerBase {
      * @param newState The new state of the call.
      */
     private void setCallState(Call call, int newState) {
-        Preconditions.checkNotNull(newState);
+        if (call == null) {
+            return;
+        }
         int oldState = call.getState();
         Log.i(this, "setCallState %s -> %s, call: %s", oldState, newState, call);
         if (newState != oldState) {

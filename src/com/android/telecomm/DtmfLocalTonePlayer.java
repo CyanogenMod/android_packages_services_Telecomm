@@ -20,7 +20,6 @@ import android.media.AudioManager;
 import android.media.ToneGenerator;
 import android.provider.Settings;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableMap;
 
 import java.util.Map;
@@ -57,13 +56,8 @@ class DtmfLocalTonePlayer extends CallsManagerListenerBase {
     /** {@inheritDoc} */
     @Override
     public void onForegroundCallChanged(Call oldForegroundCall, Call newForegroundCall) {
-        if (oldForegroundCall != null) {
-            endDtmfSession(oldForegroundCall);
-        }
-
-        if (newForegroundCall != null) {
-            startDtmfSession(newForegroundCall);
-        }
+        endDtmfSession(oldForegroundCall);
+        startDtmfSession(newForegroundCall);
     }
 
     /**
@@ -113,7 +107,9 @@ class DtmfLocalTonePlayer extends CallsManagerListenerBase {
      * @param call The call associated with this dtmf session.
      */
     private void startDtmfSession(Call call) {
-        Preconditions.checkNotNull(call);
+        if (call == null) {
+            return;
+        }
         TelecommApp app = TelecommApp.getInstance();
 
         final boolean areLocalTonesEnabled;
@@ -144,8 +140,7 @@ class DtmfLocalTonePlayer extends CallsManagerListenerBase {
      * @param call The call associated with the session to end.
      */
     private void endDtmfSession(Call call) {
-        Preconditions.checkNotNull(call);
-        if (mCall == call) {
+        if (call != null && mCall == call) {
             // Do a stopTone() in case the sessions ends before we are told to stop the tone.
             stopTone(call);
 
