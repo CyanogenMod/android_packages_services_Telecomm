@@ -48,6 +48,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Wrapper for {@link IConnectionService}s, handles binding to {@link IConnectionService} and keeps
@@ -602,7 +603,13 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
 
     private final Adapter mAdapter = new Adapter();
     private final CallsManager mCallsManager = CallsManager.getInstance();
-    private final Set<Call> mPendingConferenceCalls = new HashSet<>();
+    /**
+     * ConcurrentHashMap constructor params: 8 is initial table size, 0.9f is
+     * load factor before resizing, 1 means we only expect a single thread to
+     * access the map so make only a single shard
+     */
+    private final Set<Call> mPendingConferenceCalls = Collections.newSetFromMap(
+            new ConcurrentHashMap<Call, Boolean>(8, 0.9f, 1));
     private final CallIdMapper mCallIdMapper = new CallIdMapper("ConnectionService");
     private final Map<String, CreateConnectionResponse> mPendingResponses = new HashMap<>();
 
@@ -943,7 +950,8 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
         }
 
         // Make a list of ConnectionServices that are listed as being associated with SIM accounts
-        final Set<ConnectionServiceWrapper> simServices = new HashSet<>();
+        final Set<ConnectionServiceWrapper> simServices = Collections.newSetFromMap(
+                new ConcurrentHashMap<ConnectionServiceWrapper, Boolean>(8, 0.9f, 1));
         for (PhoneAccountHandle handle : registrar.getOutgoingPhoneAccounts()) {
             PhoneAccount account = registrar.getPhoneAccount(handle);
             if ((account.getCapabilities() & PhoneAccount.CAPABILITY_SIM_SUBSCRIPTION) != 0) {

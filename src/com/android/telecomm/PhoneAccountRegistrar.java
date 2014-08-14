@@ -288,7 +288,9 @@ public final class PhoneAccountRegistrar {
     }
 
     public void removeListener(Listener l) {
-        mListeners.remove(l);
+        if (l != null) {
+            mListeners.remove(l);
+        }
     }
 
     private void fireAccountsChanged() {
