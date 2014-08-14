@@ -642,6 +642,13 @@ public final class CallsManager extends Call.ListenerBase {
     }
 
     /**
+     * Removes an existing disconnected call, and notifies the in-call app.
+     */
+    void markCallAsRemoved(Call call) {
+        removeCall(call);
+    }
+
+    /**
      * Cleans up any calls currently associated with the specified connection service when the
      * service binder disconnects unexpectedly.
      *
