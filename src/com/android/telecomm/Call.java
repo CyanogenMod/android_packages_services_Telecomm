@@ -706,7 +706,7 @@ final class Call implements CreateConnectionResponse {
      */
     void stopDtmfTone() {
         if (mConnectionService == null) {
-            Log.w(this, "stopDtmfTone() request on a call without a connectino service.");
+            Log.w(this, "stopDtmfTone() request on a call without a connection service.");
         } else {
             Log.i(this, "Send stopDtmfTone to connection service for call %s", this);
             mConnectionService.stopDtmfTone(this);
@@ -717,17 +717,22 @@ final class Call implements CreateConnectionResponse {
      * Attempts to disconnect the call through the connection service.
      */
     void disconnect() {
-        if (mState == CallState.NEW || mState == CallState.PRE_DIAL_WAIT) {
+        if (mState == CallState.NEW || mState == CallState.PRE_DIAL_WAIT ||
+                mState == CallState.CONNECTING) {
             Log.v(this, "Aborting call %s", this);
             abort();
         } else if (mState != CallState.ABORTED && mState != CallState.DISCONNECTED) {
-            Preconditions.checkNotNull(mConnectionService);
-
-            Log.i(this, "Send disconnect to connection service for call: %s", this);
-            // The call isn't officially disconnected until the connection service confirms that the
-            // call was actually disconnected. Only then is the association between call and
-            // connection service severed, see {@link CallsManager#markCallAsDisconnected}.
-            mConnectionService.disconnect(this);
+            if (mConnectionService == null) {
+                Log.e(this, new Exception(), "disconnect() request on a call without a"
+                        + " connection service.");
+            } else {
+                Log.i(this, "Send disconnect to connection service for call: %s", this);
+                // The call isn't officially disconnected until the connection service
+                // confirms that the call was actually disconnected. Only then is the
+                // association between call and connection service severed, see
+                // {@link CallsManager#markCallAsDisconnected}.
+                mConnectionService.disconnect(this);
+            }
         }
     }
 
