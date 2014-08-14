@@ -25,7 +25,6 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.telecomm.PhoneAccountHandle;
 import android.telecomm.TelecommManager;
-import android.telecomm.TelecommManager;
 import android.telephony.PhoneNumberUtils;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
@@ -124,8 +123,16 @@ public class CallActivity extends Activity {
         PhoneAccountHandle phoneAccountHandle = intent.getParcelableExtra(
                 TelecommManager.EXTRA_PHONE_ACCOUNT_HANDLE);
 
+        Bundle clientExtras = null;
+        if (intent.hasExtra(TelecommManager.EXTRA_OUTGOING_CALL_EXTRAS)) {
+            clientExtras = intent.getBundleExtra(TelecommManager.EXTRA_OUTGOING_CALL_EXTRAS);
+        }
+        if (clientExtras == null) {
+            clientExtras = Bundle.EMPTY;
+        }
+
         // Send to CallsManager to ensure the InCallUI gets kicked off before the broadcast returns
-        Call call = mCallsManager.startOutgoingCall(handle, phoneAccountHandle);
+        Call call = mCallsManager.startOutgoingCall(handle, phoneAccountHandle, clientExtras);
 
         NewOutgoingCallIntentBroadcaster broadcaster = new NewOutgoingCallIntentBroadcaster(
                 mCallsManager, call, intent, isDefaultDialer());
