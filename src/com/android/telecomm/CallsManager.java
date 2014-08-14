@@ -124,15 +124,17 @@ public final class CallsManager extends Call.ListenerBase {
     @Override
     public void onSuccessfulOutgoingCall(Call call, int callState) {
         Log.v(this, "onSuccessfulOutgoingCall, %s", call);
+
         setCallState(call, callState);
-        if (mCalls.contains(call)) {
-            // The call's ConnectionService has been updated.
-            for (CallsManagerListener listener : mListeners) {
-                listener.onConnectionServiceChanged(call, null, call.getConnectionService());
-            }
-        } else {
-            Log.wtf(this, "unexpected successful call notification: %s", call);
-            return;
+        if (!mCalls.contains(call)) {
+            // Call was not added previously in startOutgoingCall due to it being a potential MMI
+            // code, so add it now.
+            addCall(call);
+        }
+
+        // The call's ConnectionService has been updated.
+        for (CallsManagerListener listener : mListeners) {
+            listener.onConnectionServiceChanged(call, null, call.getConnectionService());
         }
 
         markCallAsDialing(call);
@@ -141,6 +143,7 @@ public final class CallsManager extends Call.ListenerBase {
     @Override
     public void onFailedOutgoingCall(Call call, int errorCode, String errorMsg) {
         Log.v(this, "onFailedOutgoingCall, call: %s", call);
+
         // TODO: Replace disconnect cause with more specific disconnect causes.
         markCallAsDisconnected(call, errorCode, errorMsg);
     }
@@ -312,9 +315,11 @@ public final class CallsManager extends Call.ListenerBase {
                 false /* isConference */);
         call.setState(CallState.CONNECTING);
 
-        // TODO: Move this to be a part of addCall()
-        call.addListener(this);
-        addCall(call);
+        if (!isPotentialMMICode(handle)) {
+            addCall(call);
+        } else {
+            call.addListener(this);
+        }
 
         return call;
     }
@@ -732,6 +737,9 @@ public final class CallsManager extends Call.ListenerBase {
      * @param call The call to add.
      */
     private void addCall(Call call) {
+        Log.v(this, "addCall(%s)", call);
+
+        call.addListener(this);
         mCalls.add(call);
 
         // TODO: Update mForegroundCall prior to invoking
@@ -827,5 +835,10 @@ public final class CallsManager extends Call.ListenerBase {
                 listener.onForegroundCallChanged(oldForegroundCall, mForegroundCall);
             }
         }
+    }
+
+    private boolean isPotentialMMICode(Uri handle) {
+        return (handle != null && handle.getSchemeSpecificPart() != null
+                && handle.getSchemeSpecificPart().contains("#"));
     }
 }
