@@ -21,6 +21,7 @@ import android.os.Bundle;
 import android.telecomm.AudioState;
 import android.telecomm.CallState;
 import android.telecomm.GatewayInfo;
+import android.telecomm.ParcelableConference;
 import android.telecomm.PhoneAccountHandle;
 import android.telephony.DisconnectCause;
 
@@ -185,20 +186,6 @@ public final class CallsManager extends Call.ListenerBase {
     @Override
     public void onPostDialWait(Call call, String remaining) {
         mInCallController.onPostDialWait(call, remaining);
-    }
-
-    @Override
-    public void onExpiredConferenceCall(Call call) {
-        call.removeListener(this);
-    }
-
-    @Override
-    public void onConfirmedConferenceCall(Call call) {
-        addCall(call);
-        Log.v(this, "confirming Conf call %s", call);
-        for (CallsManagerListener listener : mListeners) {
-            listener.onIsConferencedChanged(call);
-        }
     }
 
     @Override
@@ -417,16 +404,7 @@ public final class CallsManager extends Call.ListenerBase {
      * @param otherCall The other call to conference with.
      */
     void conference(Call call, Call otherCall) {
-        Call conferenceCall = new Call(
-                mConnectionServiceRepository,
-                null /* handle */,
-                null /* gatewayInfo */,
-                null /* connectionManagerPhoneAccount */,
-                null /* targetPhoneAccount */,
-                false /* isIncoming */,
-                true /* isConference */);
-        conferenceCall.addListener(this);
-        call.conferenceInto(conferenceCall);
+        call.conferenceWith(otherCall);
     }
 
     /**
@@ -749,6 +727,27 @@ public final class CallsManager extends Call.ListenerBase {
             }
         }
         return null;
+    }
+
+    Call createConferenceCall(
+            PhoneAccountHandle phoneAccount,
+            ParcelableConference parcelableConference) {
+        Call call = new Call(
+                mConnectionServiceRepository,
+                null /* handle */,
+                null /* gatewayInfo */,
+                null /* connectionManagerPhoneAccount */,
+                phoneAccount,
+                false /* isIncoming */,
+                true /* isConference */);
+
+        setCallState(call, Call.getStateFromConnectionState(parcelableConference.getState()));
+        call.setCallCapabilities(parcelableConference.getCapabilities());
+
+        // TODO: Move this to be a part of addCall()
+        call.addListener(this);
+        addCall(call);
+        return call;
     }
 
     /**
