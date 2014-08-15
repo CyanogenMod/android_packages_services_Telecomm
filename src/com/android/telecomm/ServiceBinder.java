@@ -26,10 +26,11 @@ import android.os.IInterface;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
+import java.util.Collections;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Abstract class to perform the work of binding and unbinding to the specified service interface.
@@ -153,8 +154,12 @@ abstract class ServiceBinder<ServiceInterface extends IInterface> {
 
     /**
      * Set of currently registered listeners.
+     * ConcurrentHashMap constructor params: 8 is initial table size, 0.9f is
+     * load factor before resizing, 1 means we only expect a single thread to
+     * access the map so make only a single shard
      */
-    private Set<Listener> mListeners = Sets.newHashSet();
+    private final Set<Listener> mListeners = Collections.newSetFromMap(
+            new ConcurrentHashMap<Listener, Boolean>(8, 0.9f, 1));
 
     /**
      * Persists the specified parameters and initializes the new instance.
@@ -231,7 +236,9 @@ abstract class ServiceBinder<ServiceInterface extends IInterface> {
     }
 
     final void removeListener(Listener listener) {
-        mListeners.remove(listener);
+        if (listener != null) {
+            mListeners.remove(listener);
+        }
     }
 
     /**
@@ -291,9 +298,7 @@ abstract class ServiceBinder<ServiceInterface extends IInterface> {
             setServiceInterface(binder);
 
             if (binder == null) {
-                // Use a copy of the listener list to allow the listeners to unregister themselves
-                // as part of the unbind without causing issues.
-                for (Listener l : ImmutableSet.copyOf(mListeners)) {
+                for (Listener l : mListeners) {
                     l.onUnbind(this);
                 }
             }
