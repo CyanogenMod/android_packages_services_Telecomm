@@ -152,19 +152,6 @@ public class RespondViaSmsSettings {
      * Finish current Activity and go up to the top level Settings.
      */
     public static void goUpToTopLevelSetting(Activity activity) {
-        Intent intent = new Intent();
-        try {
-            intent.setClassName(
-                    activity.createPackageContext("com.android.phone", 0),
-                    "com.android.phone.CallFeaturesSetting");
-        } catch (PackageManager.NameNotFoundException e) {
-            Log.w(RespondViaSmsSettings.class,
-                    "Exception building package context com.android.phone", e);
-            return;
-        }
-        intent.setAction(Intent.ACTION_MAIN);
-        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        activity.startActivity(intent);
         activity.finish();
      }
 }
