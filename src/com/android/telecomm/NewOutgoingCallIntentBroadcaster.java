@@ -100,11 +100,19 @@ class NewOutgoingCallIntentBroadcaster {
             String resultHandle = getResultData();
             Log.v(this, "- got number from resultData: %s", Log.pii(resultHandle));
 
+            boolean endEarly = false;
             if (resultHandle == null) {
                 Log.v(this, "Call cancelled (null number), returning...");
-                return;
+                endEarly = true;
             } else if (PhoneNumberUtils.isPotentialLocalEmergencyNumber(context, resultHandle)) {
                 Log.w(this, "Cannot modify outgoing call to emergency number %s.", resultHandle);
+                endEarly = true;
+            }
+
+            if (endEarly) {
+                if (mCall != null) {
+                    mCall.disconnect();
+                }
                 return;
             }
 
