@@ -369,6 +369,7 @@ public final class InCallController extends CallsManagerListenerBase {
                 childCallIds,
                 call.getStatusHints(),
                 call.getVideoState(),
-                conferenceableCallIds);
+                conferenceableCallIds,
+                call.getExtras());
     }
 }

@@ -292,8 +292,13 @@ public final class CallsManager extends Call.ListenerBase {
      * NOTE: emergency calls will never pass through this because they call
      * placeOutgoingCall directly.
      *
+     * @param handle Handle to connect the call with.
+     * @param phoneAccountHandle The phone account which contains the component name of the connection
+     *                     service to use for this call.
+     * @param extras The optional extras Bundle passed with the intent used for the outgoing call.
+     *
      */
-    Call startOutgoingCall(Uri handle, PhoneAccountHandle phoneAccountHandle) {
+    Call startOutgoingCall(Uri handle, PhoneAccountHandle phoneAccountHandle, Bundle extras) {
         // We only allow a single outgoing call at any given time. Before placing a call, make sure
         // there doesn't already exist another outgoing call.
         Call call = getFirstCallWithState(CallState.NEW, CallState.DIALING);
@@ -313,6 +318,7 @@ public final class CallsManager extends Call.ListenerBase {
                 phoneAccountHandle,
                 false /* isIncoming */,
                 false /* isConference */);
+        call.setExtras(extras);
         call.setState(CallState.CONNECTING);
 
         if (!isPotentialMMICode(handle)) {
