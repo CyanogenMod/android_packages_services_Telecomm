@@ -151,8 +151,7 @@ public final class CallsManager extends Call.ListenerBase {
     @Override
     public void onCancelledOutgoingCall(Call call) {
         Log.v(this, "onCancelledOutgoingCall, call: %s", call);
-        setCallState(call, CallState.ABORTED);
-        removeCall(call);
+        markCallAsDisconnected(call, DisconnectCause.OUTGOING_CANCELED, null);
     }
 
     @Override
@@ -393,7 +392,7 @@ public final class CallsManager extends Call.ListenerBase {
             call.startCreateConnection();
         } else {
             // This is the state where the user is expected to select an account
-            call.setState(CallState.PRE_DIAL_WAIT);
+            setCallState(call, CallState.PRE_DIAL_WAIT);
         }
     }
 
