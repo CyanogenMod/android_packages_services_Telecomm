@@ -629,6 +629,9 @@ final class Call implements CreateConnectionResponse {
 
         setVideoProvider(connection.getVideoProvider());
         setVideoState(connection.getVideoState());
+        setRequestingRingback(connection.isRequestingRingback());
+        setAudioModeIsVoip(connection.getAudioModeIsVoip());
+        setStatusHints(connection.getStatusHints());
 
         if (mIsIncoming) {
             // We do not handle incoming calls immediately when they are verified by the connection
