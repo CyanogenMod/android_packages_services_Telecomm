@@ -53,7 +53,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  *  Encapsulates all aspects of a given phone call throughout its lifecycle, starting
@@ -248,8 +248,14 @@ final class Call implements CreateConnectionResponse {
     /** Info used by the connection services. */
     private Bundle mExtras = Bundle.EMPTY;
 
-    /** Set of listeners on this call. */
-    private Set<Listener> mListeners = new CopyOnWriteArraySet<>();
+    /** Set of listeners on this call.
+     *
+     * ConcurrentHashMap constructor params: 8 is initial table size, 0.9f is
+     * load factor before resizing, 1 means we only expect a single thread to
+     * access the map so make only a single shard
+     */
+    private final Set<Listener> mListeners = Collections.newSetFromMap(
+            new ConcurrentHashMap<Listener, Boolean>(8, 0.9f, 1));
 
     private CreateConnectionProcessor mCreateConnectionProcessor;
 
@@ -322,7 +328,9 @@ final class Call implements CreateConnectionResponse {
     }
 
     void removeListener(Listener listener) {
-        mListeners.remove(listener);
+        if (listener != null) {
+            mListeners.remove(listener);
+        }
     }
 
     /** {@inheritDoc} */
@@ -659,14 +667,12 @@ final class Call implements CreateConnectionResponse {
             setDisconnectCause(code, null);
             setState(CallState.DISCONNECTED);
 
-            Listener[] listeners = mListeners.toArray(new Listener[mListeners.size()]);
-            for (int i = 0; i < listeners.length; i++) {
-                listeners[i].onFailedIncomingCall(this);
+            for (Listener listener : mListeners) {
+                listener.onFailedIncomingCall(this);
             }
         } else {
-            Listener[] listeners = mListeners.toArray(new Listener[mListeners.size()]);
-            for (int i = 0; i < listeners.length; i++) {
-                listeners[i].onFailedOutgoingCall(this, code, msg);
+            for (Listener listener : mListeners) {
+                listener.onFailedOutgoingCall(this, code, msg);
             }
             clearConnectionService();
         }
@@ -679,14 +685,12 @@ final class Call implements CreateConnectionResponse {
             clearConnectionService();
             setDisconnectCause(DisconnectCause.OUTGOING_CANCELED, null);
 
-            Listener[] listeners = mListeners.toArray(new Listener[mListeners.size()]);
-            for (int i = 0; i < listeners.length; i++) {
-                listeners[i].onFailedIncomingCall(this);
+        for (Listener listener : mListeners) {
+                listener.onFailedIncomingCall(this);
             }
         } else {
-            Listener[] listeners = mListeners.toArray(new Listener[mListeners.size()]);
-            for (int i = 0; i < listeners.length; i++) {
-                listeners[i].onCancelledOutgoingCall(this);
+        for (Listener listener : mListeners) {
+                listener.onCancelledOutgoingCall(this);
             }
             clearConnectionService();
         }

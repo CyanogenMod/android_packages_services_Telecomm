@@ -22,7 +22,9 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.media.AudioManager;
 
-import java.util.HashSet;
+import java.util.Collections;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /** Listens for and caches headset state. */
 class WiredHeadsetManager {
@@ -45,7 +47,13 @@ class WiredHeadsetManager {
 
     private final WiredHeadsetBroadcastReceiver mReceiver;
     private boolean mIsPluggedIn;
-    private final HashSet<Listener> mListeners = new HashSet<>();
+    /**
+     * ConcurrentHashMap constructor params: 8 is initial table size, 0.9f is
+     * load factor before resizing, 1 means we only expect a single thread to
+     * access the map so make only a single shard
+     */
+    private final Set<Listener> mListeners = Collections.newSetFromMap(
+            new ConcurrentHashMap<Listener, Boolean>(8, 0.9f, 1));
 
     WiredHeadsetManager(Context context) {
         mReceiver = new WiredHeadsetBroadcastReceiver();
@@ -63,7 +71,9 @@ class WiredHeadsetManager {
     }
 
     void removeListener(Listener listener) {
-        mListeners.remove(listener);
+        if (listener != null) {
+            mListeners.remove(listener);
+        }
     }
 
     boolean isPluggedIn() {
