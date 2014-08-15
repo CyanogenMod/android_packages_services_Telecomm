@@ -237,8 +237,18 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                     }
                     break;
                 }
-                case MSG_REMOVE_CALL:
+                case MSG_REMOVE_CALL: {
+                    call = mCallIdMapper.getCall(msg.obj);
+                    if (call != null) {
+                        if (call.isActive()) {
+                            mCallsManager.markCallAsDisconnected(
+                                    call, DisconnectCause.NORMAL, null);
+                        } else {
+                            mCallsManager.markCallAsRemoved(call);
+                        }
+                    }
                     break;
+                }
                 case MSG_ON_POST_DIAL_WAIT: {
                     SomeArgs args = (SomeArgs) msg.obj;
                     try {
@@ -476,6 +486,9 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
         @Override
         public void removeCall(String callId) {
             logIncoming("removeCall %s", callId);
+            if (mCallIdMapper.isValidCallId(callId)) {
+                mHandler.obtainMessage(MSG_REMOVE_CALL, callId).sendToTarget();
+            }
         }
 
         @Override
