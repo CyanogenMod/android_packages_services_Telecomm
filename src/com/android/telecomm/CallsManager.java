@@ -27,10 +27,10 @@ import android.telephony.DisconnectCause;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 
-import java.util.HashSet;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Singleton.
@@ -65,8 +65,13 @@ public final class CallsManager extends Call.ListenerBase {
     /**
      * The main call repository. Keeps an instance of all live calls. New incoming and outgoing
      * calls are added to the map and removed when the calls move to the disconnected state.
+    *
+     * ConcurrentHashMap constructor params: 8 is initial table size, 0.9f is
+     * load factor before resizing, 1 means we only expect a single thread to
+     * access the map so make only a single shard
      */
-    private final Set<Call> mCalls = new CopyOnWriteArraySet<Call>();
+    private final Set<Call> mCalls = Collections.newSetFromMap(
+            new ConcurrentHashMap<Call, Boolean>(8, 0.9f, 1));
 
     private final ConnectionServiceRepository mConnectionServiceRepository =
             new ConnectionServiceRepository();
@@ -74,7 +79,10 @@ public final class CallsManager extends Call.ListenerBase {
     private final InCallController mInCallController = new InCallController();
     private final CallAudioManager mCallAudioManager;
     private final Ringer mRinger;
-    private final Set<CallsManagerListener> mListeners = new HashSet<>();
+    // For this set initial table size to 16 because we add 13 listeners in
+    // the CallsManager constructor.
+    private final Set<CallsManagerListener> mListeners = Collections.newSetFromMap(
+            new ConcurrentHashMap<CallsManagerListener, Boolean>(16, 0.9f, 1));
     private final HeadsetMediaButton mHeadsetMediaButton;
     private final WiredHeadsetManager mWiredHeadsetManager;
     private final TtyManager mTtyManager;
@@ -649,7 +657,7 @@ public final class CallsManager extends Call.ListenerBase {
      */
     void handleConnectionServiceDeath(ConnectionServiceWrapper service) {
         if (service != null) {
-            for (Call call : ImmutableList.copyOf(mCalls)) {
+            for (Call call : mCalls) {
                 if (call.getConnectionService() == service) {
                     markCallAsDisconnected(call, DisconnectCause.ERROR_UNSPECIFIED, null);
                 }
