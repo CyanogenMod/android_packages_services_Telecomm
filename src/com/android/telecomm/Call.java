@@ -1212,6 +1212,8 @@ final class Call implements CreateConnectionResponse {
 
     private int getStateFromConnectionState(int state) {
         switch (state) {
+            case Connection.STATE_INITIALIZING:
+                return CallState.CONNECTING;
             case Connection.STATE_ACTIVE:
                 return CallState.ACTIVE;
             case Connection.STATE_DIALING:
