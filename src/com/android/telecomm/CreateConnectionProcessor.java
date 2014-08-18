@@ -16,7 +16,6 @@
 
 package com.android.telecomm;
 
-import android.telecomm.ConnectionRequest;
 import android.telecomm.ParcelableConnection;
 import android.telecomm.PhoneAccount;
 import android.telecomm.PhoneAccountHandle;
@@ -102,7 +101,7 @@ final class CreateConnectionProcessor {
             mCall.clearConnectionService();
         }
         if (response != null) {
-            response.handleCreateConnectionCancelled();
+            response.handleCreateConnectionFailure(DisconnectCause.OUTGOING_CANCELED, null);
         }
     }
 
@@ -128,7 +127,7 @@ final class CreateConnectionProcessor {
         } else {
             Log.v(this, "attemptNextPhoneAccount, no more accounts, failing");
             if (mResponse != null) {
-                mResponse.handleCreateConnectionFailed(mLastErrorCode, mLastErrorMsg);
+                mResponse.handleCreateConnectionFailure(mLastErrorCode, mLastErrorMsg);
                 mResponse = null;
                 mCall.clearConnectionService();
             }
@@ -211,30 +210,26 @@ final class CreateConnectionProcessor {
         }
 
         @Override
-        public void handleCreateConnectionSuccessful(
-                ConnectionRequest request, ParcelableConnection connection) {
+        public void handleCreateConnectionSuccess(ParcelableConnection connection) {
             if (mResponse == null) {
+                // Nobody is listening for this connection attempt any longer; ask the responsible
+                // ConnectionService to tear down any resources associated with the call
                 mService.abort(mCall);
             } else {
-                mResponse.handleCreateConnectionSuccessful(request, connection);
+                // Success -- share the good news and remember that we are no longer interested
+                // in hearing about any more attempts
+                mResponse.handleCreateConnectionSuccess(connection);
                 mResponse = null;
             }
         }
 
         @Override
-        public void handleCreateConnectionFailed(int code, String msg) {
+        public void handleCreateConnectionFailure(int code, String msg) {
+            // Failure of some sort; record the reasons for failure and try again if possible
+            Log.d(CreateConnectionProcessor.this, "Connection failed: %d (%s)", code, msg);
             mLastErrorCode = code;
             mLastErrorMsg = msg;
-            Log.d(CreateConnectionProcessor.this, "Connection failed: %d (%s)", code, msg);
             attemptNextPhoneAccount();
-        }
-
-        @Override
-        public void handleCreateConnectionCancelled() {
-            if (mResponse != null) {
-                mResponse.handleCreateConnectionCancelled();
-                mResponse = null;
-            }
         }
     }
 }
