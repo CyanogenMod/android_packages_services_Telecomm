@@ -91,6 +91,10 @@
     <!-- Indication to not use a SIM call manager -->
     <string name="do_not_use_sim_call_manager">Do not use Wi-Fi calling</string>
 
+    <!-- Message indicating that the user is not allowed to make non-emergency outgoing phone calls
+         due to a user restriction -->
+    <string name="outgoing_call_not_allowed">This user is not allowed to make non-emergency phone calls</string>
+
     <!-- DO NOT TRANSLATE. Label for test Subscription 0. -->
     <string name="test_account_0_label">Q Mobile</string>
     <!-- DO NOT TRANSLATE. Label for test Subscription 1. -->
