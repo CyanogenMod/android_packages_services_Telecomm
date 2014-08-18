@@ -78,7 +78,7 @@ class CallIdMapper {
         if (objId instanceof String) {
             callId = (String) objId;
         }
-        if (!isValidCallId(callId)) {
+        if (!isValidCallId(callId) && !isValidConferenceId(callId)) {
             return null;
         }
 
@@ -92,6 +92,10 @@ class CallIdMapper {
     boolean isValidCallId(String callId) {
         // Note, no need for thread check, this method is thread safe.
         return callId != null && callId.startsWith(mCallIdPrefix);
+    }
+
+    boolean isValidConferenceId(String callId) {
+        return callId != null;
     }
 
     String getNewId() {

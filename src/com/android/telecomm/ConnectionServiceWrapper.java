@@ -28,6 +28,8 @@ import android.telecomm.AudioState;
 import android.telecomm.ConnectionRequest;
 import android.telecomm.ConnectionService;
 import android.telecomm.GatewayInfo;
+
+import android.telecomm.ParcelableConference;
 import android.telecomm.ParcelableConnection;
 import android.telecomm.PhoneAccount;
 import android.telecomm.PhoneAccountHandle;
@@ -163,6 +165,7 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                         call = mCallIdMapper.getCall(args.arg1);
                         String disconnectMessage = (String) args.arg2;
                         int disconnectCause = args.argi1;
+                        Log.d(this, "disconnect call %s %s", args.arg1, call);
                         if (call != null) {
                             mCallsManager.markCallAsDisconnected(call, disconnectCause,
                                     disconnectMessage);
@@ -208,16 +211,11 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                         if (childCall != null) {
                             String conferenceCallId = (String) args.arg2;
                             if (conferenceCallId == null) {
+                                Log.d(this, "unsetting parent: %s", args.arg1);
                                 childCall.setParentCall(null);
                             } else {
                                 Call conferenceCall = mCallIdMapper.getCall(conferenceCallId);
-                                if (conferenceCall != null &&
-                                        !mPendingConferenceCalls.contains(conferenceCall)) {
-                                    childCall.setParentCall(conferenceCall);
-                                } else {
-                                    //Log.w(this, "setIsConferenced, unknown conference id %s",
-                                    //        conferenceCallId);
-                                }
+                                childCall.setParentCall(conferenceCall);
                             }
                         } else {
                             //Log.w(this, "setIsConferenced, unknown call id: %s", args.arg1);
@@ -228,12 +226,32 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                     break;
                 }
                 case MSG_ADD_CONFERENCE_CALL: {
-                    Call conferenceCall = mCallIdMapper.getCall(msg.obj);
-                    if (mPendingConferenceCalls.remove(conferenceCall)) {
-                        Log.v(this, "confirming conf call %s", conferenceCall);
-                        conferenceCall.confirmConference();
-                    } else {
-                        //Log.w(this, "addConference, unknown call id: %s", callId);
+                    SomeArgs args = (SomeArgs) msg.obj;
+                    try {
+                        String id = (String) args.arg1;
+                        if (mCallIdMapper.getCall(id) != null) {
+                            Log.w(this, "Attempting to add a conference call using an existing " +
+                                    "call id %s", id);
+                            break;
+                        }
+                        ParcelableConference parcelableConference =
+                                (ParcelableConference) args.arg2;
+                        // need to create a new Call
+                        Call conferenceCall = mCallsManager.createConferenceCall(
+                                null, parcelableConference);
+                        mCallIdMapper.addCall(conferenceCall, id);
+                        conferenceCall.setConnectionService(ConnectionServiceWrapper.this);
+
+                        Log.d(this, "adding children to conference");
+                        for (String callId : parcelableConference.getConnectionIds()) {
+                            Call childCall = mCallIdMapper.getCall(callId);
+                            Log.d(this, "found child: %s", callId);
+                            if (childCall != null) {
+                                childCall.setParentCall(conferenceCall);
+                            }
+                        }
+                    } finally {
+                        args.recycle();
                     }
                     break;
                 }
@@ -421,7 +439,7 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
         @Override
         public void setActive(String callId) {
             logIncoming("setActive %s", callId);
-            if (mCallIdMapper.isValidCallId(callId)) {
+            if (mCallIdMapper.isValidCallId(callId) || mCallIdMapper.isValidConferenceId(callId)) {
                 mHandler.obtainMessage(MSG_SET_ACTIVE, callId).sendToTarget();
             }
         }
@@ -457,7 +475,8 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
         public void setDisconnected(
                 String callId, int disconnectCause, String disconnectMessage) {
             logIncoming("setDisconnected %s %d %s", callId, disconnectCause, disconnectMessage);
-            if (mCallIdMapper.isValidCallId(callId)) {
+            if (mCallIdMapper.isValidCallId(callId) || mCallIdMapper.isValidConferenceId(callId)) {
+                Log.d(this, "disconnect call %s", callId);
                 SomeArgs args = SomeArgs.obtain();
                 args.arg1 = callId;
                 args.arg2 = disconnectMessage;
@@ -469,7 +488,7 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
         @Override
         public void setOnHold(String callId) {
             logIncoming("setOnHold %s", callId);
-            if (mCallIdMapper.isValidCallId(callId)) {
+            if (mCallIdMapper.isValidCallId(callId) || mCallIdMapper.isValidConferenceId(callId)) {
                 mHandler.obtainMessage(MSG_SET_ON_HOLD, callId).sendToTarget();
             }
         }
@@ -486,8 +505,9 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
         @Override
         public void removeCall(String callId) {
             logIncoming("removeCall %s", callId);
-            if (mCallIdMapper.isValidCallId(callId)) {
+            if (mCallIdMapper.isValidCallId(callId) || mCallIdMapper.isValidConferenceId(callId)) {
                 mHandler.obtainMessage(MSG_REMOVE_CALL, callId).sendToTarget();
+                mHandler.obtainMessage(MSG_REMOVE_CALL, callId);
             }
         }
 
@@ -504,7 +524,7 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
         public void setIsConferenced(String callId, String conferenceCallId) {
             logIncoming("setIsConferenced %s %s", callId, conferenceCallId);
             if (mCallIdMapper.isValidCallId(callId) &&
-                    mCallIdMapper.isValidCallId(conferenceCallId)) {
+                    mCallIdMapper.isValidConferenceId(conferenceCallId)) {
                 SomeArgs args = SomeArgs.obtain();
                 args.arg1 = callId;
                 args.arg2 = conferenceCallId;
@@ -513,11 +533,14 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
         }
 
         @Override
-        public void addConferenceCall(String callId) {
-            logIncoming("addConferenceCall %s", callId);
-            if (mCallIdMapper.isValidCallId(callId)) {
-                mHandler.obtainMessage(MSG_ADD_CONFERENCE_CALL, callId).sendToTarget();
-            }
+        public void addConferenceCall(String callId, ParcelableConference parcelableConference) {
+            logIncoming("addConferenceCall %s %s", callId, parcelableConference);
+            // We do not check call Ids here because we do not yet know the call ID for new
+            // conference calls.
+            SomeArgs args = SomeArgs.obtain();
+            args.arg1 = callId;
+            args.arg2 = parcelableConference;
+            mHandler.obtainMessage(MSG_ADD_CONFERENCE_CALL, args).sendToTarget();
         }
 
         @Override
@@ -874,25 +897,13 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
         }
     }
 
-    void conference(final Call conferenceCall, Call call) {
-        final String conferenceId = mCallIdMapper.getCallId(call);
+    void conference(final Call call, Call otherCall) {
         final String callId = mCallIdMapper.getCallId(call);
-        if (conferenceId != null && callId != null &&
-                isServiceValid("conference")) {
+        final String otherCallId = mCallIdMapper.getCallId(otherCall);
+        if (callId != null && otherCallId != null && isServiceValid("conference")) {
             try {
-                conferenceCall.setConnectionService(this);
-                mPendingConferenceCalls.add(conferenceCall);
-                mHandler.postDelayed(new Runnable() {
-                    @Override public void run() {
-                        if (mPendingConferenceCalls.remove(conferenceCall)) {
-                            conferenceCall.expireConference();
-                            Log.i(this, "Conference call expired: %s", conferenceCall);
-                        }
-                    }
-                }, Timeouts.getConferenceCallExpireMillis());
-
-                logOutgoing("conference %s %s", conferenceId, callId);
-                mServiceInterface.conference(conferenceId, callId);
+                logOutgoing("conference %s %s", callId, otherCallId);
+                mServiceInterface.conference(callId, otherCallId);
             } catch (RemoteException ignored) {
             }
         }

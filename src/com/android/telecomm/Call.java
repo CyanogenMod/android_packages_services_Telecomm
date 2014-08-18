@@ -73,8 +73,6 @@ final class Call implements CreateConnectionResponse {
         void onRequestingRingback(Call call, boolean requestingRingback);
         void onPostDialWait(Call call, String remaining);
         void onCallCapabilitiesChanged(Call call);
-        void onExpiredConferenceCall(Call call);
-        void onConfirmedConferenceCall(Call call);
         void onParentChanged(Call call);
         void onChildrenChanged(Call call);
         void onCannedSmsResponsesLoaded(Call call);
@@ -109,10 +107,6 @@ final class Call implements CreateConnectionResponse {
         public void onPostDialWait(Call call, String remaining) {}
         @Override
         public void onCallCapabilitiesChanged(Call call) {}
-        @Override
-        public void onExpiredConferenceCall(Call call) {}
-        @Override
-        public void onConfirmedConferenceCall(Call call) {}
         @Override
         public void onParentChanged(Call call) {}
         @Override
@@ -346,15 +340,7 @@ final class Call implements CreateConnectionResponse {
     }
 
     int getState() {
-        if (mIsConference) {
-            if (!mChildCalls.isEmpty()) {
-                // If we have child calls, just return the child call.
-                return mChildCalls.get(0).getState();
-            }
-            return CallState.ACTIVE;
-        } else {
-            return mState;
-        }
+        return mState;
     }
 
     /**
@@ -855,27 +841,11 @@ final class Call implements CreateConnectionResponse {
         mConnectionService.onPhoneAccountClicked(this);
     }
 
-    void conferenceInto(Call conferenceCall) {
+    void conferenceWith(Call otherCall) {
         if (mConnectionService == null) {
             Log.w(this, "conference requested on a call without a connection service.");
         } else {
-            mConnectionService.conference(conferenceCall, this);
-        }
-    }
-
-    void expireConference() {
-        // The conference call expired before we got a confirmation of the conference from the
-        // connection service...so start shutting down.
-        clearConnectionService();
-        for (Listener l : mListeners) {
-            l.onExpiredConferenceCall(this);
-        }
-    }
-
-    void confirmConference() {
-        Log.v(this, "confirming Conf call %s", mListeners);
-        for (Listener l : mListeners) {
-            l.onConfirmedConferenceCall(this);
+            mConnectionService.conference(this, otherCall);
         }
     }
 
@@ -886,6 +856,10 @@ final class Call implements CreateConnectionResponse {
     void setParentCall(Call parentCall) {
         if (parentCall == this) {
             Log.e(this, new Exception(), "setting the parent to self");
+            return;
+        }
+        if (parentCall == mParentCall) {
+            // nothing to do
             return;
         }
         Preconditions.checkState(parentCall == null || mParentCall == null);
@@ -1214,7 +1188,7 @@ final class Call implements CreateConnectionResponse {
         }
     }
 
-    private int getStateFromConnectionState(int state) {
+    static int getStateFromConnectionState(int state) {
         switch (state) {
             case Connection.STATE_INITIALIZING:
                 return CallState.CONNECTING;

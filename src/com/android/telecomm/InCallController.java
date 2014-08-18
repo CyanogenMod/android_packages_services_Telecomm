@@ -195,7 +195,7 @@ public final class InCallController extends CallsManagerListenerBase {
 
     @Override
     public void onIsConferencedChanged(Call call) {
-        Log.v(this, "onIsConferencedChanged %s", call);
+        Log.d(this, "onIsConferencedChanged %s", call);
         updateCall(call);
     }
 
@@ -292,7 +292,7 @@ public final class InCallController extends CallsManagerListenerBase {
         if (mInCallService != null) {
             try {
                 ParcelableCall parcelableCall = toParcelableCall(call);
-                Log.v(this, "updateCall %s ==> %s", call, parcelableCall);
+                Log.d(this, "updateCall %s ==> %s", call, parcelableCall);
                 mInCallService.updateCall(parcelableCall);
             } catch (RemoteException ignored) {
             }
