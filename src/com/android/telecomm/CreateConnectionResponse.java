@@ -16,15 +16,12 @@
 
 package com.android.telecomm;
 
-import android.telecomm.ConnectionRequest;
 import android.telecomm.ParcelableConnection;
 
 /**
  * A callback for providing the result of creating a connection.
  */
 interface CreateConnectionResponse {
-    void handleCreateConnectionSuccessful(
-            ConnectionRequest request, ParcelableConnection connection);
-    void handleCreateConnectionFailed(int code, String msg);
-    void handleCreateConnectionCancelled();
+    void handleCreateConnectionSuccess(ParcelableConnection connection);
+    void handleCreateConnectionFailure(int code, String message);
 }
