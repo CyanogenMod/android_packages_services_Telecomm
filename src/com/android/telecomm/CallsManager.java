@@ -511,6 +511,17 @@ public final class CallsManager extends Call.ListenerBase {
     }
 
     /**
+     * Instructs Telecomm to disconnect all calls.
+     */
+    void disconnectAllCalls() {
+        Log.v(this, "disconnectAllCalls");
+
+        for (Call call : mCalls) {
+            disconnectCall(call);
+        }
+    }
+
+    /**
      * Instructs Telecomm to put the specified call on hold. Intended to be invoked by the
      * in-call app through {@link InCallAdapter} for an ongoing call. This is usually triggered by
      * the user hitting the hold button during an active call.

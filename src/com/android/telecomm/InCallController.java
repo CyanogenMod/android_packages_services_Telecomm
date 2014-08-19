@@ -16,28 +16,36 @@
 
 package com.android.telecomm;
 
+import android.Manifest;
 import android.app.PendingIntent;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
-
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
+import android.content.pm.ServiceInfo;
 import android.content.res.Resources;
 import android.net.Uri;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.os.UserHandle;
 import android.telecomm.AudioState;
+import android.telecomm.CallState;
+import android.telecomm.InCallService;
+import android.telecomm.ParcelableCall;
 import android.telecomm.PhoneCapabilities;
 import android.telecomm.PropertyPresentation;
-import android.telecomm.CallState;
-import android.telecomm.ParcelableCall;
+import android.util.ArrayMap;
 
 import com.android.internal.telecomm.IInCallService;
 import com.google.common.collect.ImmutableCollection;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Binds to {@link IInCallService} and provides the service to {@link CallsManager} through which it
@@ -52,12 +60,12 @@ public final class InCallController extends CallsManagerListenerBase {
     private class InCallServiceConnection implements ServiceConnection {
         /** {@inheritDoc} */
         @Override public void onServiceConnected(ComponentName name, IBinder service) {
-            onConnected(service);
+            onConnected(name, service);
         }
 
         /** {@inheritDoc} */
         @Override public void onServiceDisconnected(ComponentName name) {
-            onDisconnected();
+            onDisconnected(name);
         }
     }
 
@@ -99,11 +107,13 @@ public final class InCallController extends CallsManagerListenerBase {
 
         @Override
         public void onStartActivityFromInCall(Call call, PendingIntent intent) {
-            if (mInCallService != null) {
+            if (!mInCallServices.isEmpty()) {
                 Log.i(this, "Calling startActivity, intent: %s", intent);
-                try {
-                    mInCallService.startActivity(mCallIdMapper.getCallId(call), intent);
-                } catch (RemoteException ignored) {
+                for (IInCallService inCallService : mInCallServices.values()) {
+                    try {
+                        inCallService.startActivity(mCallIdMapper.getCallId(call), intent);
+                    } catch (RemoteException ignored) {
+                    }
                 }
             }
         }
@@ -119,29 +129,45 @@ public final class InCallController extends CallsManagerListenerBase {
         }
     };
 
-    /** Maintains a binding connection to the in-call app. */
-    private final InCallServiceConnection mConnection = new InCallServiceConnection();
+    /**
+     * Maintains a binding connection to the in-call app(s).
+     * ConcurrentHashMap constructor params: 8 is initial table size, 0.9f is
+     * load factor before resizing, 1 means we only expect a single thread to
+     * access the map so make only a single shard
+     */
+    private final Map<ComponentName, InCallServiceConnection> mServiceConnections =
+            new ConcurrentHashMap<ComponentName, InCallServiceConnection>(8, 0.9f, 1);
 
-    /** The in-call app implementation, see {@link IInCallService}. */
-    private IInCallService mInCallService;
+    /** The in-call app implementations, see {@link IInCallService}. */
+    private final Map<ComponentName, IInCallService> mInCallServices = new ArrayMap<>();
 
     private final CallIdMapper mCallIdMapper = new CallIdMapper("InCall");
 
-    IInCallService getService() {
-        return mInCallService;
+    /** The {@link ComponentName} of the default InCall UI */
+    private ComponentName mInCallComponentName;
+
+    public InCallController() {
+        Context context = TelecommApp.getInstance();
+        Resources resources = context.getResources();
+
+        mInCallComponentName = new ComponentName(
+                resources.getString(R.string.ui_default_package),
+                resources.getString(R.string.incall_default_class));
     }
 
     @Override
     public void onCallAdded(Call call) {
-        if (mInCallService == null) {
+        if (mInCallServices.isEmpty()) {
             bind();
         } else {
             Log.i(this, "Adding call: %s", call);
-            if (mCallIdMapper.getCallId(call) == null) {
-                mCallIdMapper.addCall(call);
-                call.addListener(mCallListener);
+            // Track the call if we don't already know about it.
+            addCall(call);
+
+            ParcelableCall parcelableCall = toParcelableCall(call);
+            for (IInCallService inCallService : mInCallServices.values()) {
                 try {
-                    mInCallService.addCall(toParcelableCall(call));
+                    inCallService.addCall(parcelableCall);
                 } catch (RemoteException ignored) {
                 }
             }
@@ -173,22 +199,26 @@ public final class InCallController extends CallsManagerListenerBase {
 
     @Override
     public void onAudioStateChanged(AudioState oldAudioState, AudioState newAudioState) {
-        if (mInCallService != null) {
+        if (!mInCallServices.isEmpty()) {
             Log.i(this, "Calling onAudioStateChanged, audioState: %s -> %s", oldAudioState,
                     newAudioState);
-            try {
-                mInCallService.onAudioStateChanged(newAudioState);
-            } catch (RemoteException ignored) {
+            for (IInCallService inCallService : mInCallServices.values()) {
+                try {
+                    inCallService.onAudioStateChanged(newAudioState);
+                } catch (RemoteException ignored) {
+                }
             }
         }
     }
 
     void onPostDialWait(Call call, String remaining) {
-        if (mInCallService != null) {
+        if (!mInCallServices.isEmpty()) {
             Log.i(this, "Calling onPostDialWait, remaining = %s", remaining);
-            try {
-                mInCallService.setPostDialWait(mCallIdMapper.getCallId(call), remaining);
-            } catch (RemoteException ignored) {
+            for (IInCallService inCallService : mInCallServices.values()) {
+                try {
+                    inCallService.setPostDialWait(mCallIdMapper.getCallId(call), remaining);
+                } catch (RemoteException ignored) {
+                }
             }
         }
     }
@@ -200,10 +230,12 @@ public final class InCallController extends CallsManagerListenerBase {
     }
 
     void bringToForeground(boolean showDialpad) {
-        if (mInCallService != null) {
-            try {
-                mInCallService.bringToForeground(showDialpad);
-            } catch (RemoteException ignored) {
+        if (!mInCallServices.isEmpty()) {
+            for (IInCallService inCallService : mInCallServices.values()) {
+                try {
+                    inCallService.bringToForeground(showDialpad);
+                } catch (RemoteException ignored) {
+                }
             }
         } else {
             Log.w(this, "Asking to bring unbound in-call UI to foreground.");
@@ -215,10 +247,12 @@ public final class InCallController extends CallsManagerListenerBase {
      */
     private void unbind() {
         ThreadUtil.checkOnMainThread();
-        if (mInCallService != null) {
+        if (!mInCallServices.isEmpty()) {
             Log.i(this, "Unbinding from InCallService");
-            TelecommApp.getInstance().unbindService(mConnection);
-            mInCallService = null;
+            for (InCallServiceConnection connection : mServiceConnections.values()) {
+                TelecommApp.getInstance().unbindService(connection);
+            }
+            mInCallServices.clear();
         }
     }
 
@@ -228,22 +262,46 @@ public final class InCallController extends CallsManagerListenerBase {
      */
     private void bind() {
         ThreadUtil.checkOnMainThread();
-        if (mInCallService == null) {
+        if (mInCallServices.isEmpty()) {
+            mServiceConnections.clear();
             Context context = TelecommApp.getInstance();
-            Resources resources = context.getResources();
-            ComponentName component = new ComponentName(
-                    resources.getString(R.string.ui_default_package),
-                    resources.getString(R.string.incall_default_class));
-            Log.i(this, "Attempting to bind to InCallService: %s", component);
+            PackageManager packageManager = TelecommApp.getInstance().getPackageManager();
+            Intent intent = new Intent(InCallService.SERVICE_INTERFACE);
 
-            Intent serviceIntent = new Intent(IInCallService.class.getName());
-            serviceIntent.setComponent(component);
+            for (ResolveInfo entry : packageManager.queryIntentServices(intent, 0)) {
+                ServiceInfo serviceInfo = entry.serviceInfo;
+                if (serviceInfo != null) {
+                    boolean hasServiceBindPermission = serviceInfo.permission != null &&
+                            serviceInfo.permission.equals(
+                                    Manifest.permission.BIND_INCALL_SERVICE);
+                    boolean hasControlInCallPermission = packageManager.checkPermission(
+                            Manifest.permission.CONTROL_INCALL_EXPERIENCE,
+                            serviceInfo.packageName) == PackageManager.PERMISSION_GRANTED;
 
-            if (!context.bindServiceAsUser(serviceIntent, mConnection, Context.BIND_AUTO_CREATE,
-                    UserHandle.CURRENT)) {
-                Log.w(this, "Could not connect to the in-call app (%s)", component);
+                    if (!hasServiceBindPermission) {
+                        Log.w(this, "InCallService does not have BIND_INCALL_SERVICE permission: " +
+                                serviceInfo.packageName);
+                        continue;
+                    }
 
-                // TODO: Implement retry or fall-back-to-default logic.
+                    if (!hasControlInCallPermission) {
+                        Log.w(this,
+                                "InCall UI does not have CONTROL_INCALL_EXPERIENCE permission: " +
+                                        serviceInfo.packageName);
+                        continue;
+                    }
+
+                    Log.i(this, "Attempting to bind to InCall " + serviceInfo.packageName);
+                    InCallServiceConnection inCallServiceConnection = new InCallServiceConnection();
+                    ComponentName componentName = new ComponentName(serviceInfo.packageName,
+                            serviceInfo.name);
+                    intent.setComponent(componentName);
+
+                    if (context.bindServiceAsUser(intent, inCallServiceConnection,
+                            Context.BIND_AUTO_CREATE, UserHandle.CURRENT)) {
+                        mServiceConnections.put(componentName, inCallServiceConnection);
+                    }
+                }
             }
         }
     }
@@ -253,26 +311,34 @@ public final class InCallController extends CallsManagerListenerBase {
      * this class and in-call app by sending the first update to in-call app. This method is
      * called after a successful binding connection is established.
      *
+     * @param componentName The service {@link ComponentName}.
      * @param service The {@link IInCallService} implementation.
      */
-    private void onConnected(IBinder service) {
+    private void onConnected(ComponentName componentName, IBinder service) {
         ThreadUtil.checkOnMainThread();
-        mInCallService = IInCallService.Stub.asInterface(service);
+
+        IInCallService inCallService = IInCallService.Stub.asInterface(service);
 
         try {
-            mInCallService.setInCallAdapter(new InCallAdapter(CallsManager.getInstance(),
+            inCallService.setInCallAdapter(new InCallAdapter(CallsManager.getInstance(),
                     mCallIdMapper));
+            mInCallServices.put(componentName, inCallService);
         } catch (RemoteException e) {
             Log.e(this, e, "Failed to set the in-call adapter.");
-            mInCallService = null;
             return;
         }
 
-        // Upon successful connection, send the state of the world to the in-call app.
+        // Upon successful connection, send the state of the world to the service.
         ImmutableCollection<Call> calls = CallsManager.getInstance().getCalls();
         if (!calls.isEmpty()) {
             for (Call call : calls) {
-                onCallAdded(call);
+                try {
+                    // Track the call if we don't already know about it.
+                    addCall(call);
+
+                    inCallService.addCall(toParcelableCall(call));
+                } catch (RemoteException ignored) {
+                }
             }
             onAudioStateChanged(null, CallsManager.getInstance().getAudioState());
         } else {
@@ -281,20 +347,50 @@ public final class InCallController extends CallsManagerListenerBase {
     }
 
     /**
-     * Cleans up the instance of in-call app after the service has been unbound.
+     * Cleans up an instance of in-call app after the service has been unbound.
+     *
+     * @param disconnectedComponent The {@link ComponentName} of the service which disconnected.
      */
-    private void onDisconnected() {
+    private void onDisconnected(ComponentName disconnectedComponent) {
         ThreadUtil.checkOnMainThread();
-        mInCallService = null;
+        if (mInCallServices.containsKey(disconnectedComponent)) {
+            mInCallServices.remove(disconnectedComponent);
+        }
+
+        // If the default in-call UI has disconnected, disconnect all calls and un-bind all other
+        // InCallService implementations.
+        if (disconnectedComponent.equals(mInCallComponentName)) {
+            Log.i(this, "In-call UI %s disconnected.", disconnectedComponent);
+            CallsManager.getInstance().disconnectAllCalls();
+
+            // Iterate through the in-call services, removing them as they are un-bound.
+            Iterator<Map.Entry<ComponentName, IInCallService>> it =
+                    mInCallServices.entrySet().iterator();
+            while (it.hasNext()) {
+                Map.Entry<ComponentName, IInCallService> entry = it.next();
+                ComponentName componentName = entry.getKey();
+
+                InCallServiceConnection connection =  mServiceConnections.remove(componentName);
+                it.remove();
+                if (connection == null) {
+                    continue;
+                }
+
+                Log.i(this, "Unbinding other InCallService %s", componentName);
+                TelecommApp.getInstance().unbindService(connection);
+            }
+        }
     }
 
     private void updateCall(Call call) {
-        if (mInCallService != null) {
-            try {
-                ParcelableCall parcelableCall = toParcelableCall(call);
-                Log.d(this, "updateCall %s ==> %s", call, parcelableCall);
-                mInCallService.updateCall(parcelableCall);
-            } catch (RemoteException ignored) {
+        if (!mInCallServices.isEmpty()) {
+            ParcelableCall parcelableCall = toParcelableCall(call);
+            Log.v(this, "updateCall %s ==> %s", call, parcelableCall);
+            for (IInCallService inCallService : mInCallServices.values()) {
+                try {
+                    inCallService.updateCall(parcelableCall);
+                } catch (RemoteException ignored) {
+                }
             }
         }
     }
@@ -371,5 +467,16 @@ public final class InCallController extends CallsManagerListenerBase {
                 call.getVideoState(),
                 conferenceableCallIds,
                 call.getExtras());
+    }
+
+    /**
+     * Adds the call to the list of calls tracked by the {@link InCallController}.
+     * @param call The call to add.
+     */
+    private void addCall(Call call) {
+        if (mCallIdMapper.getCallId(call) == null) {
+            mCallIdMapper.addCall(call);
+            call.addListener(mCallListener);
+        }
     }
 }
