@@ -26,7 +26,6 @@ import android.telecomm.Connection;
 import android.telecomm.PhoneCapabilities;
 import android.telecomm.PropertyPresentation;
 import android.telecomm.CallState;
-import android.telecomm.ConnectionRequest;
 import android.telecomm.GatewayInfo;
 import android.telecomm.ParcelableConnection;
 import android.telecomm.PhoneAccount;
@@ -67,7 +66,6 @@ final class Call implements CreateConnectionResponse {
     interface Listener {
         void onSuccessfulOutgoingCall(Call call, int callState);
         void onFailedOutgoingCall(Call call, int errorCode, String errorMsg);
-        void onCancelledOutgoingCall(Call call);
         void onSuccessfulIncomingCall(Call call);
         void onFailedIncomingCall(Call call);
         void onRequestingRingback(Call call, boolean requestingRingback);
@@ -95,8 +93,6 @@ final class Call implements CreateConnectionResponse {
         public void onSuccessfulOutgoingCall(Call call, int callState) {}
         @Override
         public void onFailedOutgoingCall(Call call, int errorCode, String errorMsg) {}
-        @Override
-        public void onCancelledOutgoingCall(Call call) {}
         @Override
         public void onSuccessfulIncomingCall(Call call) {}
         @Override
@@ -612,8 +608,7 @@ final class Call implements CreateConnectionResponse {
     }
 
     @Override
-    public void handleCreateConnectionSuccessful(
-            ConnectionRequest request, ParcelableConnection connection) {
+    public void handleCreateConnectionSuccess(ParcelableConnection connection) {
         Log.v(this, "handleCreateConnectionSuccessful %s", connection);
         mCreateConnectionProcessor = null;
         setTargetPhoneAccount(connection.getPhoneAccount());
@@ -646,13 +641,13 @@ final class Call implements CreateConnectionResponse {
     }
 
     @Override
-    public void handleCreateConnectionFailed(int code, String msg) {
+    public void handleCreateConnectionFailure(int code, String msg) {
         mCreateConnectionProcessor = null;
-        if (mIsIncoming) {
-            clearConnectionService();
-            setDisconnectCause(code, null);
-            setState(CallState.DISCONNECTED);
+        clearConnectionService();
+        setDisconnectCause(code, msg);
+        CallsManager.getInstance().markCallAsDisconnected(this, code, msg);
 
+        if (mIsIncoming) {
             for (Listener listener : mListeners) {
                 listener.onFailedIncomingCall(this);
             }
@@ -660,26 +655,6 @@ final class Call implements CreateConnectionResponse {
             for (Listener listener : mListeners) {
                 listener.onFailedOutgoingCall(this, code, msg);
             }
-            clearConnectionService();
-        }
-    }
-
-    @Override
-    public void handleCreateConnectionCancelled() {
-        Log.v(this, "handleCreateConnectionCancelled");
-        mCreateConnectionProcessor = null;
-        if (mIsIncoming) {
-            clearConnectionService();
-            setDisconnectCause(DisconnectCause.OUTGOING_CANCELED, null);
-
-        for (Listener listener : mListeners) {
-                listener.onFailedIncomingCall(this);
-            }
-        } else {
-        for (Listener listener : mListeners) {
-                listener.onCancelledOutgoingCall(this);
-            }
-            clearConnectionService();
         }
     }
 
@@ -735,7 +710,7 @@ final class Call implements CreateConnectionResponse {
             mCreateConnectionProcessor.abort();
         } else if (mState == CallState.NEW || mState == CallState.PRE_DIAL_WAIT ||
                 mState == CallState.CONNECTING) {
-            handleCreateConnectionCancelled();
+            handleCreateConnectionFailure(DisconnectCause.LOCAL, null);
         } else {
             Log.v(this, "Cannot abort a call which isn't either PRE_DIAL_WAIT or CONNECTING");
         }
