@@ -158,12 +158,6 @@ public final class CallsManager extends Call.ListenerBase {
     }
 
     @Override
-    public void onCancelledOutgoingCall(Call call) {
-        Log.v(this, "onCancelledOutgoingCall, call: %s", call);
-        markCallAsDisconnected(call, DisconnectCause.OUTGOING_CANCELED, null);
-    }
-
-    @Override
     public void onSuccessfulIncomingCall(Call call) {
         Log.d(this, "onSuccessfulIncomingCall");
         setCallState(call, CallState.RINGING);
