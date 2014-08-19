@@ -25,6 +25,7 @@ import android.os.IBinder;
 import android.os.Message;
 import android.os.RemoteException;
 import android.telecomm.AudioState;
+import android.telecomm.Connection;
 import android.telecomm.ConnectionRequest;
 import android.telecomm.ConnectionService;
 import android.telecomm.GatewayInfo;
@@ -46,7 +47,6 @@ import com.google.common.base.Preconditions;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -59,77 +59,40 @@ import java.util.concurrent.ConcurrentHashMap;
  * {@link IConnectionService}.
  */
 final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
-    private static final int MSG_HANDLE_CREATE_CONNECTION_SUCCESSFUL = 1;
-    private static final int MSG_HANDLE_CREATE_CONNECTION_FAILED = 2;
-    private static final int MSG_HANDLE_CREATE_CONNECTION_CANCELLED = 3;
-    private static final int MSG_SET_ACTIVE = 4;
-    private static final int MSG_SET_RINGING = 5;
-    private static final int MSG_SET_DIALING = 6;
-    private static final int MSG_SET_DISCONNECTED = 7;
-    private static final int MSG_SET_ON_HOLD = 8;
-    private static final int MSG_SET_REQUESTING_RINGBACK = 9;
-    private static final int MSG_SET_CALL_CAPABILITIES = 10;
-    private static final int MSG_SET_IS_CONFERENCED = 11;
-    private static final int MSG_ADD_CONFERENCE_CALL = 12;
-    private static final int MSG_REMOVE_CALL = 13;
-    private static final int MSG_ON_POST_DIAL_WAIT = 14;
-    private static final int MSG_QUERY_REMOTE_CALL_SERVICES = 15;
-    private static final int MSG_SET_VIDEO_PROVIDER = 16;
-    private static final int MSG_SET_AUDIO_MODE_IS_VOIP = 17;
-    private static final int MSG_SET_STATUS_HINTS = 18;
-    private static final int MSG_SET_HANDLE = 19;
-    private static final int MSG_SET_CALLER_DISPLAY_NAME = 20;
-    private static final int MSG_SET_VIDEO_STATE = 21;
-    private static final int MSG_SET_CONFERENCEABLE_CONNECTIONS = 22;
-    private static final int MSG_START_ACTIVITY_FROM_IN_CALL = 23;
+    private static final int MSG_HANDLE_CREATE_CONNECTION_COMPLETE = 1;
+    private static final int MSG_SET_ACTIVE = 2;
+    private static final int MSG_SET_RINGING = 3;
+    private static final int MSG_SET_DIALING = 4;
+    private static final int MSG_SET_DISCONNECTED = 5;
+    private static final int MSG_SET_ON_HOLD = 6;
+    private static final int MSG_SET_REQUESTING_RINGBACK = 7;
+    private static final int MSG_SET_CALL_CAPABILITIES = 8;
+    private static final int MSG_SET_IS_CONFERENCED = 9;
+    private static final int MSG_ADD_CONFERENCE_CALL = 10;
+    private static final int MSG_REMOVE_CALL = 11;
+    private static final int MSG_ON_POST_DIAL_WAIT = 12;
+    private static final int MSG_QUERY_REMOTE_CALL_SERVICES = 13;
+    private static final int MSG_SET_VIDEO_PROVIDER = 14;
+    private static final int MSG_SET_AUDIO_MODE_IS_VOIP = 15;
+    private static final int MSG_SET_STATUS_HINTS = 16;
+    private static final int MSG_SET_HANDLE = 17;
+    private static final int MSG_SET_CALLER_DISPLAY_NAME = 18;
+    private static final int MSG_SET_VIDEO_STATE = 19;
+    private static final int MSG_SET_CONFERENCEABLE_CONNECTIONS = 20;
+    private static final int MSG_START_ACTIVITY_FROM_IN_CALL = 21;
 
     private final Handler mHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
             Call call;
             switch (msg.what) {
-                case MSG_HANDLE_CREATE_CONNECTION_SUCCESSFUL: {
+                case MSG_HANDLE_CREATE_CONNECTION_COMPLETE: {
                     SomeArgs args = (SomeArgs) msg.obj;
                     try {
                         String callId = (String) args.arg1;
                         ConnectionRequest request = (ConnectionRequest) args.arg2;
-                        if (mPendingResponses.containsKey(callId)) {
-                            ParcelableConnection connection = (ParcelableConnection) args.arg3;
-                            mPendingResponses.remove(callId).
-                                    handleCreateConnectionSuccessful(request, connection);
-                        }
-                    } finally {
-                        args.recycle();
-                    }
-                    break;
-                }
-                case MSG_HANDLE_CREATE_CONNECTION_FAILED: {
-                    SomeArgs args = (SomeArgs) msg.obj;
-                    try {
-                        String callId = (String) args.arg1;
-                        ConnectionRequest request = (ConnectionRequest) args.arg2;
-                        int statusCode = args.argi1;
-                        String statusMsg = (String) args.arg3;
-                        removeCall(
-                                mCallIdMapper.getCall(callId),
-                                statusCode,
-                                statusMsg);
-                    } finally {
-                        args.recycle();
-                    }
-                    break;
-                }
-                case MSG_HANDLE_CREATE_CONNECTION_CANCELLED: {
-                    SomeArgs args = (SomeArgs) msg.obj;
-                    try {
-                        String callId = (String) args.arg1;
-                        ConnectionRequest request = (ConnectionRequest) args.arg2;
-                        if (mPendingResponses.containsKey(callId)) {
-                            mPendingResponses.remove(callId)
-                                    .handleCreateConnectionCancelled();
-                        } else {
-                            //Log.w(this, "handleCreateConnectionCancelled, unknown call: %s", callId);
-                        }
+                        ParcelableConnection connection = (ParcelableConnection) args.arg3;
+                        handleCreateConnectionComplete(callId, request, connection);
                     } finally {
                         args.recycle();
                     }
@@ -391,48 +354,18 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
     private final class Adapter extends IConnectionServiceAdapter.Stub {
 
         @Override
-        public void handleCreateConnectionSuccessful(
+        public void handleCreateConnectionComplete(
                 String callId,
                 ConnectionRequest request,
                 ParcelableConnection connection) {
-            logIncoming("handleCreateConnectionSuccessful %s", request);
+            logIncoming("handleCreateConnectionComplete %s", request);
             if (mCallIdMapper.isValidCallId(callId)) {
                 SomeArgs args = SomeArgs.obtain();
                 args.arg1 = callId;
                 args.arg2 = request;
                 args.arg3 = connection;
-                mHandler.obtainMessage(MSG_HANDLE_CREATE_CONNECTION_SUCCESSFUL, args)
+                mHandler.obtainMessage(MSG_HANDLE_CREATE_CONNECTION_COMPLETE, args)
                         .sendToTarget();
-            }
-        }
-
-        @Override
-        public void handleCreateConnectionFailed(
-                String callId,
-                ConnectionRequest request,
-                int errorCode,
-                String errorMsg) {
-            logIncoming("handleCreateConnectionFailed %s %d %s", request, errorCode, errorMsg);
-            if (mCallIdMapper.isValidCallId(callId)) {
-                SomeArgs args = SomeArgs.obtain();
-                args.arg1 = callId;
-                args.arg2 = request;
-                args.argi1 = errorCode;
-                args.arg3 = errorMsg;
-                mHandler.obtainMessage(MSG_HANDLE_CREATE_CONNECTION_FAILED, args).sendToTarget();
-            }
-        }
-
-        @Override
-        public void handleCreateConnectionCancelled(
-                String callId,
-                ConnectionRequest request) {
-            logIncoming("handleCreateConnectionCancelled %s", request);
-            if (mCallIdMapper.isValidCallId(callId)) {
-                SomeArgs args = SomeArgs.obtain();
-                args.arg1 = callId;
-                args.arg2 = request;
-                mHandler.obtainMessage(MSG_HANDLE_CREATE_CONNECTION_CANCELLED, args).sendToTarget();
             }
         }
 
@@ -720,7 +653,7 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                             call.isIncoming());
                 } catch (RemoteException e) {
                     Log.e(this, e, "Failure to createConnection -- %s", getComponentName());
-                    mPendingResponses.remove(callId).handleCreateConnectionFailed(
+                    mPendingResponses.remove(callId).handleCreateConnectionFailure(
                             DisconnectCause.OUTGOING_FAILURE, e.toString());
                 }
             }
@@ -728,7 +661,7 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
             @Override
             public void onFailure() {
                 Log.e(this, new Exception(), "Failure to call %s", getComponentName());
-                response.handleCreateConnectionFailed(DisconnectCause.OUTGOING_FAILURE, null);
+                response.handleCreateConnectionFailure(DisconnectCause.OUTGOING_FAILURE, null);
             }
         };
 
@@ -866,10 +799,19 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
         removeCall(call, DisconnectCause.ERROR_UNSPECIFIED, null);
     }
 
+    void removeCall(String callId, int disconnectCause, String disconnectMessage) {
+        CreateConnectionResponse response = mPendingResponses.remove(callId);
+        if (response != null) {
+            response.handleCreateConnectionFailure(disconnectCause, disconnectMessage);
+        }
+
+        mCallIdMapper.removeCall(callId);
+    }
+
     void removeCall(Call call, int disconnectCause, String disconnectMessage) {
         CreateConnectionResponse response = mPendingResponses.remove(mCallIdMapper.getCallId(call));
         if (response != null) {
-            response.handleCreateConnectionFailed(disconnectCause, disconnectMessage);
+            response.handleCreateConnectionFailure(disconnectCause, disconnectMessage);
         }
 
         mCallIdMapper.removeCall(call);
@@ -937,6 +879,28 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
         }
     }
 
+    private void handleCreateConnectionComplete(
+            String callId,
+            ConnectionRequest request,
+            ParcelableConnection connection) {
+        // TODO: Note we are not using parameter "request", which is a side effect of our tacit
+        // assumption that we have at most one outgoing connection attempt per ConnectionService.
+        // This may not continue to be the case.
+        if (connection.getState() == Connection.STATE_DISCONNECTED) {
+            // A connection that begins in the DISCONNECTED state is an indication of
+            // failure to connect; we handle all failures uniformly
+            removeCall(
+                    callId,
+                    connection.getFailureCode(),
+                    connection.getFailureMessage());
+        } else {
+            // Successful connection
+            if (mPendingResponses.containsKey(callId)) {
+                mPendingResponses.remove(callId).handleCreateConnectionSuccess(connection);
+            }
+        }
+    }
+
     /**
      * Called when the associated connection service dies.
      */
@@ -946,7 +910,7 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                     new CreateConnectionResponse[mPendingResponses.values().size()]);
             mPendingResponses.clear();
             for (int i = 0; i < responses.length; i++) {
-                responses[i].handleCreateConnectionFailed(DisconnectCause.ERROR_UNSPECIFIED, null);
+                responses[i].handleCreateConnectionFailure(DisconnectCause.ERROR_UNSPECIFIED, null);
             }
         }
         mCallIdMapper.clear();
