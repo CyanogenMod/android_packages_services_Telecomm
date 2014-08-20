@@ -57,6 +57,24 @@ final class CreateConnectionProcessor {
                     + Objects.toString(connectionManagerPhoneAccount) + ","
                     + Objects.toString(targetPhoneAccount) + ")";
         }
+
+        /**
+         * Determines if this instance of {@code CallAttemptRecord} has the same underlying
+         * {@code PhoneAccountHandle}s as another instance.
+         *
+         * @param obj The other instance to compare against.
+         * @return {@code True} if the {@code CallAttemptRecord}s are equal.
+         */
+        @Override
+        public boolean equals(Object obj) {
+            if (obj instanceof CallAttemptRecord) {
+                CallAttemptRecord other = (CallAttemptRecord) obj;
+                return Objects.equals(connectionManagerPhoneAccount,
+                        other.connectionManagerPhoneAccount) &&
+                        Objects.equals(targetPhoneAccount, other.targetPhoneAccount);
+            }
+            return false;
+        }
     }
 
     private final Call mCall;
@@ -189,6 +207,7 @@ final class CreateConnectionProcessor {
             mAttemptRecords.clear();
             List<PhoneAccountHandle> allAccountHandles = TelecommApp.getInstance()
                     .getPhoneAccountRegistrar().getOutgoingPhoneAccounts();
+            // First, add the PSTN phone account
             for (int i = 0; i < allAccountHandles.size(); i++) {
                 if (TelephonyUtil.isPstnComponentName(
                         allAccountHandles.get(i).getComponentName())) {
@@ -198,6 +217,19 @@ final class CreateConnectionProcessor {
                                     allAccountHandles.get(i),
                                     allAccountHandles.get(i)));
                 }
+            }
+
+            // Next, add the connection manager account as a backup.
+            PhoneAccountHandle callManager = TelecommApp.getInstance()
+                    .getPhoneAccountRegistrar().getSimCallManager();
+            CallAttemptRecord callAttemptRecord = new CallAttemptRecord(callManager,
+                    TelecommApp.getInstance().getPhoneAccountRegistrar().
+                            getDefaultOutgoingPhoneAccount());
+
+            if (callManager != null && !mAttemptRecords.contains(callAttemptRecord)) {
+                Log.i(this, "Will try Connection Manager account %s for emergency",
+                        callManager);
+                mAttemptRecords.add(callAttemptRecord);
             }
         }
     }
