@@ -23,6 +23,7 @@ import android.provider.CallLog.Calls;
 import android.telecomm.CallState;
 import android.telecomm.PhoneAccountHandle;
 import android.telecomm.VideoProfile;
+import android.telephony.DisconnectCause;
 import android.telephony.PhoneNumberUtils;
 
 import com.android.internal.telephony.CallerInfo;
@@ -88,8 +89,9 @@ final class CallLogManager extends CallsManagerListenerBase {
 
     @Override
     public void onCallStateChanged(Call call, int oldState, int newState) {
-        if ((newState == CallState.DISCONNECTED || newState == CallState.ABORTED) &&
-                oldState != CallState.PRE_DIAL_WAIT) {
+        if ((newState == CallState.DISCONNECTED || newState == CallState.ABORTED)
+                && oldState != CallState.PRE_DIAL_WAIT
+                && call.getDisconnectCause() != DisconnectCause.OUTGOING_CANCELED) {
             int type;
             if (!call.isIncoming()) {
                 type = Calls.OUTGOING_TYPE;
