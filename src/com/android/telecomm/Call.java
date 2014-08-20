@@ -615,7 +615,7 @@ final class Call implements CreateConnectionResponse {
         setHandle(connection.getHandle(), connection.getHandlePresentation());
         setCallerDisplayName(
                 connection.getCallerDisplayName(), connection.getCallerDisplayNamePresentation());
-
+        setCallCapabilities(connection.getCapabilities());
         setVideoProvider(connection.getVideoProvider());
         setVideoState(connection.getVideoState());
         setRequestingRingback(connection.isRequestingRingback());
