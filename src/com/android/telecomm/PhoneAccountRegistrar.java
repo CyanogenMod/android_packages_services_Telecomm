@@ -16,9 +16,11 @@
 
 package com.android.telecomm;
 
+import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
+import android.content.pm.ServiceInfo;
 import android.telecomm.ConnectionService;
 import android.telecomm.PhoneAccount;
 import android.telecomm.PhoneAccountHandle;
@@ -45,6 +47,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.SecurityException;
 import java.lang.String;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -231,6 +234,15 @@ public final class PhoneAccountRegistrar {
     // TODO: Should we implement an artificial limit for # of accounts associated with a single
     // ComponentName?
     public void registerPhoneAccount(PhoneAccount account) {
+        // Enforce the requirement that a connection service for a phone account has the correct
+        // permission.
+        if (!phoneAccountHasPermission(account.getAccountHandle())) {
+            Log.w(this, "Phone account %s does not have BIND_CONNECTION_SERVICE permission.",
+                    account.getAccountHandle());
+            throw new SecurityException(
+                    "PhoneAccount connection service requires BIND_CONNECTION_SERVICE permission.");
+        }
+
         mState.accounts.add(account);
         // Search for duplicates and remove any that are found.
         for (int i = 0; i < mState.accounts.size() - 1; i++) {
@@ -308,6 +320,27 @@ public final class PhoneAccountRegistrar {
     private void fireSimCallManagerChanged() {
         for (Listener l : mListeners) {
             l.onSimCallManagerChanged(this);
+        }
+    }
+
+    /**
+     * Determines if the connection service specified by a {@link PhoneAccountHandle} has the
+     * {@link Manifest.permission#BIND_CONNECTION_SERVICE} permission.
+     *
+     * @param phoneAccountHandle The phone account to check.
+     * @return {@code True} if the phone account has permission.
+     */
+    public boolean phoneAccountHasPermission(PhoneAccountHandle phoneAccountHandle) {
+        PackageManager packageManager = TelecommApp.getInstance().getPackageManager();
+        try {
+            ServiceInfo serviceInfo = packageManager.getServiceInfo(
+                    phoneAccountHandle.getComponentName(), 0);
+
+            return serviceInfo.permission != null &&
+                    serviceInfo.permission.equals(Manifest.permission.BIND_CONNECTION_SERVICE);
+        } catch (PackageManager.NameNotFoundException e) {
+            Log.w(this, "Name not found %s", e);
+            return false;
         }
     }
 

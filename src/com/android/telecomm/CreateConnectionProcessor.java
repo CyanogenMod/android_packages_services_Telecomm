@@ -107,9 +107,32 @@ final class CreateConnectionProcessor {
 
     private void attemptNextPhoneAccount() {
         Log.v(this, "attemptNextPhoneAccount");
+        PhoneAccountRegistrar registrar = TelecommApp.getInstance().getPhoneAccountRegistrar();
+        CallAttemptRecord attempt = null;
+        if (mAttemptRecordIterator.hasNext()) {
+            attempt = mAttemptRecordIterator.next();
 
-        if (mResponse != null && mAttemptRecordIterator.hasNext()) {
-            CallAttemptRecord attempt = mAttemptRecordIterator.next();
+            if (!registrar.phoneAccountHasPermission(attempt.connectionManagerPhoneAccount)) {
+                Log.w(this,
+                        "Connection mgr does not have BIND_CONNECTION_SERVICE for attempt: %s",
+                        attempt);
+                attemptNextPhoneAccount();
+                return;
+            }
+
+            // If the target PhoneAccount differs from the ConnectionManager phone acount, ensure it
+            // also has BIND_CONNECTION_SERVICE permission.
+            if (!attempt.connectionManagerPhoneAccount.equals(attempt.targetPhoneAccount) &&
+                    !registrar.phoneAccountHasPermission(attempt.targetPhoneAccount)) {
+                Log.w(this,
+                        "Target PhoneAccount does not have BIND_CONNECTION_SERVICE for attempt: %s",
+                        attempt);
+                attemptNextPhoneAccount();
+                return;
+            }
+        }
+
+        if (mResponse != null && attempt != null) {
             Log.i(this, "Trying attempt %s", attempt);
             ConnectionServiceWrapper service =
                     mRepository.getService(
