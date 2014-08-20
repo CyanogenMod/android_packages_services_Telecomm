@@ -77,7 +77,7 @@
     <string name="respond_via_sms_confirmation_format">Message sent to <xliff:g id="phone_number">%s</xliff:g>.</string>
 
     <!-- Title for phone accounts settings screen -->
-    <string name="phone_account_preferences_title">Phone account preferences</string>
+    <string name="phone_account_preferences_title">Phone account settings</string>
 
     <!-- Title for setting to select default outgoing phone account -->
     <string name="default_outgoing_account_title">Default outgoing account</string>
