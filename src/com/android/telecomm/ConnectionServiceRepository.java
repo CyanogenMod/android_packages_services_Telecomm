@@ -38,21 +38,6 @@ final class ConnectionServiceRepository
     ConnectionServiceRepository() {
     }
 
-    Collection<ConnectionServiceWrapper> lookupServices() {
-        PackageManager packageManager = TelecommApp.getInstance().getPackageManager();
-        Intent intent = new Intent(ConnectionService.SERVICE_INTERFACE);
-        ArrayList<ConnectionServiceWrapper> services = new ArrayList<>();
-
-        for (ResolveInfo entry : packageManager.queryIntentServices(intent, 0)) {
-            ServiceInfo serviceInfo = entry.serviceInfo;
-            if (serviceInfo != null) {
-                services.add(getService(new ComponentName(
-                        serviceInfo.packageName, serviceInfo.name)));
-            }
-        }
-        return services;
-    }
-
     ConnectionServiceWrapper getService(ComponentName componentName) {
         ConnectionServiceWrapper service = mServiceCache.get(componentName);
         if (service == null) {
