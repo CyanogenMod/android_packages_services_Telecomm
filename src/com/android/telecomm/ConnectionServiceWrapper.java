@@ -889,10 +889,7 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
         if (connection.getState() == Connection.STATE_DISCONNECTED) {
             // A connection that begins in the DISCONNECTED state is an indication of
             // failure to connect; we handle all failures uniformly
-            removeCall(
-                    callId,
-                    connection.getFailureCode(),
-                    connection.getFailureMessage());
+            removeCall(callId, connection.getDisconnectCause(), connection.getDisconnectMessage());
         } else {
             // Successful connection
             if (mPendingResponses.containsKey(callId)) {
