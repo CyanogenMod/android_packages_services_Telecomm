@@ -708,9 +708,9 @@ final class Call implements CreateConnectionResponse {
     void abort() {
         if (mCreateConnectionProcessor != null) {
             mCreateConnectionProcessor.abort();
-        } else if (mState == CallState.NEW || mState == CallState.PRE_DIAL_WAIT ||
-                mState == CallState.CONNECTING) {
-            handleCreateConnectionFailure(DisconnectCause.LOCAL, null);
+        } else if (mState == CallState.NEW || mState == CallState.PRE_DIAL_WAIT
+                || mState == CallState.CONNECTING) {
+            handleCreateConnectionFailure(DisconnectCause.OUTGOING_CANCELED, null);
         } else {
             Log.v(this, "Cannot abort a call which isn't either PRE_DIAL_WAIT or CONNECTING");
         }
