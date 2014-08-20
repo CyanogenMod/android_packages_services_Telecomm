@@ -96,6 +96,8 @@ public class CallServiceNotifier {
         TelecommManager telecommManager =
                 (TelecommManager) context.getSystemService(Context.TELECOMM_SERVICE);
 
+        telecommManager.clearAccounts(context.getPackageName());
+
         telecommManager.registerPhoneAccount(PhoneAccount.builder()
                 .withAccountHandle(
                         new PhoneAccountHandle(
@@ -105,21 +107,22 @@ public class CallServiceNotifier {
                 .withSubscriptionNumber("555-TEST")
                 .withCapabilities(PhoneAccount.CAPABILITY_CALL_PROVIDER)
                 .withIconResId(R.drawable.stat_sys_phone_call)
-                .withLabel("Dummy Service")
-                .withShortDescription("a short description for the dummy service")
+                .withLabel("TelecommTestApp Call Provider")
+                .withShortDescription("a short description for the call provider")
                 .build());
 
         telecommManager.registerPhoneAccount(PhoneAccount.builder()
                 .withAccountHandle(
                         new PhoneAccountHandle(
-                                new ComponentName(context, TestConnectionManager.class),
+                                new ComponentName(context, TestConnectionService.class),
                                 SIM_SUBSCRIPTION_ID))
-                .withHandle(Uri.parse("tel:555-CMGR"))
-                .withSubscriptionNumber("555-CMGR")
-                .withCapabilities(PhoneAccount.CAPABILITY_CONNECTION_MANAGER)
+                .withHandle(Uri.parse("tel:555-TSIM"))
+                .withSubscriptionNumber("555-TSIM")
+                .withCapabilities(PhoneAccount.CAPABILITY_CALL_PROVIDER |
+                    PhoneAccount.CAPABILITY_SIM_SUBSCRIPTION)
                 .withIconResId(R.drawable.stat_sys_phone_call)
-                .withLabel("Dummy Connection Manager")
-                .withShortDescription("a short description for the dummy connection manager")
+                .withLabel("TelecommTestApp SIM Subscription")
+                .withShortDescription("a short description for the sim subscription")
                 .build());
 
         telecommManager.registerPhoneAccount(PhoneAccount.builder()
