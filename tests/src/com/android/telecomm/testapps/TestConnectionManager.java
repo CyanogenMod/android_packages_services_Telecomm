@@ -181,7 +181,7 @@ public class TestConnectionManager extends ConnectionService {
     }
 
     private static void log(String msg) {
-        Log.w("telecomtestcs", "[TestConnectionService] " + msg);
+        Log.w("telecomtestcs", "[TestConnectionManager] " + msg);
     }
 
     @Override
@@ -200,7 +200,7 @@ public class TestConnectionManager extends ConnectionService {
             PhoneAccountHandle connectionManagerAccount,
             final ConnectionRequest request) {
         return new TestManagedConnection(
-                createRemoteOutgoingConnection(
+                createRemoteIncomingConnection(
                         request.getAccountHandle(),
                         request),
                 true);
