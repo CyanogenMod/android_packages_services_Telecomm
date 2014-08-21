@@ -538,6 +538,11 @@ public final class CallsManager extends Call.ListenerBase {
             Log.w(this, "Unknown call (%s) asked to be removed from hold", call);
         } else {
             Log.d(this, "unholding call: (%s)", call);
+            for (Call c : mCalls) {
+                if (c != null && c.isAlive() && c != call) {
+                    c.hold();
+                }
+            }
             call.unhold();
         }
     }
