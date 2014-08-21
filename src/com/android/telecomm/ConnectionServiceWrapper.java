@@ -171,6 +171,7 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                     SomeArgs args = (SomeArgs) msg.obj;
                     try {
                         Call childCall = mCallIdMapper.getCall(args.arg1);
+                        Log.d(this, "SET_IS_CONFERENCE: %s %s", args.arg1, args.arg2);
                         if (childCall != null) {
                             String conferenceCallId = (String) args.arg2;
                             if (conferenceCallId == null) {
@@ -205,7 +206,8 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                         mCallIdMapper.addCall(conferenceCall, id);
                         conferenceCall.setConnectionService(ConnectionServiceWrapper.this);
 
-                        Log.d(this, "adding children to conference");
+                        Log.d(this, "adding children to conference %s",
+                                parcelableConference.getConnectionIds());
                         for (String callId : parcelableConference.getConnectionIds()) {
                             Call childCall = mCallIdMapper.getCall(callId);
                             Log.d(this, "found child: %s", callId);
@@ -456,8 +458,7 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
         @Override
         public void setIsConferenced(String callId, String conferenceCallId) {
             logIncoming("setIsConferenced %s %s", callId, conferenceCallId);
-            if (mCallIdMapper.isValidCallId(callId) &&
-                    mCallIdMapper.isValidConferenceId(conferenceCallId)) {
+            if (mCallIdMapper.isValidCallId(callId)) {
                 SomeArgs args = SomeArgs.obtain();
                 args.arg1 = callId;
                 args.arg2 = conferenceCallId;

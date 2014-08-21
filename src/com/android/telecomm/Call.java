@@ -350,6 +350,10 @@ final class Call implements CreateConnectionResponse {
             Log.v(this, "setState %s -> %s", mState, newState);
             mState = newState;
             maybeLoadCannedSmsResponses();
+
+            if (mState == CallState.DISCONNECTED) {
+                fixParentAfterDisconnect();
+            }
         }
     }
 
@@ -362,6 +366,10 @@ final class Call implements CreateConnectionResponse {
 
     boolean isRequestingRingback() {
         return mRequestingRingback;
+    }
+
+    boolean isConference() {
+        return mIsConference;
     }
 
     Uri getHandle() {
@@ -825,7 +833,11 @@ final class Call implements CreateConnectionResponse {
     }
 
     void splitFromConference() {
-        // TODO: todo
+        if (mConnectionService == null) {
+            Log.w(this, "splitting from conference call without a connection service");
+        } else {
+            mConnectionService.splitFromConference(this);
+        }
     }
 
     void setParentCall(Call parentCall) {
@@ -938,6 +950,16 @@ final class Call implements CreateConnectionResponse {
 
     List<String> getCannedSmsResponses() {
         return mCannedSmsResponses;
+    }
+
+    /**
+     * We need to make sure that before we move a call to the disconnected state, it no
+     * longer has any parent/child relationships.  We want to do this to ensure that the InCall
+     * Service always has the right data in the right order.  We also want to do it in telecomm so
+     * that the insurance policy lives in the framework side of things.
+     */
+    private void fixParentAfterDisconnect() {
+        setParentCall(null);
     }
 
     /**
