@@ -117,7 +117,6 @@ public class CallActivity extends Activity {
      * @param intent Call intent containing data about the handle to call.
      */
     private void processOutgoingCallIntent(Intent intent) {
-
         String uriString = intent.getData().getSchemeSpecificPart();
         Uri handle = Uri.fromParts(
                 PhoneNumberUtils.isUriNumber(uriString) ? "sip" : "tel", uriString, null);

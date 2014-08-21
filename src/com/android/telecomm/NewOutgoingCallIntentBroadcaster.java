@@ -24,7 +24,6 @@ import android.content.res.Resources;
 import android.net.Uri;
 import android.os.UserHandle;
 import android.telecomm.GatewayInfo;
-import android.telecomm.PhoneAccountHandle;
 import android.telecomm.TelecommManager;
 import android.telecomm.VideoProfile;
 import android.telephony.PhoneNumberUtils;
@@ -133,8 +132,7 @@ class NewOutgoingCallIntentBroadcaster {
             }
 
             GatewayInfo gatewayInfo = getGateWayInfoFromIntent(intent, resultHandleUri);
-            PhoneAccountHandle accountHandle = getAccountHandleFromIntent(intent);
-            mCallsManager.placeOutgoingCall(mCall, resultHandleUri, gatewayInfo, accountHandle,
+            mCallsManager.placeOutgoingCall(mCall, resultHandleUri, gatewayInfo,
                     mIntent.getBooleanExtra(TelecommManager.EXTRA_START_CALL_WITH_SPEAKERPHONE,
                             false),
                     mIntent.getIntExtra(TelecommManager.EXTRA_START_CALL_WITH_VIDEO_STATE,
@@ -215,7 +213,7 @@ class NewOutgoingCallIntentBroadcaster {
             int videoState = mIntent.getIntExtra(
                     TelecommManager.EXTRA_START_CALL_WITH_VIDEO_STATE,
                     VideoProfile.VideoState.AUDIO_ONLY);
-            mCallsManager.placeOutgoingCall(mCall, Uri.fromParts(scheme, handle, null), null, null,
+            mCallsManager.placeOutgoingCall(mCall, Uri.fromParts(scheme, handle, null), null,
                     speakerphoneOn, videoState);
 
             // Don't return but instead continue and send the ACTION_NEW_OUTGOING_CALL broadcast
@@ -285,12 +283,6 @@ class NewOutgoingCallIntentBroadcaster {
             Log.d(this, "Found and copied gateway provider extras to broadcast intent.");
             return;
         }
-        PhoneAccountHandle extraAccountHandle =
-                src.getParcelableExtra(TelecommManager.EXTRA_PHONE_ACCOUNT_HANDLE);
-        if (extraAccountHandle != null) {
-            dst.putExtra(TelecommManager.EXTRA_PHONE_ACCOUNT_HANDLE, extraAccountHandle);
-            Log.d(this, "Found and copied account extra to broadcast intent.");
-        }
 
         Log.d(this, "No provider extras found in call intent.");
     }
@@ -333,20 +325,6 @@ class NewOutgoingCallIntentBroadcaster {
         }
 
         return null;
-    }
-
-    /**
-     * Extracts account/connection provider information from a provided intent..
-     *
-     * @param intent to extract account information from.
-     * @return Account object containing extracted account information
-     */
-    public static PhoneAccountHandle getAccountHandleFromIntent(Intent intent) {
-        if (intent == null) {
-            return null;
-        }
-
-        return intent.getParcelableExtra(TelecommManager.EXTRA_PHONE_ACCOUNT_HANDLE);
     }
 
     private void launchSystemDialer(Context context, Uri handle) {
