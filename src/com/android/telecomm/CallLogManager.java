@@ -89,9 +89,19 @@ final class CallLogManager extends CallsManagerListenerBase {
 
     @Override
     public void onCallStateChanged(Call call, int oldState, int newState) {
-        if ((newState == CallState.DISCONNECTED || newState == CallState.ABORTED)
-                && oldState != CallState.PRE_DIAL_WAIT
-                && call.getDisconnectCause() != DisconnectCause.OUTGOING_CANCELED) {
+        boolean isNewlyDisconnected =
+                newState == CallState.DISCONNECTED || newState == CallState.ABORTED;
+        boolean isCallCanceled = isNewlyDisconnected &&
+                call.getDisconnectCause() == DisconnectCause.OUTGOING_CANCELED;
+
+        // Log newly disconnected calls only if:
+        // 1) It was not in the "choose account" phase when disconnected
+        // 2) It is a conference call
+        // 3) Call was not explicitly canceled
+        if (isNewlyDisconnected &&
+                (oldState != CallState.PRE_DIAL_WAIT &&
+                 !call.isConference() &&
+                 !isCallCanceled)) {
             int type;
             if (!call.isIncoming()) {
                 type = Calls.OUTGOING_TYPE;
