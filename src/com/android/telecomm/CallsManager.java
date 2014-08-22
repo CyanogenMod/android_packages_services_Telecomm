@@ -782,6 +782,7 @@ public final class CallsManager extends Call.ListenerBase {
     private void removeCall(Call call) {
         Log.v(this, "removeCall(%s)", call);
 
+        call.setParentCall(null);  // need to clean up parent relationship before destroying.
         call.removeListener(this);
         call.clearConnectionService();
 
