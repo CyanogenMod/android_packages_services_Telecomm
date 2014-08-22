@@ -29,7 +29,6 @@ import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
 import android.os.ServiceManager;
-import android.phone.PhoneManager;
 import android.telecomm.CallState;
 import android.telecomm.PhoneAccount;
 import android.telecomm.PhoneAccountHandle;
@@ -250,10 +249,10 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
     }
 
     /**
-     * @see TelecommManager#isInAPhoneCall
+     * @see TelecommManager#isInCall
      */
     @Override
-    public boolean isInAPhoneCall() {
+    public boolean isInCall() {
         enforceReadPermission();
         // Do not use sendRequest() with this method since it could cause a deadlock with
         // audio service, which we call into from the main thread: AudioManager.setMode().
@@ -288,16 +287,16 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
     }
 
     /**
-     * @see PhoneManager#showCallScreen
+     * @see TelecommManager#showInCallScreen
      */
     @Override
-    public void showCallScreen(boolean showDialpad) {
+    public void showInCallScreen(boolean showDialpad) {
         enforceReadPermissionOrDefaultDialer();
         sendRequestAsync(MSG_SHOW_CALL_SCREEN, showDialpad ? 1 : 0);
     }
 
     /**
-     * @see PhoneManager#cancelMissedCallsNotification
+     * @see TelecommManager#cancelMissedCallsNotification
      */
     @Override
     public void cancelMissedCallsNotification() {
@@ -306,7 +305,7 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
     }
 
     /**
-     * @see PhoneManager#handlePinMmi
+     * @see TelecommManager#handleMmi
      */
     @Override
     public boolean handlePinMmi(String dialString) {
@@ -439,10 +438,6 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
 
     private void enforceCallingPackage(String packageName) {
         mAppOpsManager.checkPackage(Binder.getCallingUid(), packageName);
-    }
-
-    private void showCallScreenInternal(boolean showDialpad) {
-        CallsManager.getInstance().getInCallController().bringToForeground(showDialpad);
     }
 
     private boolean isDefaultDialerCalling() {
