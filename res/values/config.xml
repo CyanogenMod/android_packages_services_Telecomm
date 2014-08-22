@@ -43,4 +43,8 @@
          if this package has not registered any accounts, then it will be ignored.
          [DO NOT TRANSLATE] -->
     <string name="default_connection_manager_component" translatable="false"></string>
+
+    <!-- Flag indicating that wi-fi calling through a connection manager is supported.
+         [DO NOT TRANSLATE] -->
+    <bool name="connection_manager_enabled" translatable="false">true</bool>
 </resources>
