@@ -143,7 +143,7 @@ public final class InCallController extends CallsManagerListenerBase {
 
     private final CallIdMapper mCallIdMapper = new CallIdMapper("InCall");
 
-    /** The {@link ComponentName} of the default InCall UI */
+    /** The {@link ComponentName} of the default InCall UI. */
     private ComponentName mInCallComponentName;
 
     public InCallController() {
@@ -164,8 +164,12 @@ public final class InCallController extends CallsManagerListenerBase {
             // Track the call if we don't already know about it.
             addCall(call);
 
-            ParcelableCall parcelableCall = toParcelableCall(call);
-            for (IInCallService inCallService : mInCallServices.values()) {
+            for (Map.Entry<ComponentName, IInCallService> entry : mInCallServices.entrySet()) {
+                ComponentName componentName = entry.getKey();
+                IInCallService inCallService = entry.getValue();
+
+                ParcelableCall parcelableCall = toParcelableCall(call,
+                        componentName.equals(mInCallComponentName) /* includeVideoProvider */);
                 try {
                     inCallService.addCall(parcelableCall);
                 } catch (RemoteException ignored) {
@@ -336,7 +340,8 @@ public final class InCallController extends CallsManagerListenerBase {
                     // Track the call if we don't already know about it.
                     addCall(call);
 
-                    inCallService.addCall(toParcelableCall(call));
+                    inCallService.addCall(toParcelableCall(call,
+                            componentName.equals(mInCallComponentName) /* includeVideoProvider */));
                 } catch (RemoteException ignored) {
                 }
             }
@@ -382,11 +387,21 @@ public final class InCallController extends CallsManagerListenerBase {
         }
     }
 
+    /**
+     * Informs all {@link InCallService} instances of the updated call information.  Changes to the
+     * video provider are only communicated to the default in-call UI.
+     *
+     * @param call The {@link Call}.
+     */
     private void updateCall(Call call) {
         if (!mInCallServices.isEmpty()) {
-            ParcelableCall parcelableCall = toParcelableCall(call);
-            Log.v(this, "updateCall %s ==> %s", call, parcelableCall);
-            for (IInCallService inCallService : mInCallServices.values()) {
+            for (Map.Entry<ComponentName, IInCallService> entry : mInCallServices.entrySet()) {
+                ComponentName componentName = entry.getKey();
+                IInCallService inCallService = entry.getValue();
+                ParcelableCall parcelableCall = toParcelableCall(call,
+                        componentName.equals(mInCallComponentName) /* includeVideoProvider */);
+
+                Log.v(this, "updateCall %s ==> %s", call, parcelableCall);
                 try {
                     inCallService.updateCall(parcelableCall);
                 } catch (RemoteException ignored) {
@@ -395,7 +410,15 @@ public final class InCallController extends CallsManagerListenerBase {
         }
     }
 
-    private ParcelableCall toParcelableCall(Call call) {
+    /**
+     * Parcels all information for a {@link Call} into a new {@link ParcelableCall} instance.
+     *
+     * @param call The {@link Call} to parcel.
+     * @param includeVideoProvider When {@code true}, the {@link IVideoProvider} is included in the
+     *      parcelled call.  When {@code false}, the {@link IVideoProvider} is not included.
+     * @return The {@link ParcelableCall} containing all call information from the {@link Call}.
+     */
+    private ParcelableCall toParcelableCall(Call call, boolean includeVideoProvider) {
         String callId = mCallIdMapper.getCallId(call);
 
         int capabilities = call.getCallCapabilities();
@@ -460,7 +483,7 @@ public final class InCallController extends CallsManagerListenerBase {
                 call.getCallerDisplayNamePresentation(),
                 call.getGatewayInfo(),
                 call.getTargetPhoneAccount(),
-                call.getVideoProvider(),
+                includeVideoProvider ? call.getVideoProvider() : null,
                 parentCallId,
                 childCallIds,
                 call.getStatusHints(),
