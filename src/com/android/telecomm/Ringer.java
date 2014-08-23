@@ -180,16 +180,11 @@ final class Ringer extends CallsManagerListenerBase {
                 Log.v(this, "startRingingOrCallWaiting");
                 mCallAudioManager.setIsRinging(true);
 
-                // Only play ringtone if a bluetooth device is not available. When a BT device
-                // is available, then we send it a signal to do its own ringtone and we dont need
-                // to play the ringtone on the device.
-                if (!mCallAudioManager.isBluetoothDeviceAvailable()) {
-                    // Because we wait until a contact info query to complete before processing a
-                    // call (for the purposes of direct-to-voicemail), the information about custom
-                    // ringtones should be available by the time this code executes. We can safely
-                    // request the custom ringtone from the call and expect it to be current.
-                    mRingtonePlayer.play(foregroundCall.getRingtone());
-                }
+                // Because we wait until a contact info query to complete before processing a
+                // call (for the purposes of direct-to-voicemail), the information about custom
+                // ringtones should be available by the time this code executes. We can safely
+                // request the custom ringtone from the call and expect it to be current.
+                mRingtonePlayer.play(foregroundCall.getRingtone());
             } else {
                 Log.v(this, "startRingingOrCallWaiting, skipping because volume is 0");
             }
