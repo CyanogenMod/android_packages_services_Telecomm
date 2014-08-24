@@ -36,9 +36,10 @@
     <string name="respond_via_sms_edittext_dialog_title" msgid="20379890418289778">"Արագ պատասխան"</string>
     <string name="respond_via_sms_menu_reset_default_activity" msgid="1461742052902053466">"Վերականգնել լռելյայն հավելվածը"</string>
     <string name="respond_via_sms_confirmation_format" msgid="7229149977515784269">"Հաղորդագրությունն ուղարկվել է <xliff:g id="PHONE_NUMBER">%s</xliff:g>-ին:"</string>
-    <string name="phone_account_preferences_title" msgid="3932310998135189661">"Հեռախոսային հաշվի նախապատվություններ"</string>
+    <string name="phone_account_preferences_title" msgid="5042332049625236956">"Հեռախոսի հաշիվների կարգավորումներ"</string>
     <string name="default_outgoing_account_title" msgid="8261079649574578970">"Կանխադրված ելքային հաշիվը"</string>
     <string name="sim_call_manager_account" msgid="2559930293628077755">"Wi-Fi զանգերի հաշիվ"</string>
     <string name="account_ask_every_time" msgid="944077828070287407">"Հարցնել ամեն անգամ"</string>
     <string name="do_not_use_sim_call_manager" msgid="5519252524007323694">"Չօգտագործել Wi-Fi զանգերը"</string>
+    <string name="outgoing_call_not_allowed" msgid="1434784869685645427">"Այս օգտվողին չի թույլատրվում կատարել ոչ արտակարգ զանգեր"</string>
 </resources>

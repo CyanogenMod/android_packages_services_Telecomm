@@ -36,9 +36,11 @@
     <string name="respond_via_sms_edittext_dialog_title" msgid="20379890418289778">"Pikavastaukset"</string>
     <string name="respond_via_sms_menu_reset_default_activity" msgid="1461742052902053466">"Palauta oletussovellus"</string>
     <string name="respond_via_sms_confirmation_format" msgid="7229149977515784269">"Viesti lähetetty numeroon <xliff:g id="PHONE_NUMBER">%s</xliff:g>."</string>
-    <string name="phone_account_preferences_title" msgid="3932310998135189661">"Puhelintilin asetukset"</string>
+    <!-- no translation found for phone_account_preferences_title (5042332049625236956) -->
+    <skip />
     <string name="default_outgoing_account_title" msgid="8261079649574578970">"Lähtevien puheluiden oletustili"</string>
     <string name="sim_call_manager_account" msgid="2559930293628077755">"Wi-Fi-puhelutili"</string>
     <string name="account_ask_every_time" msgid="944077828070287407">"Kysy aina"</string>
     <string name="do_not_use_sim_call_manager" msgid="5519252524007323694">"Älä käytä puheluihin Wi-Fiä"</string>
+    <string name="outgoing_call_not_allowed" msgid="1434784869685645427">"Tämä käyttäjä saa soittaa vain hätäpuheluita"</string>
 </resources>
