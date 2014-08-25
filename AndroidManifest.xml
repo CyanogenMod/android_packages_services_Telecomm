@@ -71,7 +71,7 @@
              URL with the schemes "tel", "sip", and "voicemail". It also handles URLs linked to
              contacts provider entries. Any data not fitting the schema described is ignored. -->
         <activity android:name="CallActivity"
-                android:theme="@android:style/Theme.NoDisplay"
+                android:theme="@style/Theme.Telecomm.Transparent"
                 android:permission="android.permission.CALL_PHONE"
                 android:excludeFromRecents="true">
             <!-- CALL action intent filters for the various ways of initiating an outgoing call. -->
@@ -207,6 +207,13 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
             </intent-filter>
+        </activity>
+
+        <activity android:name=".ErrorDialogActivity"
+                android:configChanges="orientation|screenSize|keyboardHidden"
+                android:excludeFromRecents="true"
+                android:launchMode="singleInstance"
+                android:theme="@style/Theme.Telecomm.Transparent">
         </activity>
 
     </application>

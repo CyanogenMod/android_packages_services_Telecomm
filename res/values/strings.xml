@@ -95,6 +95,17 @@
          due to a user restriction -->
     <string name="outgoing_call_not_allowed">This user is not allowed to make non-emergency phone calls</string>
 
+    <!-- Call failure message displayed in an error dialog used to indicate that a phone number was not provided -->
+    <string name="outgoing_call_error_no_phone_number_supplied">Call not sent, no valid number entered.</string>
+
+    <!-- missing voicemail number -->
+    <!-- Title of the "Missing voicemail number" dialog -->
+    <string name="no_vm_number">Missing voicemail number</string>
+    <!-- Body text of the "Missing voicemail number" dialog -->
+    <string name="no_vm_number_msg">No voicemail number is stored on the SIM card.</string>
+    <!-- Button label on the "Missing voicemail number" dialog -->
+    <string name="add_vm_number_str">Add number</string>
+
     <!-- DO NOT TRANSLATE. Label for test Subscription 0. -->
     <string name="test_account_0_label">Q Mobile</string>
     <!-- DO NOT TRANSLATE. Label for test Subscription 1. -->
