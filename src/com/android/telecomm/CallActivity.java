@@ -150,6 +150,9 @@ public class CallActivity extends Activity {
         NewOutgoingCallIntentBroadcaster broadcaster = new NewOutgoingCallIntentBroadcaster(
                 mCallsManager, call, intent, isDefaultDialer());
         final boolean success = broadcaster.processIntent();
+        if (!success && call != null) {
+            call.disconnect();
+        }
         setResult(success ? RESULT_OK : RESULT_CANCELED);
     }
 
