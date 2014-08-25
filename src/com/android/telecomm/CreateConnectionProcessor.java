@@ -16,6 +16,7 @@
 
 package com.android.telecomm;
 
+import android.content.Context;
 import android.telecomm.ParcelableConnection;
 import android.telecomm.PhoneAccount;
 import android.telecomm.PhoneAccountHandle;
@@ -176,6 +177,12 @@ final class CreateConnectionProcessor {
     }
 
     private boolean shouldSetConnectionManager() {
+        Context context = TelecommApp.getInstance();
+        if (!context.getResources().getBoolean(R.bool.connection_manager_enabled)) {
+            // Connection Manager support has been turned off, disregard.
+            return false;
+        }
+
         if (mAttemptRecords.size() == 0) {
             return false;
         }

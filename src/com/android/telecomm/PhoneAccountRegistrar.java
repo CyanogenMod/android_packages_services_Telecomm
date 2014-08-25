@@ -50,6 +50,7 @@ import java.io.InputStream;
 import java.lang.SecurityException;
 import java.lang.String;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
@@ -74,6 +75,7 @@ public final class PhoneAccountRegistrar {
 
     private final List<Listener> mListeners = new CopyOnWriteArrayList<>();
     private final AtomicFile mAtomicFile;
+    private final Context mContext;
     private State mState;
 
     public PhoneAccountRegistrar(Context context) {
@@ -85,6 +87,7 @@ public final class PhoneAccountRegistrar {
         // TODO: Change file location when Telecomm is part of system
         mAtomicFile = new AtomicFile(new File(context.getFilesDir(), fileName));
         mState = new State();
+        mContext = context;
         read();
     }
 
@@ -148,6 +151,10 @@ public final class PhoneAccountRegistrar {
     }
 
     public void setSimCallManager(PhoneAccountHandle callManager) {
+        if (!isEnabledConnectionManager()) {
+            return;
+        }
+
         if (callManager != null) {
             PhoneAccount callManagerAccount = getPhoneAccount(callManager);
             if (callManagerAccount == null) {
@@ -164,6 +171,10 @@ public final class PhoneAccountRegistrar {
     }
 
     public PhoneAccountHandle getSimCallManager() {
+        if (!isEnabledConnectionManager()) {
+            return null;
+        }
+
         if (mState.simCallManager != null) {
             // Return the registered sim call manager iff it still exists (we keep a sticky
             // setting to survive account deletion and re-addition)
@@ -175,11 +186,10 @@ public final class PhoneAccountRegistrar {
         }
 
         // See if the OEM has specified a default one.
-        Context context = TelecommApp.getInstance();
         String defaultConnectionMgr =
-                context.getResources().getString(R.string.default_connection_manager_component);
+                mContext.getResources().getString(R.string.default_connection_manager_component);
         if (!TextUtils.isEmpty(defaultConnectionMgr)) {
-            PackageManager pm = context.getPackageManager();
+            PackageManager pm = mContext.getPackageManager();
 
             ComponentName componentName = ComponentName.unflattenFromString(defaultConnectionMgr);
             Intent intent = new Intent(ConnectionService.SERVICE_INTERFACE);
@@ -219,7 +229,14 @@ public final class PhoneAccountRegistrar {
     }
 
     public List<PhoneAccountHandle> getOutgoingPhoneAccounts() {
-        return getCallProviderAccountHandles();
+        return getPhoneAccountHandles(PhoneAccount.CAPABILITY_CALL_PROVIDER);
+    }
+
+    public List<PhoneAccountHandle> getAllConnectionManagerPhoneAccounts() {
+        if (isEnabledConnectionManager()) {
+            return getPhoneAccountHandles(PhoneAccount.CAPABILITY_CONNECTION_MANAGER);
+        }
+        return Collections.emptyList();
     }
 
     public PhoneAccount getPhoneAccount(PhoneAccountHandle handle) {
@@ -323,6 +340,10 @@ public final class PhoneAccountRegistrar {
         }
     }
 
+    private boolean isEnabledConnectionManager() {
+        return mContext.getResources().getBoolean(R.bool.connection_manager_enabled);
+    }
+
     /**
      * Determines if the connection service specified by a {@link PhoneAccountHandle} has the
      * {@link Manifest.permission#BIND_CONNECTION_SERVICE} permission.
@@ -352,10 +373,13 @@ public final class PhoneAccountRegistrar {
         return (account.getCapabilities() & capability) == capability;
     }
 
-    private List<PhoneAccountHandle> getCallProviderAccountHandles() {
+    /**
+     * Returns a list of phone account handles with the specified flag.
+     */
+    private List<PhoneAccountHandle> getPhoneAccountHandles(int flags) {
         List<PhoneAccountHandle> accountHandles = new ArrayList<>();
         for (PhoneAccount m : mState.accounts) {
-            if (has(m, PhoneAccount.CAPABILITY_CALL_PROVIDER)) {
+            if (has(m, flags)) {
                 accountHandles.add(m.getAccountHandle());
             }
         }
