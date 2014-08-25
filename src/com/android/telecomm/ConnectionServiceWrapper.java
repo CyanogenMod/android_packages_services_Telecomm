@@ -35,6 +35,7 @@ import android.telecomm.ParcelableConnection;
 import android.telecomm.PhoneAccount;
 import android.telecomm.PhoneAccountHandle;
 import android.telecomm.StatusHints;
+import android.telecomm.VideoProfile;
 import android.telephony.DisconnectCause;
 
 import com.android.internal.os.SomeArgs;
@@ -740,7 +741,11 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
         if (callId != null && isServiceValid("answer")) {
             try {
                 logOutgoing("answer %s %d", callId, videoState);
-                mServiceInterface.answer(callId, videoState);
+                if (videoState == VideoProfile.VideoState.AUDIO_ONLY) {
+                    mServiceInterface.answer(callId);
+                } else {
+                    mServiceInterface.answerVideo(callId, videoState);
+                }
             } catch (RemoteException e) {
             }
         }
