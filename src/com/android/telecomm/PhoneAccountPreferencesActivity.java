@@ -62,7 +62,7 @@ public class PhoneAccountPreferencesActivity extends Activity {
 
             mSimCallManagerAccount.setModel(
                     registrar,
-                    getSimCallManagers(registrar),
+                    registrar.getAllConnectionManagerPhoneAccounts(),
                     registrar.getSimCallManager(),
                     getString(R.string.do_not_use_sim_call_manager));
 
@@ -82,18 +82,6 @@ public class PhoneAccountPreferencesActivity extends Activity {
                 return true;
             }
             return false;
-        }
-
-        private List<PhoneAccountHandle> getSimCallManagers(PhoneAccountRegistrar registrar) {
-            List<PhoneAccountHandle> simCallManagers = new ArrayList<>();
-            List<PhoneAccountHandle> allAccounts = registrar.getAllPhoneAccountHandles();
-            for (int i = 0; i < allAccounts.size(); i++) {
-                PhoneAccount account = registrar.getPhoneAccount(allAccounts.get(i));
-                if ((account.getCapabilities() & PhoneAccount.CAPABILITY_CONNECTION_MANAGER) != 0) {
-                    simCallManagers.add(allAccounts.get(i));
-                }
-            }
-            return simCallManagers;
         }
     }
 }
