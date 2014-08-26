@@ -41,5 +41,5 @@
     <string name="sim_call_manager_account" msgid="2559930293628077755">"Wi-Fi 通話帳戶"</string>
     <string name="account_ask_every_time" msgid="944077828070287407">"每次都詢問"</string>
     <string name="do_not_use_sim_call_manager" msgid="5519252524007323694">"不要使用 Wi-Fi 通話功能"</string>
-    <string name="outgoing_call_not_allowed" msgid="1434784869685645427">"這位使用者只能撥打緊急電話"</string>
+    <string name="outgoing_call_not_allowed" msgid="1434784869685645427">"這位使用者只可撥打緊急電話"</string>
 </resources>

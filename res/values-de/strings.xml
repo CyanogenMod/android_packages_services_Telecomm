@@ -41,5 +41,5 @@
     <string name="sim_call_manager_account" msgid="2559930293628077755">"Konto für WLAN-Anrufe"</string>
     <string name="account_ask_every_time" msgid="944077828070287407">"Jedes Mal fragen"</string>
     <string name="do_not_use_sim_call_manager" msgid="5519252524007323694">"Keine WLAN-Anrufe nutzen"</string>
-    <string name="outgoing_call_not_allowed" msgid="1434784869685645427">"Dieser Nutzer darf abgesehen von Notrufen keine Telefonanrufe tätigen."</string>
+    <string name="outgoing_call_not_allowed" msgid="1434784869685645427">"Dieser Nutzer darf abgesehen von Notrufen keine Anrufe tätigen."</string>
 </resources>

@@ -36,8 +36,7 @@
     <string name="respond_via_sms_edittext_dialog_title" msgid="20379890418289778">"Бърз отговор"</string>
     <string name="respond_via_sms_menu_reset_default_activity" msgid="1461742052902053466">"Възст. на станд. настройки"</string>
     <string name="respond_via_sms_confirmation_format" msgid="7229149977515784269">"До <xliff:g id="PHONE_NUMBER">%s</xliff:g> бе изпратено съобщение."</string>
-    <!-- no translation found for phone_account_preferences_title (5042332049625236956) -->
-    <skip />
+    <string name="phone_account_preferences_title" msgid="5042332049625236956">"Настройки на профила за телефона"</string>
     <string name="default_outgoing_account_title" msgid="8261079649574578970">"Стандартен профил за изходящи обаждания"</string>
     <string name="sim_call_manager_account" msgid="2559930293628077755">"Профил за обаждане през Wi-Fi"</string>
     <string name="account_ask_every_time" msgid="944077828070287407">"Извеждане на запитване всеки път"</string>
