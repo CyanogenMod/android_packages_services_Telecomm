@@ -65,6 +65,9 @@ import java.util.concurrent.CopyOnWriteArrayList;
  */
 public final class PhoneAccountRegistrar {
 
+    public static final PhoneAccountHandle NO_ACCOUNT_SELECTED =
+            new PhoneAccountHandle(new ComponentName("null", "null"), "NO_ACCOUNT_SELECTED");
+
     public abstract static class Listener {
         public void onAccountsChanged(PhoneAccountRegistrar registrar) {}
         public void onDefaultOutgoingChanged(PhoneAccountRegistrar registrar) {}
@@ -92,16 +95,9 @@ public final class PhoneAccountRegistrar {
     }
 
     public PhoneAccountHandle getDefaultOutgoingPhoneAccount() {
-        if (mState.defaultOutgoing != null) {
-            // Return the registered outgoing default iff it still exists (we keep a sticky
-            // default to survive account deletion and re-addition)
-            for (int i = 0; i < mState.accounts.size(); i++) {
-                if (mState.accounts.get(i).getAccountHandle().equals(mState.defaultOutgoing)) {
-                    return mState.defaultOutgoing;
-                }
-            }
-            // At this point, there was a registered default but it has been deleted; proceed
-            // as though there were no default
+        final PhoneAccountHandle userSelected = getUserSelectedOutgoingPhoneAccount();
+        if (userSelected != null) {
+            return userSelected;
         }
 
         List<PhoneAccountHandle> outgoing = getOutgoingPhoneAccounts();
@@ -116,6 +112,21 @@ public final class PhoneAccountRegistrar {
                 // There are multiple accounts with no selected default
                 return null;
         }
+    }
+
+    PhoneAccountHandle getUserSelectedOutgoingPhoneAccount() {
+        if (mState.defaultOutgoing != null) {
+            // Return the registered outgoing default iff it still exists (we keep a sticky
+            // default to survive account deletion and re-addition)
+            for (int i = 0; i < mState.accounts.size(); i++) {
+                if (mState.accounts.get(i).getAccountHandle().equals(mState.defaultOutgoing)) {
+                    return mState.defaultOutgoing;
+                }
+            }
+            // At this point, there was a registered default but it has been deleted; proceed
+            // as though there were no default
+        }
+        return null;
     }
 
     public void setDefaultOutgoingPhoneAccount(PhoneAccountHandle accountHandle) {
@@ -164,8 +175,11 @@ public final class PhoneAccountRegistrar {
                 Log.d(this, "setSimCallManager: Not a call manager: %s", callManagerAccount);
                 return;
             }
+        } else {
+            callManager = NO_ACCOUNT_SELECTED;
         }
         mState.simCallManager = callManager;
+
         write();
         fireSimCallManagerChanged();
     }
@@ -176,6 +190,9 @@ public final class PhoneAccountRegistrar {
         }
 
         if (mState.simCallManager != null) {
+            if (NO_ACCOUNT_SELECTED.equals(mState.simCallManager)) {
+                return null;
+            }
             // Return the registered sim call manager iff it still exists (we keep a sticky
             // setting to survive account deletion and re-addition)
             for (int i = 0; i < mState.accounts.size(); i++) {
