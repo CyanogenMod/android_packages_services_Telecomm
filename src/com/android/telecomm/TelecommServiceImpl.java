@@ -29,6 +29,7 @@ import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
 import android.os.ServiceManager;
+import android.os.UserHandle;
 import android.telecomm.CallState;
 import android.telecomm.PhoneAccount;
 import android.telecomm.PhoneAccountHandle;
@@ -355,7 +356,7 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
             }
 
             long token = Binder.clearCallingIdentity();
-            TelecommApp.getInstance().startActivity(intent);
+            TelecommApp.getInstance().startActivityAsUser(intent, UserHandle.CURRENT);
             Binder.restoreCallingIdentity(token);
         }
     }
