@@ -19,28 +19,28 @@ package com.android.telecomm.testapps;
 import android.app.PendingIntent;
 import android.net.Uri;
 import android.telecomm.AudioState;
+import android.telecomm.Conference;
 import android.telecomm.Connection;
 import android.telecomm.ConnectionRequest;
 import android.telecomm.ConnectionService;
 import android.telecomm.PhoneAccountHandle;
+import android.telecomm.RemoteConference;
 import android.telecomm.RemoteConnection;
 import android.telecomm.StatusHints;
 import android.util.Log;
 
-import java.util.Random;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Service which acts as a fake ConnectionManager if so configured.
  * TODO(santoscordon): Rename all classes in the directory to Dummy* (e.g., DummyConnectionService).
  */
 public class TestConnectionManager extends ConnectionService {
-    /**
-     * Random number generator used to generate phone numbers.
-     */
-    private Random mRandom = new Random();
-
-    private final class TestManagedConnection extends Connection {
-        private final RemoteConnection.Listener mProxyListener = new RemoteConnection.Listener() {
+    public final class TestManagedConnection extends Connection {
+        private final RemoteConnection.Listener mRemoteListener = new RemoteConnection.Listener() {
             @Override
             public void onStateChanged(RemoteConnection connection, int state) {
                 setState(state);
@@ -103,62 +103,76 @@ public class TestConnectionManager extends ConnectionService {
             @Override
             public void onDestroyed(RemoteConnection connection) {
                 destroy();
+                mManagedConnectionByRemote.remove(mRemote);
+            }
+
+            @Override
+            public void onConferenceableConnectionsChanged(
+                    RemoteConnection connect,
+                    List<RemoteConnection> conferenceable) {
+                List<Connection> c = new ArrayList<>();
+                for (RemoteConnection remote : conferenceable) {
+                    if (mManagedConnectionByRemote.containsKey(remote)) {
+                        c.add(mManagedConnectionByRemote.get(remote));
+                    }
+                }
+                setConferenceableConnections(c);
             }
         };
 
-        private final RemoteConnection mRemoteConnection;
+        private final RemoteConnection mRemote;
         private final boolean mIsIncoming;
 
-        TestManagedConnection(RemoteConnection remoteConnection, boolean isIncoming) {
-            mRemoteConnection = remoteConnection;
+        TestManagedConnection(RemoteConnection remote, boolean isIncoming) {
+            mRemote = remote;
             mIsIncoming = isIncoming;
-            mRemoteConnection.addListener(mProxyListener);
-            setState(mRemoteConnection.getState());
+            mRemote.addListener(mRemoteListener);
+            setState(mRemote.getState());
         }
 
         @Override
         public void onAbort() {
-            mRemoteConnection.abort();
+            mRemote.abort();
         }
 
         /** ${inheritDoc} */
         @Override
         public void onAnswer(int videoState) {
-            mRemoteConnection.answer(videoState);
+            mRemote.answer(videoState);
         }
 
         /** ${inheritDoc} */
         @Override
         public void onDisconnect() {
-            mRemoteConnection.disconnect();
+            mRemote.disconnect();
         }
 
         @Override
         public void onPlayDtmfTone(char c) {
-            mRemoteConnection.playDtmfTone(c);
+            mRemote.playDtmfTone(c);
         }
 
         /** ${inheritDoc} */
         @Override
         public void onHold() {
-            mRemoteConnection.hold();
+            mRemote.hold();
         }
 
         /** ${inheritDoc} */
         @Override
         public void onReject() {
-            mRemoteConnection.reject();
+            mRemote.reject();
         }
 
         /** ${inheritDoc} */
         @Override
         public void onUnhold() {
-            mRemoteConnection.unhold();
+            mRemote.unhold();
         }
 
         @Override
         public void onSetAudioState(AudioState state) {
-            mRemoteConnection.setAudioState(state);
+            mRemote.setAudioState(state);
         }
 
         private void setState(int state) {
@@ -180,29 +194,125 @@ public class TestConnectionManager extends ConnectionService {
         }
     }
 
+    public final class TestManagedConference extends Conference {
+        private final RemoteConference.Listener mRemoteListener = new RemoteConference.Listener() {
+            @Override
+            public void onStateChanged(RemoteConference conference, int oldState, int newState) {
+                switch (newState) {
+                    case Connection.STATE_DISCONNECTED:
+                        // See onDisconnected below
+                        break;
+                    case Connection.STATE_HOLDING:
+                        setOnHold();
+                        break;
+                    case Connection.STATE_ACTIVE:
+                        setActive();
+                        break;
+                    default:
+                        log("unrecognized state for Conference: " + newState);
+                        break;
+                }
+            }
+
+            @Override
+            public void onDisconnected(RemoteConference conference, int cause, String message) {
+                setDisconnected(cause, message);
+            }
+
+            @Override
+            public void onConnectionAdded(
+                    RemoteConference conference,
+                    RemoteConnection connection) {
+                TestManagedConnection c = mManagedConnectionByRemote.get(connection);
+                if (c == null) {
+                    log("onConnectionAdded cannot find remote connection: " + connection);
+                } else {
+                    addConnection(c);
+                }
+            }
+
+            @Override
+            public void onConnectionRemoved(
+                    RemoteConference conference,
+                    RemoteConnection connection) {
+                TestManagedConnection c = mManagedConnectionByRemote.get(connection);
+                if (c == null) {
+                    log("onConnectionRemoved cannot find remote connection: " + connection);
+                } else {
+                    removeConnection(c);
+                }
+            }
+
+            @Override
+            public void onCapabilitiesChanged(RemoteConference conference, int capabilities) {
+                setCapabilities(capabilities);
+            }
+
+            @Override
+            public void onDestroyed(RemoteConference conference) {
+                destroy();
+                mRemote.removeListener(mRemoteListener);
+                mManagedConferenceByRemote.remove(mRemote);
+            }
+        };
+
+        private final RemoteConference mRemote;
+
+        public TestManagedConference(RemoteConference remote) {
+            super(null);
+            mRemote = remote;
+            remote.addListener(mRemoteListener);
+            setActive();
+            for (RemoteConnection r : remote.getConnections()) {
+                TestManagedConnection c = mManagedConnectionByRemote.get(r);
+                if (c != null) {
+                    addConnection(c);
+                }
+            }
+        }
+    }
+
     private static void log(String msg) {
         Log.w("telecomtestcs", "[TestConnectionManager] " + msg);
     }
+
+    private final Map<RemoteConference, TestManagedConference> mManagedConferenceByRemote
+            = new HashMap<>();
+    private final Map<RemoteConnection, TestManagedConnection> mManagedConnectionByRemote
+            = new HashMap<>();
 
     @Override
     public Connection onCreateOutgoingConnection(
             PhoneAccountHandle connectionManagerAccount,
             final ConnectionRequest request) {
-        return new TestManagedConnection(
-                createRemoteOutgoingConnection(
-                        request.getAccountHandle(),
-                        request),
-                false);
+        return makeConnection(request, false);
     }
 
     @Override
     public Connection onCreateIncomingConnection(
             PhoneAccountHandle connectionManagerAccount,
             final ConnectionRequest request) {
-        return new TestManagedConnection(
-                createRemoteIncomingConnection(
-                        request.getAccountHandle(),
-                        request),
-                true);
+        return makeConnection(request, true);
+    }
+
+    @Override
+    public void onConference(Connection a, Connection b) {
+        conferenceRemoteConnections(
+                ((TestManagedConnection) a).mRemote,
+                ((TestManagedConnection) b).mRemote);
+    }
+
+    @Override
+    public void onRemoteConferenceAdded(RemoteConference remoteConference) {
+        addConference(new TestManagedConference(remoteConference));
+    }
+
+    private Connection makeConnection(ConnectionRequest request, boolean incoming) {
+        RemoteConnection remote = incoming
+                ? createRemoteIncomingConnection(request.getAccountHandle(), request)
+                : createRemoteOutgoingConnection(request.getAccountHandle(), request);
+        TestManagedConnection local = new TestManagedConnection(remote, false);
+        mManagedConnectionByRemote.put(remote, local);
+        return local;
     }
 }

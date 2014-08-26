@@ -70,7 +70,7 @@ public class CallNotificationReceiver extends BroadcastReceiver {
     private void sendIncomingCallIntent(Context context, boolean isVideoCall) {
         PhoneAccountHandle phoneAccount = new PhoneAccountHandle(
                 new ComponentName(context, TestConnectionService.class),
-                CallServiceNotifier.CALL_PROVIDER_ID);
+                CallServiceNotifier.SIM_SUBSCRIPTION_ID);
 
         // For the purposes of testing, indicate whether the incoming call is a video call by
         // stashing an indicator in the EXTRA_INCOMING_CALL_EXTRAS.

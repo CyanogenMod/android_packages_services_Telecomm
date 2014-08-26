@@ -22,6 +22,6 @@ import android.telecomm.ParcelableConnection;
  * A callback for providing the result of creating a connection.
  */
 interface CreateConnectionResponse {
-    void handleCreateConnectionSuccess(ParcelableConnection connection);
+    void handleCreateConnectionSuccess(CallIdMapper idMapper, ParcelableConnection connection);
     void handleCreateConnectionFailure(int code, String message);
 }
