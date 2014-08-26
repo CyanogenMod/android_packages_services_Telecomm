@@ -894,7 +894,8 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
         } else {
             // Successful connection
             if (mPendingResponses.containsKey(callId)) {
-                mPendingResponses.remove(callId).handleCreateConnectionSuccess(connection);
+                mPendingResponses.remove(callId)
+                        .handleCreateConnectionSuccess(mCallIdMapper, connection);
             }
         }
     }

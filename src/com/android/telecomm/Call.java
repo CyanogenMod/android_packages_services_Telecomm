@@ -616,7 +616,9 @@ final class Call implements CreateConnectionResponse {
     }
 
     @Override
-    public void handleCreateConnectionSuccess(ParcelableConnection connection) {
+    public void handleCreateConnectionSuccess(
+            CallIdMapper idMapper,
+            ParcelableConnection connection) {
         Log.v(this, "handleCreateConnectionSuccessful %s", connection);
         mCreateConnectionProcessor = null;
         setTargetPhoneAccount(connection.getPhoneAccount());
@@ -629,6 +631,11 @@ final class Call implements CreateConnectionResponse {
         setRequestingRingback(connection.isRequestingRingback());
         setAudioModeIsVoip(connection.getAudioModeIsVoip());
         setStatusHints(connection.getStatusHints());
+
+        mConferenceableCalls.clear();
+        for (String id : connection.getConferenceableConnectionIds()) {
+            mConferenceableCalls.add(idMapper.getCall(id));
+        }
 
         if (mIsIncoming) {
             // We do not handle incoming calls immediately when they are verified by the connection

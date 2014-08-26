@@ -272,7 +272,9 @@ final class CreateConnectionProcessor {
         }
 
         @Override
-        public void handleCreateConnectionSuccess(ParcelableConnection connection) {
+        public void handleCreateConnectionSuccess(
+                CallIdMapper idMapper,
+                ParcelableConnection connection) {
             if (mResponse == null) {
                 // Nobody is listening for this connection attempt any longer; ask the responsible
                 // ConnectionService to tear down any resources associated with the call
@@ -280,7 +282,7 @@ final class CreateConnectionProcessor {
             } else {
                 // Success -- share the good news and remember that we are no longer interested
                 // in hearing about any more attempts
-                mResponse.handleCreateConnectionSuccess(connection);
+                mResponse.handleCreateConnectionSuccess(idMapper, connection);
                 mResponse = null;
             }
         }
