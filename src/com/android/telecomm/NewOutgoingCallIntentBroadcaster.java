@@ -26,6 +26,7 @@ import android.os.UserHandle;
 import android.telecomm.GatewayInfo;
 import android.telecomm.TelecommManager;
 import android.telecomm.VideoProfile;
+import android.telephony.DisconnectCause;
 import android.telephony.PhoneNumberUtils;
 import android.text.TextUtils;
 
@@ -66,6 +67,7 @@ class NewOutgoingCallIntentBroadcaster {
 
     private static final String SCHEME_TEL = "tel";
     private static final String SCHEME_SIP = "sip";
+    private static final String SCHEME_VOICEMAIL = "voicemail";
 
     private final CallsManager mCallsManager;
     private final Call mCall;
@@ -150,9 +152,10 @@ class NewOutgoingCallIntentBroadcaster {
      * - CALL_PRIVILEGED (intent launched by system apps e.g. system Dialer, voice Dialer)
      * - CALL_EMERGENCY (intent launched by lock screen emergency dialer)
      *
-     * @return whether or not the caller was allowed to start the outgoing call.
+     * @return {@link CallActivity#OUTGOING_CALL_SUCCEEDED} if the call succeeded, and an
+     *         appropriate {@link DisconnectCause} if the call did not, describing why it failed.
      */
-    boolean processIntent() {
+    int processIntent() {
         Log.v(this, "Processing call intent in OutgoingCallIntentBroadcaster.");
 
         final Context context = TelecommApp.getInstance();
@@ -161,8 +164,14 @@ class NewOutgoingCallIntentBroadcaster {
         String handle = PhoneNumberUtils.getNumberFromIntent(intent, context);
 
         if (TextUtils.isEmpty(handle)) {
-            Log.w(this, "Empty handle obtained from the call intent.");
-            return false;
+            final Uri data = intent.getData();
+            if (data != null && SCHEME_VOICEMAIL.equals(data.getScheme())) {
+                Log.w(this, "Voicemail scheme provided but no voicemail number set.");
+                return DisconnectCause.VOICEMAIL_NUMBER_MISSING;
+            } else {
+                Log.w(this, "Empty handle obtained from the call intent.");
+                return DisconnectCause.INVALID_NUMBER;
+            }
         }
 
         boolean isUriNumber = PhoneNumberUtils.isUriNumber(handle);
@@ -187,7 +196,7 @@ class NewOutgoingCallIntentBroadcaster {
                     Log.w(this, "Cannot call potential emergency number %s with CALL Intent %s "
                             + "unless caller is system or default dialer.", handle, intent);
                     launchSystemDialer(context, intent.getData());
-                    return false;
+                    return DisconnectCause.OUTGOING_CANCELED;
                 } else {
                     callImmediately = true;
                 }
@@ -196,12 +205,12 @@ class NewOutgoingCallIntentBroadcaster {
             if (!isPotentialEmergencyNumber) {
                 Log.w(this, "Cannot call non-potential-emergency number %s with EMERGENCY_CALL "
                         + "Intent %s.", handle, intent);
-                return false;
+                return DisconnectCause.OUTGOING_CANCELED;
             }
             callImmediately = true;
         } else {
             Log.w(this, "Unhandled Intent %s. Ignoring and not placing call.", intent);
-            return false;
+            return DisconnectCause.INVALID_NUMBER;
         }
 
         if (callImmediately) {
@@ -223,7 +232,7 @@ class NewOutgoingCallIntentBroadcaster {
         }
 
         broadcastIntent(intent, handle, context, !callImmediately);
-        return true;
+        return DisconnectCause.NOT_DISCONNECTED;
     }
 
     /**
