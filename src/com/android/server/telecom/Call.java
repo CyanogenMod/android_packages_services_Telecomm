@@ -288,6 +288,8 @@ final class Call implements CreateConnectionResponse {
     private StatusHints mStatusHints;
     private final ConnectionServiceRepository mRepository;
     private final Context mContext;
+    private int mNotificationType;
+    private int mCode;
 
     private boolean mWasConferencePreviouslyMerged = false;
 
@@ -457,6 +459,22 @@ final class Call implements CreateConnectionResponse {
 
     Drawable getPhoto() {
         return mCallerInfo == null ? null : mCallerInfo.cachedPhoto;
+    }
+
+    public void setNotificationType(int notification) {
+        mNotificationType = notification;
+    }
+
+    public void setNotificationCode(int code) {
+        mCode = code;
+    }
+
+    public int getNotificationType() {
+        return mNotificationType;
+    }
+
+    public int getNotificationCode() {
+        return mCode;
     }
 
     /**

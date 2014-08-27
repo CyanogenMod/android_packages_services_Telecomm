@@ -80,6 +80,7 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
     private static final int MSG_SET_CALLER_DISPLAY_NAME = 18;
     private static final int MSG_SET_VIDEO_STATE = 19;
     private static final int MSG_SET_CONFERENCEABLE_CONNECTIONS = 20;
+    private static final int MSG_SET_DISCONNECTED_WITH_SUPP_NOTIFICATION = 22;
 
     private final Handler mHandler = new Handler() {
         @Override
@@ -130,6 +131,27 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                         Log.d(this, "disconnect call %s %s", disconnectCause, call);
                         if (call != null) {
                             mCallsManager.markCallAsDisconnected(call, disconnectCause);
+                        } else {
+                            //Log.w(this, "setDisconnected, unknown call id: %s", args.arg1);
+                        }
+                    } finally {
+                        args.recycle();
+                    }
+                    break;
+                }
+                case MSG_SET_DISCONNECTED_WITH_SUPP_NOTIFICATION: {
+                    SomeArgs args = (SomeArgs) msg.obj;
+                    try {
+                        call = mCallIdMapper.getCall(args.arg1);
+                        String disconnectMessage = (String) args.arg2;
+                        int disconnectCause = args.argi1;
+                        int type = args.argi2;
+                        int code = args.argi3;
+                        if (call != null) {
+                            call.setNotificationType(type);
+                            call.setNotificationCode(code);
+                            mCallsManager.markCallAsDisconnected(call, disconnectCause,
+                                    disconnectMessage);
                         } else {
                             //Log.w(this, "setDisconnected, unknown call id: %s", args.arg1);
                         }
@@ -416,6 +438,22 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                 args.arg1 = callId;
                 args.arg2 = disconnectCause;
                 mHandler.obtainMessage(MSG_SET_DISCONNECTED, args).sendToTarget();
+            }
+        }
+
+        @Override
+        public void setDisconnectedWithSsNotification(
+                String callId, int disconnectCause, String disconnectMessage, int type, int code) {
+            logIncoming("setDisconnected %s %d %s", callId, disconnectCause, disconnectMessage);
+            if (mCallIdMapper.isValidCallId(callId)) {
+                SomeArgs args = SomeArgs.obtain();
+                args.arg1 = callId;
+                args.arg2 = disconnectMessage;
+                args.argi1 = disconnectCause;
+                args.argi2 = type;
+                args.argi3 = code;
+                mHandler.obtainMessage(MSG_SET_DISCONNECTED_WITH_SUPP_NOTIFICATION,
+                        args).sendToTarget();
             }
         }
 
