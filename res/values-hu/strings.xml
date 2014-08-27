@@ -36,9 +36,10 @@
     <string name="respond_via_sms_edittext_dialog_title" msgid="20379890418289778">"Gyors válasz"</string>
     <string name="respond_via_sms_menu_reset_default_activity" msgid="1461742052902053466">"Alapalkalmazás visszaállítása"</string>
     <string name="respond_via_sms_confirmation_format" msgid="7229149977515784269">"Üzenet elküldve ide: <xliff:g id="PHONE_NUMBER">%s</xliff:g>."</string>
-    <string name="phone_account_preferences_title" msgid="3932310998135189661">"Telefonáláshoz használt fiók beállításai"</string>
+    <string name="phone_account_preferences_title" msgid="5042332049625236956">"Telefonos fiókbeállítások"</string>
     <string name="default_outgoing_account_title" msgid="8261079649574578970">"Alapértelmezett kimenő fiók"</string>
     <string name="sim_call_manager_account" msgid="2559930293628077755">"A Wi-Fi-híváshoz használt fiók"</string>
     <string name="account_ask_every_time" msgid="944077828070287407">"Mindig rákérdez"</string>
     <string name="do_not_use_sim_call_manager" msgid="5519252524007323694">"Ne használja a Wi-Fi-hívást"</string>
+    <string name="outgoing_call_not_allowed" msgid="1434784869685645427">"Ez a felhasználó csak vészhelyzeti telefonhívásokat kezdeményezhet"</string>
 </resources>

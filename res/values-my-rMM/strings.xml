@@ -36,9 +36,10 @@
     <string name="respond_via_sms_edittext_dialog_title" msgid="20379890418289778">"အမြန်တုံ့ပြန်ချက်"</string>
     <string name="respond_via_sms_menu_reset_default_activity" msgid="1461742052902053466">"ပုံသေ အပ်ပလီကေးရှင်းအား ပြန်ပြောင်းရန်"</string>
     <string name="respond_via_sms_confirmation_format" msgid="7229149977515784269">"<xliff:g id="PHONE_NUMBER">%s</xliff:g> ထံ စာတိုပို့လိုက်ပါပြီ"</string>
-    <string name="phone_account_preferences_title" msgid="3932310998135189661">"ဖုန်း အကောင့် ဦးစားပေးချက်များ"</string>
-    <string name="default_outgoing_account_title" msgid="8261079649574578970">"ပုံသေ အထွက် အကောင့်"</string>
-    <string name="sim_call_manager_account" msgid="2559930293628077755">"ကြိုးမဲ့ ခေါ်ဆိုမှု အကောင့်"</string>
+    <string name="phone_account_preferences_title" msgid="5042332049625236956">"ဖုန်း အကောင့် ဆက်တင်များ"</string>
+    <string name="default_outgoing_account_title" msgid="8261079649574578970">"ပုံသေ အထွက် အကောင့်"</string>
+    <string name="sim_call_manager_account" msgid="2559930293628077755">"ကြိုးမဲ့ ခေါ်ဆိုမှု အကောင့်"</string>
     <string name="account_ask_every_time" msgid="944077828070287407">"အကြိမ်တိုင်းမှာ မေးရန်"</string>
-    <string name="do_not_use_sim_call_manager" msgid="5519252524007323694">"ကြိုးမဲ့ ခေါ်ဆိုမှုကို မသုံးပါနှင့်"</string>
+    <string name="do_not_use_sim_call_manager" msgid="5519252524007323694">"ကြိုးမဲ့ ခေါ်ဆိုမှုကို မသုံးပါနှင့်"</string>
+    <string name="outgoing_call_not_allowed" msgid="1434784869685645427">"ဒီအသုံးပြုသူအား အရေးပေါ် မဟုတ်သည့် ဖုန်း ခေါ်ဆိုမှုများ လုပ်ခွင့် မပြုပါ"</string>
 </resources>
