@@ -202,8 +202,8 @@
 
         <activity android:name=".PhoneAccountPreferencesActivity"
                   android:label="@string/phone_account_preferences_title"
-                  android:configChanges="orientation|screenSize|keyboardHidden">
-                  android:exported="true" >
+                  android:configChanges="orientation|screenSize|keyboardHidden"
+                  android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
             </intent-filter>
