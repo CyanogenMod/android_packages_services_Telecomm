@@ -26,6 +26,7 @@ import android.os.Bundle;
 import android.os.UserManager;
 import android.telecomm.PhoneAccountHandle;
 import android.telecomm.TelecommManager;
+import android.telephony.DisconnectCause;
 import android.telephony.PhoneNumberUtils;
 import android.text.TextUtils;
 import android.widget.Toast;
@@ -47,6 +48,7 @@ import android.widget.Toast;
  * non-emergency numbers just like it did pre-L.
  */
 public class CallActivity extends Activity {
+
     private CallsManager mCallsManager = CallsManager.getInstance();
     private boolean mIsVoiceCapable;
 
@@ -149,9 +151,11 @@ public class CallActivity extends Activity {
 
         NewOutgoingCallIntentBroadcaster broadcaster = new NewOutgoingCallIntentBroadcaster(
                 mCallsManager, call, intent, isDefaultDialer());
-        final boolean success = broadcaster.processIntent();
+        final int result = broadcaster.processIntent();
+        final boolean success = result == DisconnectCause.NOT_DISCONNECTED;
+
         if (!success && call != null) {
-            call.disconnect();
+            disconnectCallAndShowErrorDialog(call, result);
         }
         setResult(success ? RESULT_OK : RESULT_CANCELED);
     }
@@ -208,5 +212,24 @@ public class CallActivity extends Activity {
     private boolean isVoiceCapable() {
         return getApplicationContext().getResources().getBoolean(
                 com.android.internal.R.bool.config_voice_capable);
+    }
+
+    private void disconnectCallAndShowErrorDialog(Call call, int errorCode) {
+        call.disconnect();
+        final Intent errorIntent = new Intent(this, ErrorDialogActivity.class);
+        int errorMessageId = -1;
+        switch (errorCode) {
+            case DisconnectCause.INVALID_NUMBER:
+                errorMessageId = R.string.outgoing_call_error_no_phone_number_supplied;
+                break;
+            case DisconnectCause.VOICEMAIL_NUMBER_MISSING:
+                errorIntent.putExtra(ErrorDialogActivity.SHOW_MISSING_VOICEMAIL_NO_DIALOG_EXTRA,
+                        true);
+                break;
+        }
+        if (errorMessageId != -1) {
+            errorIntent.putExtra(ErrorDialogActivity.ERROR_MESSAGE_ID_EXTRA, errorMessageId);
+        }
+        startActivity(errorIntent);
     }
 }
