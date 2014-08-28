@@ -74,7 +74,7 @@ public class ProximitySensorManager extends CallsManagerListenerBase {
         if (mProximityWakeLock.isHeld()) {
             Log.i(this, "Releasing proximity wake lock");
             int flags =
-                (screenOnImmediately ? 0 : PowerManager.WAIT_FOR_PROXIMITY_NEGATIVE);
+                (screenOnImmediately ? 0 : PowerManager.WAIT_FOR_DISTANT_PROXIMITY);
             mProximityWakeLock.release(flags);
         } else {
             Log.i(this, "Proximity wake lock already released");
