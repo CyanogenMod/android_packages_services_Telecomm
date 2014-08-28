@@ -425,8 +425,10 @@ public final class InCallController extends CallsManagerListenerBase {
         if (CallsManager.getInstance().isAddCallCapable(call)) {
             capabilities |= PhoneCapabilities.ADD_CALL;
         }
-        if (!call.isEmergencyCall()) {
-            capabilities |= PhoneCapabilities.MUTE;
+
+        // Disable mute for emergency calls.
+        if (call.isEmergencyCall()) {
+            capabilities &= ~PhoneCapabilities.MUTE;
         }
 
         int state = call.getState();
