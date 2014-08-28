@@ -31,6 +31,7 @@ import android.os.IBinder;
 import android.os.RemoteException;
 import android.os.UserHandle;
 import android.telecomm.AudioState;
+import android.telecomm.CallProperties;
 import android.telecomm.CallState;
 import android.telecomm.InCallService;
 import android.telecomm.ParcelableCall;
@@ -431,6 +432,8 @@ public final class InCallController extends CallsManagerListenerBase {
             capabilities &= ~PhoneCapabilities.MUTE;
         }
 
+        int properties = call.isConference() ? CallProperties.CONFERENCE : 0;
+
         int state = call.getState();
         if (state == CallState.ABORTED) {
             state = CallState.DISCONNECTED;
@@ -478,6 +481,7 @@ public final class InCallController extends CallsManagerListenerBase {
                 call.getDisconnectMessage(),
                 call.getCannedSmsResponses(),
                 capabilities,
+                properties,
                 connectTimeMillis,
                 handle,
                 call.getHandlePresentation(),
