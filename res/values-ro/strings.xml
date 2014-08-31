@@ -42,4 +42,8 @@
     <string name="account_ask_every_time" msgid="944077828070287407">"Întreabă de fiecare dată"</string>
     <string name="do_not_use_sim_call_manager" msgid="5519252524007323694">"Nu utilizați apelurile Wi-Fi"</string>
     <string name="outgoing_call_not_allowed" msgid="1434784869685645427">"Acest utilizator nu are permisiunea de a efectua apeluri telefonice către alte numere în afară de cele de urgență"</string>
+    <string name="outgoing_call_error_no_phone_number_supplied" msgid="4987143284589568716">"Apelul nu s-a trimis; niciun număr valid introdus."</string>
+    <string name="no_vm_number" msgid="4164780423805688336">"Lipseşte numărul mesageriei vocale"</string>
+    <string name="no_vm_number_msg" msgid="1300729501030053828">"Niciun număr de mesagerie vocală nu este stocat pe cardul SIM."</string>
+    <string name="add_vm_number_str" msgid="4676479471644687453">"Adăugaţi numărul"</string>
 </resources>

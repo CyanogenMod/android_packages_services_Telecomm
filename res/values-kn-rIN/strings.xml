@@ -42,4 +42,8 @@
     <string name="account_ask_every_time" msgid="944077828070287407">"ಪ್ರತಿ ಬಾರಿ ಕೇಳಿ"</string>
     <string name="do_not_use_sim_call_manager" msgid="5519252524007323694">"Wi-Fi ಕರೆ ಮಾಡುವಿಕೆಯನ್ನು ಬಳಸಬೇಡಿ"</string>
     <string name="outgoing_call_not_allowed" msgid="1434784869685645427">"ತುರ್ತುಸ್ಥಿತಿಯಲ್ಲದ ಫೋನ್‌ ಕರೆಗಳನ್ನು ಮಾಡಲು ಈ ಬಳಕೆದಾರರನ್ನು ಅನುಮತಿಸಲಾಗುವುದಿಲ್ಲ"</string>
+    <string name="outgoing_call_error_no_phone_number_supplied" msgid="4987143284589568716">"ಕರೆ ಮಾಡಲಾಗಿಲ್ಲ, ಯಾವುದೇ ಮಾನ್ಯವಾದ ಸಂಖ್ಯೆಯನ್ನು ನಮೂದಿಸಿಲ್ಲ."</string>
+    <string name="no_vm_number" msgid="4164780423805688336">"ಧ್ವನಿಮೇಲ್‌ ಸಂಖ್ಯೆಯು ಕಾಣೆಯಾಗಿದೆ"</string>
+    <string name="no_vm_number_msg" msgid="1300729501030053828">"SIM ಕಾರ್ಡ್‌ನಲ್ಲಿ ಯಾವುದೇ ಧ್ವನಿಮೇಲ್‌ ಸಂಖ್ಯೆಯನ್ನು ಸಂಗ್ರಹಿಸಿಲ್ಲ."</string>
+    <string name="add_vm_number_str" msgid="4676479471644687453">"ಸಂಖ್ಯೆಯನ್ನು ಸೇರಿಸಿ"</string>
 </resources>

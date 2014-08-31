@@ -42,4 +42,8 @@
     <string name="account_ask_every_time" msgid="944077828070287407">"សួរ​ជានិច្ច"</string>
     <string name="do_not_use_sim_call_manager" msgid="5519252524007323694">"កុំ​ប្រើ​ការ​ហៅ​តាម​វ៉ាយហ្វាយ"</string>
     <string name="outgoing_call_not_allowed" msgid="1434784869685645427">"អ្នក​ប្រើ​ម្នាក់​នេះ​មិន​ត្រូវ​បាន​អនុញ្ញាត​ឲ្យ​បង្កើត​កា​រ​ហៅ​ទូរស័ព្ទ​ពេល​មិន​អាសន្ន"</string>
+    <string name="outgoing_call_error_no_phone_number_supplied" msgid="4987143284589568716">"មិន​បាន​ផ្ញើ​ការ​ហៅ បាន​បញ្ចូល​លេខ​​​មិន​ត្រឹមត្រូវ។"</string>
+    <string name="no_vm_number" msgid="4164780423805688336">"បាត់​​ចំនួន​​សារ​ជា​សំឡេង"</string>
+    <string name="no_vm_number_msg" msgid="1300729501030053828">"គ្មាន​ចំនួន​សារ​ជា​សំឡេង​​ត្រូវ​បាន​រក្សា​ទុក​នៅ​លើ​ស៊ី​ម​កាត​ទេ​។"</string>
+    <string name="add_vm_number_str" msgid="4676479471644687453">"បន្ថែម​លេខ"</string>
 </resources>

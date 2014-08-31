@@ -42,4 +42,8 @@
     <string name="account_ask_every_time" msgid="944077828070287407">"हर बार पूछें"</string>
     <string name="do_not_use_sim_call_manager" msgid="5519252524007323694">"वाई-फ़ाई  कॉलिंग का उपयोग न करें"</string>
     <string name="outgoing_call_not_allowed" msgid="1434784869685645427">"इस उपयोगकर्ता को गैर-आपातकालीन फ़ोन कॉल करने की अनुमति नहीं है"</string>
+    <string name="outgoing_call_error_no_phone_number_supplied" msgid="4987143284589568716">"कॉल नहीं भेजा गया, कोई मान्य नंबर नहीं डाला गया था."</string>
+    <string name="no_vm_number" msgid="4164780423805688336">"गुम ध्वनिमेल नंबर"</string>
+    <string name="no_vm_number_msg" msgid="1300729501030053828">"सिम कार्ड पर कोई ध्वनिमेल नंबर संग्रहीत नहीं है."</string>
+    <string name="add_vm_number_str" msgid="4676479471644687453">"नंबर जोड़ें"</string>
 </resources>

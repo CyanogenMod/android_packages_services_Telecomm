@@ -42,4 +42,8 @@
     <string name="account_ask_every_time" msgid="944077828070287407">"Toujours demander"</string>
     <string name="do_not_use_sim_call_manager" msgid="5519252524007323694">"Ne pas utiliser les appels par Wi-Fi"</string>
     <string name="outgoing_call_not_allowed" msgid="1434784869685645427">"Cet utilisateur n\'est pas autorisé à faire des appels téléphoniques non urgents"</string>
+    <string name="outgoing_call_error_no_phone_number_supplied" msgid="4987143284589568716">"L\'appel n\'a pas été effectué, car le numéro entré n\'est pas valide."</string>
+    <string name="no_vm_number" msgid="4164780423805688336">"Numéro de messagerie vocale manquant"</string>
+    <string name="no_vm_number_msg" msgid="1300729501030053828">"Aucun numéro de messagerie vocale n\'est enregistré sur la carte SIM."</string>
+    <string name="add_vm_number_str" msgid="4676479471644687453">"Ajouter un numéro"</string>
 </resources>

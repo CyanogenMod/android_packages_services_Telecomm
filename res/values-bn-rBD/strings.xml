@@ -42,4 +42,8 @@
     <string name="account_ask_every_time" msgid="944077828070287407">"প্রতিবার জিজ্ঞাসা করুন"</string>
     <string name="do_not_use_sim_call_manager" msgid="5519252524007323694">"Wi-Fi কলিং ব্যবহার করবেন না"</string>
     <string name="outgoing_call_not_allowed" msgid="1434784869685645427">"জরুরী নয় এমন ফোন কল করার জন্য ব্যবহারকারী অনুমতি পাননি"</string>
+    <string name="outgoing_call_error_no_phone_number_supplied" msgid="4987143284589568716">"কল করা যায়নি, কোনো বৈধ নম্বর লেখা হয়নি।"</string>
+    <string name="no_vm_number" msgid="4164780423805688336">"ভয়েসমেল নম্বর অনুপস্থিত"</string>
+    <string name="no_vm_number_msg" msgid="1300729501030053828">"SIM কার্ডটিতে কোনো ভয়েসমেল নম্বর সংরক্ষিত নেই৷"</string>
+    <string name="add_vm_number_str" msgid="4676479471644687453">"একটি নম্বর যোগ করুন"</string>
 </resources>

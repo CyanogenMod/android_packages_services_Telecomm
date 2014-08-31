@@ -42,4 +42,8 @@
     <string name="account_ask_every_time" msgid="944077828070287407">"Spørg hver gang"</string>
     <string name="do_not_use_sim_call_manager" msgid="5519252524007323694">"Brug ikke Wi-Fi-opkald"</string>
     <string name="outgoing_call_not_allowed" msgid="1434784869685645427">"Denne bruger har kun tilladelse til at foretage nødopkald"</string>
+    <string name="outgoing_call_error_no_phone_number_supplied" msgid="4987143284589568716">"Opkaldet kunne ikke sendes. Der blev ikke indtastet et gyldigt nummer."</string>
+    <string name="no_vm_number" msgid="4164780423805688336">"Telefonsvarernummer mangler"</string>
+    <string name="no_vm_number_msg" msgid="1300729501030053828">"Der er ikke gemt noget telefonsvarernummer på SIM-kortet."</string>
+    <string name="add_vm_number_str" msgid="4676479471644687453">"Tilføj nummer"</string>
 </resources>
