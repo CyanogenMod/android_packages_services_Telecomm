@@ -42,4 +42,8 @@
     <string name="account_ask_every_time" msgid="944077828070287407">"Har safar so‘ralsin"</string>
     <string name="do_not_use_sim_call_manager" msgid="5519252524007323694">"Wi-Fi qo‘ng‘iroqlardan foydalanilmasin"</string>
     <string name="outgoing_call_not_allowed" msgid="1434784869685645427">"Ushbu foydalanuvchiga favqulodda qo‘ng‘iroqlardan boshqa telefon qo‘ng‘iroqlarini amalga oshirish uchun ruxsat berilmagan"</string>
+    <string name="outgoing_call_error_no_phone_number_supplied" msgid="4987143284589568716">"Qo‘ng‘iroq amalga oshmadi, chunki raqam noto‘g‘ri kiritildi"</string>
+    <string name="no_vm_number" msgid="4164780423805688336">"Javobsiz ovozli xabar raqami"</string>
+    <string name="no_vm_number_msg" msgid="1300729501030053828">"SIM kartada birorta ham ovozli xabar saqlanmagan."</string>
+    <string name="add_vm_number_str" msgid="4676479471644687453">"Raqam qo‘shish"</string>
 </resources>

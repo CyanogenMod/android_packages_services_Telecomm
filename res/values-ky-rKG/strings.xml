@@ -51,4 +51,11 @@
     <string name="account_ask_every_time" msgid="944077828070287407">"Чалган сайын сурасын"</string>
     <string name="do_not_use_sim_call_manager" msgid="5519252524007323694">"Wi-Fi чалуу колдонулбасын"</string>
     <string name="outgoing_call_not_allowed" msgid="1434784869685645427">"Бул колдонуучу шашылыш эмес чалууларды аткара албайт"</string>
+    <string name="outgoing_call_error_no_phone_number_supplied" msgid="4987143284589568716">"Чалуу жөнөтүлгөн жок, жарактуу номер киргизилген жок."</string>
+    <!-- no translation found for no_vm_number (4164780423805688336) -->
+    <skip />
+    <!-- no translation found for no_vm_number_msg (1300729501030053828) -->
+    <skip />
+    <!-- no translation found for add_vm_number_str (4676479471644687453) -->
+    <skip />
 </resources>

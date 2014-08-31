@@ -42,4 +42,8 @@
     <string name="account_ask_every_time" msgid="944077828070287407">"Spyrja í hvert skipti"</string>
     <string name="do_not_use_sim_call_manager" msgid="5519252524007323694">"Ekki nota Wi-Fi símtöl"</string>
     <string name="outgoing_call_not_allowed" msgid="1434784869685645427">"Þessi notandi hefur ekki leyfi til að hringja símtöl önnur en neyðarsímtöl"</string>
+    <string name="outgoing_call_error_no_phone_number_supplied" msgid="4987143284589568716">"Símtalið var ekki sent. Ekki var slegið inn gilt símanúmer."</string>
+    <string name="no_vm_number" msgid="4164780423805688336">"Talhólfsnúmer vantar"</string>
+    <string name="no_vm_number_msg" msgid="1300729501030053828">"Ekkert talhólfsnúmer er vistað á SIM-kortinu."</string>
+    <string name="add_vm_number_str" msgid="4676479471644687453">"Bæta númeri við"</string>
 </resources>

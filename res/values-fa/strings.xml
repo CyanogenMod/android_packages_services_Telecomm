@@ -42,4 +42,8 @@
     <string name="account_ask_every_time" msgid="944077828070287407">"هر بار پرسیده شود"</string>
     <string name="do_not_use_sim_call_manager" msgid="5519252524007323694">"‏از تماس تلفنی با Wi-Fi استفاده نشود"</string>
     <string name="outgoing_call_not_allowed" msgid="1434784869685645427">"این کاربر اجازه برقراری تماس‌های تلفنی غیر اضطراری ندارد."</string>
+    <string name="outgoing_call_error_no_phone_number_supplied" msgid="4987143284589568716">"تماس ارسال نشد، هیچ شماره معتبری وارد نشده است."</string>
+    <string name="no_vm_number" msgid="4164780423805688336">"عدم وجود شماره پست صوتی"</string>
+    <string name="no_vm_number_msg" msgid="1300729501030053828">"شماره پست صوتی در سیم کارت ذخیره نشده است."</string>
+    <string name="add_vm_number_str" msgid="4676479471644687453">"افزودن شماره"</string>
 </resources>

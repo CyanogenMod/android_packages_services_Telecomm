@@ -42,4 +42,8 @@
     <string name="account_ask_every_time" msgid="944077828070287407">"Vedno vprašaj"</string>
     <string name="do_not_use_sim_call_manager" msgid="5519252524007323694">"Ne uporabljaj klicanja prek povezave Wi-Fi"</string>
     <string name="outgoing_call_not_allowed" msgid="1434784869685645427">"Temu uporabniku ni dovoljeno telefoniranje, razen klicev v sili"</string>
+    <string name="outgoing_call_error_no_phone_number_supplied" msgid="4987143284589568716">"Klic ni bil poslan, veljavna številka ni vnesena."</string>
+    <string name="no_vm_number" msgid="4164780423805688336">"Manjkajoča številka glasovne pošte"</string>
+    <string name="no_vm_number_msg" msgid="1300729501030053828">"Na kartici SIM ni shranjena številka glasovne pošte."</string>
+    <string name="add_vm_number_str" msgid="4676479471644687453">"Dodaj številko"</string>
 </resources>

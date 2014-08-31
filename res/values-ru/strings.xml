@@ -42,4 +42,8 @@
     <string name="account_ask_every_time" msgid="944077828070287407">"Всегда спрашивать"</string>
     <string name="do_not_use_sim_call_manager" msgid="5519252524007323694">"Не использовать Wi-Fi для звонков"</string>
     <string name="outgoing_call_not_allowed" msgid="1434784869685645427">"Этот пользователь может звонить только в службы экстренной помощи"</string>
+    <string name="outgoing_call_error_no_phone_number_supplied" msgid="4987143284589568716">"Для вызова укажите действительный номер телефона."</string>
+    <string name="no_vm_number" msgid="4164780423805688336">"Не указан номер голосовой почты"</string>
+    <string name="no_vm_number_msg" msgid="1300729501030053828">"На SIM-карте нет ни одного номера голосовой почты."</string>
+    <string name="add_vm_number_str" msgid="4676479471644687453">"Добавить номер"</string>
 </resources>
