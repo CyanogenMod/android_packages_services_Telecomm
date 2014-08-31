@@ -42,4 +42,8 @@
     <string name="account_ask_every_time" msgid="944077828070287407">"Pregunta sempre"</string>
     <string name="do_not_use_sim_call_manager" msgid="5519252524007323694">"No facis servir les trucades mitjançant Wi-Fi"</string>
     <string name="outgoing_call_not_allowed" msgid="1434784869685645427">"Aquest usuari no pot fer trucades que no siguin d\'emergència."</string>
+    <string name="outgoing_call_error_no_phone_number_supplied" msgid="4987143284589568716">"No s\'ha enviat la trucada perquè no s\'ha introduït cap número vàlid."</string>
+    <string name="no_vm_number" msgid="4164780423805688336">"Falta el número de correu de veu"</string>
+    <string name="no_vm_number_msg" msgid="1300729501030053828">"No hi ha cap número de correu de veu emmagatzemat a la targeta SIM."</string>
+    <string name="add_vm_number_str" msgid="4676479471644687453">"Afegeix número"</string>
 </resources>

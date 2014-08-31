@@ -42,4 +42,8 @@
     <string name="account_ask_every_time" msgid="944077828070287407">"Chiedi ogni volta"</string>
     <string name="do_not_use_sim_call_manager" msgid="5519252524007323694">"Non utilizzare chiamate Wi-Fi"</string>
     <string name="outgoing_call_not_allowed" msgid="1434784869685645427">"Questo utente non è autorizzato a fare telefonate diverse da quelle di emergenza"</string>
+    <string name="outgoing_call_error_no_phone_number_supplied" msgid="4987143284589568716">"Chiamata non inviata. Nessun numero valido inserito."</string>
+    <string name="no_vm_number" msgid="4164780423805688336">"Numero segreteria mancante"</string>
+    <string name="no_vm_number_msg" msgid="1300729501030053828">"Nessun numero di segreteria presente nella SIM."</string>
+    <string name="add_vm_number_str" msgid="4676479471644687453">"Aggiungi numero"</string>
 </resources>

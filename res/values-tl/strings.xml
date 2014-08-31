@@ -42,4 +42,8 @@
     <string name="account_ask_every_time" msgid="944077828070287407">"Magtanong palagi"</string>
     <string name="do_not_use_sim_call_manager" msgid="5519252524007323694">"Huwag gumamit ng pagtawag sa pamamagitan ng Wi-Fi"</string>
     <string name="outgoing_call_not_allowed" msgid="1434784869685645427">"Hindi pinapahintulutan ang user na ito na gumawa ng mga hindi pang-emergency na tawag sa telepono"</string>
+    <string name="outgoing_call_error_no_phone_number_supplied" msgid="4987143284589568716">"Hindi naipadala ang tawag, walang inilagay na wastong numero."</string>
+    <string name="no_vm_number" msgid="4164780423805688336">"Nawawala ang numero ng voicemail"</string>
+    <string name="no_vm_number_msg" msgid="1300729501030053828">"Walang nakaimbak na numero ng voicemail sa SIM card."</string>
+    <string name="add_vm_number_str" msgid="4676479471644687453">"Magdagdag ng numero"</string>
 </resources>

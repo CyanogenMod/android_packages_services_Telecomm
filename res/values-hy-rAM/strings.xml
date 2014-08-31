@@ -42,4 +42,8 @@
     <string name="account_ask_every_time" msgid="944077828070287407">"Հարցնել ամեն անգամ"</string>
     <string name="do_not_use_sim_call_manager" msgid="5519252524007323694">"Չօգտագործել Wi-Fi զանգերը"</string>
     <string name="outgoing_call_not_allowed" msgid="1434784869685645427">"Այս օգտվողին չի թույլատրվում կատարել ոչ արտակարգ զանգեր"</string>
+    <string name="outgoing_call_error_no_phone_number_supplied" msgid="4987143284589568716">"Զանգը չի կատարվել, անվավեր համար է մուտքագրված:"</string>
+    <string name="no_vm_number" msgid="4164780423805688336">"Բացակայում է ձայնային փոստի համարը"</string>
+    <string name="no_vm_number_msg" msgid="1300729501030053828">"SIM քարտում ձայնային փոստի ոչ մի համար գրանցված չէ:"</string>
+    <string name="add_vm_number_str" msgid="4676479471644687453">"Ավելացնել համար"</string>
 </resources>

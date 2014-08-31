@@ -42,4 +42,8 @@
     <string name="account_ask_every_time" msgid="944077828070287407">"その都度確認"</string>
     <string name="do_not_use_sim_call_manager" msgid="5519252524007323694">"Wi-Fi発信を使用しない"</string>
     <string name="outgoing_call_not_allowed" msgid="1434784869685645427">"このユーザーは緊急通報以外の通話は発信できません"</string>
+    <string name="outgoing_call_error_no_phone_number_supplied" msgid="4987143284589568716">"発信できません。有効な番号が入力されていません。"</string>
+    <string name="no_vm_number" msgid="4164780423805688336">"ボイスメール番号がありません"</string>
+    <string name="no_vm_number_msg" msgid="1300729501030053828">"SIMカードにボイスメールの番号がありません。"</string>
+    <string name="add_vm_number_str" msgid="4676479471644687453">"番号を追加"</string>
 </resources>
