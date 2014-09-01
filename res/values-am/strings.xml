@@ -42,4 +42,8 @@
     <string name="account_ask_every_time" msgid="944077828070287407">"ሁልጊዜ ጊዜ ጠይቅ"</string>
     <string name="do_not_use_sim_call_manager" msgid="5519252524007323694">"የWi-Fi ጥሪ አይጠቀሙ"</string>
     <string name="outgoing_call_not_allowed" msgid="1434784869685645427">"ይህ ተጠቃሚ የአስቸኳይ አደጋ ያልሆኑ ስልክ ጥሪዎችን እንዲያደርጉ አልተፈቀደላቸውም"</string>
+    <string name="outgoing_call_error_no_phone_number_supplied" msgid="4987143284589568716">"ጥሪ አልተላከም፣ ትክክለኛ ቁጥር አልገባም።"</string>
+    <string name="no_vm_number" msgid="4164780423805688336">"የድምፅመልዕክት ቁጥርአመለጠ"</string>
+    <string name="no_vm_number_msg" msgid="1300729501030053828">"በSIM ካርዱ ላይምንም የድምፅመልዕክት ቁጥር አልከተቀመጠም።"</string>
+    <string name="add_vm_number_str" msgid="4676479471644687453">"ቁጥር አክል"</string>
 </resources>

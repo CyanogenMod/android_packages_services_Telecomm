@@ -42,4 +42,8 @@
     <string name="account_ask_every_time" msgid="944077828070287407">"Uliza kila wakati"</string>
     <string name="do_not_use_sim_call_manager" msgid="5519252524007323694">"Usitumie upigaji simu wa Wi-Fi"</string>
     <string name="outgoing_call_not_allowed" msgid="1434784869685645427">"Mtumiaji huyu haruhusiwi kupiga simu zisizo za dharura"</string>
+    <string name="outgoing_call_error_no_phone_number_supplied" msgid="4987143284589568716">"Simu haijatumwa, hakuna nambari sahihi iliyowekwa."</string>
+    <string name="no_vm_number" msgid="4164780423805688336">"Nambari ya sauti inayokosekana"</string>
+    <string name="no_vm_number_msg" msgid="1300729501030053828">"Hakuna nambari ya ujumbe wa sauti iliyohifadhiwa katika SIM kadi."</string>
+    <string name="add_vm_number_str" msgid="4676479471644687453">"Ongeza nambari"</string>
 </resources>
