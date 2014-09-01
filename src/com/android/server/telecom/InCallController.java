@@ -508,7 +508,8 @@ public final class InCallController extends CallsManagerListenerBase {
                 conferenceableCallIds,
                 call.getExtras(),
                 call.getNotificationType(),
-                call.getNotificationCode());
+                call.getNotificationCode(),
+                call.mIsActiveSub);
     }
 
     /**

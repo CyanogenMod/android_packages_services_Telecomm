@@ -47,6 +47,7 @@ class InCallAdapter extends IInCallAdapter.Stub {
     private static final int MSG_TURN_OFF_PROXIMITY_SENSOR = 15;
     private static final int MSG_MERGE_CONFERENCE = 16;
     private static final int MSG_SWAP_CONFERENCE = 17;
+    private static final int MSG_SET_SWITCH_SUBSCRIPTION = 18;
 
     private final class InCallAdapterHandler extends Handler {
         @Override
@@ -199,6 +200,17 @@ class InCallAdapter extends IInCallAdapter.Stub {
                         Log.w(this, "swapConference, unknown call id: %s", msg.obj);
                     }
                     break;
+                case MSG_SET_SWITCH_SUBSCRIPTION:
+                    SomeArgs args = (SomeArgs) msg.obj;
+                    try {
+                        Log.i(this, "MSG_SET_SWITCH_SUBSCRIPTION sub: %s, lchState: %b",
+                                args.arg1, args.arg2);
+                        mCallsManager.switchToOtherActiveSub((String)
+                                args.arg1, (boolean) args.arg2);
+                    } finally {
+                        args.recycle();
+                    }
+                    break;
             }
         }
     }
@@ -343,5 +355,13 @@ class InCallAdapter extends IInCallAdapter.Stub {
     @Override
     public void turnOffProximitySensor(boolean screenOnImmediately) {
         mHandler.obtainMessage(MSG_TURN_OFF_PROXIMITY_SENSOR, screenOnImmediately).sendToTarget();
+    }
+
+    @Override
+    public void switchToOtherActiveSub(String sub, boolean retainLch) {
+        SomeArgs args = SomeArgs.obtain();
+        args.arg1 = sub;
+        args.arg2 = retainLch;
+        mHandler.obtainMessage(MSG_SET_SWITCH_SUBSCRIPTION, args).sendToTarget();
     }
 }

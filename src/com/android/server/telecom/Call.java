@@ -290,6 +290,7 @@ final class Call implements CreateConnectionResponse {
     private final Context mContext;
     private int mNotificationType;
     private int mCode;
+    boolean mIsActiveSub = false;
 
     private boolean mWasConferencePreviouslyMerged = false;
 
@@ -355,7 +356,7 @@ final class Call implements CreateConnectionResponse {
             component = mConnectionService.getComponentName().flattenToShortString();
         }
 
-        return String.format(Locale.US, "[%s, %s, %s, %s, %d, childs(%d), has_parent(%b), [%s]",
+        return String.format(Locale.US, "[%s, %s, %s, %s, %d, childs(%d), has_parent(%b), [%s], %b, %s]",
                 System.identityHashCode(this),
                 CallState.toString(mState),
                 component,
@@ -363,7 +364,8 @@ final class Call implements CreateConnectionResponse {
                 getVideoState(),
                 getChildCalls().size(),
                 getParentCall() != null,
-                PhoneCapabilities.toString(getCallCapabilities()));
+                PhoneCapabilities.toString(getCallCapabilities()),
+                mIsActiveSub, mTargetPhoneAccountHandle);
     }
 
     int getState() {
@@ -876,6 +878,18 @@ final class Call implements CreateConnectionResponse {
         if (mState == CallState.ON_HOLD) {
             mConnectionService.unhold(this);
         }
+    }
+
+    void setLocalCallHold(int lchState) {
+        Preconditions.checkNotNull(mConnectionService);
+
+        mConnectionService.setLocalCallHold(this, lchState);
+    }
+
+    void setActiveSubscription() {
+        Preconditions.checkNotNull(mConnectionService);
+
+        mConnectionService.setActiveSubscription(this);
     }
 
     /** Checks if this is a live call or not. */

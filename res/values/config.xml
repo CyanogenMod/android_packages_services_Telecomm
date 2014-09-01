@@ -43,4 +43,7 @@
          if this package has not registered any accounts, then it will be ignored.
          [DO NOT TRANSLATE] -->
     <string name="default_connection_manager_component" translatable="false"></string>
+
+    <!-- DTMF key to be used for LCH hold tone -->
+    <string name="Lch_dtmf_key" translatable="false">D</string>
 </resources>

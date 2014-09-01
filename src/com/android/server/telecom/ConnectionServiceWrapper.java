@@ -832,6 +832,28 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
         }
     }
 
+    /** @see ConnectionService#setLocalCallHold(String,int) */
+    void setLocalCallHold(Call call, int lchStatus) {
+        if (isServiceValid("SetLocalCallHold")) {
+            try {
+                logOutgoing("SetLocalCallHold %s %d", mCallIdMapper.getCallId(call), lchStatus);
+                mServiceInterface.setLocalCallHold(mCallIdMapper.getCallId(call), lchStatus);
+            } catch (RemoteException e) {
+            }
+        }
+    }
+
+    /** @see ConnectionService#setLocalCallHold(String,int) */
+    void setActiveSubscription(Call call) {
+        if (isServiceValid("setActiveSubscription")) {
+            try {
+                logOutgoing("setActiveSubscription %s", mCallIdMapper.getCallId(call));
+                mServiceInterface.setActiveSubscription(mCallIdMapper.getCallId(call));
+            } catch (RemoteException e) {
+            }
+        }
+    }
+
     /** @see ConnectionService#stopDtmfTone(String) */
     void stopDtmfTone(Call call) {
         final String callId = mCallIdMapper.getCallId(call);

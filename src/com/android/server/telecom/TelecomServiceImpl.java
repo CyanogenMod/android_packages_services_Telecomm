@@ -35,6 +35,7 @@ import android.telecom.CallState;
 import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
 import android.telecom.TelecomManager;
+import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
 
 
@@ -380,6 +381,25 @@ public class TelecomServiceImpl extends ITelecomService.Stub {
     @Override
     public int getCallState() {
         return mCallsManager.getCallState();
+    }
+
+    /**
+     * @see android.telecom.TelecomManager#getActiveSubscription
+     */
+    public long getActiveSubscription() {
+        enforceReadPermission();
+        String activeSub = mCallsManager.getActiveSubscription();
+        return (activeSub == null) ? SubscriptionManager.INVALID_SUB_ID : Long.parseLong(activeSub);
+    }
+
+    /**
+     * @see android.telecom.TelecomManager#switchToOtherActiveSub
+     */
+    public void switchToOtherActiveSub(long subId) {
+        enforceModifyPermission();
+        String activeSub = (subId == SubscriptionManager.INVALID_SUB_ID)
+                ? null : String.valueOf(subId);
+        mCallsManager.switchToOtherActiveSub(activeSub, false);
     }
 
     /**
