@@ -38,4 +38,7 @@
 
     <!-- Flag indicating if the tty is enabled -->
     <bool name="tty_enabled">false</bool>
+
+    <!-- DTMF key to be used for LCH hold tone -->
+    <string name="lch_dtmf_key" translatable="false">D</string>
 </resources>

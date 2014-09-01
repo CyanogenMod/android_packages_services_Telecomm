@@ -181,7 +181,7 @@ final class Ringer extends CallsManagerListenerBase {
         Call foregroundCall = mCallsManager.getForegroundCall();
         Log.v(this, "startRingingOrCallWaiting, foregroundCall: %s.", foregroundCall);
 
-        if (mRingingCalls.contains(foregroundCall)) {
+        if (mRingingCalls.contains(foregroundCall) && (!mCallsManager.hasActiveOrHoldingCall())) {
             // The foreground call is one of incoming calls so play the ringer out loud.
             stopCallWaiting(call);
 

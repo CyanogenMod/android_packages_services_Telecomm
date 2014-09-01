@@ -675,7 +675,8 @@ public final class InCallController extends CallsManagerListenerBase {
                 call.getVideoState(),
                 conferenceableCallIds,
                 call.getIntentExtras(),
-                call.getExtras());
+                call.getExtras(),
+                call.mIsActiveSub);
     }
 
     private static int getParcelableState(Call call) {

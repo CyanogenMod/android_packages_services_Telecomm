@@ -282,6 +282,10 @@ final class ConnectionServiceWrapper extends ServiceBinder {
                             childCall.setParentCall(null);
                         } else {
                             Call conferenceCall = mCallIdMapper.getCall(conferenceCallId);
+                            if (conferenceCall.getTargetPhoneAccount() == null) {
+                                PhoneAccountHandle ph = childCall.getTargetPhoneAccount();
+                                conferenceCall.setTargetPhoneAccount(ph);
+                            }
                             childCall.setParentCall(conferenceCall);
                         }
                     } else {
@@ -792,6 +796,18 @@ final class ConnectionServiceWrapper extends ServiceBinder {
             try {
                 logOutgoing("playDtmfTone %s %c", callId, digit);
                 mServiceInterface.playDtmfTone(callId, digit);
+            } catch (RemoteException e) {
+            }
+        }
+    }
+
+    /** @see ConnectionService#setLocalCallHold(String,int) */
+    void setLocalCallHold(Call call, boolean lchStatus) {
+        final String callId = mCallIdMapper.getCallId(call);
+        if (callId != null && isServiceValid("SetLocalCallHold")) {
+            try {
+                logOutgoing("SetLocalCallHold %s %b", mCallIdMapper.getCallId(call), lchStatus);
+                mServiceInterface.setLocalCallHold(mCallIdMapper.getCallId(call), lchStatus);
             } catch (RemoteException e) {
             }
         }

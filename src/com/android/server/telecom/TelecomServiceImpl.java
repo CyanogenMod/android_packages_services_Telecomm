@@ -724,6 +724,30 @@ public class TelecomServiceImpl {
         }
 
         /**
+         * @see android.telecom.TelecomManager#getActiveSubscription
+         */
+        public int getActiveSubscription() {
+            synchronized (mLock) {
+                String activeSub = mCallsManager.getActiveSubscription();
+                return (activeSub == null) ? SubscriptionManager.INVALID_SUBSCRIPTION_ID:
+                        Integer.parseInt(activeSub);
+            }
+        }
+
+        /**
+         * @see android.telecom.TelecomManager#switchToOtherActiveSub
+         */
+        public void switchToOtherActiveSub(int subId) {
+            enforceModifyPermission();
+
+            synchronized (mLock) {
+                String activeSub = (subId == SubscriptionManager.INVALID_SUBSCRIPTION_ID)
+                        ? null : String.valueOf(subId);
+                mCallsManager.switchToOtherActiveSub(activeSub);
+            }
+        }
+
+        /**
          * @see android.telecom.TelecomManager#addNewIncomingCall
          */
         @Override
