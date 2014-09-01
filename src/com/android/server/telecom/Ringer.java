@@ -191,7 +191,7 @@ final class Ringer extends CallsManagerListenerBase {
 
             AudioManager audioManager =
                     (AudioManager) mContext.getSystemService(Context.AUDIO_SERVICE);
-            if (audioManager.getStreamVolume(AudioManager.STREAM_RING) > 0) {
+            if (audioManager.getStreamVolume(AudioManager.STREAM_RING) >= 0) {
                 if (mState != STATE_RINGING) {
                     Log.event(call, Log.Events.START_RINGER);
                     mState = STATE_RINGING;
