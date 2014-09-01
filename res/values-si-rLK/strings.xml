@@ -42,8 +42,7 @@
     <string name="account_ask_every_time" msgid="944077828070287407">"සෑම වේලාවේම අසන්න"</string>
     <string name="do_not_use_sim_call_manager" msgid="5519252524007323694">"Wi-Fi ඇමතුම භාවිතා කරන්න එපා"</string>
     <string name="outgoing_call_not_allowed" msgid="1434784869685645427">"හදිසි-නැති දුරකථන ඇමතුම් සිදුකිරීමට මෙම පරිශීලකයාට අවසර නොමැත"</string>
-    <!-- no translation found for outgoing_call_error_no_phone_number_supplied (4987143284589568716) -->
-    <skip />
+    <string name="outgoing_call_error_no_phone_number_supplied" msgid="4987143284589568716">"ඇමතුම නොයැවිණි, වලංගු අංකයක් ඇතුලත් කර නැත."</string>
     <string name="no_vm_number" msgid="4164780423805688336">"හඬ තැපැල් අංකය නැත"</string>
     <string name="no_vm_number_msg" msgid="1300729501030053828">"SIM කාඩ් පතෙහි හඬ තැපැල් අංකයක් ආචිත වී නැත."</string>
     <string name="add_vm_number_str" msgid="4676479471644687453">"අංකයක් එක් කරන්න"</string>

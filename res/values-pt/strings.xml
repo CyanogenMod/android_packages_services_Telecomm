@@ -42,8 +42,7 @@
     <string name="account_ask_every_time" msgid="944077828070287407">"Perguntar sempre"</string>
     <string name="do_not_use_sim_call_manager" msgid="5519252524007323694">"Não usar chamadas por Wi-Fi"</string>
     <string name="outgoing_call_not_allowed" msgid="1434784869685645427">"Este usuário não tem permissão para fazer chamadas não emergenciais pelo smartphone"</string>
-    <!-- no translation found for outgoing_call_error_no_phone_number_supplied (4987143284589568716) -->
-    <skip />
+    <string name="outgoing_call_error_no_phone_number_supplied" msgid="4987143284589568716">"Chamada não enviada: nenhum número válido foi inserido."</string>
     <string name="no_vm_number" msgid="4164780423805688336">"Número correio de voz ausente"</string>
     <string name="no_vm_number_msg" msgid="1300729501030053828">"Não há um número correio de voz armazenado no cartão SIM."</string>
     <string name="add_vm_number_str" msgid="4676479471644687453">"Adicionar número"</string>
