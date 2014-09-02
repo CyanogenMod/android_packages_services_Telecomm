@@ -109,6 +109,7 @@ public class CallServiceNotifier {
                 .withIconResId(R.drawable.stat_sys_phone_call)
                 .withLabel("TelecommTestApp Call Provider")
                 .withShortDescription("a short description for the call provider")
+                .withSupportedUriScheme("tel")
                 .build());
 
         telecommManager.registerPhoneAccount(PhoneAccount.builder()

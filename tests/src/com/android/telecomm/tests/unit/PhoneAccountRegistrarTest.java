@@ -24,6 +24,7 @@ import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlSerializer;
 
 import android.content.ComponentName;
+import android.content.Context;
 import android.net.Uri;
 import android.telecomm.PhoneAccount;
 import android.telecomm.PhoneAccountHandle;
@@ -35,6 +36,7 @@ import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.util.Arrays;
 
 public class PhoneAccountRegistrarTest extends AndroidTestCase {
 
@@ -61,7 +63,8 @@ public class PhoneAccountRegistrarTest extends AndroidTestCase {
                 .withSubscriptionNumber("555-1212")
                 .withCapabilities(
                         PhoneAccount.CAPABILITY_CALL_PROVIDER
-                                | PhoneAccount.CAPABILITY_SIM_SUBSCRIPTION)
+                                | PhoneAccount.CAPABILITY_SIM_SUBSCRIPTION
+                )
                 .withIconResId(0)
                 .withLabel("label1")
                 .withShortDescription("desc1")
@@ -86,6 +89,17 @@ public class PhoneAccountRegistrarTest extends AndroidTestCase {
                 .withLabel("label2")
                 .withShortDescription("desc2")
                 .build());
+        mRegistrar.registerPhoneAccount(PhoneAccount.builder()
+                .withAccountHandle(
+                        new PhoneAccountHandle(new ComponentName("sippkg", "sipcls"), "id4"))
+                .withHandle(Uri.parse("sip:test@sip.com"))
+                .withSubscriptionNumber("test")
+                .withCapabilities(PhoneAccount.CAPABILITY_CALL_PROVIDER)
+                .withIconResId(0)
+                .withLabel("label2")
+                .withShortDescription("desc2")
+                .withSupportedUriScheme("tel")
+                .build());
     }
 
     @Override
@@ -97,7 +111,8 @@ public class PhoneAccountRegistrarTest extends AndroidTestCase {
     private static <T> T roundTrip(
             Object self,
             T input,
-            PhoneAccountRegistrar.XmlSerialization<T> xml)
+            PhoneAccountRegistrar.XmlSerialization<T> xml,
+            Context context)
             throws Exception {
         Log.d(self, "Input = %s", input);
 
@@ -118,7 +133,7 @@ public class PhoneAccountRegistrarTest extends AndroidTestCase {
             XmlPullParser parser = Xml.newPullParser();
             parser.setInput(new BufferedInputStream(new ByteArrayInputStream(data)), null);
             parser.nextTag();
-            result = xml.readFromXml(parser);
+            result = xml.readFromXml(parser, 0, context);
         }
 
         Log.d(self, "result = " + result);
@@ -140,7 +155,8 @@ public class PhoneAccountRegistrarTest extends AndroidTestCase {
 
     public void testPhoneAccountHandle() throws Exception {
         PhoneAccountHandle input = new PhoneAccountHandle(new ComponentName("pkg0", "cls0"), "id0");
-        PhoneAccountHandle result = roundTrip(this, input, PhoneAccountRegistrar.sPhoneAccountHandleXml);
+        PhoneAccountHandle result = roundTrip(this, input,
+                PhoneAccountRegistrar.sPhoneAccountHandleXml, mContext);
         assertPhoneAccountHandleEquals(input, result);
         PhoneAccountHandle inputN =
                 new PhoneAccountHandle(
@@ -148,7 +164,8 @@ public class PhoneAccountRegistrarTest extends AndroidTestCase {
                                 "pkg0",  // ctor does not allow null
                                 "cls0"), // ctor does not allow null
                         null);
-        PhoneAccountHandle resultN = roundTrip(this, inputN, PhoneAccountRegistrar.sPhoneAccountHandleXml);
+        PhoneAccountHandle resultN = roundTrip(this, inputN,
+                PhoneAccountRegistrar.sPhoneAccountHandleXml, mContext);
         Log.i(this, "inputN = %s, resultN = %s", inputN, resultN);
         assertPhoneAccountHandleEquals(inputN, resultN);
     }
@@ -162,15 +179,18 @@ public class PhoneAccountRegistrarTest extends AndroidTestCase {
             assertEquals(a.getIconResId(), b.getIconResId());
             assertEquals(a.getLabel(), b.getLabel());
             assertEquals(a.getShortDescription(), b.getShortDescription());
+            assertEquals(a.getSupportedUriSchemes(), b.getSupportedUriSchemes());
         }
     }
 
     public void testPhoneAccount() throws Exception {
         PhoneAccount input = makeQuickAccount("pkg0", "cls0", "id0", 0);
-        PhoneAccount result = roundTrip(this, input, PhoneAccountRegistrar.sPhoneAccountXml);
+        PhoneAccount result = roundTrip(this, input, PhoneAccountRegistrar.sPhoneAccountXml,
+                mContext);
         assertPhoneAccountEquals(input, result);
         PhoneAccount inputN = PhoneAccount.builder().build();
-        PhoneAccount resultN = roundTrip(this, inputN, PhoneAccountRegistrar.sPhoneAccountXml);
+        PhoneAccount resultN = roundTrip(this, inputN, PhoneAccountRegistrar.sPhoneAccountXml,
+                mContext);
         assertPhoneAccountEquals(inputN, resultN);
     }
 
@@ -185,7 +205,8 @@ public class PhoneAccountRegistrarTest extends AndroidTestCase {
 
     public void testState() throws Exception {
         PhoneAccountRegistrar.State input = makeQuickState();
-        PhoneAccountRegistrar.State result = roundTrip(this, input, PhoneAccountRegistrar.sStateXml);
+        PhoneAccountRegistrar.State result = roundTrip(this, input, PhoneAccountRegistrar.sStateXml,
+                mContext);
         assertStateEquals(input, result);
     }
 
@@ -193,7 +214,7 @@ public class PhoneAccountRegistrarTest extends AndroidTestCase {
         assertEquals(4, mRegistrar.getAllPhoneAccountHandles().size());
         assertEquals(3, mRegistrar.getOutgoingPhoneAccounts().size());
         assertEquals(null, mRegistrar.getSimCallManager());
-        assertEquals(null, mRegistrar.getDefaultOutgoingPhoneAccount());
+        assertEquals(null, mRegistrar.getDefaultOutgoingPhoneAccount("tel"));
     }
 
     public void testSimCallManager() throws Exception {
@@ -219,23 +240,23 @@ public class PhoneAccountRegistrarTest extends AndroidTestCase {
 
     public void testDefaultOutgoing() {
         // Establish initial conditions
-        assertEquals(null, mRegistrar.getDefaultOutgoingPhoneAccount());
+        assertEquals(null, mRegistrar.getDefaultOutgoingPhoneAccount("tel"));
         PhoneAccountHandle h = new PhoneAccountHandle(new ComponentName("pkg0", "cls0"), "id1");
         mRegistrar.setDefaultOutgoingPhoneAccount(h);
-        assertPhoneAccountHandleEquals(h, mRegistrar.getDefaultOutgoingPhoneAccount());
+        assertPhoneAccountHandleEquals(h, mRegistrar.getDefaultOutgoingPhoneAccount("tel"));
         // If account is un-registered, querying returns null
         mRegistrar.unregisterPhoneAccount(h);
-        assertEquals(null, mRegistrar.getDefaultOutgoingPhoneAccount());
+        assertEquals(null, mRegistrar.getDefaultOutgoingPhoneAccount("tel"));
         // But if account is re-registered, setting comes back
         mRegistrar.registerPhoneAccount(makeQuickAccount("pkg0", "cls0", "id1", 99));
-        assertPhoneAccountHandleEquals(h, mRegistrar.getDefaultOutgoingPhoneAccount());
+        assertPhoneAccountHandleEquals(h, mRegistrar.getDefaultOutgoingPhoneAccount("tel"));
         // De-register by setting to null
         mRegistrar.setDefaultOutgoingPhoneAccount(null);
-        assertEquals(null, mRegistrar.getDefaultOutgoingPhoneAccount());
+        assertEquals(null, mRegistrar.getDefaultOutgoingPhoneAccount("tel"));
         // If argument not have CALL_PROVIDER capability, this is a no-op
         mRegistrar.setDefaultOutgoingPhoneAccount(
                 new PhoneAccountHandle(new ComponentName("pkg0", "cls0"), "id0"));
-        assertEquals(null, mRegistrar.getDefaultOutgoingPhoneAccount());
+        assertEquals(null, mRegistrar.getDefaultOutgoingPhoneAccount("tel"));
         // If only have one account, it is the default
         mRegistrar.unregisterPhoneAccount(
                 new PhoneAccountHandle(new ComponentName("pkg0", "cls0"), "id0"));
@@ -245,7 +266,7 @@ public class PhoneAccountRegistrarTest extends AndroidTestCase {
                 new PhoneAccountHandle(new ComponentName("pkg1", "cls1"), "id2"));
         assertPhoneAccountHandleEquals(
                 new PhoneAccountHandle(new ComponentName("pkg1", "cls1"), "id3"),
-                mRegistrar.getDefaultOutgoingPhoneAccount());
+                mRegistrar.getDefaultOutgoingPhoneAccount("tel"));
         // If have one account but not suitable, default returns null
         mRegistrar.unregisterPhoneAccount(
                 new PhoneAccountHandle(new ComponentName("pkg1", "cls1"), "id3"));
@@ -258,7 +279,7 @@ public class PhoneAccountRegistrarTest extends AndroidTestCase {
                 .withLabel("label0")
                 .withShortDescription("desc0")
                 .build());
-        assertEquals(null, mRegistrar.getDefaultOutgoingPhoneAccount());
+        assertEquals(null, mRegistrar.getDefaultOutgoingPhoneAccount("tel"));
     }
 
     private static PhoneAccount makeQuickAccount(String pkg, String cls, String id, int idx) {

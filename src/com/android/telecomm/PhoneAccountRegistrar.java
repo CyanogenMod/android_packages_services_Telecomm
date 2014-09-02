@@ -21,6 +21,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.content.pm.ServiceInfo;
+import android.provider.Settings;
 import android.telecomm.ConnectionService;
 import android.telecomm.PhoneAccount;
 import android.telecomm.PhoneAccountHandle;
@@ -47,6 +48,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.Integer;
 import java.lang.SecurityException;
 import java.lang.String;
 import java.util.ArrayList;
@@ -75,6 +77,11 @@ public final class PhoneAccountRegistrar {
     }
 
     private static final String FILE_NAME = "phone-account-registrar-state.xml";
+    @VisibleForTesting
+    public static final int EXPECTED_STATE_VERSION = 2;
+
+    /** Keep in sync with the same in SipSettings.java */
+    private static final String SIP_SHARED_PREFERENCES = "SIP_PREFERENCES";
 
     private final List<Listener> mListeners = new CopyOnWriteArrayList<>();
     private final AtomicFile mAtomicFile;
@@ -94,13 +101,24 @@ public final class PhoneAccountRegistrar {
         read();
     }
 
-    public PhoneAccountHandle getDefaultOutgoingPhoneAccount() {
+    /**
+     * Retrieves the default outgoing phone account supporting the specified uriScheme.
+     * @param uriScheme The URI scheme for the outgoing call.
+     * @return The {@link PhoneAccountHandle} to use.
+     */
+    public PhoneAccountHandle getDefaultOutgoingPhoneAccount(String uriScheme) {
         final PhoneAccountHandle userSelected = getUserSelectedOutgoingPhoneAccount();
+
         if (userSelected != null) {
-            return userSelected;
+            // If there is a default PhoneAccount, ensure it supports calls to handles with the
+            // specified uriScheme.
+            final PhoneAccount userSelectedAccount = getPhoneAccount(userSelected);
+            if (userSelectedAccount.supportsUriScheme(uriScheme)) {
+                return userSelected;
+            }
         }
 
-        List<PhoneAccountHandle> outgoing = getOutgoingPhoneAccounts();
+        List<PhoneAccountHandle> outgoing = getOutgoingPhoneAccounts(uriScheme);
         switch (outgoing.size()) {
             case 0:
                 // There are no accounts, so there can be no default
@@ -249,6 +267,10 @@ public final class PhoneAccountRegistrar {
         return getPhoneAccountHandles(PhoneAccount.CAPABILITY_CALL_PROVIDER);
     }
 
+    public List<PhoneAccountHandle> getOutgoingPhoneAccounts(String uriScheme) {
+        return getPhoneAccountHandles(PhoneAccount.CAPABILITY_CALL_PROVIDER, uriScheme);
+    }
+
     public List<PhoneAccountHandle> getAllConnectionManagerPhoneAccounts() {
         if (isEnabledConnectionManager()) {
             return getPhoneAccountHandles(PhoneAccount.CAPABILITY_CONNECTION_MANAGER);
@@ -392,11 +414,25 @@ public final class PhoneAccountRegistrar {
 
     /**
      * Returns a list of phone account handles with the specified flag.
+     *
+     * @param flags Flags which the {@code PhoneAccount} must have.
      */
     private List<PhoneAccountHandle> getPhoneAccountHandles(int flags) {
+        return getPhoneAccountHandles(flags, null);
+    }
+
+    /**
+     * Returns a list of phone account handles with the specified flag, supporting the specified
+     * URI scheme.
+     *
+     * @param flags Flags which the {@code PhoneAccount} must have.
+     * @param uriScheme URI schemes the PhoneAccount must handle.  {@code Null} bypasses the
+     *                  URI scheme check.
+     */
+    private List<PhoneAccountHandle> getPhoneAccountHandles(int flags, String uriScheme) {
         List<PhoneAccountHandle> accountHandles = new ArrayList<>();
         for (PhoneAccount m : mState.accounts) {
-            if (has(m, flags)) {
+            if (has(m, flags) && (uriScheme == null || m.supportsUriScheme(uriScheme))) {
                 accountHandles.add(m.getAccountHandle());
             }
         }
@@ -424,6 +460,11 @@ public final class PhoneAccountRegistrar {
          * The complete list of {@code PhoneAccount}s known to the Telecomm subsystem.
          */
         public final List<PhoneAccount> accounts = new ArrayList<>();
+
+        /**
+         * The version number of the State data.
+         */
+        public int versionNumber;
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -462,12 +503,16 @@ public final class PhoneAccountRegistrar {
             return;
         }
 
+        boolean versionChanged = false;
+
         XmlPullParser parser;
         try {
             parser = Xml.newPullParser();
             parser.setInput(new BufferedInputStream(is), null);
             parser.nextTag();
-            mState = readFromXml(parser);
+            mState = readFromXml(parser, mContext);
+            versionChanged = mState.versionNumber < EXPECTED_STATE_VERSION;
+
         } catch (IOException | XmlPullParserException e) {
             Log.e(this, e, "Reading state from XML file");
             mState = new State();
@@ -478,6 +523,11 @@ public final class PhoneAccountRegistrar {
                 Log.e(this, e, "Closing InputStream");
             }
         }
+
+        // If an upgrade occurred, write out the changed data.
+        if (versionChanged) {
+            write();
+        }
     }
 
     private static void writeToXml(State state, XmlSerializer serializer)
@@ -485,9 +535,9 @@ public final class PhoneAccountRegistrar {
         sStateXml.writeToXml(state, serializer);
     }
 
-    private static State readFromXml(XmlPullParser parser)
+    private static State readFromXml(XmlPullParser parser, Context context)
             throws IOException, XmlPullParserException {
-        State s = sStateXml.readFromXml(parser);
+        State s = sStateXml.readFromXml(parser, 0, context);
         return s != null ? s : new State();
     }
 
@@ -498,6 +548,9 @@ public final class PhoneAccountRegistrar {
 
     @VisibleForTesting
     public abstract static class XmlSerialization<T> {
+        private static final String LENGTH_ATTRIBUTE = "length";
+        private static final String VALUE_TAG = "value";
+
         /**
          * Write the supplied object to XML
          */
@@ -511,7 +564,7 @@ public final class PhoneAccountRegistrar {
          * object's writeToXml(). This object tries to fail early without modifying
          * 'parser' if it does not recognize the data it sees.
          */
-        public abstract T readFromXml(XmlPullParser parser)
+        public abstract T readFromXml(XmlPullParser parser, int version, Context context)
                 throws IOException, XmlPullParserException;
 
         protected void writeTextSafely(String tagName, Object value, XmlSerializer serializer)
@@ -522,6 +575,66 @@ public final class PhoneAccountRegistrar {
                 serializer.endTag(null, tagName);
             }
         }
+
+        /**
+         * Serializes a string array.
+         *
+         * @param tagName The tag name for the string array.
+         * @param values The string values to serialize.
+         * @param serializer The serializer.
+         * @throws IOException
+         */
+        protected void writeStringList(String tagName, List<String> values,
+                XmlSerializer serializer)
+                throws IOException {
+
+            serializer.startTag(null, tagName);
+            if (values != null) {
+                serializer.attribute(null, LENGTH_ATTRIBUTE, Objects.toString(values.size()));
+                for (String toSerialize : values) {
+                    serializer.startTag(null, VALUE_TAG);
+                    if (toSerialize != null ){
+                        serializer.text(toSerialize);
+                    }
+
+                    serializer.endTag(null, VALUE_TAG);
+                }
+            } else {
+                serializer.attribute(null, LENGTH_ATTRIBUTE, "0");
+            }
+            serializer.endTag(null, tagName);
+
+        }
+
+        /**
+         * Reads a string array from the XML parser.
+         *
+         * @param parser The XML parser.
+         * @return String array containing the parsed values.
+         * @throws IOException Exception related to IO.
+         * @throws XmlPullParserException Exception related to parsing.
+         */
+        protected List<String> readStringList(XmlPullParser parser)
+                throws IOException, XmlPullParserException {
+
+            int length = Integer.parseInt(parser.getAttributeValue(null, LENGTH_ATTRIBUTE));
+            List<String> arrayEntries = new ArrayList<String>(length);
+            String value = null;
+
+            if (length == 0) {
+                return arrayEntries;
+            }
+
+            int outerDepth = parser.getDepth();
+            while (XmlUtils.nextElementWithin(parser, outerDepth)) {
+                if (parser.getName().equals(VALUE_TAG)) {
+                    value = parser.getText();
+                    arrayEntries.add(value);
+                }
+            }
+
+            return arrayEntries;
+        }
     }
 
     @VisibleForTesting
@@ -531,12 +644,14 @@ public final class PhoneAccountRegistrar {
         private static final String DEFAULT_OUTGOING = "default_outgoing";
         private static final String SIM_CALL_MANAGER = "sim_call_manager";
         private static final String ACCOUNTS = "accounts";
+        private static final String VERSION = "version";
 
         @Override
         public void writeToXml(State o, XmlSerializer serializer)
                 throws IOException {
             if (o != null) {
                 serializer.startTag(null, CLASS_STATE);
+                serializer.attribute(null, VERSION, Objects.toString(EXPECTED_STATE_VERSION));
 
                 if (o.defaultOutgoing != null) {
                     serializer.startTag(null, DEFAULT_OUTGOING);
@@ -561,23 +676,32 @@ public final class PhoneAccountRegistrar {
         }
 
         @Override
-        public State readFromXml(XmlPullParser parser)
+        public State readFromXml(XmlPullParser parser, int version, Context context)
                 throws IOException, XmlPullParserException {
             if (parser.getName().equals(CLASS_STATE)) {
                 State s = new State();
+
+                String rawVersion = parser.getAttributeValue(null, VERSION);
+                s.versionNumber = TextUtils.isEmpty(rawVersion) ? 1 :
+                        Integer.parseInt(rawVersion);
+
                 int outerDepth = parser.getDepth();
                 while (XmlUtils.nextElementWithin(parser, outerDepth)) {
                     if (parser.getName().equals(DEFAULT_OUTGOING)) {
                         parser.nextTag();
-                        s.defaultOutgoing = sPhoneAccountHandleXml.readFromXml(parser);
+                        s.defaultOutgoing = sPhoneAccountHandleXml.readFromXml(parser,
+                                s.versionNumber, context);
                     } else if (parser.getName().equals(SIM_CALL_MANAGER)) {
                         parser.nextTag();
-                        s.simCallManager = sPhoneAccountHandleXml.readFromXml(parser);
+                        s.simCallManager = sPhoneAccountHandleXml.readFromXml(parser,
+                                s.versionNumber, context);
                     } else if (parser.getName().equals(ACCOUNTS)) {
                         int accountsDepth = parser.getDepth();
                         while (XmlUtils.nextElementWithin(parser, accountsDepth)) {
-                            PhoneAccount account = sPhoneAccountXml.readFromXml(parser);
-                            if (account != null) {
+                            PhoneAccount account = sPhoneAccountXml.readFromXml(parser,
+                                    s.versionNumber, context);
+
+                            if (account != null && s.accounts != null) {
                                 s.accounts.add(account);
                             }
                         }
@@ -600,6 +724,7 @@ public final class PhoneAccountRegistrar {
         private static final String ICON_RES_ID = "icon_res_id";
         private static final String LABEL = "label";
         private static final String SHORT_DESCRIPTION = "short_description";
+        private static final String SUPPORTED_URI_SCHEMES = "supported_uri_schemes";
 
         @Override
         public void writeToXml(PhoneAccount o, XmlSerializer serializer)
@@ -619,13 +744,13 @@ public final class PhoneAccountRegistrar {
                 writeTextSafely(ICON_RES_ID, Integer.toString(o.getIconResId()), serializer);
                 writeTextSafely(LABEL, o.getLabel(), serializer);
                 writeTextSafely(SHORT_DESCRIPTION, o.getShortDescription(), serializer);
+                writeStringList(SUPPORTED_URI_SCHEMES, o.getSupportedUriSchemes(), serializer);
 
                 serializer.endTag(null, CLASS_PHONE_ACCOUNT);
             }
         }
 
-        @Override
-        public PhoneAccount readFromXml(XmlPullParser parser)
+        public PhoneAccount readFromXml(XmlPullParser parser, int version, Context context)
                 throws IOException, XmlPullParserException {
             if (parser.getName().equals(CLASS_PHONE_ACCOUNT)) {
                 int outerDepth = parser.getDepth();
@@ -636,11 +761,13 @@ public final class PhoneAccountRegistrar {
                 int iconResId = 0;
                 String label = null;
                 String shortDescription = null;
+                List<String> supportedUriSchemes = null;
 
                 while (XmlUtils.nextElementWithin(parser, outerDepth)) {
                     if (parser.getName().equals(ACCOUNT_HANDLE)) {
                         parser.nextTag();
-                        accountHandle = sPhoneAccountHandleXml.readFromXml(parser);
+                        accountHandle = sPhoneAccountHandleXml.readFromXml(parser, version,
+                                context);
                     } else if (parser.getName().equals(HANDLE)) {
                         parser.next();
                         handle = Uri.parse(parser.getText());
@@ -659,8 +786,32 @@ public final class PhoneAccountRegistrar {
                     } else if (parser.getName().equals(SHORT_DESCRIPTION)) {
                         parser.next();
                         shortDescription = parser.getText();
+                    } else if (parser.getName().equals(SUPPORTED_URI_SCHEMES)) {
+                        supportedUriSchemes = readStringList(parser);
                     }
                 }
+
+                // Upgrade older phone accounts to specify the supported URI schemes.
+                if (version < 2) {
+                    ComponentName sipComponentName = new ComponentName("com.android.phone",
+                            "com.android.services.telephony.sip.SipConnectionService");
+
+                    supportedUriSchemes = new ArrayList<>();
+
+                    // Handle the SIP connection service.
+                    // Check the system settings to see if it also should handle "tel" calls.
+                    if (accountHandle.getComponentName().equals(sipComponentName)) {
+                        boolean useSipForPstn = useSipForPstnCalls(context);
+                        supportedUriSchemes.add(PhoneAccount.SCHEME_SIP);
+                        if (useSipForPstn) {
+                            supportedUriSchemes.add(PhoneAccount.SCHEME_TEL);
+                        }
+                    } else {
+                        supportedUriSchemes.add(PhoneAccount.SCHEME_TEL);
+                        supportedUriSchemes.add(PhoneAccount.SCHEME_VOICEMAIL);
+                    }
+                }
+
                 return PhoneAccount.builder()
                         .withAccountHandle(accountHandle)
                         .withHandle(handle)
@@ -669,9 +820,23 @@ public final class PhoneAccountRegistrar {
                         .withIconResId(iconResId)
                         .withLabel(label)
                         .withShortDescription(shortDescription)
+                        .withSupportedUriSchemes(supportedUriSchemes)
                         .build();
             }
             return null;
+        }
+
+        /**
+         * Determines if the SIP call settings specify to use SIP for all calls, including PSTN calls.
+         *
+         * @param context The context.
+         * @return {@code True} if SIP should be used for all calls.
+         */
+        private boolean useSipForPstnCalls(Context context) {
+            String option = Settings.System.getString(context.getContentResolver(),
+                    Settings.System.SIP_CALL_OPTIONS);
+            option = (option != null) ? option : Settings.System.SIP_ADDRESS_ONLY;
+            return option.equals(Settings.System.SIP_ALWAYS);
         }
     };
 
@@ -700,7 +865,7 @@ public final class PhoneAccountRegistrar {
         }
 
         @Override
-        public PhoneAccountHandle readFromXml(XmlPullParser parser)
+        public PhoneAccountHandle readFromXml(XmlPullParser parser, int version, Context context)
                 throws IOException, XmlPullParserException {
             if (parser.getName().equals(CLASS_PHONE_ACCOUNT_HANDLE)) {
                 String componentNameString = null;
