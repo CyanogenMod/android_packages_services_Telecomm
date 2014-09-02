@@ -276,9 +276,6 @@ public final class CallsManager extends Call.ListenerBase {
     /**
      * Kicks off the first steps to creating an outgoing call so that InCallUI can launch.
      *
-     * NOTE: emergency calls will never pass through this because they call
-     * placeOutgoingCall directly.
-     *
      * @param handle Handle to connect the call with.
      * @param phoneAccountHandle The phone account which contains the component name of the
      *        connection service to use for this call.
@@ -812,7 +809,8 @@ public final class CallsManager extends Call.ListenerBase {
             return;
         }
         int oldState = call.getState();
-        Log.i(this, "setCallState %s -> %s, call: %s", oldState, newState, call);
+        Log.i(this, "setCallState %s -> %s, call: %s", CallState.toString(oldState),
+                CallState.toString(newState), call);
         if (newState != oldState) {
             // Unfortunately, in the telephony world the radio is king. So if the call notifies
             // us that the call is in a particular state, we allow it even if it doesn't make
