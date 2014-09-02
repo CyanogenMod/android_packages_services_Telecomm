@@ -170,6 +170,18 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
     }
 
     @Override
+    public void setDefaultOutgoingPhoneAccount(PhoneAccountHandle accountHandle) {
+        enforceModifyPermission();
+
+        try {
+            mPhoneAccountRegistrar.setDefaultOutgoingPhoneAccount(accountHandle);
+        } catch (Exception e) {
+            Log.e(this, e, "setDefaultOutgoingPhoneAccount");
+            throw e;
+        }
+    }
+
+    @Override
     public List<PhoneAccountHandle> getOutgoingPhoneAccounts() {
         try {
             return mPhoneAccountRegistrar.getOutgoingPhoneAccounts();
@@ -185,6 +197,38 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
             return mPhoneAccountRegistrar.getPhoneAccount(accountHandle);
         } catch (Exception e) {
             Log.e(this, e, "getPhoneAccount %s", accountHandle);
+            throw e;
+        }
+    }
+
+    @Override
+    public PhoneAccountHandle getSimCallManager() {
+        try {
+            return mPhoneAccountRegistrar.getSimCallManager();
+        } catch (Exception e) {
+            Log.e(this, e, "getSimCallManager");
+            throw e;
+        }
+    }
+
+    @Override
+    public void setSimCallManager(PhoneAccountHandle accountHandle) {
+        enforceModifyPermission();
+
+        try {
+            mPhoneAccountRegistrar.setSimCallManager(accountHandle);
+        } catch (Exception e) {
+            Log.e(this, e, "setSimCallManager");
+            throw e;
+        }
+    }
+
+    @Override
+    public List<PhoneAccountHandle> getSimCallManagers() {
+        try {
+            return mPhoneAccountRegistrar.getAllConnectionManagerPhoneAccounts();
+        } catch (Exception e) {
+            Log.e(this, e, "getSimCallManagers");
             throw e;
         }
     }
