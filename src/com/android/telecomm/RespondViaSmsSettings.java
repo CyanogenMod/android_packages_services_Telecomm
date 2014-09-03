@@ -19,9 +19,7 @@ package com.android.telecomm;
 import android.app.ActionBar;
 import android.app.Activity;
 import android.content.Context;
-import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.preference.EditTextPreference;
 import android.preference.Preference;
@@ -33,18 +31,6 @@ import android.view.MenuItem;
  * Helper class to manage the "Respond via SMS Message" feature for incoming calls.
  */
 public class RespondViaSmsSettings {
-    /** SharedPreferences file name for our persistent settings. */
-    private static final String SHARED_PREFERENCES_NAME = "respond_via_sms_prefs";
-
-    // Preference keys for the 4 "canned responses"; see RespondViaSmsManager$Settings.
-    // Since (for now at least) the number of messages is fixed at 4, and since
-    // SharedPreferences can't deal with arrays anyway, just store the messages
-    // as 4 separate strings.
-    private static final int NUM_CANNED_RESPONSES = 4;
-    private static final String KEY_CANNED_RESPONSE_PREF_1 = "canned_response_pref_1";
-    private static final String KEY_CANNED_RESPONSE_PREF_2 = "canned_response_pref_2";
-    private static final String KEY_CANNED_RESPONSE_PREF_3 = "canned_response_pref_3";
-    private static final String KEY_CANNED_RESPONSE_PREF_4 = "canned_response_pref_4";
     private static final String KEY_PREFERRED_PACKAGE = "preferred_package_pref";
     private static final String KEY_INSTANT_TEXT_DEFAULT_COMPONENT = "instant_text_def_component";
 
@@ -63,7 +49,13 @@ public class RespondViaSmsSettings {
             super.onCreate(icicle);
             Log.d(this, "Settings: onCreate()...");
 
-            getPreferenceManager().setSharedPreferencesName(SHARED_PREFERENCES_NAME);
+            // This function guarantees that QuickResponses will be in our
+            // SharedPreferences with the proper values considering there may be
+            // old QuickResponses in Telephony pre L.
+            QuickResponseUtils.maybeMigrateLegacyQuickResponses();
+
+            getPreferenceManager().setSharedPreferencesName(
+                    QuickResponseUtils.SHARED_PREFERENCES_NAME);
 
             // This preference screen is ultra-simple; it's just 4 plain
             // <EditTextPreference>s, one for each of the 4 "canned responses".
@@ -79,19 +71,23 @@ public class RespondViaSmsSettings {
             addPreferencesFromResource(R.xml.respond_via_sms_settings);
 
             EditTextPreference pref;
-            pref = (EditTextPreference) findPreference(KEY_CANNED_RESPONSE_PREF_1);
+            pref = (EditTextPreference) findPreference(
+                    QuickResponseUtils.KEY_CANNED_RESPONSE_PREF_1);
             pref.setTitle(pref.getText());
             pref.setOnPreferenceChangeListener(this);
 
-            pref = (EditTextPreference) findPreference(KEY_CANNED_RESPONSE_PREF_2);
+            pref = (EditTextPreference) findPreference(
+                    QuickResponseUtils.KEY_CANNED_RESPONSE_PREF_2);
             pref.setTitle(pref.getText());
             pref.setOnPreferenceChangeListener(this);
 
-            pref = (EditTextPreference) findPreference(KEY_CANNED_RESPONSE_PREF_3);
+            pref = (EditTextPreference) findPreference(
+                    QuickResponseUtils.KEY_CANNED_RESPONSE_PREF_3);
             pref.setTitle(pref.getText());
             pref.setOnPreferenceChangeListener(this);
 
-            pref = (EditTextPreference) findPreference(KEY_CANNED_RESPONSE_PREF_4);
+            pref = (EditTextPreference) findPreference(
+                    QuickResponseUtils.KEY_CANNED_RESPONSE_PREF_4);
             pref.setTitle(pref.getText());
             pref.setOnPreferenceChangeListener(this);
 
@@ -130,7 +126,7 @@ public class RespondViaSmsSettings {
                 case R.id.respond_via_message_reset:
                     // Reset the preferences settings
                     SharedPreferences prefs = getSharedPreferences(
-                            SHARED_PREFERENCES_NAME, Context.MODE_PRIVATE);
+                            QuickResponseUtils.SHARED_PREFERENCES_NAME, Context.MODE_PRIVATE);
                     SharedPreferences.Editor editor = prefs.edit();
                     editor.remove(KEY_INSTANT_TEXT_DEFAULT_COMPONENT);
                     editor.apply();
