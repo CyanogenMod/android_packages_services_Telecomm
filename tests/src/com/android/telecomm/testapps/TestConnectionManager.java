@@ -95,12 +95,6 @@ public class TestConnectionManager extends ConnectionService {
             }
 
             @Override
-            public void onStartActivityFromInCall(
-                    RemoteConnection connection, PendingIntent intent) {
-                startActivityFromInCall(intent);
-            }
-
-            @Override
             public void onDestroyed(RemoteConnection connection) {
                 destroy();
                 mManagedConnectionByRemote.remove(mRemote);
