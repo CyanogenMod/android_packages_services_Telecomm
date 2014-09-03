@@ -16,7 +16,8 @@
 
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
           coreApp="true"
-          package="com.android.telecomm.tests">
+          package="com.android.telecomm.tests"
+          android:debuggable="true">
 
     <!-- Test connection service outgoing video preview. -->
     <uses-permission android:name="android.permission.CAMERA" />
@@ -24,7 +25,8 @@
             android:name="com.android.telecomm.permission.REGISTER_PROVIDER_OR_SUBSCRIPTION" />
     <uses-permission android:name="android.permission.CONTROL_INCALL_EXPERIENCE" />
 
-    <application android:label="@string/app_name">
+    <application android:label="@string/app_name"
+                 android:debuggable="true">
         <uses-library android:name="android.test.runner" />
 
         <!-- Miscellaneous telecomm app-related test activities. -->
@@ -116,5 +118,6 @@
     -->
     <instrumentation android:name="android.test.InstrumentationTestRunner"
             android:targetPackage="com.android.telecomm"
-            android:label="Telecomm application tests." />
+            android:label="Telecomm application tests."
+            android:debuggable="true"/>
 </manifest>

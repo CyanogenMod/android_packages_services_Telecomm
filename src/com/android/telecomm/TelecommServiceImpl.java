@@ -160,9 +160,9 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
     //
 
     @Override
-    public PhoneAccountHandle getDefaultOutgoingPhoneAccount() {
+    public PhoneAccountHandle getDefaultOutgoingPhoneAccount(String uriScheme) {
         try {
-            return mPhoneAccountRegistrar.getDefaultOutgoingPhoneAccount();
+            return mPhoneAccountRegistrar.getDefaultOutgoingPhoneAccount(uriScheme);
         } catch (Exception e) {
             Log.e(this, e, "getDefaultOutgoingPhoneAccount");
             throw e;
@@ -187,6 +187,16 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
             return mPhoneAccountRegistrar.getOutgoingPhoneAccounts();
         } catch (Exception e) {
             Log.e(this, e, "getOutgoingPhoneAccounts");
+            throw e;
+        }
+    }
+
+    @Override
+    public List<PhoneAccountHandle> getPhoneAccountsSupportingScheme(String uriScheme) {
+        try {
+            return mPhoneAccountRegistrar.getOutgoingPhoneAccounts(uriScheme);
+        } catch (Exception e) {
+            Log.e(this, e, "getPhoneAccountsSupportingScheme");
             throw e;
         }
     }
