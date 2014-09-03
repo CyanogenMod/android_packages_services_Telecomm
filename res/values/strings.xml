@@ -76,21 +76,6 @@
         a text response. [CHAR LIMIT=40] -->
     <string name="respond_via_sms_confirmation_format">Message sent to <xliff:g id="phone_number">%s</xliff:g>.</string>
 
-    <!-- Title for phone accounts settings screen -->
-    <string name="phone_account_preferences_title">Phone account settings</string>
-
-    <!-- Title for setting to select default outgoing phone account -->
-    <string name="default_outgoing_account_title">Default outgoing account</string>
-
-    <!-- Title for setting to select SIM call manager account -->
-    <string name="sim_call_manager_account">Wi-Fi calling account</string>
-
-    <!-- Indication to "ask every time" for accounts when making a call -->
-    <string name="account_ask_every_time">Ask every time</string>
-
-    <!-- Indication to not use a SIM call manager -->
-    <string name="do_not_use_sim_call_manager">Do not use Wi-Fi calling</string>
-
     <!-- Message indicating that the user is not allowed to make non-emergency outgoing phone calls
          due to a user restriction -->
     <string name="outgoing_call_not_allowed">This user is not allowed to make non-emergency phone calls</string>
