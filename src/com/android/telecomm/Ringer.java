@@ -16,9 +16,13 @@
 
 package com.android.telecomm;
 
+import android.app.Notification;
+import android.app.NotificationManager;
 import android.content.Context;
 import android.media.AudioAttributes;
 import android.media.AudioManager;
+import android.net.Uri;
+import android.os.Bundle;
 import android.os.SystemVibrator;
 import android.os.Vibrator;
 import android.provider.Settings;
@@ -174,6 +178,10 @@ final class Ringer extends CallsManagerListenerBase {
             // The foreground call is one of incoming calls so play the ringer out loud.
             stopCallWaiting();
 
+            if (!shouldRingForContact(foregroundCall.getContactUri())) {
+                return;
+            }
+
             AudioManager audioManager =
                     (AudioManager) mContext.getSystemService(Context.AUDIO_SERVICE);
             if (audioManager.getStreamVolume(AudioManager.STREAM_RING) > 0) {
@@ -206,6 +214,16 @@ final class Ringer extends CallsManagerListenerBase {
                 mCallWaitingPlayer.startTone();
             }
         }
+    }
+
+    private boolean shouldRingForContact(Uri contactUri) {
+        final NotificationManager manager =
+                (NotificationManager) mContext.getSystemService(Context.NOTIFICATION_SERVICE);
+        final Bundle extras = new Bundle();
+        if (contactUri != null) {
+            extras.putStringArray(Notification.EXTRA_PEOPLE, new String[] {contactUri.toString()});
+        }
+        return manager.matchesCallFilter(extras);
     }
 
     private void stopRinging() {
