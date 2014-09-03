@@ -42,8 +42,7 @@
     <string name="account_ask_every_time" msgid="944077828070287407">"მკითხე ყოველ ჯერზე"</string>
     <string name="do_not_use_sim_call_manager" msgid="5519252524007323694">"Wi-Fi დარეკვა არ გამოიყენო"</string>
     <string name="outgoing_call_not_allowed" msgid="1434784869685645427">"ამ მომხმარებელს არ აქვს უფლება, განახორციელოს არასაგანგებო სატელეფონო ზარები."</string>
-    <!-- no translation found for outgoing_call_error_no_phone_number_supplied (4987143284589568716) -->
-    <skip />
+    <string name="outgoing_call_error_no_phone_number_supplied" msgid="4987143284589568716">"ვერ გაიგზავნა, ტელეფონის ნომერი სწორად არ იქნა შეყვანილი."</string>
     <string name="no_vm_number" msgid="4164780423805688336">"ხმოვანი ფოსტის ნომერი არ არის"</string>
     <string name="no_vm_number_msg" msgid="1300729501030053828">"SIM ბარათზე ხმოვანი ფოსტის ნომერი შენახული არ არის."</string>
     <string name="add_vm_number_str" msgid="4676479471644687453">"ნომრის დამატება"</string>
