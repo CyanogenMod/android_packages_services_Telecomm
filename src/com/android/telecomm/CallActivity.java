@@ -149,15 +149,19 @@ public class CallActivity extends Activity {
         // Send to CallsManager to ensure the InCallUI gets kicked off before the broadcast returns
         Call call = mCallsManager.startOutgoingCall(handle, phoneAccountHandle, clientExtras);
 
-        NewOutgoingCallIntentBroadcaster broadcaster = new NewOutgoingCallIntentBroadcaster(
-                mCallsManager, call, intent, isDefaultDialer());
-        final int result = broadcaster.processIntent();
-        final boolean success = result == DisconnectCause.NOT_DISCONNECTED;
+        if (call == null) {
+            setResult(RESULT_CANCELED);
+        } else {
+            NewOutgoingCallIntentBroadcaster broadcaster = new NewOutgoingCallIntentBroadcaster(
+                    mCallsManager, call, intent, isDefaultDialer());
+            final int result = broadcaster.processIntent();
+            final boolean success = result == DisconnectCause.NOT_DISCONNECTED;
 
-        if (!success && call != null) {
-            disconnectCallAndShowErrorDialog(call, result);
+            if (!success && call != null) {
+                disconnectCallAndShowErrorDialog(call, result);
+            }
+            setResult(success ? RESULT_OK : RESULT_CANCELED);
         }
-        setResult(success ? RESULT_OK : RESULT_CANCELED);
     }
 
     /**
