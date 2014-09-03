@@ -40,19 +40,6 @@ import java.util.List;
 public class RespondViaSmsManager extends CallsManagerListenerBase {
     private static final String SCHEME_SMSTO = "smsto";
 
-    /** SharedPreferences file name for our persistent settings. */
-    private static final String SHARED_PREFERENCES_NAME = "respond_via_sms_prefs";
-
-    // Preference keys for the 4 "canned responses"; see RespondViaSmsManager$Settings.
-    // Since (for now at least) the number of messages is fixed at 4, and since
-    // SharedPreferences can't deal with arrays anyway, just store the messages
-    // as 4 separate strings.
-    private static final int NUM_CANNED_RESPONSES = 4;
-    private static final String KEY_CANNED_RESPONSE_PREF_1 = "canned_response_pref_1";
-    private static final String KEY_CANNED_RESPONSE_PREF_2 = "canned_response_pref_2";
-    private static final String KEY_CANNED_RESPONSE_PREF_3 = "canned_response_pref_3";
-    private static final String KEY_CANNED_RESPONSE_PREF_4 = "canned_response_pref_4";
-
     private static final int MSG_CANNED_TEXT_MESSAGES_READY = 1;
     private static final int MSG_SHOW_SENT_TOAST = 2;
 
@@ -104,22 +91,28 @@ public class RespondViaSmsManager extends CallsManagerListenerBase {
             @Override
             public void run() {
                 Log.d(RespondViaSmsManager.this, "loadCannedResponses() starting");
+
+                // This function guarantees that QuickResponses will be in our
+                // SharedPreferences with the proper values considering there may be
+                // old QuickResponses in Telephony pre L.
+                QuickResponseUtils.maybeMigrateLegacyQuickResponses();
+
                 final SharedPreferences prefs = TelecommApp.getInstance().getSharedPreferences(
-                        SHARED_PREFERENCES_NAME, Context.MODE_PRIVATE);
+                        QuickResponseUtils.SHARED_PREFERENCES_NAME, Context.MODE_PRIVATE);
                 final Resources res = TelecommApp.getInstance().getInstance().getResources();
 
-                final ArrayList<String> textMessages = new ArrayList<>(NUM_CANNED_RESPONSES);
+                final ArrayList<String> textMessages = new ArrayList<>(
+                        QuickResponseUtils.NUM_CANNED_RESPONSES);
 
                 // Note the default values here must agree with the corresponding
                 // android:defaultValue attributes in respond_via_sms_settings.xml.
-
-                textMessages.add(0, prefs.getString(KEY_CANNED_RESPONSE_PREF_1,
+                textMessages.add(0, prefs.getString(QuickResponseUtils.KEY_CANNED_RESPONSE_PREF_1,
                         res.getString(R.string.respond_via_sms_canned_response_1)));
-                textMessages.add(1, prefs.getString(KEY_CANNED_RESPONSE_PREF_2,
+                textMessages.add(1, prefs.getString(QuickResponseUtils.KEY_CANNED_RESPONSE_PREF_2,
                         res.getString(R.string.respond_via_sms_canned_response_2)));
-                textMessages.add(2, prefs.getString(KEY_CANNED_RESPONSE_PREF_3,
+                textMessages.add(2, prefs.getString(QuickResponseUtils.KEY_CANNED_RESPONSE_PREF_3,
                         res.getString(R.string.respond_via_sms_canned_response_3)));
-                textMessages.add(3, prefs.getString(KEY_CANNED_RESPONSE_PREF_4,
+                textMessages.add(3, prefs.getString(QuickResponseUtils.KEY_CANNED_RESPONSE_PREF_4,
                         res.getString(R.string.respond_via_sms_canned_response_4)));
 
                 Log.d(RespondViaSmsManager.this,
