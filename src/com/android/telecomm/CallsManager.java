@@ -307,9 +307,11 @@ public final class CallsManager extends Call.ListenerBase {
         }
 
         if (phoneAccountHandle == null) {
-            // No preset account, check if default exists
+            // No preset account, check if default exists that supports the URI scheme for the
+            // handle.
             PhoneAccountHandle defaultAccountHandle =
-                    app.getPhoneAccountRegistrar().getDefaultOutgoingPhoneAccount();
+                    app.getPhoneAccountRegistrar().getDefaultOutgoingPhoneAccount(
+                            handle.getScheme());
             if (defaultAccountHandle != null) {
                 phoneAccountHandle = defaultAccountHandle;
             }

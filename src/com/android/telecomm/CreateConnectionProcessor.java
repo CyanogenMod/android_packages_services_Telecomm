@@ -254,7 +254,7 @@ final class CreateConnectionProcessor {
                     .getPhoneAccountRegistrar().getSimCallManager();
             CallAttemptRecord callAttemptRecord = new CallAttemptRecord(callManager,
                     TelecommApp.getInstance().getPhoneAccountRegistrar().
-                            getDefaultOutgoingPhoneAccount());
+                            getDefaultOutgoingPhoneAccount(mCall.getHandle().getScheme()));
 
             if (callManager != null && !mAttemptRecords.contains(callAttemptRecord)) {
                 Log.i(this, "Will try Connection Manager account %s for emergency",
