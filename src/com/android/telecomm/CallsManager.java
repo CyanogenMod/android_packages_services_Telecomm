@@ -287,7 +287,8 @@ public final class CallsManager extends Call.ListenerBase {
     Call startOutgoingCall(Uri handle, PhoneAccountHandle phoneAccountHandle, Bundle extras) {
         // We only allow a single outgoing call at any given time. Before placing a call, make sure
         // there doesn't already exist another outgoing call.
-        Call call = getFirstCallWithState(CallState.NEW, CallState.DIALING);
+        Call call = getFirstCallWithState(CallState.NEW, CallState.DIALING,
+                CallState.CONNECTING, CallState.PRE_DIAL_WAIT);
 
         if (call != null) {
             Log.i(this, "Canceling simultaneous outgoing call.");
