@@ -52,6 +52,11 @@ public class ProximitySensorManager extends CallsManagerListenerBase {
      * Turn the proximity sensor on.
      */
     void turnOn() {
+        if (CallsManager.getInstance().getCalls().isEmpty()) {
+            Log.w(this, "Asking to turn on prox sensor without a call? I don't think so.");
+            return;
+        }
+
         if (mProximityWakeLock == null) {
             return;
         }
