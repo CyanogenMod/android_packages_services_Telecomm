@@ -80,7 +80,6 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
     private static final int MSG_SET_CALLER_DISPLAY_NAME = 18;
     private static final int MSG_SET_VIDEO_STATE = 19;
     private static final int MSG_SET_CONFERENCEABLE_CONNECTIONS = 20;
-    private static final int MSG_START_ACTIVITY_FROM_IN_CALL = 21;
 
     private final Handler mHandler = new Handler() {
         @Override
@@ -338,18 +337,6 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                     }
                     break;
                 }
-                case MSG_START_ACTIVITY_FROM_IN_CALL: {
-                    SomeArgs args = (SomeArgs) msg.obj;
-                    try {
-                        call = mCallIdMapper.getCall(args.arg1);
-                        if (call != null) {
-                            call.startActivityFromInCall((PendingIntent) args.arg2);
-                        }
-                    } finally {
-                        args.recycle();
-                    }
-                    break;
-                }
             }
         }
     };
@@ -557,17 +544,6 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                 args.arg1 = callId;
                 args.arg2 = conferenceableCallIds;
                 mHandler.obtainMessage(MSG_SET_CONFERENCEABLE_CONNECTIONS, args).sendToTarget();
-            }
-        }
-
-        @Override
-        public void startActivityFromInCall(String callId, PendingIntent intent) {
-            logIncoming("startActivityFromInCall %s %s", callId, intent);
-            if (mCallIdMapper.isValidCallId(callId)) {
-                SomeArgs args = SomeArgs.obtain();
-                args.arg1 = callId;
-                args.arg2 = intent;
-                mHandler.obtainMessage(MSG_START_ACTIVITY_FROM_IN_CALL, args).sendToTarget();
             }
         }
     }
