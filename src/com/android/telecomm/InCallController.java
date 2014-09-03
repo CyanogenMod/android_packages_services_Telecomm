@@ -107,19 +107,6 @@ public final class InCallController extends CallsManagerListenerBase {
         }
 
         @Override
-        public void onStartActivityFromInCall(Call call, PendingIntent intent) {
-            if (!mInCallServices.isEmpty()) {
-                Log.i(this, "Calling startActivity, intent: %s", intent);
-                for (IInCallService inCallService : mInCallServices.values()) {
-                    try {
-                        inCallService.startActivity(mCallIdMapper.getCallId(call), intent);
-                    } catch (RemoteException ignored) {
-                    }
-                }
-            }
-        }
-
-        @Override
         public void onTargetPhoneAccountChanged(Call call) {
             updateCall(call);
         }
