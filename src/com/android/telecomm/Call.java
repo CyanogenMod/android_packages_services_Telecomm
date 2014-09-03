@@ -81,7 +81,6 @@ final class Call implements CreateConnectionResponse {
         void onHandleChanged(Call call);
         void onCallerDisplayNameChanged(Call call);
         void onVideoStateChanged(Call call);
-        void onStartActivityFromInCall(Call call, PendingIntent intent);
         void onTargetPhoneAccountChanged(Call call);
         void onConnectionManagerPhoneAccountChanged(Call call);
         void onPhoneAccountChanged(Call call);
@@ -123,8 +122,6 @@ final class Call implements CreateConnectionResponse {
         public void onCallerDisplayNameChanged(Call call) {}
         @Override
         public void onVideoStateChanged(Call call) {}
-        @Override
-        public void onStartActivityFromInCall(Call call, PendingIntent intent) {}
         @Override
         public void onTargetPhoneAccountChanged(Call call) {}
         @Override
@@ -1179,16 +1176,6 @@ final class Call implements CreateConnectionResponse {
         mStatusHints = statusHints;
         for (Listener l : mListeners) {
             l.onStatusHintsChanged(this);
-        }
-    }
-
-    public void startActivityFromInCall(PendingIntent intent) {
-        if (intent.isActivity()) {
-            for (Listener l : mListeners) {
-                l.onStartActivityFromInCall(this, intent);
-            }
-        } else {
-            Log.w(this, "startActivityFromInCall, activity intent required");
         }
     }
 
