@@ -17,11 +17,13 @@
 package com.android.telecomm;
 
 import android.app.PendingIntent;
+import android.content.ContentUris;
 import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
+import android.provider.ContactsContract.Contacts;
 import android.telecomm.Connection;
 import android.telecomm.PhoneCapabilities;
 import android.telecomm.PropertyPresentation;
@@ -43,6 +45,7 @@ import com.android.internal.telephony.CallerInfoAsyncQuery;
 import com.android.internal.telephony.CallerInfoAsyncQuery.OnQueryCompleteListener;
 import com.android.internal.telephony.SmsApplication;
 import com.android.telecomm.ContactsAsyncHelper.OnImageLoadCompleteListener;
+
 import com.google.common.base.Preconditions;
 
 import java.util.ArrayList;
@@ -811,6 +814,16 @@ final class Call implements CreateConnectionResponse {
 
     void setExtras(Bundle extras) {
         mExtras = extras;
+    }
+
+    /**
+     * @return the uri of the contact associated with this call.
+     */
+    Uri getContactUri() {
+        if (mCallerInfo == null || !mCallerInfo.contactExists) {
+            return null;
+        }
+        return Contacts.getLookupUri(mCallerInfo.contactIdOrZero, mCallerInfo.lookupKey);
     }
 
     Uri getRingtone() {
