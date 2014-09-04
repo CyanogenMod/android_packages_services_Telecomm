@@ -31,6 +31,7 @@ import android.telecomm.TelecommManager;
 import android.util.Log;
 import android.widget.Toast;
 
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -98,45 +99,42 @@ public class CallServiceNotifier {
 
         telecommManager.clearAccounts(context.getPackageName());
 
-        telecommManager.registerPhoneAccount(PhoneAccount.builder()
-                .withAccountHandle(
+        telecommManager.registerPhoneAccount(PhoneAccount.builder(
                         new PhoneAccountHandle(
                                 new ComponentName(context, TestConnectionService.class),
-                                CALL_PROVIDER_ID))
-                .withHandle(Uri.parse("tel:555-TEST"))
-                .withSubscriptionNumber("555-TEST")
-                .withCapabilities(PhoneAccount.CAPABILITY_CALL_PROVIDER)
-                .withIconResId(R.drawable.stat_sys_phone_call)
-                .withLabel("TelecommTestApp Call Provider")
-                .withShortDescription("a short description for the call provider")
-                .withSupportedUriScheme(PhoneAccount.SCHEME_TEL)
+                                CALL_PROVIDER_ID),
+                        "TelecommTestApp Call Provider")
+                .setAddress(Uri.parse("tel:555-TEST"))
+                .setSubscriptionAddress(Uri.parse("tel:555-TEST"))
+                .setCapabilities(PhoneAccount.CAPABILITY_CALL_PROVIDER)
+                .setIconResId(R.drawable.stat_sys_phone_call)
+                .setShortDescription("a short description for the call provider")
+                .setSupportedUriSchemes(Arrays.asList("tel"))
                 .build());
 
-        telecommManager.registerPhoneAccount(PhoneAccount.builder()
-                .withAccountHandle(
+        telecommManager.registerPhoneAccount(PhoneAccount.builder(
                         new PhoneAccountHandle(
                                 new ComponentName(context, TestConnectionService.class),
-                                SIM_SUBSCRIPTION_ID))
-                .withHandle(Uri.parse("tel:555-TSIM"))
-                .withSubscriptionNumber("555-TSIM")
-                .withCapabilities(PhoneAccount.CAPABILITY_CALL_PROVIDER |
+                                SIM_SUBSCRIPTION_ID),
+                        "TelecommTestApp SIM Subscription")
+                .setAddress(Uri.parse("tel:555-TSIM"))
+                .setSubscriptionAddress(Uri.parse("tel:555-TSIM"))
+                .setCapabilities(PhoneAccount.CAPABILITY_CALL_PROVIDER |
                     PhoneAccount.CAPABILITY_SIM_SUBSCRIPTION)
-                .withIconResId(R.drawable.stat_sys_phone_call)
-                .withLabel("TelecommTestApp SIM Subscription")
-                .withShortDescription("a short description for the sim subscription")
+                .setIconResId(R.drawable.stat_sys_phone_call)
+                .setShortDescription("a short description for the sim subscription")
                 .build());
 
-        telecommManager.registerPhoneAccount(PhoneAccount.builder()
-                .withAccountHandle(
+        telecommManager.registerPhoneAccount(PhoneAccount.builder(
                         new PhoneAccountHandle(
                                 new ComponentName(context, TestConnectionManager.class),
-                                CONNECTION_MANAGER_ID))
-                .withHandle(Uri.parse("tel:555-CMGR"))
-                .withSubscriptionNumber("555-CMGR")
-                .withCapabilities(PhoneAccount.CAPABILITY_CONNECTION_MANAGER)
-                .withIconResId(R.drawable.stat_sys_phone_call)
-                .withLabel("TelecommTestApp CONNECTION MANAGER")
-                .withShortDescription("a short description for the connection manager")
+                                CONNECTION_MANAGER_ID),
+                        "TelecommTestApp CONNECTION MANAGER")
+                .setAddress(Uri.parse("tel:555-CMGR"))
+                .setSubscriptionAddress(Uri.parse("tel:555-CMGR"))
+                .setCapabilities(PhoneAccount.CAPABILITY_CONNECTION_MANAGER)
+                .setIconResId(R.drawable.stat_sys_phone_call)
+                .setShortDescription("a short description for the connection manager")
                 .build());
     }
 
