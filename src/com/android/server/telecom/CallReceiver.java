@@ -12,6 +12,8 @@ import android.telecom.TelecomManager;
 import android.telephony.DisconnectCause;
 import android.telephony.PhoneNumberUtils;
 
+import com.android.internal.telephony.TelephonyProperties;
+
 /**
  * Single point of entry for all outgoing and incoming calls. {@link CallActivity} serves as a
  * trampoline activity that captures call intents for individual users and forwards it to
@@ -64,6 +66,15 @@ public class CallReceiver extends BroadcastReceiver {
         if (intent.hasExtra(TelecomManager.EXTRA_OUTGOING_CALL_EXTRAS)) {
             clientExtras = intent.getBundleExtra(TelecomManager.EXTRA_OUTGOING_CALL_EXTRAS);
         }
+
+        boolean isConferenceUri = intent.getBooleanExtra(
+                TelephonyProperties.EXTRA_DIAL_CONFERENCE_URI, false);
+        Log.d(this, "isConferenceUri = "+isConferenceUri);
+        if (isConferenceUri) {
+            if (clientExtras == null) clientExtras = new Bundle();
+            clientExtras.putBoolean(TelephonyProperties.EXTRA_DIAL_CONFERENCE_URI, isConferenceUri);
+        }
+
         if (clientExtras == null) {
             clientExtras = Bundle.EMPTY;
         }

@@ -36,6 +36,7 @@ import android.text.TextUtils;
 import android.widget.Toast;
 
 // TODO: Needed for move to system service: import com.android.internal.R;
+import com.android.internal.telephony.TelephonyProperties;
 
 /**
  * Activity that handles system CALL actions and forwards them to {@link CallReceiver}.

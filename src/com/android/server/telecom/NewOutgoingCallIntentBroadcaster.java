@@ -29,9 +29,11 @@ import android.telecom.TelecomManager;
 import android.telecom.VideoProfile;
 import android.telephony.DisconnectCause;
 import android.telephony.PhoneNumberUtils;
+import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 
 // TODO: Needed for move to system service: import com.android.internal.R;
+import com.android.internal.telephony.TelephonyProperties;
 
 /**
  * OutgoingCallIntentBroadcaster receives CALL and CALL_PRIVILEGED Intents, and broadcasts the
@@ -193,7 +195,11 @@ class NewOutgoingCallIntentBroadcaster {
         }
 
         boolean isUriNumber = PhoneNumberUtils.isUriNumber(number);
-        if (!isUriNumber) {
+        boolean isConferenceUri = intent.getBooleanExtra(
+                TelephonyProperties.EXTRA_DIAL_CONFERENCE_URI, false);
+        Log.v(this,"processIntent isConferenceUri: " + isConferenceUri);
+
+        if (!isUriNumber && !isConferenceUri) {
             number = PhoneNumberUtils.convertKeypadLettersToDigits(number);
             number = PhoneNumberUtils.stripSeparators(number);
         }
