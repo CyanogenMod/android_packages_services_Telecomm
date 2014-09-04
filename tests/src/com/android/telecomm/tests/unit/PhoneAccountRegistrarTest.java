@@ -242,7 +242,7 @@ public class PhoneAccountRegistrarTest extends AndroidTestCase {
         // Establish initial conditions
         assertEquals(null, mRegistrar.getDefaultOutgoingPhoneAccount("tel"));
         PhoneAccountHandle h = new PhoneAccountHandle(new ComponentName("pkg0", "cls0"), "id1");
-        mRegistrar.setDefaultOutgoingPhoneAccount(h);
+        mRegistrar.setUserSelectedOutgoingPhoneAccount(h);
         assertPhoneAccountHandleEquals(h, mRegistrar.getDefaultOutgoingPhoneAccount("tel"));
         // If account is un-registered, querying returns null
         mRegistrar.unregisterPhoneAccount(h);
@@ -251,10 +251,10 @@ public class PhoneAccountRegistrarTest extends AndroidTestCase {
         mRegistrar.registerPhoneAccount(makeQuickAccount("pkg0", "cls0", "id1", 99));
         assertPhoneAccountHandleEquals(h, mRegistrar.getDefaultOutgoingPhoneAccount("tel"));
         // De-register by setting to null
-        mRegistrar.setDefaultOutgoingPhoneAccount(null);
+        mRegistrar.setUserSelectedOutgoingPhoneAccount(null);
         assertEquals(null, mRegistrar.getDefaultOutgoingPhoneAccount("tel"));
         // If argument not have CALL_PROVIDER capability, this is a no-op
-        mRegistrar.setDefaultOutgoingPhoneAccount(
+        mRegistrar.setUserSelectedOutgoingPhoneAccount(
                 new PhoneAccountHandle(new ComponentName("pkg0", "cls0"), "id0"));
         assertEquals(null, mRegistrar.getDefaultOutgoingPhoneAccount("tel"));
         // If only have one account, it is the default
