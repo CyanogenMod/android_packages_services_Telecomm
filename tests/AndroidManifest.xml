@@ -60,6 +60,11 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <intent-filter>
+                <action android:name="android.telecomm.testapps.ACTION_START_INCOMING_CALL" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="tel" />
+            </intent-filter>
         </activity>
 
         <receiver android:name="com.android.telecomm.testapps.CallNotificationReceiver"
