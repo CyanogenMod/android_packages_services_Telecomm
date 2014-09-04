@@ -42,7 +42,7 @@
     <string name="account_ask_every_time" msgid="944077828070287407">"Luôn hỏi"</string>
     <string name="do_not_use_sim_call_manager" msgid="5519252524007323694">"Không sử dụng tính năng gọi qua Wi-Fi"</string>
     <string name="outgoing_call_not_allowed" msgid="1434784869685645427">"Người dùng này không được phép thực hiện cuộc gọi điện thoại không khẩn cấp"</string>
-    <string name="outgoing_call_error_no_phone_number_supplied" msgid="4987143284589568716">"Cuộc gọi không được gửi đi, bạn đã nhập số không hợp lệ."</string>
+    <string name="outgoing_call_error_no_phone_number_supplied" msgid="4987143284589568716">"Không gọi được, bạn đã nhập số không hợp lệ."</string>
     <string name="no_vm_number" msgid="4164780423805688336">"Thiếu số thư thoại"</string>
     <string name="no_vm_number_msg" msgid="1300729501030053828">"Không có số thư thoại nào được lưu trữ trên thẻ SIM."</string>
     <string name="add_vm_number_str" msgid="4676479471644687453">"Thêm số điện thoại"</string>
