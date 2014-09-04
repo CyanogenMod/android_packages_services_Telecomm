@@ -147,7 +147,7 @@ public final class PhoneAccountRegistrar {
         return null;
     }
 
-    public void setDefaultOutgoingPhoneAccount(PhoneAccountHandle accountHandle) {
+    public void setUserSelectedOutgoingPhoneAccount(PhoneAccountHandle accountHandle) {
         if (accountHandle == null) {
             // Asking to clear the default outgoing is a valid request
             mState.defaultOutgoing = null;
