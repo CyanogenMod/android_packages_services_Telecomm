@@ -270,36 +270,42 @@ class MissedCallNotifier extends CallsManagerListenerBase {
         AsyncQueryHandler queryHandler = new AsyncQueryHandler(mContext.getContentResolver()) {
             @Override
             protected void onQueryComplete(int token, Object cookie, Cursor cursor) {
+                Log.d(MissedCallNotifier.this, "onQueryComplete()...");
                 if (cursor != null) {
-                    while (cursor.moveToNext()) {
-                        // Get data about the missed call from the cursor
-                        Uri handle = Uri.parse(cursor.getString(
-                                cursor.getColumnIndexOrThrow(Calls.NUMBER)));
-                        int presentation = cursor.getInt(cursor.getColumnIndexOrThrow(
-                                Calls.NUMBER_PRESENTATION));
+                    try {
+                        while (cursor.moveToNext()) {
+                            // Get data about the missed call from the cursor
+                            Uri handle = Uri.parse(cursor.getString(
+                                    cursor.getColumnIndexOrThrow(Calls.NUMBER)));
+                            int presentation = cursor.getInt(cursor.getColumnIndexOrThrow(
+                                    Calls.NUMBER_PRESENTATION));
 
-                        if (presentation != Calls.PRESENTATION_ALLOWED) {
-                            handle = null;
-                        }
-
-                        // Convert the data to a call object
-                        Call call = new Call(null, null, null, null, null, true, false);
-                        call.setDisconnectCause(DisconnectCause.INCOMING_MISSED, "");
-                        call.setState(CallState.DISCONNECTED);
-
-                        // Listen for the update to the caller information before posting the
-                        // notification so that we have the contact info and photo.
-                        call.addListener(new Call.ListenerBase() {
-                            @Override
-                            public void onCallerInfoChanged(Call call) {
-                                call.removeListener(this);  // No longer need to listen to call
-                                                            // changes after the contact info
-                                                            // is retrieved.
-                                showMissedCallNotification(call);
+                            if (presentation != Calls.PRESENTATION_ALLOWED) {
+                                handle = null;
                             }
-                        });
-                        // Set the handle here because that is what triggers the contact info query.
-                        call.setHandle(handle, presentation);
+
+                            // Convert the data to a call object
+                            Call call = new Call(null, null, null, null, null, true, false);
+                            call.setDisconnectCause(DisconnectCause.INCOMING_MISSED, "");
+                            call.setState(CallState.DISCONNECTED);
+
+                            // Listen for the update to the caller information before posting the
+                            // notification so that we have the contact info and photo.
+                            call.addListener(new Call.ListenerBase() {
+                                @Override
+                                public void onCallerInfoChanged(Call call) {
+                                    call.removeListener(this);  // No longer need to listen to call
+                                                                // changes after the contact info
+                                                                // is retrieved.
+                                    showMissedCallNotification(call);
+                                }
+                            });
+                            // Set the handle here because that is what triggers the contact info
+                            // query.
+                            call.setHandle(handle, presentation);
+                        }
+                    } finally {
+                        cursor.close();
                     }
                 }
             }
