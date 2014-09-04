@@ -20,6 +20,7 @@ import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.telecomm.PhoneAccountHandle;
 import android.telecomm.TelecommManager;
@@ -55,19 +56,19 @@ public class CallNotificationReceiver extends BroadcastReceiver {
         } else if (ACTION_SHOW_ALL_PHONE_ACCOUNTS.equals(action)) {
             CallServiceNotifier.getInstance().showAllPhoneAccounts(context);
         } else if (ACTION_VIDEO_CALL.equals(action)) {
-            sendIncomingCallIntent(context, true);
+            sendIncomingCallIntent(context, null, true);
         } else if (ACTION_AUDIO_CALL.equals(action)) {
-            sendIncomingCallIntent(context, false);
+            sendIncomingCallIntent(context, null, false);
         }
     }
 
     /**
-     * Creates the intent to add an incoming call through Telecomm.
+     * Creates and sends the intent to add an incoming call through Telecomm.
      *
      * @param context The current context.
      * @param isVideoCall {@code True} if this is a video call.
      */
-    private void sendIncomingCallIntent(Context context, boolean isVideoCall) {
+    public static void sendIncomingCallIntent(Context context, Uri handle, boolean isVideoCall) {
         PhoneAccountHandle phoneAccount = new PhoneAccountHandle(
                 new ComponentName(context, TestConnectionService.class),
                 CallServiceNotifier.SIM_SUBSCRIPTION_ID);
@@ -75,7 +76,10 @@ public class CallNotificationReceiver extends BroadcastReceiver {
         // For the purposes of testing, indicate whether the incoming call is a video call by
         // stashing an indicator in the EXTRA_INCOMING_CALL_EXTRAS.
         Bundle extras = new Bundle();
-        extras.putBoolean(TestConnectionService.IS_VIDEO_CALL, isVideoCall);
+        extras.putBoolean(TestConnectionService.EXTRA_IS_VIDEO_CALL, isVideoCall);
+        if (handle != null) {
+            extras.putParcelable(TestConnectionService.EXTRA_HANDLE, handle);
+        }
 
         TelecommManager.from(context).addNewIncomingCall(phoneAccount, extras);
     }
