@@ -38,8 +38,6 @@ import java.util.List;
  * Helper class to manage the "Respond via Message" feature for incoming calls.
  */
 public class RespondViaSmsManager extends CallsManagerListenerBase {
-    private static final String SCHEME_SMSTO = "smsto";
-
     private static final int MSG_CANNED_TEXT_MESSAGES_READY = 1;
     private static final int MSG_SHOW_SENT_TOAST = 2;
 
@@ -170,7 +168,7 @@ public class RespondViaSmsManager extends CallsManagerListenerBase {
                             TelecommApp.getInstance(), true /*updateIfNeeded*/);
             if (component != null) {
                 // Build and send the intent
-                final Uri uri = Uri.fromParts(SCHEME_SMSTO, phoneNumber, null);
+                final Uri uri = Uri.fromParts(Constants.SCHEME_SMSTO, phoneNumber, null);
                 final Intent intent = new Intent(TelephonyManager.ACTION_RESPOND_VIA_MESSAGE, uri);
                 intent.putExtra(Intent.EXTRA_TEXT, textMessage);
                 mHandler.obtainMessage(MSG_SHOW_SENT_TOAST, phoneNumber).sendToTarget();
