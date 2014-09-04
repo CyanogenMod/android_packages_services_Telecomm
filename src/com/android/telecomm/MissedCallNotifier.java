@@ -53,7 +53,6 @@ class MissedCallNotifier extends CallsManagerListenerBase {
         Calls.TYPE,
     };
     private static final int MISSED_CALL_NOTIFICATION_ID = 1;
-    private static final String SCHEME_SMSTO = "smsto";
 
     private final Context mContext;
     private final NotificationManager mNotificationManager;
@@ -237,7 +236,7 @@ class MissedCallNotifier extends CallsManagerListenerBase {
     private PendingIntent createSendSmsFromNotificationPendingIntent(Uri handle) {
         return createTelecommPendingIntent(
                 TelecommBroadcastReceiver.ACTION_SEND_SMS_FROM_NOTIFICATION,
-                Uri.fromParts(SCHEME_SMSTO, handle.getSchemeSpecificPart(), null));
+                Uri.fromParts(Constants.SCHEME_SMSTO, handle.getSchemeSpecificPart(), null));
     }
 
     /**
