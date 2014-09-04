@@ -119,9 +119,14 @@ public class CallActivity extends Activity {
      * @param intent Call intent containing data about the handle to call.
      */
     private void processOutgoingCallIntent(Intent intent) {
-        String uriString = intent.getData().getSchemeSpecificPart();
-        Uri handle = Uri.fromParts(
-                PhoneNumberUtils.isUriNumber(uriString) ? "sip" : "tel", uriString, null);
+        Uri handle = intent.getData();
+        String scheme = handle.getScheme();
+        String uriString = handle.getSchemeSpecificPart();
+
+        if (!Constants.SCHEME_VOICEMAIL.equals(scheme)) {
+            handle = Uri.fromParts(PhoneNumberUtils.isUriNumber(uriString) ?
+                    Constants.SCHEME_SIP : Constants.SCHEME_TEL, uriString, null);
+        }
 
         UserManager userManager = (UserManager) getSystemService(Context.USER_SERVICE);
         if (userManager.hasUserRestriction(UserManager.DISALLOW_OUTGOING_CALLS)
