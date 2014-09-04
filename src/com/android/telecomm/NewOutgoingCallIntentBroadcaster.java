@@ -65,10 +65,6 @@ class NewOutgoingCallIntentBroadcaster {
     public static final String EXTRA_GATEWAY_ORIGINAL_URI =
             "com.android.phone.extra.GATEWAY_ORIGINAL_URI";
 
-    private static final String SCHEME_TEL = "tel";
-    private static final String SCHEME_SIP = "sip";
-    private static final String SCHEME_VOICEMAIL = "voicemail";
-
     private final CallsManager mCallsManager;
     private final Call mCall;
     private final Intent mIntent;
@@ -117,10 +113,8 @@ class NewOutgoingCallIntentBroadcaster {
                 return;
             }
 
-            Uri resultHandleUri = Uri.fromParts(
-                    PhoneNumberUtils.isUriNumber(resultNumber) ? SCHEME_SIP : SCHEME_TEL,
-                    resultNumber,
-                    null);
+            Uri resultHandleUri = Uri.fromParts(PhoneNumberUtils.isUriNumber(resultNumber) ?
+                    Constants.SCHEME_SIP : Constants.SCHEME_TEL, resultNumber, null);
 
             Uri originalUri = mIntent.getData();
 
@@ -169,7 +163,7 @@ class NewOutgoingCallIntentBroadcaster {
             return DisconnectCause.INVALID_NUMBER;
         }
 
-        boolean isVoicemailNumber = SCHEME_VOICEMAIL.equals(handle.getScheme());
+        boolean isVoicemailNumber = Constants.SCHEME_VOICEMAIL.equals(handle.getScheme());
         if (isVoicemailNumber) {
             if (Intent.ACTION_CALL.equals(action)) {
                 // Voicemail calls will be handled directly by the telephony connection manager
@@ -234,7 +228,7 @@ class NewOutgoingCallIntentBroadcaster {
         if (callImmediately) {
             Log.i(this, "Placing call immediately instead of waiting for "
                     + " OutgoingCallBroadcastReceiver: %s", intent);
-            String scheme = isUriNumber ? SCHEME_SIP : SCHEME_TEL;
+            String scheme = isUriNumber ? Constants.SCHEME_SIP : Constants.SCHEME_TEL;
             boolean speakerphoneOn = mIntent.getBooleanExtra(
                     TelecommManager.EXTRA_START_CALL_WITH_SPEAKERPHONE, false);
             int videoState = mIntent.getIntExtra(
