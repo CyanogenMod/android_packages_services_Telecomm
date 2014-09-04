@@ -331,8 +331,8 @@ final class Call implements CreateConnectionResponse {
             component = mConnectionService.getComponentName().flattenToShortString();
         }
 
-        return String.format(Locale.US, "[%s, %s, %s, %d]", mState, component,
-                Log.piiHandle(mHandle), getVideoState());
+        return String.format(Locale.US, "[%s, %s, %s, %s, %d]", System.identityHashCode(this),
+                mState, component, Log.piiHandle(mHandle), getVideoState());
     }
 
     int getState() {

@@ -61,11 +61,13 @@ public final class InCallController extends CallsManagerListenerBase {
     private class InCallServiceConnection implements ServiceConnection {
         /** {@inheritDoc} */
         @Override public void onServiceConnected(ComponentName name, IBinder service) {
+            Log.d(this, "onServiceConnected: %s", name);
             onConnected(name, service);
         }
 
         /** {@inheritDoc} */
         @Override public void onServiceDisconnected(ComponentName name) {
+            Log.d(this, "onDisconnected: %s", name);
             onDisconnected(name);
         }
     }
@@ -148,7 +150,7 @@ public final class InCallController extends CallsManagerListenerBase {
         if (mInCallServices.isEmpty()) {
             bind();
         } else {
-            Log.i(this, "Adding call: %s", call);
+            Log.i(this, "onCallAdded: %s", call);
             // Track the call if we don't already know about it.
             addCall(call);
 
@@ -168,6 +170,7 @@ public final class InCallController extends CallsManagerListenerBase {
 
     @Override
     public void onCallRemoved(Call call) {
+        Log.i(this, "onCallRemoved: %s", call);
         if (CallsManager.getInstance().getCalls().isEmpty()) {
             // TODO: Wait for all messages to be delivered to the service before unbinding.
             unbind();
@@ -309,6 +312,8 @@ public final class InCallController extends CallsManagerListenerBase {
     private void onConnected(ComponentName componentName, IBinder service) {
         ThreadUtil.checkOnMainThread();
 
+        Log.i(this, "onConnected to %s", componentName);
+
         IInCallService inCallService = IInCallService.Stub.asInterface(service);
 
         try {
@@ -323,9 +328,12 @@ public final class InCallController extends CallsManagerListenerBase {
         // Upon successful connection, send the state of the world to the service.
         ImmutableCollection<Call> calls = CallsManager.getInstance().getCalls();
         if (!calls.isEmpty()) {
+            Log.i(this, "Adding %s calls to InCallService after onConnected: %s", calls.size(),
+                    componentName);
             for (Call call : calls) {
                 try {
                     // Track the call if we don't already know about it.
+                    Log.i(this, "addCall after binding: %s", call);
                     addCall(call);
 
                     inCallService.addCall(toParcelableCall(call,
@@ -345,6 +353,7 @@ public final class InCallController extends CallsManagerListenerBase {
      * @param disconnectedComponent The {@link ComponentName} of the service which disconnected.
      */
     private void onDisconnected(ComponentName disconnectedComponent) {
+        Log.i(this, "onDisconnected from %s", disconnectedComponent);
         ThreadUtil.checkOnMainThread();
         if (mInCallServices.containsKey(disconnectedComponent)) {
             mInCallServices.remove(disconnectedComponent);
