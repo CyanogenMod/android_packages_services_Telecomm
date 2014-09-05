@@ -437,9 +437,11 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
         @Override
         public void setCallCapabilities(String callId, int callCapabilities) {
             logIncoming("setCallCapabilities %s %d", callId, callCapabilities);
-            if (mCallIdMapper.isValidCallId(callId)) {
+            if (mCallIdMapper.isValidCallId(callId) || mCallIdMapper.isValidConferenceId(callId)) {
                 mHandler.obtainMessage(MSG_SET_CALL_CAPABILITIES, callCapabilities, 0, callId)
                         .sendToTarget();
+            } else {
+                Log.w(this, "ID not valid for setCallCapabilities");
             }
         }
 
@@ -839,6 +841,28 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
             try {
                 logOutgoing("splitFromConference %s", callId);
                 mServiceInterface.splitFromConference(callId);
+            } catch (RemoteException ignored) {
+            }
+        }
+    }
+
+    void mergeConference(Call call) {
+        final String callId = mCallIdMapper.getCallId(call);
+        if (callId != null && isServiceValid("mergeConference")) {
+            try {
+                logOutgoing("mergeConference %s", callId);
+                mServiceInterface.mergeConference(callId);
+            } catch (RemoteException ignored) {
+            }
+        }
+    }
+
+    void swapConference(Call call) {
+        final String callId = mCallIdMapper.getCallId(call);
+        if (callId != null && isServiceValid("swapConference")) {
+            try {
+                logOutgoing("swapConference %s", callId);
+                mServiceInterface.swapConference(callId);
             } catch (RemoteException ignored) {
             }
         }
