@@ -170,13 +170,23 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
     }
 
     @Override
-    public void setDefaultOutgoingPhoneAccount(PhoneAccountHandle accountHandle) {
+    public PhoneAccountHandle getUserSelectedOutgoingPhoneAccount() {
+        try {
+            return mPhoneAccountRegistrar.getUserSelectedOutgoingPhoneAccount();
+        } catch (Exception e) {
+            Log.e(this, e, "getUserSelectedOutgoingPhoneAccount");
+            throw e;
+        }
+    }
+
+    @Override
+    public void setUserSelectedOutgoingPhoneAccount(PhoneAccountHandle accountHandle) {
         enforceModifyPermission();
 
         try {
-            mPhoneAccountRegistrar.setDefaultOutgoingPhoneAccount(accountHandle);
+            mPhoneAccountRegistrar.setUserSelectedOutgoingPhoneAccount(accountHandle);
         } catch (Exception e) {
-            Log.e(this, e, "setDefaultOutgoingPhoneAccount");
+            Log.e(this, e, "setUserSelectedOutgoingPhoneAccount");
             throw e;
         }
     }
