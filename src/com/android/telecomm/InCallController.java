@@ -423,9 +423,10 @@ public final class InCallController extends CallsManagerListenerBase {
             capabilities |= PhoneCapabilities.ADD_CALL;
         }
 
-        // Disable mute for emergency calls.
+        // Disable mute and add call for emergency calls.
         if (call.isEmergencyCall()) {
             capabilities &= ~PhoneCapabilities.MUTE;
+            capabilities &= ~PhoneCapabilities.ADD_CALL;
         }
 
         int properties = call.isConference() ? CallProperties.CONFERENCE : 0;
