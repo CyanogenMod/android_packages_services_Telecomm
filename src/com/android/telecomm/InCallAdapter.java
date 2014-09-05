@@ -46,6 +46,8 @@ class InCallAdapter extends IInCallAdapter.Stub {
     private static final int MSG_PHONE_ACCOUNT_SELECTED = 14;
     private static final int MSG_TURN_ON_PROXIMITY_SENSOR = 15;
     private static final int MSG_TURN_OFF_PROXIMITY_SENSOR = 16;
+    private static final int MSG_MERGE_CONFERENCE = 17;
+    private static final int MSG_SWAP_CONFERENCE = 18;
 
     private final class InCallAdapterHandler extends Handler {
         @Override
@@ -190,6 +192,22 @@ class InCallAdapter extends IInCallAdapter.Stub {
                 case MSG_TURN_OFF_PROXIMITY_SENSOR:
                     mCallsManager.turnOffProximitySensor((boolean) msg.obj);
                     break;
+                case MSG_MERGE_CONFERENCE:
+                    call = mCallIdMapper.getCall(msg.obj);
+                    if (call != null) {
+                        call.mergeConference();
+                    } else {
+                        Log.w(this, "mergeConference, unknown call id: %s", msg.obj);
+                    }
+                    break;
+                case MSG_SWAP_CONFERENCE:
+                    call = mCallIdMapper.getCall(msg.obj);
+                    if (call != null) {
+                        call.swapConference();
+                    } else {
+                        Log.w(this, "swapConference, unknown call id: %s", msg.obj);
+                    }
+                    break;
             }
         }
     }
@@ -316,6 +334,20 @@ class InCallAdapter extends IInCallAdapter.Stub {
     public void splitFromConference(String callId) {
         if (mCallIdMapper.isValidCallId(callId)) {
             mHandler.obtainMessage(MSG_SPLIT_FROM_CONFERENCE, callId).sendToTarget();
+        }
+    }
+
+    @Override
+    public void mergeConference(String callId) {
+        if (mCallIdMapper.isValidCallId(callId)) {
+            mHandler.obtainMessage(MSG_MERGE_CONFERENCE, callId).sendToTarget();
+        }
+    }
+
+    @Override
+    public void swapConference(String callId) {
+        if (mCallIdMapper.isValidCallId(callId)) {
+            mHandler.obtainMessage(MSG_SWAP_CONFERENCE, callId).sendToTarget();
         }
     }
 
