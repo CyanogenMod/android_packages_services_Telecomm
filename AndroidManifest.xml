@@ -173,7 +173,7 @@
                 android:targetActivity="CallActivity"
                 android:exported="true">
             <intent-filter>
-                <action android:name="android.intent.action.INCOMING_CALL" />
+                <action android:name="android.telecomm.action.INCOMING_CALL" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity-alias>
