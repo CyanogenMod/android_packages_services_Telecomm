@@ -18,7 +18,7 @@ package com.android.telecomm.testapps;
 
 import com.android.ex.camera2.blocking.BlockingCameraManager;
 import com.android.ex.camera2.blocking.BlockingCameraManager.BlockingOpenException;
-import com.android.ex.camera2.blocking.BlockingSessionListener;
+import com.android.ex.camera2.blocking.BlockingSessionCallback;
 import com.android.telecomm.tests.R;
 
 import android.content.Context;
@@ -253,7 +253,7 @@ public class TestVideoProvider extends Connection.VideoProvider {
         surfaces.add(mPreviewSurface);
         CaptureRequest.Builder mCaptureRequest = null;
         try {
-            BlockingSessionListener blkSession = new BlockingSessionListener();
+            BlockingSessionCallback blkSession = new BlockingSessionCallback();
             mCameraDevice.createCaptureSession(surfaces, blkSession, mHandler);
             mCaptureRequest = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
             mCaptureRequest.addTarget(mPreviewSurface);
@@ -265,7 +265,7 @@ public class TestVideoProvider extends Connection.VideoProvider {
 
         // Keep repeating
         try {
-            mCameraSession.setRepeatingRequest(mCaptureRequest.build(), new CameraCaptureListener(),
+            mCameraSession.setRepeatingRequest(mCaptureRequest.build(), new CameraCaptureCallback(),
                     mHandler);
         } catch (CameraAccessException e) {
             log("CameraAccessException: " + e);
@@ -294,7 +294,7 @@ public class TestVideoProvider extends Connection.VideoProvider {
     /**
      * Required listener for camera capture events.
      */
-    private class CameraCaptureListener extends CameraCaptureSession.CaptureListener {
+    private class CameraCaptureCallback extends CameraCaptureSession.CaptureCallback {
         @Override
         public void onCaptureCompleted(CameraCaptureSession camera, CaptureRequest request,
                 TotalCaptureResult result) {
