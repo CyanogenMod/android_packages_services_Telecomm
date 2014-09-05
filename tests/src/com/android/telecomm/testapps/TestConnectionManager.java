@@ -189,7 +189,7 @@ public class TestConnectionManager extends ConnectionService {
     }
 
     public final class TestManagedConference extends Conference {
-        private final RemoteConference.Listener mRemoteListener = new RemoteConference.Listener() {
+        private final RemoteConference.Callback mRemoteCallback = new RemoteConference.Callback() {
             @Override
             public void onStateChanged(RemoteConference conference, int oldState, int newState) {
                 switch (newState) {
@@ -245,7 +245,7 @@ public class TestConnectionManager extends ConnectionService {
             @Override
             public void onDestroyed(RemoteConference conference) {
                 destroy();
-                mRemote.removeListener(mRemoteListener);
+                mRemote.removeCallback(mRemoteCallback);
                 mManagedConferenceByRemote.remove(mRemote);
             }
         };
@@ -255,7 +255,7 @@ public class TestConnectionManager extends ConnectionService {
         public TestManagedConference(RemoteConference remote) {
             super(null);
             mRemote = remote;
-            remote.addListener(mRemoteListener);
+            remote.addCallback(mRemoteCallback);
             setActive();
             for (RemoteConnection r : remote.getConnections()) {
                 TestManagedConnection c = mManagedConnectionByRemote.get(r);
