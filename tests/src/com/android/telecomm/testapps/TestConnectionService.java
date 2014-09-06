@@ -259,8 +259,8 @@ public class TestConnectionService extends ConnectionService {
             PhoneAccountHandle connectionManagerAccount,
             final ConnectionRequest originalRequest) {
 
-        final Uri handle = originalRequest.getHandle();
-        String number = originalRequest.getHandle().getSchemeSpecificPart();
+        final Uri handle = originalRequest.getAddress();
+        String number = originalRequest.getAddress().getSchemeSpecificPart();
         log("call, number: " + number);
 
         // Crash on 555-DEAD to test call service crashing.
@@ -287,7 +287,6 @@ public class TestConnectionService extends ConnectionService {
                     originalRequest.getAccountHandle(),
                     Uri.fromParts(handle.getScheme(),
                     handle.getSchemeSpecificPart() + "..", ""),
-                    originalRequest.getHandlePresentation(),
                     originalRequest.getExtras(),
                     originalRequest.getVideoState());
 
@@ -340,7 +339,6 @@ public class TestConnectionService extends ConnectionService {
             ConnectionRequest newRequest = new ConnectionRequest(
                     request.getAccountHandle(),
                     handle,
-                    request.getHandlePresentation(),
                     request.getExtras(),
                     videoState);
             connection.setVideoState(videoState);
