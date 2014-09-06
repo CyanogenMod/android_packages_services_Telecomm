@@ -190,7 +190,7 @@ final class Call implements CreateConnectionResponse {
 
     private PhoneAccountHandle mPhoneAccountHandle;
 
-    private long mConnectTimeMillis;
+    private long mConnectTimeMillis = System.currentTimeMillis();
 
     /** The state of the call. */
     private int mState;
@@ -857,6 +857,22 @@ final class Call implements CreateConnectionResponse {
         }
     }
 
+    void mergeConference() {
+        if (mConnectionService == null) {
+            Log.w(this, "merging conference calls without a connection service.");
+        } else if (can(PhoneCapabilities.MERGE_CONFERENCE)) {
+            mConnectionService.mergeConference(this);
+        }
+    }
+
+    void swapConference() {
+        if (mConnectionService == null) {
+            Log.w(this, "swapping conference calls without a connection service.");
+        } else if (can(PhoneCapabilities.SWAP_CONFERENCE)) {
+            mConnectionService.swapConference(this);
+        }
+    }
+
     void setParentCall(Call parentCall) {
         if (parentCall == this) {
             Log.e(this, new Exception(), "setting the parent to self");
@@ -889,6 +905,10 @@ final class Call implements CreateConnectionResponse {
 
     List<Call> getConferenceableCalls() {
         return mConferenceableCalls;
+    }
+
+    private boolean can(int capability) {
+        return (mCallCapabilities & capability) == capability;
     }
 
     private void addChildCall(Call call) {
