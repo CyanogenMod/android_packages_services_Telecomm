@@ -26,6 +26,7 @@ import android.os.Handler;
 import android.telecomm.AudioState;
 import android.telecomm.Conference;
 import android.telecomm.Connection;
+import android.telecomm.PhoneAccount;
 import android.telecomm.PhoneCapabilities;
 import android.telecomm.PropertyPresentation;
 import android.telecomm.ConnectionRequest;
@@ -233,8 +234,6 @@ public class TestConnectionService extends ConnectionService {
         }
     }
 
-    private static final String SCHEME_TEL = "tel";
-
     private final List<TestConnection> mCalls = new ArrayList<>();
     private final Handler mHandler = new Handler();
 
@@ -318,7 +317,7 @@ public class TestConnectionService extends ConnectionService {
 
             // Use dummy number for testing incoming calls.
             Uri handle = providedHandle == null ?
-                    Uri.fromParts(SCHEME_TEL, getDummyNumber(isVideoCall), null) : providedHandle;
+                    Uri.fromParts(PhoneAccount.SCHEME_TEL, getDummyNumber(isVideoCall), null) : providedHandle;
             if (isVideoCall) {
                 TestVideoProvider testVideoCallProvider =
                         new TestVideoProvider(getApplicationContext());

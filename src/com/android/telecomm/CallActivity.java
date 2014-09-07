@@ -24,6 +24,7 @@ import android.content.res.Configuration;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.UserManager;
+import android.telecomm.PhoneAccount;
 import android.telecomm.PhoneAccountHandle;
 import android.telecomm.TelecommManager;
 import android.telephony.DisconnectCause;
@@ -123,9 +124,9 @@ public class CallActivity extends Activity {
         String scheme = handle.getScheme();
         String uriString = handle.getSchemeSpecificPart();
 
-        if (!Constants.SCHEME_VOICEMAIL.equals(scheme)) {
+        if (!PhoneAccount.SCHEME_VOICEMAIL.equals(scheme)) {
             handle = Uri.fromParts(PhoneNumberUtils.isUriNumber(uriString) ?
-                    Constants.SCHEME_SIP : Constants.SCHEME_TEL, uriString, null);
+                    PhoneAccount.SCHEME_SIP : PhoneAccount.SCHEME_TEL, uriString, null);
         }
 
         UserManager userManager = (UserManager) getSystemService(Context.USER_SERVICE);

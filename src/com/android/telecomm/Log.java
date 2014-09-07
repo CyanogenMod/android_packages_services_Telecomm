@@ -17,6 +17,7 @@
 package com.android.telecomm;
 
 import android.net.Uri;
+import android.telecomm.PhoneAccount;
 import android.telephony.PhoneNumberUtils;
 
 import java.security.MessageDigest;
@@ -134,7 +135,7 @@ public class Log {
             Uri uri = (Uri) pii;
 
             // All Uri's which are not "tel" go through normal pii() method.
-            if (!"tel".equals(uri.getScheme())) {
+            if (!PhoneAccount.SCHEME_TEL.equals(uri.getScheme())) {
                 return pii(pii);
             } else {
                 pii = uri.getSchemeSpecificPart();
