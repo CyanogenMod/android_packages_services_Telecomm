@@ -28,8 +28,5 @@ public class Constants {
     // URI schemes
     //
 
-    public static final String SCHEME_SIP = "sip";
     public static final String SCHEME_SMSTO = "smsto";
-    public static final String SCHEME_TEL = "tel";
-    public static final String SCHEME_VOICEMAIL = "voicemail";
 }
