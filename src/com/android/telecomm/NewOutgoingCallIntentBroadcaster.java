@@ -24,6 +24,7 @@ import android.content.res.Resources;
 import android.net.Uri;
 import android.os.UserHandle;
 import android.telecomm.GatewayInfo;
+import android.telecomm.PhoneAccount;
 import android.telecomm.TelecommManager;
 import android.telecomm.VideoProfile;
 import android.telephony.DisconnectCause;
@@ -114,7 +115,7 @@ class NewOutgoingCallIntentBroadcaster {
             }
 
             Uri resultHandleUri = Uri.fromParts(PhoneNumberUtils.isUriNumber(resultNumber) ?
-                    Constants.SCHEME_SIP : Constants.SCHEME_TEL, resultNumber, null);
+                    PhoneAccount.SCHEME_SIP : PhoneAccount.SCHEME_TEL, resultNumber, null);
 
             Uri originalUri = mIntent.getData();
 
@@ -163,7 +164,7 @@ class NewOutgoingCallIntentBroadcaster {
             return DisconnectCause.INVALID_NUMBER;
         }
 
-        boolean isVoicemailNumber = Constants.SCHEME_VOICEMAIL.equals(handle.getScheme());
+        boolean isVoicemailNumber = PhoneAccount.SCHEME_VOICEMAIL.equals(handle.getScheme());
         if (isVoicemailNumber) {
             if (Intent.ACTION_CALL.equals(action)) {
                 // Voicemail calls will be handled directly by the telephony connection manager
@@ -228,7 +229,7 @@ class NewOutgoingCallIntentBroadcaster {
         if (callImmediately) {
             Log.i(this, "Placing call immediately instead of waiting for "
                     + " OutgoingCallBroadcastReceiver: %s", intent);
-            String scheme = isUriNumber ? Constants.SCHEME_SIP : Constants.SCHEME_TEL;
+            String scheme = isUriNumber ? PhoneAccount.SCHEME_SIP : PhoneAccount.SCHEME_TEL;
             boolean speakerphoneOn = mIntent.getBooleanExtra(
                     TelecommManager.EXTRA_START_CALL_WITH_SPEAKERPHONE, false);
             int videoState = mIntent.getIntExtra(

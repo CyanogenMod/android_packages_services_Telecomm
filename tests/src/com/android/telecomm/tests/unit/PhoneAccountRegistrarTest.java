@@ -98,7 +98,7 @@ public class PhoneAccountRegistrarTest extends AndroidTestCase {
                 .withIconResId(0)
                 .withLabel("label2")
                 .withShortDescription("desc2")
-                .withSupportedUriScheme("tel")
+                .withSupportedUriScheme(PhoneAccount.SCHEME_TEL)
                 .build());
     }
 
@@ -214,7 +214,7 @@ public class PhoneAccountRegistrarTest extends AndroidTestCase {
         assertEquals(4, mRegistrar.getAllPhoneAccountHandles().size());
         assertEquals(3, mRegistrar.getOutgoingPhoneAccounts().size());
         assertEquals(null, mRegistrar.getSimCallManager());
-        assertEquals(null, mRegistrar.getDefaultOutgoingPhoneAccount("tel"));
+        assertEquals(null, mRegistrar.getDefaultOutgoingPhoneAccount(PhoneAccount.SCHEME_TEL));
     }
 
     public void testSimCallManager() throws Exception {
@@ -240,23 +240,25 @@ public class PhoneAccountRegistrarTest extends AndroidTestCase {
 
     public void testDefaultOutgoing() {
         // Establish initial conditions
-        assertEquals(null, mRegistrar.getDefaultOutgoingPhoneAccount("tel"));
+        assertEquals(null, mRegistrar.getDefaultOutgoingPhoneAccount(PhoneAccount.SCHEME_TEL));
         PhoneAccountHandle h = new PhoneAccountHandle(new ComponentName("pkg0", "cls0"), "id1");
         mRegistrar.setUserSelectedOutgoingPhoneAccount(h);
-        assertPhoneAccountHandleEquals(h, mRegistrar.getDefaultOutgoingPhoneAccount("tel"));
+        assertPhoneAccountHandleEquals(h, mRegistrar.getDefaultOutgoingPhoneAccount(
+                        PhoneAccount.SCHEME_TEL));
         // If account is un-registered, querying returns null
         mRegistrar.unregisterPhoneAccount(h);
-        assertEquals(null, mRegistrar.getDefaultOutgoingPhoneAccount("tel"));
+        assertEquals(null, mRegistrar.getDefaultOutgoingPhoneAccount(PhoneAccount.SCHEME_TEL));
         // But if account is re-registered, setting comes back
         mRegistrar.registerPhoneAccount(makeQuickAccount("pkg0", "cls0", "id1", 99));
-        assertPhoneAccountHandleEquals(h, mRegistrar.getDefaultOutgoingPhoneAccount("tel"));
+        assertPhoneAccountHandleEquals(h, mRegistrar.getDefaultOutgoingPhoneAccount(
+                        PhoneAccount.SCHEME_TEL));
         // De-register by setting to null
         mRegistrar.setUserSelectedOutgoingPhoneAccount(null);
-        assertEquals(null, mRegistrar.getDefaultOutgoingPhoneAccount("tel"));
+        assertEquals(null, mRegistrar.getDefaultOutgoingPhoneAccount(PhoneAccount.SCHEME_TEL));
         // If argument not have CALL_PROVIDER capability, this is a no-op
         mRegistrar.setUserSelectedOutgoingPhoneAccount(
                 new PhoneAccountHandle(new ComponentName("pkg0", "cls0"), "id0"));
-        assertEquals(null, mRegistrar.getDefaultOutgoingPhoneAccount("tel"));
+        assertEquals(null, mRegistrar.getDefaultOutgoingPhoneAccount(PhoneAccount.SCHEME_TEL));
         // If only have one account, it is the default
         mRegistrar.unregisterPhoneAccount(
                 new PhoneAccountHandle(new ComponentName("pkg0", "cls0"), "id0"));
@@ -266,7 +268,7 @@ public class PhoneAccountRegistrarTest extends AndroidTestCase {
                 new PhoneAccountHandle(new ComponentName("pkg1", "cls1"), "id2"));
         assertPhoneAccountHandleEquals(
                 new PhoneAccountHandle(new ComponentName("pkg1", "cls1"), "id3"),
-                mRegistrar.getDefaultOutgoingPhoneAccount("tel"));
+                mRegistrar.getDefaultOutgoingPhoneAccount(PhoneAccount.SCHEME_TEL));
         // If have one account but not suitable, default returns null
         mRegistrar.unregisterPhoneAccount(
                 new PhoneAccountHandle(new ComponentName("pkg1", "cls1"), "id3"));
@@ -279,7 +281,7 @@ public class PhoneAccountRegistrarTest extends AndroidTestCase {
                 .withLabel("label0")
                 .withShortDescription("desc0")
                 .build());
-        assertEquals(null, mRegistrar.getDefaultOutgoingPhoneAccount("tel"));
+        assertEquals(null, mRegistrar.getDefaultOutgoingPhoneAccount(PhoneAccount.SCHEME_TEL));
     }
 
     private static PhoneAccount makeQuickAccount(String pkg, String cls, String id, int idx) {
