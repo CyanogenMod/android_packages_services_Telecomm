@@ -718,8 +718,8 @@ public final class PhoneAccountRegistrar {
             new XmlSerialization<PhoneAccount>() {
         private static final String CLASS_PHONE_ACCOUNT = "phone_account";
         private static final String ACCOUNT_HANDLE = "account_handle";
-        private static final String HANDLE = "handle";
-        private static final String SUBSCRIPTION_NUMBER = "subscription_number";
+        private static final String ADDRESS = "handle";
+        private static final String SUBSCRIPTION_ADDRESS = "subscription_number";
         private static final String CAPABILITIES = "capabilities";
         private static final String ICON_RES_ID = "icon_res_id";
         private static final String LABEL = "label";
@@ -738,8 +738,8 @@ public final class PhoneAccountRegistrar {
                     serializer.endTag(null, ACCOUNT_HANDLE);
                 }
 
-                writeTextSafely(HANDLE, o.getHandle(), serializer);
-                writeTextSafely(SUBSCRIPTION_NUMBER, o.getSubscriptionNumber(), serializer);
+                writeTextSafely(ADDRESS, o.getAddress(), serializer);
+                writeTextSafely(SUBSCRIPTION_ADDRESS, o.getSubscriptionAddress(), serializer);
                 writeTextSafely(CAPABILITIES, Integer.toString(o.getCapabilities()), serializer);
                 writeTextSafely(ICON_RES_ID, Integer.toString(o.getIconResId()), serializer);
                 writeTextSafely(LABEL, o.getLabel(), serializer);
@@ -755,8 +755,8 @@ public final class PhoneAccountRegistrar {
             if (parser.getName().equals(CLASS_PHONE_ACCOUNT)) {
                 int outerDepth = parser.getDepth();
                 PhoneAccountHandle accountHandle = null;
-                Uri handle = null;
-                String subscriptionNumber = null;
+                Uri address = null;
+                Uri subscriptionAddress = null;
                 int capabilities = 0;
                 int iconResId = 0;
                 String label = null;
@@ -768,12 +768,13 @@ public final class PhoneAccountRegistrar {
                         parser.nextTag();
                         accountHandle = sPhoneAccountHandleXml.readFromXml(parser, version,
                                 context);
-                    } else if (parser.getName().equals(HANDLE)) {
+                    } else if (parser.getName().equals(ADDRESS)) {
                         parser.next();
-                        handle = Uri.parse(parser.getText());
-                    } else if (parser.getName().equals(SUBSCRIPTION_NUMBER)) {
+                        address = Uri.parse(parser.getText());
+                    } else if (parser.getName().equals(SUBSCRIPTION_ADDRESS)) {
                         parser.next();
-                        subscriptionNumber = parser.getText();
+                        String nextText = parser.getText();
+                        subscriptionAddress = nextText == null ? null : Uri.parse(nextText);
                     } else if (parser.getName().equals(CAPABILITIES)) {
                         parser.next();
                         capabilities = Integer.parseInt(parser.getText());
@@ -812,15 +813,13 @@ public final class PhoneAccountRegistrar {
                     }
                 }
 
-                return PhoneAccount.builder()
-                        .withAccountHandle(accountHandle)
-                        .withHandle(handle)
-                        .withSubscriptionNumber(subscriptionNumber)
-                        .withCapabilities(capabilities)
-                        .withIconResId(iconResId)
-                        .withLabel(label)
-                        .withShortDescription(shortDescription)
-                        .withSupportedUriSchemes(supportedUriSchemes)
+                return PhoneAccount.builder(accountHandle, label)
+                        .setAddress(address)
+                        .setSubscriptionAddress(subscriptionAddress)
+                        .setCapabilities(capabilities)
+                        .setIconResId(iconResId)
+                        .setShortDescription(shortDescription)
+                        .setSupportedUriSchemes(supportedUriSchemes)
                         .build();
             }
             return null;
