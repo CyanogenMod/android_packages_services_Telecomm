@@ -16,79 +16,75 @@
 
 package com.android.telecomm;
 
-import android.Manifest;
-import android.content.Intent;
+import android.os.RemoteException;
+import android.os.ServiceManager;
 import android.telecomm.CallState;
-import android.telecomm.TelecommManager;
-import android.telephony.DisconnectCause;
 import android.telephony.TelephonyManager;
+
+import com.android.internal.telephony.ITelephonyRegistry;
 
 /**
  * Send a {@link TelephonyManager#ACTION_PHONE_STATE_CHANGED} broadcast when the call state
  * changes.
  */
 final class PhoneStateBroadcaster extends CallsManagerListenerBase {
-    @Override
-    public void onCallStateChanged(Call call, int oldState, int newState) {
-        final String phoneState;
-        switch (newState) {
-            case CallState.DIALING:
-            case CallState.ACTIVE:
-            case CallState.ON_HOLD:
-                phoneState = TelephonyManager.EXTRA_STATE_OFFHOOK;
-                break;
-            case CallState.RINGING:
-                phoneState = TelephonyManager.EXTRA_STATE_RINGING;
-                break;
-            case CallState.ABORTED:
-            case CallState.DISCONNECTED:
-                phoneState = TelephonyManager.EXTRA_STATE_IDLE;
-                break;
-            default:
-                Log.w(this, "Call is in an unknown state (%s), not broadcasting: %s",
-                        newState, call);
-                return;
+
+    private final ITelephonyRegistry mRegistry;
+    private int mCurrentState = TelephonyManager.CALL_STATE_IDLE;
+
+    public PhoneStateBroadcaster() {
+        mRegistry = ITelephonyRegistry.Stub.asInterface(ServiceManager.getService(
+                "telephony.registry"));
+        if (mRegistry == null) {
+            Log.w(this, "TelephonyRegistry is null");
         }
-        sendPhoneStateChangedBroadcast(call, phoneState);
     }
 
-    private void sendPhoneStateChangedBroadcast(Call call, String phoneState) {
-        Log.v(this, "sendPhoneStateChangedBroadcast, call %s, phoneState: %s", call, phoneState);
+    @Override
+    public void onCallStateChanged(Call call, int oldState, int newState) {
+        if ((newState == CallState.DIALING || newState == CallState.ACTIVE
+                || newState == CallState.ON_HOLD) && !CallsManager.getInstance().hasRingingCall()) {
+            /*
+             * EXTRA_STATE_RINGING takes precedence over EXTRA_STATE_OFFHOOK, so if there is
+             * already a ringing call, don't broadcast EXTRA_STATE_OFFHOOK.
+             */
+            sendPhoneStateChangedBroadcast(call, TelephonyManager.CALL_STATE_OFFHOOK);
+        }
+    }
 
-        Intent intent = new Intent(TelephonyManager.ACTION_PHONE_STATE_CHANGED);
-        intent.putExtra(TelephonyManager.EXTRA_STATE, phoneState);
+    @Override
+    public void onCallAdded(Call call) {
+        if (call.getState() == CallState.RINGING) {
+            sendPhoneStateChangedBroadcast(call, TelephonyManager.CALL_STATE_RINGING);
+        }
+    };
 
-        // Populate both, since the original API was needlessly complicated.
+    @Override
+    public void onCallRemoved(Call call) {
+        if (!CallsManager.getInstance().hasAnyCalls()) {
+            sendPhoneStateChangedBroadcast(call, TelephonyManager.CALL_STATE_IDLE);
+        }
+    }
+
+    private void sendPhoneStateChangedBroadcast(Call call, int phoneState) {
+        if (phoneState == mCurrentState) {
+            return;
+        }
+
+        mCurrentState = phoneState;
+
+        String callHandle = null;
         if (call.getHandle() != null) {
-            String callHandle = call.getHandle().getSchemeSpecificPart();
-            intent.putExtra(TelephonyManager.EXTRA_INCOMING_NUMBER, callHandle);
-            // TODO: See if we can add this (the current API only sets this on NEW_OUTGOING_CALL).
-            intent.putExtra(Intent.EXTRA_PHONE_NUMBER, callHandle);
+            callHandle = call.getHandle().getSchemeSpecificPart();
         }
 
-        // TODO: Replace these with real constants once this API has been vetted.
-        ConnectionServiceWrapper connectionService = call.getConnectionService();
-        if (connectionService != null) {
-            intent.putExtra(
-                    TelecommManager.EXTRA_CONNECTION_SERVICE,
-                    connectionService.getComponentName());
-        }
-
-        // TODO: Replace these with real constants once this API has been vetted.
-        int disconnectCause = call.getDisconnectCause();
-        String disconnectMessage = call.getDisconnectMessage();
-        if (disconnectCause != DisconnectCause.NOT_VALID) {
-            intent.putExtra(TelecommManager.EXTRA_CALL_DISCONNECT_CAUSE, disconnectCause);
-            if (disconnectMessage == null) {
-                disconnectMessage = DisconnectCause.toString(disconnectCause);
+        try {
+            if (mRegistry != null) {
+                mRegistry.notifyCallState(phoneState, callHandle);
+                Log.i(this, "Broadcasted state change: %s", mCurrentState);
             }
+        } catch (RemoteException e) {
+            Log.w(this, "RemoteException when notifying TelephonyRegistry of call state change.");
         }
-        if (disconnectMessage != null) {
-            intent.putExtra(TelecommManager.EXTRA_CALL_DISCONNECT_MESSAGE,
-                    call.getDisconnectMessage());
-        }
-
-        TelecommApp.getInstance().sendBroadcast(intent, Manifest.permission.READ_PHONE_STATE);
-        Log.i(this, "Broadcasted state change: %s", phoneState);
     }
 }
