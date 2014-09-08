@@ -627,7 +627,6 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                             new ConnectionRequest(
                                     call.getTargetPhoneAccount(),
                                     call.getHandle(),
-                                    call.getHandlePresentation(),
                                     extras,
                                     call.getVideoState()),
                             call.isIncoming());
