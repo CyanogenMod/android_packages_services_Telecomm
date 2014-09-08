@@ -134,7 +134,7 @@ public final class InCallController extends CallsManagerListenerBase {
     private final CallIdMapper mCallIdMapper = new CallIdMapper("InCall");
 
     /** The {@link ComponentName} of the default InCall UI. */
-    private ComponentName mInCallComponentName;
+    private final ComponentName mInCallComponentName;
 
     public InCallController() {
         Context context = TelecommApp.getInstance();
@@ -242,13 +242,14 @@ public final class InCallController extends CallsManagerListenerBase {
      */
     private void unbind() {
         ThreadUtil.checkOnMainThread();
-        if (!mInCallServices.isEmpty()) {
-            Log.i(this, "Unbinding from InCallService");
-            for (InCallServiceConnection connection : mServiceConnections.values()) {
-                TelecommApp.getInstance().unbindService(connection);
-            }
-            mInCallServices.clear();
+        Iterator<Map.Entry<ComponentName, InCallServiceConnection>> iterator =
+            mServiceConnections.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Log.i(this, "Unbinding from InCallService %s");
+            TelecommApp.getInstance().unbindService(iterator.next().getValue());
+            iterator.remove();
         }
+        mInCallServices.clear();
     }
 
     /**
@@ -261,9 +262,9 @@ public final class InCallController extends CallsManagerListenerBase {
             mServiceConnections.clear();
             Context context = TelecommApp.getInstance();
             PackageManager packageManager = TelecommApp.getInstance().getPackageManager();
-            Intent intent = new Intent(InCallService.SERVICE_INTERFACE);
+            Intent serviceIntent = new Intent(InCallService.SERVICE_INTERFACE);
 
-            for (ResolveInfo entry : packageManager.queryIntentServices(intent, 0)) {
+            for (ResolveInfo entry : packageManager.queryIntentServices(serviceIntent, 0)) {
                 ServiceInfo serviceInfo = entry.serviceInfo;
                 if (serviceInfo != null) {
                     boolean hasServiceBindPermission = serviceInfo.permission != null &&
@@ -290,11 +291,15 @@ public final class InCallController extends CallsManagerListenerBase {
                     InCallServiceConnection inCallServiceConnection = new InCallServiceConnection();
                     ComponentName componentName = new ComponentName(serviceInfo.packageName,
                             serviceInfo.name);
-                    intent.setComponent(componentName);
 
-                    if (context.bindServiceAsUser(intent, inCallServiceConnection,
-                            Context.BIND_AUTO_CREATE, UserHandle.CURRENT)) {
-                        mServiceConnections.put(componentName, inCallServiceConnection);
+                    if (!mServiceConnections.containsKey(componentName)) {
+                        Intent intent = new Intent(InCallService.SERVICE_INTERFACE);
+                        intent.setComponent(componentName);
+
+                        if (context.bindServiceAsUser(intent, inCallServiceConnection,
+                                Context.BIND_AUTO_CREATE, UserHandle.CURRENT)) {
+                            mServiceConnections.put(componentName, inCallServiceConnection);
+                        }
                     }
                 }
             }
@@ -355,31 +360,33 @@ public final class InCallController extends CallsManagerListenerBase {
     private void onDisconnected(ComponentName disconnectedComponent) {
         Log.i(this, "onDisconnected from %s", disconnectedComponent);
         ThreadUtil.checkOnMainThread();
+        Context context = TelecommApp.getInstance();
+
         if (mInCallServices.containsKey(disconnectedComponent)) {
             mInCallServices.remove(disconnectedComponent);
         }
 
-        // If the default in-call UI has disconnected, disconnect all calls and un-bind all other
-        // InCallService implementations.
-        if (disconnectedComponent.equals(mInCallComponentName)) {
-            Log.i(this, "In-call UI %s disconnected.", disconnectedComponent);
-            CallsManager.getInstance().disconnectAllCalls();
+        if (mServiceConnections.containsKey(disconnectedComponent)) {
+            // One of the services that we were bound to has disconnected. If the default in-call UI
+            // has disconnected, disconnect all calls and un-bind all other InCallService
+            // implementations.
+            if (disconnectedComponent.equals(mInCallComponentName)) {
+                Log.i(this, "In-call UI %s disconnected.", disconnectedComponent);
+                CallsManager.getInstance().disconnectAllCalls();
+                unbind();
+            } else {
+                Log.i(this, "In-Call Service %s suddenly disconnected", disconnectedComponent);
+                // Else, if it wasn't the default in-call UI, then one of the other in-call services
+                // disconnected and, well, that's probably their fault.  Clear their state and
+                // ignore.
+                InCallServiceConnection serviceConnection =
+                        mServiceConnections.get(disconnectedComponent);
 
-            // Iterate through the in-call services, removing them as they are un-bound.
-            Iterator<Map.Entry<ComponentName, IInCallService>> it =
-                    mInCallServices.entrySet().iterator();
-            while (it.hasNext()) {
-                Map.Entry<ComponentName, IInCallService> entry = it.next();
-                ComponentName componentName = entry.getKey();
+                // We still need to call unbind even though it disconnected.
+                context.unbindService(serviceConnection);
 
-                InCallServiceConnection connection =  mServiceConnections.remove(componentName);
-                it.remove();
-                if (connection == null) {
-                    continue;
-                }
-
-                Log.i(this, "Unbinding other InCallService %s", componentName);
-                TelecommApp.getInstance().unbindService(connection);
+                mServiceConnections.remove(disconnectedComponent);
+                mInCallServices.remove(disconnectedComponent);
             }
         }
     }
