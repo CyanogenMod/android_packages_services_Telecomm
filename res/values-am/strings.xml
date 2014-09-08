@@ -36,11 +36,6 @@
     <string name="respond_via_sms_edittext_dialog_title" msgid="20379890418289778">"ፈጣን ምላሽ"</string>
     <string name="respond_via_sms_menu_reset_default_activity" msgid="1461742052902053466">"ነባሪውን መተግበሪያ ዳግም አስጀምር"</string>
     <string name="respond_via_sms_confirmation_format" msgid="7229149977515784269">"ለ <xliff:g id="PHONE_NUMBER">%s</xliff:g> የተላከ መልዕክት"</string>
-    <string name="phone_account_preferences_title" msgid="5042332049625236956">"የስልክ መለያ ቅንብሮች"</string>
-    <string name="default_outgoing_account_title" msgid="8261079649574578970">"ነባር ወጪ መለያ"</string>
-    <string name="sim_call_manager_account" msgid="2559930293628077755">"የWi-Fi መደወያ መለያ"</string>
-    <string name="account_ask_every_time" msgid="944077828070287407">"ሁልጊዜ ጊዜ ጠይቅ"</string>
-    <string name="do_not_use_sim_call_manager" msgid="5519252524007323694">"የWi-Fi ጥሪ አይጠቀሙ"</string>
     <string name="outgoing_call_not_allowed" msgid="1434784869685645427">"ይህ ተጠቃሚ የአስቸኳይ አደጋ ያልሆኑ ስልክ ጥሪዎችን እንዲያደርጉ አልተፈቀደላቸውም"</string>
     <string name="outgoing_call_error_no_phone_number_supplied" msgid="4987143284589568716">"ጥሪ አልተላከም፣ ትክክለኛ ቁጥር አልገባም።"</string>
     <string name="no_vm_number" msgid="4164780423805688336">"የድምፅመልዕክት ቁጥርአመለጠ"</string>
