@@ -16,7 +16,6 @@
 
 package com.android.telecomm.testapps;
 
-import android.app.PendingIntent;
 import android.net.Uri;
 import android.telecomm.AudioState;
 import android.telecomm.Conference;
@@ -27,6 +26,7 @@ import android.telecomm.PhoneAccountHandle;
 import android.telecomm.RemoteConference;
 import android.telecomm.RemoteConnection;
 import android.telecomm.StatusHints;
+import android.telecomm.VideoProfile;
 import android.util.Log;
 
 import java.util.ArrayList;
@@ -80,6 +80,9 @@ public class TestConnectionManager extends ConnectionService {
 
             @Override
             public void onVideoStateChanged(RemoteConnection connection, int videoState) {
+                if (videoState == VideoProfile.VideoState.BIDIRECTIONAL) {
+                    setVideoProvider(new TestManagedVideoProvider(connection.getVideoProvider()));
+                }
                 setVideoState(videoState);
             }
 
@@ -122,6 +125,7 @@ public class TestConnectionManager extends ConnectionService {
             mIsIncoming = isIncoming;
             mRemote.addListener(mRemoteListener);
             setState(mRemote.getState());
+            setVideoState(mRemote.getVideoState());
         }
 
         @Override
@@ -266,7 +270,7 @@ public class TestConnectionManager extends ConnectionService {
         }
     }
 
-    private static void log(String msg) {
+    static void log(String msg) {
         Log.w("telecomtestcs", "[TestConnectionManager] " + msg);
     }
 
@@ -299,6 +303,10 @@ public class TestConnectionManager extends ConnectionService {
     @Override
     public void onRemoteConferenceAdded(RemoteConference remoteConference) {
         addConference(new TestManagedConference(remoteConference));
+    }
+
+    Map<RemoteConnection, TestManagedConnection> getManagedConnectionByRemote() {
+        return mManagedConnectionByRemote;
     }
 
     private Connection makeConnection(ConnectionRequest request, boolean incoming) {
