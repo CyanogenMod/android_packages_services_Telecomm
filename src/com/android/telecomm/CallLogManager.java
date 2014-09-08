@@ -196,7 +196,7 @@ final class CallLogManager extends CallsManagerListenerBase {
                 == VideoProfile.VideoState.TX_ENABLED) {
             return Calls.FEATURES_VIDEO;
         }
-        return Calls.FEATURES_NONE;
+        return 0;
     }
 
     /**
