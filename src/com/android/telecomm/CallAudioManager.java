@@ -340,8 +340,14 @@ final class CallAudioManager extends CallsManagerListenerBase
                 // recently used mode instead.
                 requestAudioFocusAndSetMode(
                         AudioManager.STREAM_VOICE_CALL, mMostRecentlyUsedMode);
-            } else {
+            } else if (!hasRingingForegroundCall()) {
                 abandonAudioFocus();
+            } else {
+                // mIsRinging is false, but there is a foreground ringing call present. Don't
+                // abandon audio focus immediately to prevent audio focus from getting lost between
+                // the time it takes for the foreground call to transition from RINGING to ACTIVE/
+                // DISCONNECTED. When the call eventually transitions to the next state, audio
+                // focus will be correctly abandoned by the if clause above.
             }
         }
     }
@@ -469,6 +475,11 @@ final class CallAudioManager extends CallsManagerListenerBase
             call = null;
         }
         return call;
+    }
+
+    private boolean hasRingingForegroundCall() {
+        Call call = CallsManager.getInstance().getForegroundCall();
+        return call != null && call.getState() == CallState.RINGING;
     }
 
     private boolean hasFocus() {
