@@ -24,16 +24,16 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.provider.ContactsContract.Contacts;
-import android.telecomm.Connection;
-import android.telecomm.PhoneCapabilities;
-import android.telecomm.PropertyPresentation;
 import android.telecomm.CallState;
+import android.telecomm.Connection;
 import android.telecomm.GatewayInfo;
 import android.telecomm.ParcelableConnection;
 import android.telecomm.PhoneAccount;
 import android.telecomm.PhoneAccountHandle;
+import android.telecomm.PhoneCapabilities;
 import android.telecomm.Response;
 import android.telecomm.StatusHints;
+import android.telecomm.TelecommManager;
 import android.telecomm.VideoProfile;
 import android.telephony.DisconnectCause;
 import android.telephony.PhoneNumberUtils;
@@ -198,13 +198,17 @@ final class Call implements CreateConnectionResponse {
     /** The handle with which to establish this call. */
     private Uri mHandle;
 
-    /** The {@link PropertyPresentation} that controls how the handle is shown. */
+    /**
+     * The presentation requirements for the handle. See {@link TelecommManager} for valid values.
+     */
     private int mHandlePresentation;
 
     /** The caller display name (CNAP) set by the connection service. */
     private String mCallerDisplayName;
 
-    /** The {@link PropertyPresentation} that controls how the caller display name is shown. */
+    /**
+     * The presentation requirements for the handle. See {@link TelecommManager} for valid values.
+     */
     private int mCallerDisplayNamePresentation;
 
     /**
@@ -304,7 +308,7 @@ final class Call implements CreateConnectionResponse {
         mState = isConference ? CallState.ACTIVE : CallState.NEW;
         mRepository = repository;
         setHandle(handle);
-        setHandle(handle, PropertyPresentation.ALLOWED);
+        setHandle(handle, TelecommManager.PRESENTATION_ALLOWED);
         mGatewayInfo = gatewayInfo;
         mConnectionManagerPhoneAccountHandle = connectionManagerPhoneAccountHandle;
         mTargetPhoneAccountHandle = targetPhoneAccountHandle;
@@ -382,7 +386,7 @@ final class Call implements CreateConnectionResponse {
 
 
     void setHandle(Uri handle) {
-        setHandle(handle, PropertyPresentation.ALLOWED);
+        setHandle(handle, TelecommManager.PRESENTATION_ALLOWED);
     }
 
     void setHandle(Uri handle, int presentation) {
@@ -459,7 +463,7 @@ final class Call implements CreateConnectionResponse {
      */
     public Uri getOriginalHandle() {
         if (mGatewayInfo != null && !mGatewayInfo.isEmpty()) {
-            return mGatewayInfo.getOriginalHandle();
+            return mGatewayInfo.getOriginalAddress();
         }
         return getHandle();
     }
