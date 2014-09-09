@@ -47,8 +47,8 @@ public class PhoneAccountRegistrarTest extends AndroidTestCase {
     public void setUp() {
         mRegistrar = new PhoneAccountRegistrar(getContext(), FILE_NAME);
         mRegistrar.registerPhoneAccount(PhoneAccount.builder(
-                        new PhoneAccountHandle(new ComponentName("pkg0", "cls0"), "id0"),
-                        "label0")
+                new PhoneAccountHandle(new ComponentName("pkg0", "cls0"), "id0"),
+                "label0")
                 .setAddress(Uri.parse("tel:555-1212"))
                 .setSubscriptionAddress(Uri.parse("tel:555-1212"))
                 .setCapabilities(PhoneAccount.CAPABILITY_CONNECTION_MANAGER)
@@ -56,8 +56,8 @@ public class PhoneAccountRegistrarTest extends AndroidTestCase {
                 .setShortDescription("desc0")
                 .build());
         mRegistrar.registerPhoneAccount(PhoneAccount.builder(
-                        new PhoneAccountHandle(new ComponentName("pkg0", "cls0"), "id1"),
-                        "label1")
+                new PhoneAccountHandle(new ComponentName("pkg0", "cls0"), "id1"),
+                "label1")
                 .setAddress(Uri.parse("tel:555-1212"))
                 .setSubscriptionAddress(Uri.parse("tel:555-1212"))
                 .setCapabilities(
@@ -68,8 +68,8 @@ public class PhoneAccountRegistrarTest extends AndroidTestCase {
                 .setShortDescription("desc1")
                 .build());
         mRegistrar.registerPhoneAccount(PhoneAccount.builder(
-                        new PhoneAccountHandle(new ComponentName("pkg1", "cls1"), "id2"),
-                        "label2")
+                new PhoneAccountHandle(new ComponentName("pkg1", "cls1"), "id2"),
+                "label2")
                 .setAddress(Uri.parse("tel:555-1212"))
                 .setSubscriptionAddress(Uri.parse("tel:555-1212"))
                 .setCapabilities(PhoneAccount.CAPABILITY_CALL_PROVIDER)
@@ -77,8 +77,8 @@ public class PhoneAccountRegistrarTest extends AndroidTestCase {
                 .setShortDescription("desc2")
                 .build());
         mRegistrar.registerPhoneAccount(PhoneAccount.builder(
-                        new PhoneAccountHandle(new ComponentName("sippkg", "sipcls"), "id4"),
-                        "label2")
+                new PhoneAccountHandle(new ComponentName("sippkg", "sipcls"), "id4"),
+                "label2")
                 .setAddress(Uri.parse("sip:test@sip.com"))
                 .setSubscriptionAddress(Uri.parse("test"))
                 .setCapabilities(PhoneAccount.CAPABILITY_CALL_PROVIDER)
@@ -87,8 +87,8 @@ public class PhoneAccountRegistrarTest extends AndroidTestCase {
                 .setSupportedUriSchemes(Arrays.asList(PhoneAccount.SCHEME_TEL))
                 .build());
         mRegistrar.registerPhoneAccount(PhoneAccount.builder(
-                        new PhoneAccountHandle(new ComponentName("sippkg", "sipcls"), "id4"),
-                        "label2")
+                new PhoneAccountHandle(new ComponentName("sippkg", "sipcls"), "id4"),
+                "label2")
                 .setAddress(Uri.parse("sip:test@sip.com"))
                 .setSubscriptionAddress(Uri.parse("test"))
                 .setCapabilities(PhoneAccount.CAPABILITY_CALL_PROVIDER)
@@ -207,7 +207,7 @@ public class PhoneAccountRegistrarTest extends AndroidTestCase {
 
     public void testAccounts() throws Exception {
         assertEquals(4, mRegistrar.getAllPhoneAccountHandles().size());
-        assertEquals(3, mRegistrar.getOutgoingPhoneAccounts().size());
+        assertEquals(3, mRegistrar.getEnabledPhoneAccounts().size());
         assertEquals(null, mRegistrar.getSimCallManager());
         assertEquals(null, mRegistrar.getDefaultOutgoingPhoneAccount(PhoneAccount.SCHEME_TEL));
     }
@@ -268,8 +268,8 @@ public class PhoneAccountRegistrarTest extends AndroidTestCase {
         mRegistrar.unregisterPhoneAccount(
                 new PhoneAccountHandle(new ComponentName("pkg1", "cls1"), "id3"));
         mRegistrar.registerPhoneAccount(PhoneAccount.builder(
-                        new PhoneAccountHandle(new ComponentName("pkg0", "cls0"), "id0"),
-                        "label0")
+                new PhoneAccountHandle(new ComponentName("pkg0", "cls0"), "id0"),
+                "label0")
                 .setAddress(Uri.parse("tel:555-1212"))
                 .setSubscriptionAddress(Uri.parse("tel:555-1212"))
                 .setCapabilities(PhoneAccount.CAPABILITY_CONNECTION_MANAGER)
@@ -281,8 +281,8 @@ public class PhoneAccountRegistrarTest extends AndroidTestCase {
 
     private static PhoneAccount makeQuickAccount(String pkg, String cls, String id, int idx) {
         return PhoneAccount.builder(
-                        new PhoneAccountHandle(new ComponentName(pkg, cls), id),
-                        "label" + idx)
+                new PhoneAccountHandle(new ComponentName(pkg, cls), id),
+                "label" + idx)
                 .setAddress(Uri.parse("http://foo.com/" + idx))
                 .setSubscriptionAddress(Uri.parse("tel:555-000" + idx))
                 .setCapabilities(idx)

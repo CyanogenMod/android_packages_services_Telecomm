@@ -296,9 +296,10 @@ public final class CallsManager extends Call.ListenerBase {
 
         // Only dial with the requested phoneAccount if it is still valid. Otherwise treat this call
         // as if a phoneAccount was not specified (does the default behavior instead).
+        // Note: We will not attempt to dial with a requested phoneAccount if it is disabled.
         if (phoneAccountHandle != null) {
             List<PhoneAccountHandle> enabledAccounts =
-                    app.getPhoneAccountRegistrar().getOutgoingPhoneAccounts();
+                    app.getPhoneAccountRegistrar().getEnabledPhoneAccounts(handle.getScheme());
             if (!enabledAccounts.contains(phoneAccountHandle)) {
                 phoneAccountHandle = null;
             }

@@ -192,11 +192,11 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
     }
 
     @Override
-    public List<PhoneAccountHandle> getOutgoingPhoneAccounts() {
+    public List<PhoneAccountHandle> getEnabledPhoneAccounts() {
         try {
-            return mPhoneAccountRegistrar.getOutgoingPhoneAccounts();
+            return mPhoneAccountRegistrar.getEnabledPhoneAccounts();
         } catch (Exception e) {
-            Log.e(this, e, "getOutgoingPhoneAccounts");
+            Log.e(this, e, "getEnabledPhoneAccounts");
             throw e;
         }
     }
@@ -204,7 +204,7 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
     @Override
     public List<PhoneAccountHandle> getPhoneAccountsSupportingScheme(String uriScheme) {
         try {
-            return mPhoneAccountRegistrar.getOutgoingPhoneAccounts(uriScheme);
+            return mPhoneAccountRegistrar.getEnabledPhoneAccounts(uriScheme);
         } catch (Exception e) {
             Log.e(this, e, "getPhoneAccountsSupportingScheme");
             throw e;
@@ -217,6 +217,36 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
             return mPhoneAccountRegistrar.getPhoneAccount(accountHandle);
         } catch (Exception e) {
             Log.e(this, e, "getPhoneAccount %s", accountHandle);
+            throw e;
+        }
+    }
+
+    @Override
+    public int getAllPhoneAccountsCount() {
+        try {
+            return mPhoneAccountRegistrar.getAllPhoneAccountsCount();
+        } catch (Exception e) {
+            Log.e(this, e, "getAllPhoneAccountsCount");
+            throw e;
+        }
+    }
+
+    @Override
+    public List<PhoneAccount> getAllPhoneAccounts() {
+        try {
+            return mPhoneAccountRegistrar.getAllPhoneAccounts();
+        } catch (Exception e) {
+            Log.e(this, e, "getAllPhoneAccounts");
+            throw e;
+        }
+    }
+
+    @Override
+    public List<PhoneAccountHandle> getAllPhoneAccountHandles() {
+        try {
+            return mPhoneAccountRegistrar.getAllPhoneAccountHandles();
+        } catch (Exception e) {
+            Log.e(this, e, "getAllPhoneAccounts");
             throw e;
         }
     }
@@ -246,7 +276,7 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
     @Override
     public List<PhoneAccountHandle> getSimCallManagers() {
         try {
-            return mPhoneAccountRegistrar.getAllConnectionManagerPhoneAccounts();
+            return mPhoneAccountRegistrar.getConnectionManagerPhoneAccounts();
         } catch (Exception e) {
             Log.e(this, e, "getSimCallManagers");
             throw e;
@@ -258,13 +288,44 @@ public class TelecommServiceImpl extends ITelecommService.Stub {
         try {
             enforceModifyPermissionOrCallingPackage(
                     account.getAccountHandle().getComponentName().getPackageName());
-            if (PhoneAccountRegistrar.has(account, PhoneAccount.CAPABILITY_CALL_PROVIDER) ||
-                PhoneAccountRegistrar.has(account, PhoneAccount.CAPABILITY_SIM_SUBSCRIPTION)) {
+            if (account.hasCapabilities(PhoneAccount.CAPABILITY_CALL_PROVIDER) ||
+                account.hasCapabilities(PhoneAccount.CAPABILITY_SIM_SUBSCRIPTION)) {
                 enforceRegisterProviderOrSubscriptionPermission();
             }
+
+            // If the account is marked as enabled or has CAPABILITY_ALWAYS_ENABLED set, check to
+            // ensure the caller has modify permission.  If they do not, set the account to be
+            // disabled and remove CAPABILITY_ALWAYS_ENABLED.
+            if (account.isEnabled() ||
+                    account.hasCapabilities(PhoneAccount.CAPABILITY_ALWAYS_ENABLED)) {
+                try {
+                    enforceModifyPermission();
+                } catch (SecurityException e) {
+                    // Caller does not have modify permission, so change account to disabled by
+                    // default and remove the CAPABILITY_ALWAYS_ENABLED capability.
+                    int capabilities = account.getCapabilities() &
+                            ~PhoneAccount.CAPABILITY_ALWAYS_ENABLED;
+                    account = account.toBuilder()
+                            .setEnabled(false)
+                            .setCapabilities(capabilities)
+                            .build();
+                }
+            }
+
             mPhoneAccountRegistrar.registerPhoneAccount(account);
         } catch (Exception e) {
             Log.e(this, e, "registerPhoneAccount %s", account);
+            throw e;
+        }
+    }
+
+    @Override
+    public void setPhoneAccountEnabled(PhoneAccountHandle account, boolean isEnabled) {
+        try {
+            enforceModifyPermission();
+            mPhoneAccountRegistrar.setPhoneAccountEnabled(account, isEnabled);
+        } catch (Exception e) {
+            Log.e(this, e, "setPhoneAccountEnabled %s %d", account, isEnabled ? 1 : 0);
             throw e;
         }
     }

@@ -78,7 +78,7 @@ public final class PhoneAccountRegistrar {
 
     private static final String FILE_NAME = "phone-account-registrar-state.xml";
     @VisibleForTesting
-    public static final int EXPECTED_STATE_VERSION = 2;
+    public static final int EXPECTED_STATE_VERSION = 3;
 
     /** Keep in sync with the same in SipSettings.java */
     private static final String SIP_SHARED_PREFERENCES = "SIP_PREFERENCES";
@@ -118,7 +118,7 @@ public final class PhoneAccountRegistrar {
             }
         }
 
-        List<PhoneAccountHandle> outgoing = getOutgoingPhoneAccounts(uriScheme);
+        List<PhoneAccountHandle> outgoing = getEnabledPhoneAccounts(uriScheme);
         switch (outgoing.size()) {
             case 0:
                 // There are no accounts, so there can be no default
@@ -166,7 +166,8 @@ public final class PhoneAccountRegistrar {
                 return;
             }
 
-            if (!has(getPhoneAccount(accountHandle), PhoneAccount.CAPABILITY_CALL_PROVIDER)) {
+            if (!getPhoneAccount(accountHandle).hasCapabilities(
+                    PhoneAccount.CAPABILITY_CALL_PROVIDER)) {
                 Log.w(this, "Trying to set non-call-provider default outgoing %s",
                         accountHandle);
                 return;
@@ -189,7 +190,8 @@ public final class PhoneAccountRegistrar {
             if (callManagerAccount == null) {
                 Log.d(this, "setSimCallManager: Nonexistent call manager: %s", callManager);
                 return;
-            } else if (!has(callManagerAccount, PhoneAccount.CAPABILITY_CONNECTION_MANAGER)) {
+            } else if (!callManagerAccount.hasCapabilities(
+                    PhoneAccount.CAPABILITY_CONNECTION_MANAGER)) {
                 Log.d(this, "setSimCallManager: Not a call manager: %s", callManagerAccount);
                 return;
             }
@@ -251,6 +253,11 @@ public final class PhoneAccountRegistrar {
         return null;
     }
 
+    /**
+     * Retrieves a list of all {@link PhoneAccountHandle}s registered.
+     *
+     * @return The list of {@link PhoneAccountHandle}s.
+     */
     public List<PhoneAccountHandle> getAllPhoneAccountHandles() {
         List<PhoneAccountHandle> accountHandles = new ArrayList<>();
         for (PhoneAccount m : mState.accounts) {
@@ -263,17 +270,45 @@ public final class PhoneAccountRegistrar {
         return new ArrayList<>(mState.accounts);
     }
 
-    public List<PhoneAccountHandle> getOutgoingPhoneAccounts() {
+    /**
+     * Determines the number of enabled and disabled {@link PhoneAccount}s.
+     *
+     * @return The number of enabled and disabled {@link PhoneAccount}s
+     */
+    public int getAllPhoneAccountsCount() {
+        return mState.accounts.size();
+    }
+
+    /**
+     * Retrieves a list of all enabled call provider phone accounts.
+     *
+     * @return The phone account handles.
+     */
+    public List<PhoneAccountHandle> getEnabledPhoneAccounts() {
         return getPhoneAccountHandles(PhoneAccount.CAPABILITY_CALL_PROVIDER);
     }
 
-    public List<PhoneAccountHandle> getOutgoingPhoneAccounts(String uriScheme) {
-        return getPhoneAccountHandles(PhoneAccount.CAPABILITY_CALL_PROVIDER, uriScheme);
+    /**
+     * Retrieves a list of all enabled phone account call provider phone accounts supporting the
+     * specified URI scheme.
+     *
+     * @param uriScheme The URI scheme.
+     * @return The phone account handles.
+     */
+    public List<PhoneAccountHandle> getEnabledPhoneAccounts(String uriScheme) {
+        return getPhoneAccountHandles(PhoneAccount.CAPABILITY_CALL_PROVIDER, uriScheme,
+                false /* includeDisabled */);
     }
 
-    public List<PhoneAccountHandle> getAllConnectionManagerPhoneAccounts() {
+    /**
+     * Retrieves a list of all enabled phone account handles with the connection manager capability.
+     *
+     * @return The phone account handles.
+     */
+    public List<PhoneAccountHandle> getConnectionManagerPhoneAccounts() {
         if (isEnabledConnectionManager()) {
-            return getPhoneAccountHandles(PhoneAccount.CAPABILITY_CONNECTION_MANAGER);
+            return getPhoneAccountHandles(PhoneAccount.CAPABILITY_CONNECTION_MANAGER,
+                    null /* supportedUriScheme */, false /* includeDisabled */);
         }
         return Collections.emptyList();
     }
@@ -285,6 +320,43 @@ public final class PhoneAccountRegistrar {
             }
         }
         return null;
+    }
+
+    /**
+     * Changes the enabled state of the {@link PhoneAccount} identified by a
+     * {@link PhoneAccountHandle}.
+     *
+     * @param handle The {@link PhoneAccountHandle}.
+     * @param isEnabled The new enabled state of the {@link PhoneAccount}.
+     */
+    public void setPhoneAccountEnabled(PhoneAccountHandle handle, boolean isEnabled) {
+        PhoneAccount existing = getPhoneAccount(handle);
+        if (existing.isEnabled() == isEnabled) {
+            return;
+        }
+
+        // Do not permit PhoneAccounts which are marked as always enabled to be disabled.
+        if (existing.hasCapabilities(PhoneAccount.CAPABILITY_ALWAYS_ENABLED)) {
+            return;
+        }
+
+        // If we are disabling the current default outgoing phone account or Sim call manager we
+        // need to null out those preferences.
+        if (!isEnabled) {
+            if (mState.defaultOutgoing != null && mState.defaultOutgoing.equals(handle)) {
+                setUserSelectedOutgoingPhoneAccount(null);
+            }
+
+            if (mState.simCallManager != null && mState.simCallManager.equals(handle)) {
+                setSimCallManager(null);
+            }
+        }
+
+
+        PhoneAccount.Builder builder = existing.toBuilder().setEnabled(isEnabled);
+        PhoneAccount replacement = builder.build();
+
+        addOrReplacePhoneAccount(replacement);
     }
 
     // TODO: Should we implement an artificial limit for # of accounts associated with a single
@@ -299,6 +371,22 @@ public final class PhoneAccountRegistrar {
                     "PhoneAccount connection service requires BIND_CONNECTION_SERVICE permission.");
         }
 
+        // If there is an existing PhoneAccount already registered with this handle, copy its
+        // enabled state to the new phone account.
+        PhoneAccount existing = getPhoneAccount(account.getAccountHandle());
+        if (existing != null) {
+            account = account.toBuilder().setEnabled(existing.isEnabled()).build();
+        }
+
+        addOrReplacePhoneAccount(account);
+    }
+
+    /**
+     * Adds a {@code PhoneAccount}, replacing an existing one if found.
+     *
+     * @param account The {@code PhoneAccount} to add or replace.
+     */
+    private void addOrReplacePhoneAccount(PhoneAccount account) {
         mState.accounts.add(account);
         // Search for duplicates and remove any that are found.
         for (int i = 0; i < mState.accounts.size() - 1; i++) {
@@ -406,33 +494,32 @@ public final class PhoneAccountRegistrar {
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
 
-    // TODO: Add a corresponding has(...) method to class PhoneAccount itself and remove this one
-    // Return true iff the given account has all the specified capability flags
-    static boolean has(PhoneAccount account, int capability) {
-        return (account.getCapabilities() & capability) == capability;
-    }
-
     /**
      * Returns a list of phone account handles with the specified flag.
      *
      * @param flags Flags which the {@code PhoneAccount} must have.
      */
     private List<PhoneAccountHandle> getPhoneAccountHandles(int flags) {
-        return getPhoneAccountHandles(flags, null);
+        return getPhoneAccountHandles(flags, null, false /* includeDisabled */);
     }
 
     /**
      * Returns a list of phone account handles with the specified flag, supporting the specified
-     * URI scheme.
+     * URI scheme.  By default, only enabled phone accounts are included, unless the
+     * {@code includeDisabled} parameter is set {@code true}.
      *
      * @param flags Flags which the {@code PhoneAccount} must have.
      * @param uriScheme URI schemes the PhoneAccount must handle.  {@code Null} bypasses the
      *                  URI scheme check.
+     * @param includeDisabled When {@code true}, the list of phone accounts handles includes those
+     *                        which are marked as disabled.
      */
-    private List<PhoneAccountHandle> getPhoneAccountHandles(int flags, String uriScheme) {
+    private List<PhoneAccountHandle> getPhoneAccountHandles(int flags, String uriScheme,
+            boolean includeDisabled) {
         List<PhoneAccountHandle> accountHandles = new ArrayList<>();
         for (PhoneAccount m : mState.accounts) {
-            if (has(m, flags) && (uriScheme == null || m.supportsUriScheme(uriScheme))) {
+            if ((includeDisabled || m.isEnabled()) && m.hasCapabilities(flags) &&
+                    (uriScheme == null || m.supportsUriScheme(uriScheme))) {
                 accountHandles.add(m.getAccountHandle());
             }
         }
@@ -596,7 +683,6 @@ public final class PhoneAccountRegistrar {
                     if (toSerialize != null ){
                         serializer.text(toSerialize);
                     }
-
                     serializer.endTag(null, VALUE_TAG);
                 }
             } else {
@@ -628,6 +714,7 @@ public final class PhoneAccountRegistrar {
             int outerDepth = parser.getDepth();
             while (XmlUtils.nextElementWithin(parser, outerDepth)) {
                 if (parser.getName().equals(VALUE_TAG)) {
+                    parser.next();
                     value = parser.getText();
                     arrayEntries.add(value);
                 }
@@ -725,6 +812,9 @@ public final class PhoneAccountRegistrar {
         private static final String LABEL = "label";
         private static final String SHORT_DESCRIPTION = "short_description";
         private static final String SUPPORTED_URI_SCHEMES = "supported_uri_schemes";
+        private static final String ENABLED = "enabled";
+        private static final String TRUE = "true";
+        private static final String FALSE = "false";
 
         @Override
         public void writeToXml(PhoneAccount o, XmlSerializer serializer)
@@ -745,6 +835,7 @@ public final class PhoneAccountRegistrar {
                 writeTextSafely(LABEL, o.getLabel(), serializer);
                 writeTextSafely(SHORT_DESCRIPTION, o.getShortDescription(), serializer);
                 writeStringList(SUPPORTED_URI_SCHEMES, o.getSupportedUriSchemes(), serializer);
+                writeTextSafely(ENABLED, o.isEnabled() ? TRUE : FALSE, serializer);
 
                 serializer.endTag(null, CLASS_PHONE_ACCOUNT);
             }
@@ -762,6 +853,7 @@ public final class PhoneAccountRegistrar {
                 String label = null;
                 String shortDescription = null;
                 List<String> supportedUriSchemes = null;
+                boolean enabled = false;
 
                 while (XmlUtils.nextElementWithin(parser, outerDepth)) {
                     if (parser.getName().equals(ACCOUNT_HANDLE)) {
@@ -789,6 +881,9 @@ public final class PhoneAccountRegistrar {
                         shortDescription = parser.getText();
                     } else if (parser.getName().equals(SUPPORTED_URI_SCHEMES)) {
                         supportedUriSchemes = readStringList(parser);
+                    } else if (parser.getName().equals(ENABLED)) {
+                        parser.next();
+                        enabled = parser.getText().equals(TRUE);
                     }
                 }
 
@@ -813,6 +908,17 @@ public final class PhoneAccountRegistrar {
                     }
                 }
 
+                // Prior to version 3, PhoneAccounts didn't include the enabled option.  Enable
+                // all TelephonyConnectionService phone accounts by default.
+                if (version < 3) {
+                    ComponentName telephonyComponentName = new ComponentName("com.android.phone",
+                            "com.android.services.telephony.TelephonyConnectionService");
+
+                    if (accountHandle.getComponentName().equals(telephonyComponentName)) {
+                        enabled = true;
+                    }
+                }
+
                 return PhoneAccount.builder(accountHandle, label)
                         .setAddress(address)
                         .setSubscriptionAddress(subscriptionAddress)
@@ -820,6 +926,7 @@ public final class PhoneAccountRegistrar {
                         .setIconResId(iconResId)
                         .setShortDescription(shortDescription)
                         .setSupportedUriSchemes(supportedUriSchemes)
+                        .setEnabled(enabled)
                         .build();
             }
             return null;
