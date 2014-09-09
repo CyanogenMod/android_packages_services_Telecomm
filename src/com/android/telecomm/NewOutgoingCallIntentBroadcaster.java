@@ -199,6 +199,7 @@ class NewOutgoingCallIntentBroadcaster {
         Log.v(this, "isPotentialEmergencyNumber = %s", isPotentialEmergencyNumber);
 
         rewriteCallIntentAction(intent, isPotentialEmergencyNumber);
+        action = intent.getAction();
         // True for certain types of numbers that are not intended to be intercepted or modified
         // by third parties (e.g. emergency numbers).
         boolean callImmediately = false;
