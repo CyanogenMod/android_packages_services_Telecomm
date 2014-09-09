@@ -310,7 +310,7 @@ public class TestConnectionService extends ConnectionService {
             Uri providedHandle = extras.getParcelable(EXTRA_HANDLE);
 
             // Use dummy number for testing incoming calls.
-            Uri handle = providedHandle == null ?
+            Uri address = providedHandle == null ?
                     Uri.fromParts(PhoneAccount.SCHEME_TEL, getDummyNumber(isVideoCall), null)
                     : providedHandle;
             if (isVideoCall) {
@@ -326,13 +326,13 @@ public class TestConnectionService extends ConnectionService {
                     VideoProfile.VideoState.BIDIRECTIONAL :
                     VideoProfile.VideoState.AUDIO_ONLY;
             connection.setVideoState(videoState);
-            connection.setHandle(handle, TelecommManager.PRESENTATION_ALLOWED);
+            connection.setAddress(address, TelecommManager.PRESENTATION_ALLOWED);
 
             addCall(connection);
 
             ConnectionRequest newRequest = new ConnectionRequest(
                     request.getAccountHandle(),
-                    handle,
+                    address,
                     request.getExtras(),
                     videoState);
             connection.setVideoState(videoState);
