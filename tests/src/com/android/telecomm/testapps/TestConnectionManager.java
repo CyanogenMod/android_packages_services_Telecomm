@@ -165,7 +165,7 @@ public class TestConnectionManager extends ConnectionService {
         }
 
         @Override
-        public void onSetAudioState(AudioState state) {
+        public void onAudioStateChanged(AudioState state) {
             mRemote.setAudioState(state);
         }
 

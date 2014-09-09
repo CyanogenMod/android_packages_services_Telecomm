@@ -837,10 +837,6 @@ final class Call implements CreateConnectionResponse {
         mConnectionService.onPostDialContinue(this, proceed);
     }
 
-    void phoneAccountClicked() {
-        mConnectionService.onPhoneAccountClicked(this);
-    }
-
     void conferenceWith(Call otherCall) {
         if (mConnectionService == null) {
             Log.w(this, "conference requested on a call without a connection service.");
