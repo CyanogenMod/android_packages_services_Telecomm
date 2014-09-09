@@ -75,6 +75,14 @@ public class CallReceiver extends BroadcastReceiver {
             clientExtras.putBoolean(TelephonyProperties.EXTRA_DIAL_CONFERENCE_URI, isConferenceUri);
         }
 
+        boolean isAddParticipant = intent.getBooleanExtra(
+                TelephonyProperties.ADD_PARTICIPANT_KEY, false);
+        Log.d(this, "isAddparticipant = "+isAddParticipant);
+        if (isAddParticipant) {
+            if (clientExtras == null) clientExtras = new Bundle();
+            clientExtras.putBoolean(TelephonyProperties.ADD_PARTICIPANT_KEY, isAddParticipant);
+        }
+
         if (clientExtras == null) {
             clientExtras = Bundle.EMPTY;
         }

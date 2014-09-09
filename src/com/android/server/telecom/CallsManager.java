@@ -502,6 +502,30 @@ public final class CallsManager extends Call.ListenerBase {
     }
 
     /**
+     * Attempts to add participant in a call.
+     *
+     * @param handle Handle to connect the call with.
+     * @param gatewayInfo Optional gateway information that can be used to route the call to the
+     *        actual dialed handle via a gateway provider. May be null.
+     * @param speakerphoneOn Whether or not to turn the speakerphone on once the call connects.
+     * @param videoState The desired video state for the outgoing call.
+     */
+    void addParticipant(Call call, Uri handle, GatewayInfo gatewayInfo, boolean speakerphoneOn,
+            int videoState) {
+        if (call == null) {
+            // don't do anything if the call no longer exists
+            Log.i(this, "Canceling unknown call.");
+            return;
+        }
+
+        if (call.getTargetPhoneAccount() != null) {
+            // If the account has been set, proceed to place the add participant.
+            // Otherwise the connection will be initiated when the account is set by the user.
+            call.startCreateConnection();
+        }
+    }
+
+    /**
      * Attempts to start a conference call for the specified call.
      *
      * @param call The call to conference.
