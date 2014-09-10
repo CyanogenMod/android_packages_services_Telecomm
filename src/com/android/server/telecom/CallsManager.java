@@ -719,7 +719,7 @@ public final class CallsManager extends Call.ListenerBase {
                 PhoneAccountHandle ph1 = c.getTargetPhoneAccount();
                 // if 'c' is not for same subscription as call, then don't disturb 'c'
                 if (c != null && c.isAlive() && c != call && (ph != null
-                        && ph.getId().equals(ph1.getId()))) {
+                        && ph1 != null && ph.getId().equals(ph1.getId()))) {
                     c.hold();
                 }
             }
@@ -931,7 +931,7 @@ public final class CallsManager extends Call.ListenerBase {
             PhoneAccountHandle otherCallPh = otherCall.getTargetPhoneAccount();
             // if 'otherCall' is not for same subscription as 'call', then don't consider it
             if (call != otherCall && otherCall.getParentCall() == null && ph != null
-                    && ph.getId().equals(otherCallPh.getId())) {
+                    && otherCallPh != null && ph.getId().equals(otherCallPh.getId())) {
                 return false;
             }
         }
@@ -1507,8 +1507,10 @@ public final class CallsManager extends Call.ListenerBase {
         } else {
             Log.i(this, "setActiveSubscription changed " );
             for (Call call : mCalls) {
-                call.mIsActiveSub = call.getTargetPhoneAccount()
-                        .getId().equals(subId) ? true : false;
+                PhoneAccountHandle ph = call.getTargetPhoneAccount();
+                if (ph != null) {
+                    call.mIsActiveSub = ph.getId().equals(subId) ? true : false;
+                }
                 for (CallsManagerListener listener : mListeners) {
                     listener.onCallStateChanged(call, call.getState(), call.getState());
                 }
@@ -1583,13 +1585,15 @@ public final class CallsManager extends Call.ListenerBase {
         for (int currentState : states) {
             // check the foreground first
             if (mForegroundCall != null && mForegroundCall.getState() == currentState
+                    && (mForegroundCall.getTargetPhoneAccount() != null)
                     && mForegroundCall.getTargetPhoneAccount().getId().equals(sub)) {
                 return mForegroundCall;
             }
 
             for (Call call : mCalls) {
                 if ((currentState == call.getState()) &&
-                        call.getTargetPhoneAccount().getId().equals(sub)) {
+                        (call.getTargetPhoneAccount() != null) &&
+                        (call.getTargetPhoneAccount().getId().equals(sub))) {
                     return call;
                 }
             }
