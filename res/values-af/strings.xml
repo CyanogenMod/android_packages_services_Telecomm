@@ -36,11 +36,6 @@
     <string name="respond_via_sms_edittext_dialog_title" msgid="20379890418289778">"Vinnige antwoord"</string>
     <string name="respond_via_sms_menu_reset_default_activity" msgid="1461742052902053466">"Stel verstek program terug"</string>
     <string name="respond_via_sms_confirmation_format" msgid="7229149977515784269">"Boodskap gestuur na <xliff:g id="PHONE_NUMBER">%s</xliff:g>."</string>
-    <string name="phone_account_preferences_title" msgid="5042332049625236956">"Foonrekeninginstellings"</string>
-    <string name="default_outgoing_account_title" msgid="8261079649574578970">"Verstek uitgaande rekening"</string>
-    <string name="sim_call_manager_account" msgid="2559930293628077755">"Wi-Fi-oproeprekening"</string>
-    <string name="account_ask_every_time" msgid="944077828070287407">"Vra elke keer"</string>
-    <string name="do_not_use_sim_call_manager" msgid="5519252524007323694">"Moenie Wi-Fi vir oproepe gebruik nie"</string>
     <string name="outgoing_call_not_allowed" msgid="1434784869685645427">"Hierdie gebruiker word nie toegelaat om nienood-foonoproepe te maak nie"</string>
     <string name="outgoing_call_error_no_phone_number_supplied" msgid="4987143284589568716">"Oproep nie gestuur nie; geen geldige nommer is ingevoer nie."</string>
     <string name="no_vm_number" msgid="4164780423805688336">"Vermiste stemboodskapnommer"</string>
