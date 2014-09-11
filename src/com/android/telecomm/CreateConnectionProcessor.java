@@ -235,31 +235,39 @@ final class CreateConnectionProcessor {
         if (TelephonyUtil.shouldProcessAsEmergency(TelecommApp.getInstance(), mCall.getHandle())) {
             Log.i(this, "Emergency number detected");
             mAttemptRecords.clear();
-            List<PhoneAccountHandle> allAccountHandles = TelecommApp.getInstance()
-                    .getPhoneAccountRegistrar().getOutgoingPhoneAccounts();
-            // First, add the PSTN phone account
-            for (int i = 0; i < allAccountHandles.size(); i++) {
-                if (TelephonyUtil.isPstnComponentName(
-                        allAccountHandles.get(i).getComponentName())) {
-                    Log.i(this, "Will try PSTN account %s for emergency", allAccountHandles.get(i));
+            List<PhoneAccount> allAccounts = TelecommApp.getInstance()
+                    .getPhoneAccountRegistrar().getAllPhoneAccounts();
+            // First, add SIM phone accounts which can place emergency calls.
+            for (PhoneAccount phoneAccount : allAccounts) {
+                if (phoneAccount.hasCapabilities(PhoneAccount.CAPABILITY_PLACE_EMERGENCY_CALLS) &&
+                        phoneAccount.hasCapabilities(PhoneAccount.CAPABILITY_SIM_SUBSCRIPTION)) {
+                    Log.i(this, "Will try PSTN account %s for emergency",
+                            phoneAccount.getAccountHandle());
                     mAttemptRecords.add(
                             new CallAttemptRecord(
-                                    allAccountHandles.get(i),
-                                    allAccountHandles.get(i)));
+                                    phoneAccount.getAccountHandle(),
+                                    phoneAccount.getAccountHandle()));
                 }
             }
 
-            // Next, add the connection manager account as a backup.
-            PhoneAccountHandle callManager = TelecommApp.getInstance()
+            // Next, add the connection manager account as a backup if it can place emergency calls.
+            PhoneAccountHandle callManagerHandle = TelecommApp.getInstance()
                     .getPhoneAccountRegistrar().getSimCallManager();
-            CallAttemptRecord callAttemptRecord = new CallAttemptRecord(callManager,
-                    TelecommApp.getInstance().getPhoneAccountRegistrar().
-                            getDefaultOutgoingPhoneAccount(mCall.getHandle().getScheme()));
+            if (callManagerHandle != null) {
+                PhoneAccount callManager = TelecommApp.getInstance()
+                        .getPhoneAccountRegistrar().getPhoneAccount(callManagerHandle);
+                if (callManager.hasCapabilities(PhoneAccount.CAPABILITY_PLACE_EMERGENCY_CALLS)) {
+                    CallAttemptRecord callAttemptRecord = new CallAttemptRecord(callManagerHandle,
+                            TelecommApp.getInstance().getPhoneAccountRegistrar().
+                                    getDefaultOutgoingPhoneAccount(mCall.getHandle().getScheme())
+                    );
 
-            if (callManager != null && !mAttemptRecords.contains(callAttemptRecord)) {
-                Log.i(this, "Will try Connection Manager account %s for emergency",
-                        callManager);
-                mAttemptRecords.add(callAttemptRecord);
+                    if (!mAttemptRecords.contains(callAttemptRecord)) {
+                        Log.i(this, "Will try Connection Manager account %s for emergency",
+                                callManager);
+                        mAttemptRecords.add(callAttemptRecord);
+                    }
+                }
             }
         }
     }
