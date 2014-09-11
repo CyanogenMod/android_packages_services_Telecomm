@@ -575,14 +575,6 @@ public final class CallsManager extends Call.ListenerBase {
         mProximitySensorManager.turnOff(screenOnImmediately);
     }
 
-    void phoneAccountClicked(Call call) {
-        if (!mCalls.contains(call)) {
-            Log.i(this, "phoneAccountClicked in a non-existent call %s", call);
-        } else {
-            call.phoneAccountClicked();
-        }
-    }
-
     void phoneAccountSelected(Call call, PhoneAccountHandle account) {
         if (!mCalls.contains(call)) {
             Log.i(this, "Attemped to add account to unknown call %s", call);
