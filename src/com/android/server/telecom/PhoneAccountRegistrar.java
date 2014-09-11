@@ -31,6 +31,8 @@ import android.telecom.TelecomManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.net.Uri;
+import android.telephony.SubscriptionManager;
+import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 import android.util.AtomicFile;
 import android.util.Xml;
@@ -144,6 +146,10 @@ public final class PhoneAccountRegistrar {
     }
 
     PhoneAccountHandle getUserSelectedOutgoingPhoneAccount() {
+        if (TelephonyManager.getDefault().getPhoneCount() > 1) {
+            return getUserSelectedVoicePhoneAccount();
+        }
+
         if (mState.defaultOutgoing != null) {
             // Return the registered outgoing default iff it still exists (we keep a sticky
             // default to survive account deletion and re-addition)
@@ -156,6 +162,36 @@ public final class PhoneAccountRegistrar {
             // as though there were no default
         }
         return null;
+    }
+
+    PhoneAccountHandle getUserSelectedVoicePhoneAccount() {
+        long voiceSubId = SubscriptionManager.getDefaultVoiceSubId();
+        boolean isVoicePrompt = SubscriptionManager.isVoicePromptEnabled();
+        PhoneAccountHandle prefPhoneAccount = null;
+
+        Log.i(this, "getUserSelVoicePhoneAccount, voice subId = " + voiceSubId
+                 + " prompt = " + isVoicePrompt);
+        if (!isVoicePrompt) {
+            for (int i = 0; i < mState.accounts.size(); i++) {
+                String id = mState.accounts.get(i).getAccountHandle().getId();
+
+                // emergency account present return it
+                if (id.equals("E")) {
+                   Log.i(this, "getUserSelVoicePhoneAccount, emergency account ");
+                   return mState.accounts.get(i).getAccountHandle();
+                }
+
+                long subId = Long.parseLong(id);
+                Log.i(this, "getUserSelectedVoicePhoneAccount, voice subId = "
+                         + voiceSubId + " subId = " + subId + " mId = " + id);
+                if (subId == voiceSubId) {
+                    prefPhoneAccount = mState.accounts.get(i).getAccountHandle();
+                    break;
+                }
+            }
+        }
+
+        return prefPhoneAccount;
     }
 
     public void setUserSelectedOutgoingPhoneAccount(PhoneAccountHandle accountHandle) {
@@ -187,8 +223,36 @@ public final class PhoneAccountRegistrar {
             mState.defaultOutgoing = accountHandle;
         }
 
+        setDefaultVoicePhoneAccount(mState.defaultOutgoing);
         write();
         fireDefaultOutgoingChanged();
+    }
+
+    private void setDefaultVoicePhoneAccount(PhoneAccountHandle accountHandle) {
+        boolean voicePrompt = SubscriptionManager.isVoicePromptEnabled();
+        Log.d(this, "set voice default, prompt =  " + voicePrompt);
+
+        if (mState.defaultOutgoing == null) {
+            List<PhoneAccountHandle> outgoing = getOutgoingPhoneAccounts();
+            if ((outgoing != null) && (outgoing.size() > 1) && (voicePrompt != true)) {
+                SubscriptionManager.setVoicePromptEnabled(true);
+            }
+        } else {
+            String id = mState.defaultOutgoing.getId();
+            // Return from here, only emergency account available
+            if (id.equals("E")) {
+                Log.i(this, "setDefaultVoicePhoneAccount, only emergency account present ");
+                return;
+            }
+            long subId = Long.parseLong(mState.defaultOutgoing.getId());
+            Log.i(this, "set voice default subId as  " + subId + " prmotp = " + voicePrompt);
+            if (SubscriptionManager.getDefaultVoiceSubId() != subId) {
+                SubscriptionManager.setDefaultVoiceSubId(subId);
+            }
+            if (voicePrompt == true) {
+                SubscriptionManager.setVoicePromptEnabled(false);
+            }
+        }
     }
 
     public void setSimCallManager(PhoneAccountHandle callManager) {
