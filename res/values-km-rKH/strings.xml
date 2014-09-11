@@ -36,11 +36,6 @@
     <string name="respond_via_sms_edittext_dialog_title" msgid="20379890418289778">"ឆ្លើយតប​រហ័ស"</string>
     <string name="respond_via_sms_menu_reset_default_activity" msgid="1461742052902053466">"កំណត់​កម្មវិធី​លំនាំដើម​ឡើងវិញ"</string>
     <string name="respond_via_sms_confirmation_format" msgid="7229149977515784269">"បាន​ផ្ញើ​សារ​ទៅ <xliff:g id="PHONE_NUMBER">%s</xliff:g> ។"</string>
-    <string name="phone_account_preferences_title" msgid="5042332049625236956">"ការកំណត់​គណនី​ទូរស័ព្ទ"</string>
-    <string name="default_outgoing_account_title" msgid="8261079649574578970">"គណនី​ចេញ​លំនាំដើម"</string>
-    <string name="sim_call_manager_account" msgid="2559930293628077755">"គណនី​ហៅ​តាម​វ៉ាយហ្វាយ"</string>
-    <string name="account_ask_every_time" msgid="944077828070287407">"សួរ​ជានិច្ច"</string>
-    <string name="do_not_use_sim_call_manager" msgid="5519252524007323694">"កុំ​ប្រើ​ការ​ហៅ​តាម​វ៉ាយហ្វាយ"</string>
     <string name="outgoing_call_not_allowed" msgid="1434784869685645427">"អ្នក​ប្រើ​ម្នាក់​នេះ​មិន​ត្រូវ​បាន​អនុញ្ញាត​ឲ្យ​បង្កើត​កា​រ​ហៅ​ទូរស័ព្ទ​ពេល​មិន​អាសន្ន"</string>
     <string name="outgoing_call_error_no_phone_number_supplied" msgid="4987143284589568716">"មិន​បាន​ផ្ញើ​ការ​ហៅ បាន​បញ្ចូល​លេខ​​​មិន​ត្រឹមត្រូវ។"</string>
     <string name="no_vm_number" msgid="4164780423805688336">"បាត់​​ចំនួន​​សារ​ជា​សំឡេង"</string>
