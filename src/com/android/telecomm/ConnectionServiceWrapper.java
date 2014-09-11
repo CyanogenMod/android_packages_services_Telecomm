@@ -610,14 +610,14 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                 GatewayInfo gatewayInfo = call.getGatewayInfo();
                 Bundle extras = call.getExtras();
                 if (gatewayInfo != null && gatewayInfo.getGatewayProviderPackageName() != null &&
-                        gatewayInfo.getOriginalHandle() != null) {
+                        gatewayInfo.getOriginalAddress() != null) {
                     extras = (Bundle) extras.clone();
                     extras.putString(
                             NewOutgoingCallIntentBroadcaster.EXTRA_GATEWAY_PROVIDER_PACKAGE,
                             gatewayInfo.getGatewayProviderPackageName());
                     extras.putParcelable(
                             NewOutgoingCallIntentBroadcaster.EXTRA_GATEWAY_ORIGINAL_URI,
-                            gatewayInfo.getOriginalHandle());
+                            gatewayInfo.getOriginalAddress());
                 }
 
                 try {

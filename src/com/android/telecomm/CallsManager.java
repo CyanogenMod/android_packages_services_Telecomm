@@ -361,7 +361,7 @@ public final class CallsManager extends Call.ListenerBase {
             return;
         }
 
-        final Uri uriHandle = (gatewayInfo == null) ? handle : gatewayInfo.getGatewayHandle();
+        final Uri uriHandle = (gatewayInfo == null) ? handle : gatewayInfo.getGatewayAddress();
 
         if (gatewayInfo == null) {
             Log.i(this, "Creating a new outgoing call with handle: %s", Log.piiHandle(uriHandle));
