@@ -36,11 +36,6 @@
     <string name="respond_via_sms_edittext_dialog_title" msgid="20379890418289778">"ദ്രുത പ്രതികരണം"</string>
     <string name="respond_via_sms_menu_reset_default_activity" msgid="1461742052902053466">"സ്ഥിര അപ്ലിക്കേഷൻ പുനഃസജ്ജമാക്കുക"</string>
     <string name="respond_via_sms_confirmation_format" msgid="7229149977515784269">"<xliff:g id="PHONE_NUMBER">%s</xliff:g> എന്നതിലേക്ക് സന്ദേശമയച്ചു."</string>
-    <string name="phone_account_preferences_title" msgid="5042332049625236956">"ഫോൺ അക്കൗണ്ട് ക്രമീകരണങ്ങൾ"</string>
-    <string name="default_outgoing_account_title" msgid="8261079649574578970">"സ്ഥിര ഔട്ട്ഗോയിംഗ് അക്കൗണ്ട്"</string>
-    <string name="sim_call_manager_account" msgid="2559930293628077755">"Wi-Fi കോൾ ചെയ്യൽ അക്കൗണ്ട്"</string>
-    <string name="account_ask_every_time" msgid="944077828070287407">"ഓരോ തവണയും ചോദിക്കുക"</string>
-    <string name="do_not_use_sim_call_manager" msgid="5519252524007323694">"Wi-Fi കോൾ ചെയ്യൽ ഉപയോഗിക്കരുത്"</string>
     <string name="outgoing_call_not_allowed" msgid="1434784869685645427">"അത്യാവശ്യമല്ലാത്ത ഫോൺ കോളുകൾ ചെയ്യാൻ ഈ ഉപയോക്താവിനെ അനുവദിക്കുന്നില്ല"</string>
     <string name="outgoing_call_error_no_phone_number_supplied" msgid="4987143284589568716">"കോൾ ചെയ്യാനായില്ല, സാധുവായ നമ്പറൊന്നും നൽകിയിട്ടില്ല."</string>
     <string name="no_vm_number" msgid="4164780423805688336">"വോയ്‌സ്മെയിൽ നമ്പർ കാണുന്നില്ല"</string>
