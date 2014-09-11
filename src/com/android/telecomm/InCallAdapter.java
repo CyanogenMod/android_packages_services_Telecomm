@@ -37,17 +37,16 @@ class InCallAdapter extends IInCallAdapter.Stub {
     private static final int MSG_DISCONNECT_CALL = 5;
     private static final int MSG_HOLD_CALL = 6;
     private static final int MSG_UNHOLD_CALL = 7;
-    private static final int MSG_PHONE_ACCOUNT_CLICKED = 8;
-    private static final int MSG_MUTE = 9;
-    private static final int MSG_SET_AUDIO_ROUTE = 10;
-    private static final int MSG_CONFERENCE = 11;
-    private static final int MSG_SPLIT_FROM_CONFERENCE = 12;
-    private static final int MSG_SWAP_WITH_BACKGROUND_CALL = 13;
-    private static final int MSG_PHONE_ACCOUNT_SELECTED = 14;
-    private static final int MSG_TURN_ON_PROXIMITY_SENSOR = 15;
-    private static final int MSG_TURN_OFF_PROXIMITY_SENSOR = 16;
-    private static final int MSG_MERGE_CONFERENCE = 17;
-    private static final int MSG_SWAP_CONFERENCE = 18;
+    private static final int MSG_MUTE = 8;
+    private static final int MSG_SET_AUDIO_ROUTE = 9;
+    private static final int MSG_CONFERENCE = 10;
+    private static final int MSG_SPLIT_FROM_CONFERENCE = 11;
+    private static final int MSG_SWAP_WITH_BACKGROUND_CALL = 12;
+    private static final int MSG_PHONE_ACCOUNT_SELECTED = 13;
+    private static final int MSG_TURN_ON_PROXIMITY_SENSOR = 14;
+    private static final int MSG_TURN_OFF_PROXIMITY_SENSOR = 15;
+    private static final int MSG_MERGE_CONFERENCE = 16;
+    private static final int MSG_SWAP_CONFERENCE = 17;
 
     private final class InCallAdapterHandler extends Handler {
         @Override
@@ -133,14 +132,6 @@ class InCallAdapter extends IInCallAdapter.Stub {
                         mCallsManager.unholdCall(call);
                     } else {
                         Log.w(this, "unholdCall, unknown call id: %s", msg.obj);
-                    }
-                    break;
-                case MSG_PHONE_ACCOUNT_CLICKED:
-                    call = mCallIdMapper.getCall(msg.obj);
-                    if (call != null) {
-                        mCallsManager.phoneAccountClicked(call);
-                    } else {
-                        Log.w(this, "phoneAccountClicked, unknown call id: %s", msg.obj);
                     }
                     break;
                 case MSG_PHONE_ACCOUNT_SELECTED: {
@@ -289,13 +280,6 @@ class InCallAdapter extends IInCallAdapter.Stub {
     public void unholdCall(String callId) {
         if (mCallIdMapper.isValidCallId(callId)) {
             mHandler.obtainMessage(MSG_UNHOLD_CALL, callId).sendToTarget();
-        }
-    }
-
-    @Override
-    public void phoneAccountClicked(String callId) {
-        if (mCallIdMapper.isValidCallId(callId)) {
-            mHandler.obtainMessage(MSG_PHONE_ACCOUNT_CLICKED, callId).sendToTarget();
         }
     }
 
