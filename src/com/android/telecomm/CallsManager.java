@@ -751,6 +751,9 @@ public final class CallsManager extends Call.ListenerBase {
                 true /* isConference */);
 
         setCallState(call, Call.getStateFromConnectionState(parcelableConference.getState()));
+        if (call.getState() == CallState.ACTIVE) {
+            call.setConnectTimeMillis(System.currentTimeMillis());
+        }
         call.setCallCapabilities(parcelableConference.getCapabilities());
 
         // TODO: Move this to be a part of addCall()

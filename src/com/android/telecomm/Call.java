@@ -190,7 +190,7 @@ final class Call implements CreateConnectionResponse {
 
     private PhoneAccountHandle mPhoneAccountHandle;
 
-    private long mConnectTimeMillis = System.currentTimeMillis();
+    private long mConnectTimeMillis = 0;
 
     /** The state of the call. */
     private int mState;
