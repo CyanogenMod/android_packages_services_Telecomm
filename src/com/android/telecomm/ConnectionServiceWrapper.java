@@ -810,17 +810,6 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
         }
     }
 
-    void onPhoneAccountClicked(Call call) {
-        final String callId = mCallIdMapper.getCallId(call);
-        if (callId != null && isServiceValid("onPhoneAccountClicked")) {
-            try {
-                logOutgoing("onPhoneAccountClicked %s", callId);
-                mServiceInterface.onPhoneAccountClicked(callId);
-            } catch (RemoteException ignored) {
-            }
-        }
-    }
-
     void conference(final Call call, Call otherCall) {
         final String callId = mCallIdMapper.getCallId(call);
         final String otherCallId = mCallIdMapper.getCallId(otherCall);

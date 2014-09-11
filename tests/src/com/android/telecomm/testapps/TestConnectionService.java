@@ -217,7 +217,7 @@ public class TestConnectionService extends ConnectionService {
         }
 
         @Override
-        public void onSetAudioState(AudioState state) { }
+        public void onAudioStateChanged(AudioState state) { }
 
         public void setTestVideoCallProvider(TestVideoProvider testVideoCallProvider) {
             mTestVideoCallProvider = testVideoCallProvider;
