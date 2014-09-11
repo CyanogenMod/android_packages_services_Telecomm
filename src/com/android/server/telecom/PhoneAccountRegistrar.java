@@ -221,7 +221,37 @@ public final class PhoneAccountRegistrar {
         if (account != null) {
             return mState.defaultOutgoing;
         }
+        if (TelephonyManager.getDefault().getPhoneCount() > 1 &&
+                   mSubscriptionManager.getActiveSubscriptionInfoCount() == 1) {
+            return getUserSelectedVoicePhoneAccount();
+        }
         return null;
+    }
+
+    PhoneAccountHandle getUserSelectedVoicePhoneAccount() {
+        long voiceSubId = SubscriptionManager.getDefaultVoiceSubId();
+        PhoneAccountHandle prefPhoneAccount = null;
+
+        Log.i(this, "getUserSelVoicePhoneAccount, voice subId = " + voiceSubId);
+        for (int i = 0; i < mState.accounts.size(); i++) {
+            String id = mState.accounts.get(i).getAccountHandle().getId();
+
+            // emergency account present return it
+            if (id.equals("E")) {
+                Log.i(this, "getUserSelVoicePhoneAccount, emergency account ");
+                return mState.accounts.get(i).getAccountHandle();
+            }
+
+            long subId = Long.parseLong(id);
+            Log.i(this, "getUserSelectedVoicePhoneAccount, voice subId = "
+                         + voiceSubId + " subId = " + subId + " mId = " + id);
+            if (subId == voiceSubId) {
+                prefPhoneAccount = mState.accounts.get(i).getAccountHandle();
+                break;
+            }
+        }
+
+        return prefPhoneAccount;
     }
 
     /**
