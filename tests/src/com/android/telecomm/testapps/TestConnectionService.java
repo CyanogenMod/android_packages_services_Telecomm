@@ -28,12 +28,12 @@ import android.telecomm.Conference;
 import android.telecomm.Connection;
 import android.telecomm.PhoneAccount;
 import android.telecomm.PhoneCapabilities;
-import android.telecomm.PropertyPresentation;
 import android.telecomm.ConnectionRequest;
 import android.telecomm.ConnectionService;
 import android.telecomm.PhoneAccountHandle;
 import android.telecomm.RemoteConnection;
 import android.telecomm.StatusHints;
+import android.telecomm.TelecommManager;
 import android.telecomm.VideoProfile;
 import android.telephony.DisconnectCause;
 import android.util.Log;
@@ -330,7 +330,7 @@ public class TestConnectionService extends ConnectionService {
                     VideoProfile.VideoState.BIDIRECTIONAL :
                     VideoProfile.VideoState.AUDIO_ONLY;
             connection.setVideoState(videoState);
-            connection.setHandle(handle, PropertyPresentation.ALLOWED);
+            connection.setHandle(handle, TelecommManager.PRESENTATION_ALLOWED);
 
             addCall(connection);
 
