@@ -18,6 +18,8 @@ package com.android.telecomm;
 
 import android.Manifest;
 import android.content.Intent;
+import android.content.pm.ActivityInfo;
+import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.content.pm.ServiceInfo;
@@ -352,11 +354,12 @@ public final class PhoneAccountRegistrar {
             }
         }
 
-
         PhoneAccount.Builder builder = existing.toBuilder().setEnabled(isEnabled);
         PhoneAccount replacement = builder.build();
-
         addOrReplacePhoneAccount(replacement);
+
+        // Notify the package which registered this PhoneAccount of its new enabled state.
+        notifyPhoneAccountEnabledStateChanged(replacement.getAccountHandle(), isEnabled);
     }
 
     // TODO: Should we implement an artificial limit for # of accounts associated with a single
@@ -524,6 +527,46 @@ public final class PhoneAccountRegistrar {
             }
         }
         return accountHandles;
+    }
+
+    /**
+     * Notifies the package which registered a {@link PhoneAccount} that it has been enabled.
+     * Only broadcasts the intent if the package has a {@link android.content.BroadcastReceiver}
+     * registered for the intent.
+     *
+     * @param phoneAccountHandle The {@link PhoneAccountHandle} which has been enabled or disabled.
+     * @param isEnabled {@code True} if the {@link PhoneAccount} is enabled, false otherwise.
+     */
+    private void notifyPhoneAccountEnabledStateChanged(PhoneAccountHandle phoneAccountHandle,
+            boolean isEnabled) {
+        Intent intent;
+
+        if (isEnabled) {
+            intent = new Intent(TelecommManager.ACTION_PHONE_ACCOUNT_ENABLED);
+        } else {
+            intent = new Intent(TelecommManager.ACTION_PHONE_ACCOUNT_DISABLED);
+        }
+        intent.setPackage(phoneAccountHandle.getComponentName().getPackageName());
+        intent.putExtra(TelecommManager.EXTRA_PHONE_ACCOUNT_HANDLE, phoneAccountHandle);
+
+        if (isReceiverListening(intent)) {
+            Log.i(this, "notifyPhoneAccountEnabledState %s %s", phoneAccountHandle,
+                    (isEnabled ? "enabled" : "disabled"));
+            mContext.sendBroadcast(intent);
+        }
+    }
+
+    /**
+     * Determines there is a {@link android.content.BroadcastReceiver} listening for an
+     * {@link Intent}.
+     *
+     * @param intent The {@link Intent}.
+     * @return {@code True} if there is a listener.
+     */
+    private boolean isReceiverListening(Intent intent) {
+        PackageManager pm = mContext.getPackageManager();
+        final List<ResolveInfo> activities = pm.queryBroadcastReceivers(intent, 0);
+        return !(activities.isEmpty());
     }
 
     /**
