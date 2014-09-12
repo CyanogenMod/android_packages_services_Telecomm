@@ -74,7 +74,7 @@ class RingbackPlayer extends CallsManagerListenerBase {
     }
 
     @Override
-    public void onRequestingRingback(Call call, boolean ignored) {
+    public void onRingbackRequested(Call call, boolean ignored) {
         if (shouldStartRinging(call)) {
             startRingbackForCall(call);
         } else {
@@ -137,6 +137,6 @@ class RingbackPlayer extends CallsManagerListenerBase {
         return call != null
                 && mCallsManager.getForegroundCall() == call
                 && call.getState() == CallState.DIALING
-                && call.isRequestingRingback();
+                && call.isRingbackRequested();
     }
 }
