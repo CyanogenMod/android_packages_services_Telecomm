@@ -123,7 +123,7 @@ final class CallLogManager extends CallsManagerListenerBase {
      *     {@link android.provider.CallLog.Calls#OUTGOING_TYPE}
      *     {@link android.provider.CallLog.Calls#MISSED_TYPE}
      */
-    private void logCall(Call call, int callLogType) {
+    void logCall(Call call, int callLogType) {
         final long creationTime = call.getCreationTimeMillis();
         final long age = call.getAgeMillis();
 
