@@ -78,7 +78,7 @@ final class CallAudioManager extends CallsManagerListenerBase
         if (hasFocus()) {
             if (CallsManager.getInstance().getCalls().isEmpty()) {
                 Log.v(this, "all calls removed, reseting system audio to default state");
-                setInitialAudioState(null);
+                setInitialAudioState(null, false /* force */);
                 mWasSpeakerOn = false;
             }
             updateAudioStreamAndMode();
@@ -260,18 +260,23 @@ final class CallAudioManager extends CallsManagerListenerBase
 
         // If we transition from not voice call to voice call, we need to set an initial state.
         if (wasNotVoiceCall && mAudioFocusStreamType == AudioManager.STREAM_VOICE_CALL) {
-            setInitialAudioState(call);
+            setInitialAudioState(call, true /* force */);
         }
     }
 
     private void setSystemAudioState(boolean isMuted, int route, int supportedRouteMask) {
+        setSystemAudioState(false /* force */, isMuted, route, supportedRouteMask);
+    }
+
+    private void setSystemAudioState(
+            boolean force, boolean isMuted, int route, int supportedRouteMask) {
         if (!hasFocus()) {
             return;
         }
 
         AudioState oldAudioState = mAudioState;
         saveAudioState(new AudioState(isMuted, route, supportedRouteMask));
-        if (Objects.equals(oldAudioState, mAudioState)) {
+        if (!force && Objects.equals(oldAudioState, mAudioState)) {
             return;
         }
         Log.i(this, "changing audio state from %s to %s", oldAudioState, mAudioState);
@@ -444,10 +449,11 @@ final class CallAudioManager extends CallsManagerListenerBase
         return new AudioState(false, route, supportedRouteMask);
     }
 
-    private void setInitialAudioState(Call call) {
+    private void setInitialAudioState(Call call, boolean force) {
         AudioState audioState = getInitialAudioState(call);
         Log.v(this, "setInitialAudioState %s, %s", audioState, call);
-        setSystemAudioState(audioState.isMuted, audioState.route, audioState.supportedRouteMask);
+        setSystemAudioState(
+                force, audioState.isMuted, audioState.route, audioState.supportedRouteMask);
     }
 
     private void updateAudioForForegroundCall() {
