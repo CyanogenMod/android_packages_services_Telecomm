@@ -24,9 +24,15 @@ import android.net.Uri;
 import java.lang.String;
 
 /**
- * Captures {@code android.intent.action.PACKAGE_REMOVED} intents and triggers the removal of
- * associated {@link android.telecomm.PhoneAccount}s via the
+ * Captures {@code android.intent.action.ACTION_PACKAGE_FULLY_REMOVED} intents and triggers the
+ * removal of associated {@link android.telecomm.PhoneAccount}s via the
  * {@link com.android.telecomm.PhoneAccountRegistrar}.
+ * Note: This class listens for the {@code PACKAGE_FULLY_REMOVED} intent rather than
+ * {@code PACKAGE_REMOVED} as {@code PACKAGE_REMOVED} is triggered on re-installation of the same
+ * package, where {@code PACKAGE_FULLY_REMOVED} is triggered only when an application is completely
+ * uninstalled.  This is desirable as we do not wish to un-register all
+ * {@link android.telecomm.PhoneAccount}s associated with a package being re-installed to ensure
+ * the enabled state of the accounts is retained.
  */
 public class PhoneAccountBroadcastReceiver extends BroadcastReceiver {
     /**
@@ -37,7 +43,7 @@ public class PhoneAccountBroadcastReceiver extends BroadcastReceiver {
      */
     @Override
     public void onReceive(Context context, Intent intent) {
-        if (Intent.ACTION_PACKAGE_REMOVED.equals(intent.getAction())) {
+        if (Intent.ACTION_PACKAGE_FULLY_REMOVED.equals(intent.getAction())) {
             Uri uri = intent.getData();
             if (uri == null) {
                 return;
