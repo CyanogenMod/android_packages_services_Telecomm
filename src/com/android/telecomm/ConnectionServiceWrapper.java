@@ -28,12 +28,12 @@ import android.telecomm.Connection;
 import android.telecomm.ConnectionRequest;
 import android.telecomm.ConnectionService;
 import android.telecomm.GatewayInfo;
-
 import android.telecomm.ParcelableConference;
 import android.telecomm.ParcelableConnection;
 import android.telecomm.PhoneAccount;
 import android.telecomm.PhoneAccountHandle;
 import android.telecomm.StatusHints;
+import android.telecomm.TelecommManager;
 import android.telecomm.VideoProfile;
 import android.telephony.DisconnectCause;
 
@@ -612,10 +612,10 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                         gatewayInfo.getOriginalAddress() != null) {
                     extras = (Bundle) extras.clone();
                     extras.putString(
-                            NewOutgoingCallIntentBroadcaster.EXTRA_GATEWAY_PROVIDER_PACKAGE,
+                            TelecommManager.GATEWAY_PROVIDER_PACKAGE,
                             gatewayInfo.getGatewayProviderPackageName());
                     extras.putParcelable(
-                            NewOutgoingCallIntentBroadcaster.EXTRA_GATEWAY_ORIGINAL_URI,
+                            TelecommManager.GATEWAY_ORIGINAL_ADDRESS,
                             gatewayInfo.getOriginalAddress());
                 }
 
