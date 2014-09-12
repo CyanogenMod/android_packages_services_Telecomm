@@ -97,7 +97,7 @@ public class CallServiceNotifier {
         TelecommManager telecommManager =
                 (TelecommManager) context.getSystemService(Context.TELECOMM_SERVICE);
 
-        telecommManager.clearAccounts(context.getPackageName());
+        telecommManager.clearAccounts();
 
         telecommManager.registerPhoneAccount(PhoneAccount.builder(
                         new PhoneAccountHandle(

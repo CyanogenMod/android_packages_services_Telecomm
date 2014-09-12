@@ -51,11 +51,6 @@ import java.util.Random;
  * TODO: Rename all classes in the directory to Dummy* (e.g., DummyConnectionService).
  */
 public class TestConnectionService extends ConnectionService {
-    public static final String EXTRA_GATEWAY_PROVIDER_PACKAGE =
-            "com.android.phone.extra.GATEWAY_PROVIDER_PACKAGE";
-    public static final String EXTRA_GATEWAY_ORIGINAL_URI =
-            "com.android.phone.extra.GATEWAY_ORIGINAL_URI";
-
     /**
      * Intent extra used to pass along whether a call is video or audio based on the user's choice
      * in the notification.
@@ -267,8 +262,8 @@ public class TestConnectionService extends ConnectionService {
         }
 
         Bundle extras = originalRequest.getExtras();
-        String gatewayPackage = extras.getString(EXTRA_GATEWAY_PROVIDER_PACKAGE);
-        Uri originalHandle = extras.getParcelable(EXTRA_GATEWAY_ORIGINAL_URI);
+        String gatewayPackage = extras.getString(TelecommManager.GATEWAY_PROVIDER_PACKAGE);
+        Uri originalHandle = extras.getParcelable(TelecommManager.GATEWAY_ORIGINAL_ADDRESS);
 
         log("gateway package [" + gatewayPackage + "], original handle [" +
                 originalHandle + "]");
@@ -316,7 +311,8 @@ public class TestConnectionService extends ConnectionService {
 
             // Use dummy number for testing incoming calls.
             Uri handle = providedHandle == null ?
-                    Uri.fromParts(PhoneAccount.SCHEME_TEL, getDummyNumber(isVideoCall), null) : providedHandle;
+                    Uri.fromParts(PhoneAccount.SCHEME_TEL, getDummyNumber(isVideoCall), null)
+                    : providedHandle;
             if (isVideoCall) {
                 TestVideoProvider testVideoCallProvider =
                         new TestVideoProvider(getApplicationContext());
