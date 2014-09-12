@@ -16,7 +16,6 @@
 
 package com.android.telecomm;
 
-import android.app.PendingIntent;
 import android.content.ComponentName;
 import android.net.Uri;
 import android.os.Bundle;
@@ -943,7 +942,7 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
         // Make a list of ConnectionServices that are listed as being associated with SIM accounts
         final Set<ConnectionServiceWrapper> simServices = Collections.newSetFromMap(
                 new ConcurrentHashMap<ConnectionServiceWrapper, Boolean>(8, 0.9f, 1));
-        for (PhoneAccountHandle handle : registrar.getOutgoingPhoneAccounts()) {
+        for (PhoneAccountHandle handle : registrar.getEnabledPhoneAccounts()) {
             PhoneAccount account = registrar.getPhoneAccount(handle);
             if ((account.getCapabilities() & PhoneAccount.CAPABILITY_SIM_SUBSCRIPTION) != 0) {
                 ConnectionServiceWrapper service =
