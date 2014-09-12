@@ -228,16 +228,17 @@ final class CallAudioManager extends CallsManagerListenerBase
             return;
         }
 
+        int supportedRoutes = calculateSupportedRoutes();
         int newRoute = mAudioState.route;
         if (bluetoothManager.isBluetoothAudioConnectedOrPending()) {
             newRoute = AudioState.ROUTE_BLUETOOTH;
         } else if (mAudioState.route == AudioState.ROUTE_BLUETOOTH) {
-            newRoute = AudioState.ROUTE_WIRED_OR_EARPIECE;
+            newRoute = selectWiredOrEarpiece(AudioState.ROUTE_WIRED_OR_EARPIECE, supportedRoutes);
             // Do not switch to speaker when bluetooth disconnects.
             mWasSpeakerOn = false;
         }
 
-        setSystemAudioState(mAudioState.isMuted, newRoute, calculateSupportedRoutes());
+        setSystemAudioState(mAudioState.isMuted, newRoute, supportedRoutes);
     }
 
     boolean isBluetoothAudioOn() {
