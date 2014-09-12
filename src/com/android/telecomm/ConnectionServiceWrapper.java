@@ -65,7 +65,7 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
     private static final int MSG_SET_DIALING = 4;
     private static final int MSG_SET_DISCONNECTED = 5;
     private static final int MSG_SET_ON_HOLD = 6;
-    private static final int MSG_SET_REQUESTING_RINGBACK = 7;
+    private static final int MSG_SET_RINGBACK_REQUESTED = 7;
     private static final int MSG_SET_CALL_CAPABILITIES = 8;
     private static final int MSG_SET_IS_CONFERENCED = 9;
     private static final int MSG_ADD_CONFERENCE_CALL = 10;
@@ -73,9 +73,9 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
     private static final int MSG_ON_POST_DIAL_WAIT = 12;
     private static final int MSG_QUERY_REMOTE_CALL_SERVICES = 13;
     private static final int MSG_SET_VIDEO_PROVIDER = 14;
-    private static final int MSG_SET_AUDIO_MODE_IS_VOIP = 15;
+    private static final int MSG_SET_IS_VOIP_AUDIO_MODE = 15;
     private static final int MSG_SET_STATUS_HINTS = 16;
-    private static final int MSG_SET_HANDLE = 17;
+    private static final int MSG_SET_ADDRESS = 17;
     private static final int MSG_SET_CALLER_DISPLAY_NAME = 18;
     private static final int MSG_SET_VIDEO_STATE = 19;
     private static final int MSG_SET_CONFERENCEABLE_CONNECTIONS = 20;
@@ -147,10 +147,10 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                         //Log.w(this, "setOnHold, unknown call id: %s", msg.obj);
                     }
                     break;
-                case MSG_SET_REQUESTING_RINGBACK: {
+                case MSG_SET_RINGBACK_REQUESTED: {
                     call = mCallIdMapper.getCall(msg.obj);
                     if (call != null) {
-                        call.setRequestingRingback(msg.arg1 == 1);
+                        call.setRingbackRequested(msg.arg1 == 1);
                     } else {
                         //Log.w(this, "setRingback, unknown call id: %s", args.arg1);
                     }
@@ -263,10 +263,10 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                     }
                     break;
                 }
-                case MSG_SET_AUDIO_MODE_IS_VOIP: {
+                case MSG_SET_IS_VOIP_AUDIO_MODE: {
                     call = mCallIdMapper.getCall(msg.obj);
                     if (call != null) {
-                        call.setAudioModeIsVoip(msg.arg1 == 1);
+                        call.setIsVoipAudioMode(msg.arg1 == 1);
                     }
                     break;
                 }
@@ -283,7 +283,7 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                     }
                     break;
                 }
-                case MSG_SET_HANDLE: {
+                case MSG_SET_ADDRESS: {
                     SomeArgs args = (SomeArgs) msg.obj;
                     try {
                         call = mCallIdMapper.getCall(args.arg1);
@@ -416,10 +416,10 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
         }
 
         @Override
-        public void setRequestingRingback(String callId, boolean ringback) {
-            logIncoming("setRequestingRingback %s %b", callId, ringback);
+        public void setRingbackRequested(String callId, boolean ringback) {
+            logIncoming("setRingbackRequested %s %b", callId, ringback);
             if (mCallIdMapper.isValidCallId(callId)) {
-                mHandler.obtainMessage(MSG_SET_REQUESTING_RINGBACK, ringback ? 1 : 0, 0, callId)
+                mHandler.obtainMessage(MSG_SET_RINGBACK_REQUESTED, ringback ? 1 : 0, 0, callId)
                         .sendToTarget();
             }
         }
@@ -492,10 +492,10 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
         }
 
         @Override
-        public void setAudioModeIsVoip(String callId, boolean isVoip) {
-            logIncoming("setAudioModeIsVoip %s %b", callId, isVoip);
+        public void setIsVoipAudioMode(String callId, boolean isVoip) {
+            logIncoming("setIsVoipAudioMode %s %b", callId, isVoip);
             if (mCallIdMapper.isValidCallId(callId)) {
-                mHandler.obtainMessage(MSG_SET_AUDIO_MODE_IS_VOIP, isVoip ? 1 : 0, 0,
+                mHandler.obtainMessage(MSG_SET_IS_VOIP_AUDIO_MODE, isVoip ? 1 : 0, 0,
                         callId).sendToTarget();
             }
         }
@@ -512,14 +512,14 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
         }
 
         @Override
-        public void setHandle(String callId, Uri handle, int presentation) {
-            logIncoming("setHandle %s %s %d", callId, handle, presentation);
+        public void setAddress(String callId, Uri address, int presentation) {
+            logIncoming("setAddress %s %s %d", callId, address, presentation);
             if (mCallIdMapper.isValidCallId(callId)) {
                 SomeArgs args = SomeArgs.obtain();
                 args.arg1 = callId;
-                args.arg2 = handle;
+                args.arg2 = address;
                 args.argi1 = presentation;
-                mHandler.obtainMessage(MSG_SET_HANDLE, args).sendToTarget();
+                mHandler.obtainMessage(MSG_SET_ADDRESS, args).sendToTarget();
             }
         }
 

@@ -55,9 +55,9 @@ public final class CallsManager extends Call.ListenerBase {
         void onIncomingCallRejected(Call call, boolean rejectWithMessage, String textMessage);
         void onForegroundCallChanged(Call oldForegroundCall, Call newForegroundCall);
         void onAudioStateChanged(AudioState oldAudioState, AudioState newAudioState);
-        void onRequestingRingback(Call call, boolean ringback);
+        void onRingbackRequested(Call call, boolean ringback);
         void onIsConferencedChanged(Call call);
-        void onAudioModeIsVoipChanged(Call call);
+        void onIsVoipAudioModeChanged(Call call);
         void onVideoStateChanged(Call call);
     }
 
@@ -171,9 +171,9 @@ public final class CallsManager extends Call.ListenerBase {
     }
 
     @Override
-    public void onRequestingRingback(Call call, boolean ringback) {
+    public void onRingbackRequested(Call call, boolean ringback) {
         for (CallsManagerListener listener : mListeners) {
-            listener.onRequestingRingback(call, ringback);
+            listener.onRingbackRequested(call, ringback);
         }
     }
 
@@ -197,9 +197,9 @@ public final class CallsManager extends Call.ListenerBase {
     }
 
     @Override
-    public void onAudioModeIsVoipChanged(Call call) {
+    public void onIsVoipAudioModeChanged(Call call) {
         for (CallsManagerListener listener : mListeners) {
-            listener.onAudioModeIsVoipChanged(call);
+            listener.onIsVoipAudioModeChanged(call);
         }
     }
 
