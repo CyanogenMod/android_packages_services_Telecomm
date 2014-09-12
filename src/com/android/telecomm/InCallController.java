@@ -36,7 +36,7 @@ import android.telecomm.CallState;
 import android.telecomm.InCallService;
 import android.telecomm.ParcelableCall;
 import android.telecomm.PhoneCapabilities;
-import android.telecomm.PropertyPresentation;
+import android.telecomm.TelecommManager;
 import android.util.ArrayMap;
 
 import com.android.internal.telecomm.IInCallService;
@@ -464,10 +464,10 @@ public final class InCallController extends CallsManagerListenerBase {
             capabilities |= PhoneCapabilities.RESPOND_VIA_TEXT;
         }
 
-        Uri handle = call.getHandlePresentation() == PropertyPresentation.ALLOWED ?
+        Uri handle = call.getHandlePresentation() == TelecommManager.PRESENTATION_ALLOWED ?
                 call.getHandle() : null;
         String callerDisplayName = call.getCallerDisplayNamePresentation() ==
-                PropertyPresentation.ALLOWED ?  call.getCallerDisplayName() : null;
+                TelecommManager.PRESENTATION_ALLOWED ?  call.getCallerDisplayName() : null;
 
         List<Call> conferenceableCalls = call.getConferenceableCalls();
         List<String> conferenceableCallIds = new ArrayList<String>(conferenceableCalls.size());
