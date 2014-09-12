@@ -71,7 +71,7 @@ final class Call implements CreateConnectionResponse {
         void onFailedOutgoingCall(Call call, int errorCode, String errorMsg);
         void onSuccessfulIncomingCall(Call call);
         void onFailedIncomingCall(Call call);
-        void onRequestingRingback(Call call, boolean requestingRingback);
+        void onRingbackRequested(Call call, boolean ringbackRequested);
         void onPostDialWait(Call call, String remaining);
         void onCallCapabilitiesChanged(Call call);
         void onParentChanged(Call call);
@@ -79,7 +79,7 @@ final class Call implements CreateConnectionResponse {
         void onCannedSmsResponsesLoaded(Call call);
         void onVideoCallProviderChanged(Call call);
         void onCallerInfoChanged(Call call);
-        void onAudioModeIsVoipChanged(Call call);
+        void onIsVoipAudioModeChanged(Call call);
         void onStatusHintsChanged(Call call);
         void onHandleChanged(Call call);
         void onCallerDisplayNameChanged(Call call);
@@ -100,7 +100,7 @@ final class Call implements CreateConnectionResponse {
         @Override
         public void onFailedIncomingCall(Call call) {}
         @Override
-        public void onRequestingRingback(Call call, boolean requestingRingback) {}
+        public void onRingbackRequested(Call call, boolean ringbackRequested) {}
         @Override
         public void onPostDialWait(Call call, String remaining) {}
         @Override
@@ -116,7 +116,7 @@ final class Call implements CreateConnectionResponse {
         @Override
         public void onCallerInfoChanged(Call call) {}
         @Override
-        public void onAudioModeIsVoipChanged(Call call) {}
+        public void onIsVoipAudioModeChanged(Call call) {}
         @Override
         public void onStatusHintsChanged(Call call) {}
         @Override
@@ -260,7 +260,7 @@ final class Call implements CreateConnectionResponse {
     private int mQueryToken = 0;
 
     /** Whether this call is requesting that Telecomm play the ringback tone on its behalf. */
-    private boolean mRequestingRingback = false;
+    private boolean mRingbackRequested = false;
 
     /** Whether direct-to-voicemail query is pending. */
     private boolean mDirectToVoicemailQueryPending;
@@ -281,7 +281,7 @@ final class Call implements CreateConnectionResponse {
 
     private IVideoProvider mVideoProvider;
 
-    private boolean mAudioModeIsVoip;
+    private boolean mIsVoipAudioMode;
     private StatusHints mStatusHints;
     private final ConnectionServiceRepository mRepository;
 
@@ -361,15 +361,15 @@ final class Call implements CreateConnectionResponse {
         }
     }
 
-    void setRequestingRingback(boolean requestingRingback) {
-        mRequestingRingback = requestingRingback;
+    void setRingbackRequested(boolean ringbackRequested) {
+        mRingbackRequested = ringbackRequested;
         for (Listener l : mListeners) {
-            l.onRequestingRingback(this, mRequestingRingback);
+            l.onRingbackRequested(this, mRingbackRequested);
         }
     }
 
-    boolean isRequestingRingback() {
-        return mRequestingRingback;
+    boolean isRingbackRequested() {
+        return mRingbackRequested;
     }
 
     boolean isConference() {
@@ -632,8 +632,8 @@ final class Call implements CreateConnectionResponse {
         setCallCapabilities(connection.getCapabilities());
         setVideoProvider(connection.getVideoProvider());
         setVideoState(connection.getVideoState());
-        setRequestingRingback(connection.isRequestingRingback());
-        setAudioModeIsVoip(connection.getAudioModeIsVoip());
+        setRingbackRequested(connection.isRingbackRequested());
+        setIsVoipAudioMode(connection.getIsVoipAudioMode());
         setStatusHints(connection.getStatusHints());
 
         mConferenceableCalls.clear();
@@ -1190,14 +1190,14 @@ final class Call implements CreateConnectionResponse {
         }
     }
 
-    public boolean getAudioModeIsVoip() {
-        return mAudioModeIsVoip;
+    public boolean getIsVoipAudioMode() {
+        return mIsVoipAudioMode;
     }
 
-    public void setAudioModeIsVoip(boolean audioModeIsVoip) {
-        mAudioModeIsVoip = audioModeIsVoip;
+    public void setIsVoipAudioMode(boolean audioModeIsVoip) {
+        mIsVoipAudioMode = audioModeIsVoip;
         for (Listener l : mListeners) {
-            l.onAudioModeIsVoipChanged(this);
+            l.onIsVoipAudioModeChanged(this);
         }
     }
 
