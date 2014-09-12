@@ -59,7 +59,7 @@ class CallsManagerListenerBase implements CallsManager.CallsManagerListener {
     }
 
     @Override
-    public void onRequestingRingback(Call call, boolean ringback) {
+    public void onRingbackRequested(Call call, boolean ringback) {
     }
 
     @Override
@@ -67,7 +67,7 @@ class CallsManagerListenerBase implements CallsManager.CallsManagerListener {
     }
 
     @Override
-    public void onAudioModeIsVoipChanged(Call call) {
+    public void onIsVoipAudioModeChanged(Call call) {
     }
 
     @Override

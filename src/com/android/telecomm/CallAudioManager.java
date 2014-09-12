@@ -114,7 +114,7 @@ final class CallAudioManager extends CallsManagerListenerBase
     }
 
     @Override
-    public void onAudioModeIsVoipChanged(Call call) {
+    public void onIsVoipAudioModeChanged(Call call) {
         updateAudioStreamAndMode();
     }
 
@@ -331,7 +331,7 @@ final class CallAudioManager extends CallsManagerListenerBase
         } else {
             Call call = getForegroundCall();
             if (call != null) {
-                int mode = call.getAudioModeIsVoip() ?
+                int mode = call.getIsVoipAudioMode() ?
                         AudioManager.MODE_IN_COMMUNICATION : AudioManager.MODE_IN_CALL;
                 requestAudioFocusAndSetMode(AudioManager.STREAM_VOICE_CALL, mode);
             } else if (mIsTonePlaying) {

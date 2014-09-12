@@ -40,7 +40,7 @@ import java.util.Map;
  */
 public class TestConnectionManager extends ConnectionService {
     public final class TestManagedConnection extends Connection {
-        private final RemoteConnection.Listener mRemoteListener = new RemoteConnection.Listener() {
+        private final RemoteConnection.Callback mRemoteCallback = new RemoteConnection.Callback() {
             @Override
             public void onStateChanged(RemoteConnection connection, int state) {
                 setState(state);
@@ -53,8 +53,8 @@ public class TestConnectionManager extends ConnectionService {
             }
 
             @Override
-            public void onRequestingRingback(RemoteConnection connection, boolean ringback) {
-                setRequestingRingback(ringback);
+            public void onRingbackRequested(RemoteConnection connection, boolean ringback) {
+                setRingbackRequested(ringback);
             }
 
             @Override
@@ -69,7 +69,7 @@ public class TestConnectionManager extends ConnectionService {
             }
 
             @Override
-            public void onAudioModeIsVoipChanged(RemoteConnection connection, boolean isVoip) {
+            public void onVoipAudioChanged(RemoteConnection connection, boolean isVoip) {
                 setAudioModeIsVoip(isVoip);
             }
 
@@ -87,8 +87,9 @@ public class TestConnectionManager extends ConnectionService {
             }
 
             @Override
-            public void onHandleChanged(RemoteConnection connection, Uri handle, int presentation) {
-                setHandle(handle, presentation);
+            public void onAddressChanged(
+                    RemoteConnection connection, Uri address, int presentation) {
+                setAddress(address, presentation);
             }
 
             @Override
@@ -123,7 +124,7 @@ public class TestConnectionManager extends ConnectionService {
         TestManagedConnection(RemoteConnection remote, boolean isIncoming) {
             mRemote = remote;
             mIsIncoming = isIncoming;
-            mRemote.addListener(mRemoteListener);
+            mRemote.registerCallback(mRemoteCallback);
             setState(mRemote.getState());
             setVideoState(mRemote.getVideoState());
         }
@@ -249,7 +250,7 @@ public class TestConnectionManager extends ConnectionService {
             @Override
             public void onDestroyed(RemoteConference conference) {
                 destroy();
-                mRemote.removeCallback(mRemoteCallback);
+                mRemote.unregisterCallback(mRemoteCallback);
                 mManagedConferenceByRemote.remove(mRemote);
             }
         };
@@ -259,7 +260,7 @@ public class TestConnectionManager extends ConnectionService {
         public TestManagedConference(RemoteConference remote) {
             super(null);
             mRemote = remote;
-            remote.addCallback(mRemoteCallback);
+            remote.registerCallback(mRemoteCallback);
             setActive();
             for (RemoteConnection r : remote.getConnections()) {
                 TestManagedConnection c = mManagedConnectionByRemote.get(r);
