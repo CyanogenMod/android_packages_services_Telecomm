@@ -24,6 +24,7 @@ import android.telecomm.GatewayInfo;
 import android.telecomm.ParcelableConference;
 import android.telecomm.PhoneAccountHandle;
 import android.telephony.DisconnectCause;
+import android.telephony.TelephonyManager;
 
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
@@ -256,11 +257,10 @@ public final class CallsManager extends Call.ListenerBase {
      */
     void processIncomingCallIntent(PhoneAccountHandle phoneAccountHandle, Bundle extras) {
         Log.d(this, "processIncomingCallIntent");
-        // Create a call with no handle. The handle is eventually set when the call is attached
-        // to a connection service.
+        Uri handle = extras.getParcelable(TelephonyManager.EXTRA_INCOMING_NUMBER);
         Call call = new Call(
                 mConnectionServiceRepository,
-                null /* handle */,
+                handle,
                 null /* gatewayInfo */,
                 null /* connectionManagerPhoneAccount */,
                 phoneAccountHandle,
