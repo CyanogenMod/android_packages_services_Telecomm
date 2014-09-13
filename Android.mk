@@ -1,6 +1,6 @@
 LOCAL_PATH:= $(call my-dir)
 
-# Build the Telecomm service.
+# Build the Telecom service.
 include $(CLEAR_VARS)
 
 LOCAL_JAVA_LIBRARIES := telephony-common
@@ -9,7 +9,7 @@ LOCAL_STATIC_JAVA_LIBRARIES := \
 
 LOCAL_SRC_FILES := $(call all-java-files-under, src)
 
-LOCAL_PACKAGE_NAME := Telecomm
+LOCAL_PACKAGE_NAME := Telecom
 
 LOCAL_CERTIFICATE := platform
 LOCAL_PRIVILEGED_MODULE := true
