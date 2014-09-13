@@ -24,11 +24,11 @@ LOCAL_STATIC_JAVA_LIBRARIES := \
 LOCAL_SRC_FILES := $(call all-java-files-under, src)
 
 LOCAL_JAVA_LIBRARIES := android.test.runner
-LOCAL_PACKAGE_NAME := TelecommTests
+LOCAL_PACKAGE_NAME := TelecomTests
 LOCAL_CERTIFICATE := platform
 
 LOCAL_MODULE_TAGS := tests
 
-LOCAL_INSTRUMENTATION_FOR := Telecomm
+LOCAL_INSTRUMENTATION_FOR := Telecom
 
 include $(BUILD_PACKAGE)
