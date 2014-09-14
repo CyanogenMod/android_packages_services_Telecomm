@@ -99,7 +99,7 @@ class MissedCallNotifier extends CallsManagerListenerBase {
      *
      * @param call The missed call.
      */
-    private void showMissedCallNotification(Call call) {
+    void showMissedCallNotification(Call call) {
         mMissedCallCount++;
 
         final int titleResId;
