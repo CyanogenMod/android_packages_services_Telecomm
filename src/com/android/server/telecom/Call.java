@@ -186,8 +186,6 @@ final class Call implements CreateConnectionResponse {
 
     private final List<Call> mConferenceableCalls = new ArrayList<>();
 
-    private PhoneAccountHandle mPhoneAccountHandle;
-
     private long mConnectTimeMillis = 0;
 
     /** The state of the call. */
@@ -308,8 +306,8 @@ final class Call implements CreateConnectionResponse {
         setHandle(handle);
         setHandle(handle, TelecomManager.PRESENTATION_ALLOWED);
         mGatewayInfo = gatewayInfo;
-        mConnectionManagerPhoneAccountHandle = connectionManagerPhoneAccountHandle;
-        mTargetPhoneAccountHandle = targetPhoneAccountHandle;
+        setConnectionManagerPhoneAccount(connectionManagerPhoneAccountHandle);
+        setTargetPhoneAccount(targetPhoneAccountHandle);
         mIsIncoming = isIncoming;
         mIsConference = isConference;
         maybeLoadCannedSmsResponses();
@@ -905,7 +903,7 @@ final class Call implements CreateConnectionResponse {
         return mConferenceableCalls;
     }
 
-    private boolean can(int capability) {
+    boolean can(int capability) {
         return (mCallCapabilities & capability) == capability;
     }
 

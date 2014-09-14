@@ -18,19 +18,25 @@ package com.android.server.telecom;
 
 import android.net.Uri;
 import android.os.Bundle;
+
+import android.provider.CallLog.Calls;
 import android.telecom.AudioState;
 import android.telecom.CallState;
 import android.telecom.GatewayInfo;
 import android.telecom.ParcelableConference;
 import android.telecom.PhoneAccountHandle;
+import android.telecom.PhoneCapabilities;
 import android.telephony.DisconnectCause;
 import android.telephony.TelephonyManager;
 
+import com.android.internal.util.ArrayUtils;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -64,6 +70,17 @@ public final class CallsManager extends Call.ListenerBase {
 
     private static final CallsManager INSTANCE = new CallsManager();
 
+    private static final int MAXIMUM_LIVE_CALLS = 1;
+    private static final int MAXIMUM_HOLD_CALLS = 1;
+    private static final int MAXIMUM_RINGING_CALLS = 1;
+    private static final int MAXIMUM_OUTGOING_CALLS = 1;
+
+    private static final int[] LIVE_CALL_STATES =
+            {CallState.CONNECTING, CallState.PRE_DIAL_WAIT, CallState.DIALING, CallState.ACTIVE};
+
+    private static final int[] OUTGOING_CALL_STATES =
+            {CallState.CONNECTING, CallState.PRE_DIAL_WAIT, CallState.DIALING};
+
     /**
      * The main call repository. Keeps an instance of all live calls. New incoming and outgoing
      * calls are added to the map and removed when the calls move to the disconnected state.
@@ -90,6 +107,7 @@ public final class CallsManager extends Call.ListenerBase {
     private final TtyManager mTtyManager;
     private final ProximitySensorManager mProximitySensorManager;
     private final PhoneStateBroadcaster mPhoneStateBroadcaster;
+    private final CallLogManager mCallLogManager;
 
     /**
      * The call the user is currently interacting with. This is the call that should have audio
@@ -117,9 +135,10 @@ public final class CallsManager extends Call.ListenerBase {
         mTtyManager = new TtyManager(app, mWiredHeadsetManager);
         mProximitySensorManager = new ProximitySensorManager(app);
         mPhoneStateBroadcaster = new PhoneStateBroadcaster();
+        mCallLogManager = new CallLogManager(app);
 
         mListeners.add(statusBarNotifier);
-        mListeners.add(new CallLogManager(app));
+        mListeners.add(mCallLogManager);
         mListeners.add(mPhoneStateBroadcaster);
         mListeners.add(mInCallController);
         mListeners.add(mRinger);
@@ -161,10 +180,20 @@ public final class CallsManager extends Call.ListenerBase {
     }
 
     @Override
-    public void onSuccessfulIncomingCall(Call call) {
+    public void onSuccessfulIncomingCall(Call incomingCall) {
         Log.d(this, "onSuccessfulIncomingCall");
-        setCallState(call, CallState.RINGING);
-        addCall(call);
+        setCallState(incomingCall, CallState.RINGING);
+
+        if (hasMaximumRingingCalls()) {
+            incomingCall.reject(false, null);
+            // since the call was not added to the list of calls, we have to call the missed
+            // call notifier and the call logger manually.
+            TelecomApp.getInstance().getMissedCallNotifier()
+                    .showMissedCallNotification(incomingCall);
+            mCallLogManager.logCall(incomingCall, Calls.MISSED_TYPE);
+        } else {
+            addCall(incomingCall);
+        }
     }
 
     @Override
@@ -284,16 +313,6 @@ public final class CallsManager extends Call.ListenerBase {
      * @param extras The optional extras Bundle passed with the intent used for the incoming call.
      */
     Call startOutgoingCall(Uri handle, PhoneAccountHandle phoneAccountHandle, Bundle extras) {
-        // We only allow a single outgoing call at any given time. Before placing a call, make sure
-        // there doesn't already exist another outgoing call.
-        Call call = getFirstCallWithState(CallState.NEW, CallState.DIALING,
-                CallState.CONNECTING, CallState.PRE_DIAL_WAIT);
-
-        if (call != null) {
-            Log.i(this, "Canceling simultaneous outgoing call.");
-            return null;
-        }
-
         TelecomApp app = TelecomApp.getInstance();
 
         // Only dial with the requested phoneAccount if it is still valid. Otherwise treat this call
@@ -320,7 +339,7 @@ public final class CallsManager extends Call.ListenerBase {
 
         // Create a call with original handle. The handle may be changed when the call is attached
         // to a connection service, but in most cases will remain the same.
-        call = new Call(
+        Call call = new Call(
                 mConnectionServiceRepository,
                 handle,
                 null /* gatewayInfo */,
@@ -330,8 +349,16 @@ public final class CallsManager extends Call.ListenerBase {
                 false /* isConference */);
         call.setExtras(extras);
 
-        final boolean emergencyCall = TelephonyUtil.shouldProcessAsEmergency(app, call.getHandle());
-        if (phoneAccountHandle == null && !emergencyCall) {
+        boolean isEmergencyCall = TelephonyUtil.shouldProcessAsEmergency(app, call.getHandle());
+
+        // Do not support any more live calls.  Our options are to move a call to hold, disconnect
+        // a call, or cancel this call altogether.
+        if (!makeRoomForOutgoingCall(call, isEmergencyCall)) {
+            // just cancel at this point.
+            return null;
+        }
+
+        if (phoneAccountHandle == null && !isEmergencyCall) {
             // This is the state where the user is expected to select an account
             call.setState(CallState.PRE_DIAL_WAIT);
         } else {
@@ -379,13 +406,13 @@ public final class CallsManager extends Call.ListenerBase {
         call.setVideoState(videoState);
 
         TelecomApp app = TelecomApp.getInstance();
-        final boolean emergencyCall = TelephonyUtil.shouldProcessAsEmergency(app, call.getHandle());
-        if (emergencyCall) {
+        boolean isEmergencyCall = TelephonyUtil.shouldProcessAsEmergency(app, call.getHandle());
+        if (isEmergencyCall) {
             // Emergency -- CreateConnectionProcessor will choose accounts automatically
             call.setTargetPhoneAccount(null);
         }
 
-        if (call.getTargetPhoneAccount() != null || emergencyCall) {
+        if (call.getTargetPhoneAccount() != null || isEmergencyCall) {
             // If the account has been set, proceed to place the outgoing call.
             // Otherwise the connection will be initiated when the account is set by the user.
             call.startCreateConnection();
@@ -419,9 +446,18 @@ public final class CallsManager extends Call.ListenerBase {
             if (mForegroundCall != null && mForegroundCall != call &&
                     (mForegroundCall.isActive() ||
                      mForegroundCall.getState() == CallState.DIALING)) {
-                Log.v(this, "Holding active/dialing call %s before answering incoming call %s.",
-                        mForegroundCall, call);
-                mForegroundCall.hold();
+                if (0 == (mForegroundCall.getCallCapabilities() & PhoneCapabilities.HOLD)) {
+                    // This call does not support hold.  If it is from a different connection
+                    // service, then disconnect it, otherwise allow the connection service to
+                    // figure out the right states.
+                    if (mForegroundCall.getConnectionService() != call.getConnectionService()) {
+                        mForegroundCall.disconnect();
+                    }
+                } else {
+                    Log.v(this, "Holding active/dialing call %s before answering incoming call %s.",
+                            mForegroundCall, call);
+                    mForegroundCall.hold();
+                }
                 // TODO: Wait until we get confirmation of the active call being
                 // on-hold before answering the new call.
                 // TODO: Import logic from CallManager.acceptCall()
@@ -579,10 +615,23 @@ public final class CallsManager extends Call.ListenerBase {
 
     void phoneAccountSelected(Call call, PhoneAccountHandle account) {
         if (!mCalls.contains(call)) {
-            Log.i(this, "Attemped to add account to unknown call %s", call);
+            Log.i(this, "Attempted to add account to unknown call %s", call);
         } else {
+            // TODO: There is an odd race condition here. Since NewOutgoingCallIntentBroadcaster and
+            // the PRE_DIAL_WAIT sequence run in parallel, if the user selects an account before the
+            // NEW_OUTGOING_CALL sequence finishes, we'll start the call immediately without
+            // respecting a rewritten number or a canceled number. This is unlikely since
+            // NEW_OUTGOING_CALL sequence, in practice, runs a lot faster than the user selecting
+            // a phone account from the in-call UI.
             call.setTargetPhoneAccount(account);
-            call.startCreateConnection();
+
+            // Note: emergency calls never go through account selection dialog so they never
+            // arrive here.
+            if (makeRoomForOutgoingCall(call, false /* isEmergencyCall */)) {
+                call.startCreateConnection();
+            } else {
+                call.disconnect();
+            }
         }
     }
 
@@ -618,8 +667,8 @@ public final class CallsManager extends Call.ListenerBase {
     }
 
     /**
-     * Marks the specified call as STATE_DISCONNECTED and notifies the in-call app. If this was the last
-     * live call, then also disconnect from the in-call controller.
+     * Marks the specified call as STATE_DISCONNECTED and notifies the in-call app. If this was the
+     * last live call, then also disconnect from the in-call controller.
      *
      * @param disconnectCause The disconnect reason, see {@link android.telephony.DisconnectCause}.
      * @param disconnectMessage Optional message about the disconnect.
@@ -712,12 +761,18 @@ public final class CallsManager extends Call.ListenerBase {
         return true;
     }
 
+    Call getFirstCallWithState(int... states) {
+        return getFirstCallWithState(null, states);
+    }
+
     /**
      * Returns the first call that it finds with the given states. The states are treated as having
      * priority order so that any call with the first state will be returned before any call with
      * states listed later in the parameter list.
+     *
+     * @param callToSkip Call that this method should skip while searching
      */
-    Call getFirstCallWithState(int... states) {
+    Call getFirstCallWithState(Call callToSkip, int... states) {
         for (int currentState : states) {
             // check the foreground first
             if (mForegroundCall != null && mForegroundCall.getState() == currentState) {
@@ -725,6 +780,15 @@ public final class CallsManager extends Call.ListenerBase {
             }
 
             for (Call call : mCalls) {
+                if (Objects.equals(callToSkip, call)) {
+                    continue;
+                }
+
+                // Only operate on top-level calls
+                if (call.getParentCall() != null) {
+                    continue;
+                }
+
                 if (currentState == call.getState()) {
                     return call;
                 }
@@ -849,6 +913,11 @@ public final class CallsManager extends Call.ListenerBase {
             // be notified when its calls enter and exit foreground state. Foreground will mean that
             // the call should play audio and listen to microphone if it wants.
 
+            // Only top-level calls can be in foreground
+            if (call.getParentCall() != null) {
+                continue;
+            }
+
             // Active calls have priority.
             if (call.isActive()) {
                 newForegroundCall = call;
@@ -875,5 +944,79 @@ public final class CallsManager extends Call.ListenerBase {
     private boolean isPotentialMMICode(Uri handle) {
         return (handle != null && handle.getSchemeSpecificPart() != null
                 && handle.getSchemeSpecificPart().contains("#"));
+    }
+
+    private int getNumCallsWithState(int... states) {
+        int count = 0;
+        for (int state : states) {
+            for (Call call : mCalls) {
+                if (call.getState() == state) {
+                    count++;
+                }
+            }
+        }
+        return count;
+    }
+
+    private boolean hasMaximumLiveCalls() {
+        return MAXIMUM_LIVE_CALLS <= getNumCallsWithState(LIVE_CALL_STATES);
+    }
+
+    private boolean hasMaximumHoldingCalls() {
+        return MAXIMUM_HOLD_CALLS <= getNumCallsWithState(CallState.ON_HOLD);
+    }
+
+    private boolean hasMaximumRingingCalls() {
+        return MAXIMUM_RINGING_CALLS <= getNumCallsWithState(CallState.RINGING);
+    }
+
+    private boolean hasMaximumOutgoingCalls() {
+        return MAXIMUM_OUTGOING_CALLS <= getNumCallsWithState(OUTGOING_CALL_STATES);
+    }
+
+    private boolean makeRoomForOutgoingCall(Call call, boolean isEmergency) {
+        if (hasMaximumLiveCalls()) {
+            // NOTE: If the amount of live calls changes beyond 1, this logic will probably
+            // have to change.
+            Call liveCall = getFirstCallWithState(call, LIVE_CALL_STATES);
+
+            if (hasMaximumHoldingCalls()) {
+                // There is no more room for any more calls, unless it's an emergency.
+                if (isEmergency) {
+                    // Kill the current active call, this is easier then trying to disconnect a
+                    // holding call and hold an active call.
+                    liveCall.disconnect();
+                    return true;
+                }
+                return false;  // No more room!
+            }
+
+            // We have room for at least one more holding call at this point.
+
+            // First thing, if we are trying to make a call with the same phone account as the live
+            // call, then allow it so that the connection service can make its own decision about
+            // how to handle the new call relative to the current one.
+            if (Objects.equals(liveCall.getTargetPhoneAccount(), call.getTargetPhoneAccount())) {
+                return true;
+            } else if (call.getTargetPhoneAccount() == null) {
+                // Without a phone account, we can't say reliably that the call will fail.
+                // If the user chooses the same phone account as the live call, then it's
+                // still possible that the call can be made (like with CDMA calls not supporting
+                // hold but they still support adding a call by going immediately into conference
+                // mode). Return true here and we'll run this code again after user chooses an
+                // account.
+                return true;
+            }
+
+            // Try to hold the live call before attempting the new outgoing call.
+            if (liveCall.can(PhoneCapabilities.HOLD)) {
+                liveCall.hold();
+                return true;
+            }
+
+            // The live call cannot be held so we're out of luck here.  There's no room.
+            return false;
+        }
+        return true;
     }
 }
