@@ -66,6 +66,10 @@ final class PhoneStateBroadcaster extends CallsManagerListenerBase {
         }
     }
 
+    int getCallState() {
+        return mCurrentState;
+    }
+
     private void sendPhoneStateChangedBroadcast(Call call, int phoneState) {
         if (phoneState == mCurrentState) {
             return;
