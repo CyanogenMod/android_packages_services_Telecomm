@@ -382,7 +382,9 @@ public class TelecomServiceImpl extends ITelecomService.Stub {
         enforceReadPermission();
         // Do not use sendRequest() with this method since it could cause a deadlock with
         // audio service, which we call into from the main thread: AudioManager.setMode().
-        return mCallsManager.hasAnyCalls();
+        final int callState = mCallsManager.getCallState();
+        return callState == TelephonyManager.CALL_STATE_OFFHOOK
+                || callState == TelephonyManager.CALL_STATE_RINGING;
     }
 
     /**
@@ -391,7 +393,16 @@ public class TelecomServiceImpl extends ITelecomService.Stub {
     @Override
     public boolean isRinging() {
         enforceReadPermission();
-        return mCallsManager.hasRingingCall();
+        return mCallsManager.getCallState() == TelephonyManager.CALL_STATE_RINGING;
+    }
+
+    /**
+     * @see TelecomManager#getCallState
+     */
+    @Override
+    public int getCallState() {
+        enforceReadPermission();
+        return mCallsManager.getCallState();
     }
 
     /**
