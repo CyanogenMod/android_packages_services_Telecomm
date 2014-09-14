@@ -33,8 +33,12 @@ import com.google.common.base.Preconditions;
  */
 class AsyncRingtonePlayer {
     // Message codes used with the ringtone thread.
-    static final int EVENT_PLAY = 1;
-    static final int EVENT_STOP = 2;
+    private static final int EVENT_PLAY = 1;
+    private static final int EVENT_STOP = 2;
+    private static final int EVENT_REPEAT = 3;
+
+    // The interval in which to restart the ringer.
+    private static final int RESTART_RINGER_MILLIS = 3000;
 
     /** Handler running on the ringtone thread. */
     private Handler mHandler;
@@ -91,6 +95,9 @@ class AsyncRingtonePlayer {
                     case EVENT_PLAY:
                         handlePlay((Uri) msg.obj);
                         break;
+                    case EVENT_REPEAT:
+                        handleRepeat();
+                        break;
                     case EVENT_STOP:
                         handleStop();
                         break;
@@ -103,6 +110,11 @@ class AsyncRingtonePlayer {
      * Starts the actual playback of the ringtone. Executes on ringtone-thread.
      */
     private void handlePlay(Uri ringtoneUri) {
+        // don't bother with any of this if there is an EVENT_STOP waiting.
+        if (mHandler.hasMessages(EVENT_STOP)) {
+            return;
+        }
+
         ThreadUtil.checkNotOnMainThread();
         Log.i(this, "Play ringtone.");
 
@@ -116,11 +128,26 @@ class AsyncRingtonePlayer {
             }
         }
 
+        handleRepeat();
+    }
+
+    private void handleRepeat() {
+        if (mRingtone == null) {
+            return;
+        }
+
         if (mRingtone.isPlaying()) {
             Log.d(this, "Ringtone already playing.");
         } else {
             mRingtone.play();
-            Log.d(this, "Ringtone.play() invoked.");
+            Log.i(this, "Repeat ringtone.");
+        }
+
+        // Repost event to restart ringer in {@link RESTART_RINGER_MILLIS}.
+        synchronized(this) {
+            if (!mHandler.hasMessages(EVENT_REPEAT)) {
+                mHandler.sendEmptyMessageDelayed(EVENT_REPEAT, RESTART_RINGER_MILLIS);
+            }
         }
     }
 
@@ -138,8 +165,12 @@ class AsyncRingtonePlayer {
         }
 
         synchronized(this) {
+            // At the time that STOP is handled, there should be no need for repeat messages in the
+            // queue.
+            mHandler.removeMessages(EVENT_REPEAT);
+
             if (mHandler.hasMessages(EVENT_PLAY)) {
-                Log.v(this, "Keeping alive ringtone thread for pending messages.");
+                Log.v(this, "Keeping alive ringtone thread for subsequent play request.");
             } else {
                 mHandler.removeMessages(EVENT_STOP);
                 mHandler.getLooper().quitSafely();
