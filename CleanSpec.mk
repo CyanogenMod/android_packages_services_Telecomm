@@ -46,6 +46,7 @@
 
 $(call add-clean-step, rm -rf $(PRODUCT_OUT)/obj/APPS/Telecom_intermediates)
 $(call add-clean-step, rm -rf $(PRODUCT_OUT)/system/priv-app/Telecomm)
+$(call add-clean-step, rm -rf $(PRODUCT_OUT)/obj/APPS/Telecomm_intermediates)
 
 # ******************************************************************
 # NEWER CLEAN STEPS MUST BE AT THE END OF THE LIST ABOVE THIS BANNER
