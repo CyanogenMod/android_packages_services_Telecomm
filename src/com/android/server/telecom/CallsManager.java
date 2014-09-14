@@ -89,6 +89,7 @@ public final class CallsManager extends Call.ListenerBase {
     private final WiredHeadsetManager mWiredHeadsetManager;
     private final TtyManager mTtyManager;
     private final ProximitySensorManager mProximitySensorManager;
+    private final PhoneStateBroadcaster mPhoneStateBroadcaster;
 
     /**
      * The call the user is currently interacting with. This is the call that should have audio
@@ -115,10 +116,11 @@ public final class CallsManager extends Call.ListenerBase {
         mHeadsetMediaButton = new HeadsetMediaButton(app, this);
         mTtyManager = new TtyManager(app, mWiredHeadsetManager);
         mProximitySensorManager = new ProximitySensorManager(app);
+        mPhoneStateBroadcaster = new PhoneStateBroadcaster();
 
         mListeners.add(statusBarNotifier);
         mListeners.add(new CallLogManager(app));
-        mListeners.add(new PhoneStateBroadcaster());
+        mListeners.add(mPhoneStateBroadcaster);
         mListeners.add(mInCallController);
         mListeners.add(mRinger);
         mListeners.add(new RingbackPlayer(this, playerFactory));
@@ -755,6 +757,12 @@ public final class CallsManager extends Call.ListenerBase {
         return call;
     }
 
+    /**
+     * @return the call state currently tracked by {@link PhoneStateBroadcaster}
+     */
+    int getCallState() {
+        return mPhoneStateBroadcaster.getCallState();
+    }
 
     /**
      * Adds the specified call to the main list of live calls.
