@@ -401,7 +401,6 @@ public class TelecomServiceImpl extends ITelecomService.Stub {
      */
     @Override
     public int getCallState() {
-        enforceReadPermission();
         return mCallsManager.getCallState();
     }
 
