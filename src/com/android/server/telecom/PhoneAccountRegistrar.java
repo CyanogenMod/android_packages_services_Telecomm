@@ -183,10 +183,6 @@ public final class PhoneAccountRegistrar {
     }
 
     public void setSimCallManager(PhoneAccountHandle callManager) {
-        if (!isEnabledConnectionManager()) {
-            return;
-        }
-
         if (callManager != null) {
             PhoneAccount callManagerAccount = getPhoneAccount(callManager);
             if (callManagerAccount == null) {
@@ -207,10 +203,6 @@ public final class PhoneAccountRegistrar {
     }
 
     public PhoneAccountHandle getSimCallManager() {
-        if (!isEnabledConnectionManager()) {
-            return null;
-        }
-
         if (mState.simCallManager != null) {
             if (NO_ACCOUNT_SELECTED.equals(mState.simCallManager)) {
                 return null;
@@ -308,11 +300,8 @@ public final class PhoneAccountRegistrar {
      * @return The phone account handles.
      */
     public List<PhoneAccountHandle> getConnectionManagerPhoneAccounts() {
-        if (isEnabledConnectionManager()) {
-            return getPhoneAccountHandles(PhoneAccount.CAPABILITY_CONNECTION_MANAGER,
-                    null /* supportedUriScheme */, false /* includeDisabled */);
-        }
-        return Collections.emptyList();
+        return getPhoneAccountHandles(PhoneAccount.CAPABILITY_CONNECTION_MANAGER,
+                null /* supportedUriScheme */, false /* includeDisabled */);
     }
 
     public PhoneAccount getPhoneAccount(PhoneAccountHandle handle) {
@@ -468,10 +457,6 @@ public final class PhoneAccountRegistrar {
         for (Listener l : mListeners) {
             l.onSimCallManagerChanged(this);
         }
-    }
-
-    private boolean isEnabledConnectionManager() {
-        return mContext.getResources().getBoolean(R.bool.connection_manager_enabled);
     }
 
     /**
