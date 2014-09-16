@@ -483,7 +483,6 @@ public final class InCallController extends CallsManagerListenerBase {
                 callId,
                 state,
                 call.getDisconnectCause(),
-                call.getDisconnectMessage(),
                 call.getCannedSmsResponses(),
                 capabilities,
                 properties,
