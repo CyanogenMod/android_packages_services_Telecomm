@@ -23,6 +23,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.provider.ContactsContract.Contacts;
 import android.telecom.CallState;
+import android.telecom.DisconnectCause;
 import android.telecom.Connection;
 import android.telecom.GatewayInfo;
 import android.telecom.ParcelableConnection;
@@ -33,7 +34,6 @@ import android.telecom.Response;
 import android.telecom.StatusHints;
 import android.telecom.TelecomManager;
 import android.telecom.VideoProfile;
-import android.telephony.DisconnectCause;
 import android.telephony.PhoneNumberUtils;
 import android.text.TextUtils;
 
@@ -66,7 +66,7 @@ final class Call implements CreateConnectionResponse {
      */
     interface Listener {
         void onSuccessfulOutgoingCall(Call call, int callState);
-        void onFailedOutgoingCall(Call call, int errorCode, String errorMsg);
+        void onFailedOutgoingCall(Call call, DisconnectCause disconnectCause);
         void onSuccessfulIncomingCall(Call call);
         void onFailedIncomingCall(Call call);
         void onRingbackRequested(Call call, boolean ringbackRequested);
@@ -92,7 +92,7 @@ final class Call implements CreateConnectionResponse {
         @Override
         public void onSuccessfulOutgoingCall(Call call, int callState) {}
         @Override
-        public void onFailedOutgoingCall(Call call, int errorCode, String errorMsg) {}
+        public void onFailedOutgoingCall(Call call, DisconnectCause disconnectCause) {}
         @Override
         public void onSuccessfulIncomingCall(Call call) {}
         @Override
@@ -226,14 +226,9 @@ final class Call implements CreateConnectionResponse {
 
     /**
      * Disconnect cause for the call. Only valid if the state of the call is STATE_DISCONNECTED.
-     * See {@link android.telephony.DisconnectCause}.
+     * See {@link android.telecom.DisconnectCause}.
      */
-    private int mDisconnectCause = DisconnectCause.NOT_VALID;
-
-    /**
-     * Additional disconnect information provided by the connection service.
-     */
-    private String mDisconnectMessage;
+    private DisconnectCause mDisconnectCause = new DisconnectCause(DisconnectCause.UNKNOWN);
 
     /** Info used by the connection services. */
     private Bundle mExtras = Bundle.EMPTY;
@@ -430,23 +425,17 @@ final class Call implements CreateConnectionResponse {
     }
 
     /**
-     * @param disconnectCause The reason for the disconnection, any of
-     *         {@link android.telephony.DisconnectCause}.
-     * @param disconnectMessage Optional message about the disconnect.
+     * @param disconnectCause The reason for the disconnection, represented by
+     *         {@link android.telecom.DisconnectCause}.
      */
-    void setDisconnectCause(int disconnectCause, String disconnectMessage) {
+    void setDisconnectCause(DisconnectCause disconnectCause) {
         // TODO: Consider combining this method with a setDisconnected() method that is totally
         // separate from setState.
         mDisconnectCause = disconnectCause;
-        mDisconnectMessage = disconnectMessage;
     }
 
-    int getDisconnectCause() {
+    DisconnectCause getDisconnectCause() {
         return mDisconnectCause;
-    }
-
-    String getDisconnectMessage() {
-        return mDisconnectMessage;
     }
 
     boolean isEmergencyCall() {
@@ -656,11 +645,11 @@ final class Call implements CreateConnectionResponse {
     }
 
     @Override
-    public void handleCreateConnectionFailure(int code, String msg) {
+    public void handleCreateConnectionFailure(DisconnectCause disconnectCause) {
         mCreateConnectionProcessor = null;
         clearConnectionService();
-        setDisconnectCause(code, msg);
-        CallsManager.getInstance().markCallAsDisconnected(this, code, msg);
+        setDisconnectCause(disconnectCause);
+        CallsManager.getInstance().markCallAsDisconnected(this, disconnectCause);
 
         if (mIsIncoming) {
             for (Listener listener : mListeners) {
@@ -668,7 +657,7 @@ final class Call implements CreateConnectionResponse {
             }
         } else {
             for (Listener listener : mListeners) {
-                listener.onFailedOutgoingCall(this, code, msg);
+                listener.onFailedOutgoingCall(this, disconnectCause);
             }
         }
     }
@@ -725,7 +714,7 @@ final class Call implements CreateConnectionResponse {
             mCreateConnectionProcessor.abort();
         } else if (mState == CallState.NEW || mState == CallState.PRE_DIAL_WAIT
                 || mState == CallState.CONNECTING) {
-            handleCreateConnectionFailure(DisconnectCause.OUTGOING_CANCELED, null);
+            handleCreateConnectionFailure(new DisconnectCause(DisconnectCause.LOCAL));
         } else {
             Log.v(this, "Cannot abort a call which isn't either PRE_DIAL_WAIT or CONNECTING");
         }

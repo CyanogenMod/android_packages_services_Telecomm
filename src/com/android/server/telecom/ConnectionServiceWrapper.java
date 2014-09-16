@@ -27,6 +27,7 @@ import android.telecom.AudioState;
 import android.telecom.Connection;
 import android.telecom.ConnectionRequest;
 import android.telecom.ConnectionService;
+import android.telecom.DisconnectCause;
 import android.telecom.GatewayInfo;
 import android.telecom.ParcelableConference;
 import android.telecom.ParcelableConnection;
@@ -35,7 +36,6 @@ import android.telecom.PhoneAccountHandle;
 import android.telecom.StatusHints;
 import android.telecom.TelecomManager;
 import android.telecom.VideoProfile;
-import android.telephony.DisconnectCause;
 
 import com.android.internal.os.SomeArgs;
 import com.android.internal.telecom.IConnectionService;
@@ -125,12 +125,10 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                     SomeArgs args = (SomeArgs) msg.obj;
                     try {
                         call = mCallIdMapper.getCall(args.arg1);
-                        String disconnectMessage = (String) args.arg2;
-                        int disconnectCause = args.argi1;
-                        Log.d(this, "disconnect call %s %s", args.arg1, call);
+                        DisconnectCause disconnectCause = (DisconnectCause) args.arg2;
+                        Log.d(this, "disconnect call %s %s", disconnectCause, call);
                         if (call != null) {
-                            mCallsManager.markCallAsDisconnected(call, disconnectCause,
-                                    disconnectMessage);
+                            mCallsManager.markCallAsDisconnected(call, disconnectCause);
                         } else {
                             //Log.w(this, "setDisconnected, unknown call id: %s", args.arg1);
                         }
@@ -224,7 +222,7 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                     if (call != null) {
                         if (call.isActive()) {
                             mCallsManager.markCallAsDisconnected(
-                                    call, DisconnectCause.NORMAL, null);
+                                    call, new DisconnectCause(DisconnectCause.REMOTE));
                         } else {
                             mCallsManager.markCallAsRemoved(call);
                         }
@@ -394,15 +392,13 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
         }
 
         @Override
-        public void setDisconnected(
-                String callId, int disconnectCause, String disconnectMessage) {
-            logIncoming("setDisconnected %s %d %s", callId, disconnectCause, disconnectMessage);
+        public void setDisconnected(String callId, DisconnectCause disconnectCause) {
+            logIncoming("setDisconnected %s %s", callId, disconnectCause);
             if (mCallIdMapper.isValidCallId(callId) || mCallIdMapper.isValidConferenceId(callId)) {
                 Log.d(this, "disconnect call %s", callId);
                 SomeArgs args = SomeArgs.obtain();
                 args.arg1 = callId;
-                args.arg2 = disconnectMessage;
-                args.argi1 = disconnectCause;
+                args.arg2 = disconnectCause;
                 mHandler.obtainMessage(MSG_SET_DISCONNECTED, args).sendToTarget();
             }
         }
@@ -632,14 +628,14 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                 } catch (RemoteException e) {
                     Log.e(this, e, "Failure to createConnection -- %s", getComponentName());
                     mPendingResponses.remove(callId).handleCreateConnectionFailure(
-                            DisconnectCause.OUTGOING_FAILURE, e.toString());
+                            new DisconnectCause(DisconnectCause.ERROR, e.toString()));
                 }
             }
 
             @Override
             public void onFailure() {
                 Log.e(this, new Exception(), "Failure to call %s", getComponentName());
-                response.handleCreateConnectionFailure(DisconnectCause.OUTGOING_FAILURE, null);
+                response.handleCreateConnectionFailure(new DisconnectCause(DisconnectCause.ERROR));
             }
         };
 
@@ -660,7 +656,7 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
             }
         }
 
-        removeCall(call, DisconnectCause.LOCAL, null);
+        removeCall(call, new DisconnectCause(DisconnectCause.LOCAL));
     }
 
     /** @see ConnectionService#hold(String) */
@@ -778,22 +774,22 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
     }
 
     void removeCall(Call call) {
-        removeCall(call, DisconnectCause.ERROR_UNSPECIFIED, null);
+        removeCall(call, new DisconnectCause(DisconnectCause.ERROR));
     }
 
-    void removeCall(String callId, int disconnectCause, String disconnectMessage) {
+    void removeCall(String callId, DisconnectCause disconnectCause) {
         CreateConnectionResponse response = mPendingResponses.remove(callId);
         if (response != null) {
-            response.handleCreateConnectionFailure(disconnectCause, disconnectMessage);
+            response.handleCreateConnectionFailure(disconnectCause);
         }
 
         mCallIdMapper.removeCall(callId);
     }
 
-    void removeCall(Call call, int disconnectCause, String disconnectMessage) {
+    void removeCall(Call call, DisconnectCause disconnectCause) {
         CreateConnectionResponse response = mPendingResponses.remove(mCallIdMapper.getCallId(call));
         if (response != null) {
-            response.handleCreateConnectionFailure(disconnectCause, disconnectMessage);
+            response.handleCreateConnectionFailure(disconnectCause);
         }
 
         mCallIdMapper.removeCall(call);
@@ -882,7 +878,7 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
         if (connection.getState() == Connection.STATE_DISCONNECTED) {
             // A connection that begins in the DISCONNECTED state is an indication of
             // failure to connect; we handle all failures uniformly
-            removeCall(callId, connection.getDisconnectCause(), connection.getDisconnectMessage());
+            removeCall(callId, connection.getDisconnectCause());
         } else {
             // Successful connection
             if (mPendingResponses.containsKey(callId)) {
@@ -901,7 +897,8 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                     new CreateConnectionResponse[mPendingResponses.values().size()]);
             mPendingResponses.clear();
             for (int i = 0; i < responses.length; i++) {
-                responses[i].handleCreateConnectionFailure(DisconnectCause.ERROR_UNSPECIFIED, null);
+                responses[i].handleCreateConnectionFailure(
+                        new DisconnectCause(DisconnectCause.ERROR));
             }
         }
         mCallIdMapper.clear();
