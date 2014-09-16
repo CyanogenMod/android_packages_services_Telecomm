@@ -32,7 +32,7 @@ import android.net.Uri;
 import android.provider.CallLog;
 import android.provider.CallLog.Calls;
 import android.telecom.CallState;
-import android.telephony.DisconnectCause;
+import android.telecom.DisconnectCause;
 import android.text.BidiFormatter;
 import android.text.TextDirectionHeuristics;
 import android.text.TextUtils;
@@ -72,7 +72,7 @@ class MissedCallNotifier extends CallsManagerListenerBase {
     @Override
     public void onCallStateChanged(Call call, int oldState, int newState) {
         if (oldState == CallState.RINGING && newState == CallState.DISCONNECTED &&
-                call.getDisconnectCause() == DisconnectCause.INCOMING_MISSED) {
+                call.getDisconnectCause().getCode() == DisconnectCause.MISSED) {
             showMissedCallNotification(call);
         }
     }
@@ -285,7 +285,7 @@ class MissedCallNotifier extends CallsManagerListenerBase {
 
                             // Convert the data to a call object
                             Call call = new Call(null, null, null, null, null, true, false);
-                            call.setDisconnectCause(DisconnectCause.INCOMING_MISSED, "");
+                            call.setDisconnectCause(new DisconnectCause(DisconnectCause.MISSED));
                             call.setState(CallState.DISCONNECTED);
 
                             // Listen for the update to the caller information before posting the

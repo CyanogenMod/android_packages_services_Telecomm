@@ -22,6 +22,7 @@ import android.telecom.Conference;
 import android.telecom.Connection;
 import android.telecom.ConnectionRequest;
 import android.telecom.ConnectionService;
+import android.telecom.DisconnectCause;
 import android.telecom.PhoneAccountHandle;
 import android.telecom.RemoteConference;
 import android.telecom.RemoteConnection;
@@ -47,8 +48,9 @@ public class TestConnectionManager extends ConnectionService {
             }
 
             @Override
-            public void onDisconnected(RemoteConnection connection, int cause, String message) {
-                setDisconnected(cause, message);
+            public void onDisconnected(
+                    RemoteConnection connection, DisconnectCause disconnectCause) {
+                setDisconnected(disconnectCause);
                 destroy();
             }
 
@@ -214,8 +216,9 @@ public class TestConnectionManager extends ConnectionService {
             }
 
             @Override
-            public void onDisconnected(RemoteConference conference, int cause, String message) {
-                setDisconnected(cause, message);
+            public void onDisconnected(RemoteConference conference,
+                    DisconnectCause disconnectCause) {
+                setDisconnected(disconnectCause);
             }
 
             @Override
