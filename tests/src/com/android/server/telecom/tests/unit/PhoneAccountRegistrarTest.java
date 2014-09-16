@@ -207,7 +207,7 @@ public class PhoneAccountRegistrarTest extends AndroidTestCase {
 
     public void testAccounts() throws Exception {
         assertEquals(4, mRegistrar.getAllPhoneAccountHandles().size());
-        assertEquals(3, mRegistrar.getEnabledPhoneAccounts().size());
+        assertEquals(3, mRegistrar.getCallCapablePhoneAccounts().size());
         assertEquals(null, mRegistrar.getSimCallManager());
         assertEquals(null, mRegistrar.getDefaultOutgoingPhoneAccount(PhoneAccount.SCHEME_TEL));
     }
