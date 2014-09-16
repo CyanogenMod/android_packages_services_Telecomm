@@ -16,10 +16,10 @@
 
 package com.android.server.telecom;
 
+import android.telecom.DisconnectCause;
 import android.telecom.ParcelableConnection;
 import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
-import android.telephony.DisconnectCause;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -82,8 +82,7 @@ final class CreateConnectionProcessor {
     private List<CallAttemptRecord> mAttemptRecords;
     private Iterator<CallAttemptRecord> mAttemptRecordIterator;
     private CreateConnectionResponse mResponse;
-    private int mLastErrorCode = DisconnectCause.OUTGOING_FAILURE;
-    private String mLastErrorMsg;
+    private DisconnectCause mLastErrorDisconnectCause;
 
     CreateConnectionProcessor(
             Call call, ConnectionServiceRepository repository, CreateConnectionResponse response) {
@@ -119,7 +118,7 @@ final class CreateConnectionProcessor {
             mCall.clearConnectionService();
         }
         if (response != null) {
-            response.handleCreateConnectionFailure(DisconnectCause.OUTGOING_CANCELED, null);
+            response.handleCreateConnectionFailure(new DisconnectCause(DisconnectCause.LOCAL));
         }
     }
 
@@ -168,7 +167,7 @@ final class CreateConnectionProcessor {
         } else {
             Log.v(this, "attemptNextPhoneAccount, no more accounts, failing");
             if (mResponse != null) {
-                mResponse.handleCreateConnectionFailure(mLastErrorCode, mLastErrorMsg);
+                mResponse.handleCreateConnectionFailure(mLastErrorDisconnectCause);
                 mResponse = null;
                 mCall.clearConnectionService();
             }
@@ -289,11 +288,10 @@ final class CreateConnectionProcessor {
         }
 
         @Override
-        public void handleCreateConnectionFailure(int code, String msg) {
+        public void handleCreateConnectionFailure(DisconnectCause errorDisconnectCause) {
             // Failure of some sort; record the reasons for failure and try again if possible
-            Log.d(CreateConnectionProcessor.this, "Connection failed: %d (%s)", code, msg);
-            mLastErrorCode = code;
-            mLastErrorMsg = msg;
+            Log.d(CreateConnectionProcessor.this, "Connection failed: (%s)", errorDisconnectCause);
+            mLastErrorDisconnectCause = errorDisconnectCause;
             attemptNextPhoneAccount();
         }
     }

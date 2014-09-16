@@ -25,6 +25,7 @@ import android.os.Handler;
 import android.telecom.AudioState;
 import android.telecom.Conference;
 import android.telecom.Connection;
+import android.telecom.DisconnectCause;
 import android.telecom.PhoneAccount;
 import android.telecom.PhoneCapabilities;
 import android.telecom.ConnectionRequest;
@@ -34,7 +35,6 @@ import android.telecom.RemoteConnection;
 import android.telecom.StatusHints;
 import android.telecom.TelecomManager;
 import android.telecom.VideoProfile;
-import android.telephony.DisconnectCause;
 import android.util.Log;
 
 import com.android.server.telecom.tests.R;
@@ -69,7 +69,7 @@ public class TestConnectionService extends ConnectionService {
             public void onDestroyed(Connection c) {
                 removeConnection(c);
                 if (getConnections().size() == 0) {
-                    setDisconnected(DisconnectCause.NORMAL, null);
+                    setDisconnected(new DisconnectCause(DisconnectCause.REMOTE));
                     destroy();
                 }
             }
@@ -93,7 +93,7 @@ public class TestConnectionService extends ConnectionService {
         @Override
         public void onDisconnect() {
             for (Connection c : getConnections()) {
-                c.setDisconnected(DisconnectCause.NORMAL, null);
+                c.setDisconnected(new DisconnectCause(DisconnectCause.REMOTE));
                 c.destroy();
             }
         }
@@ -184,7 +184,7 @@ public class TestConnectionService extends ConnectionService {
         /** ${inheritDoc} */
         @Override
         public void onDisconnect() {
-            setDisconnected(DisconnectCause.LOCAL, null);
+            setDisconnected(new DisconnectCause(DisconnectCause.REMOTE));
             destroyCall(this);
             destroy();
         }
@@ -198,7 +198,7 @@ public class TestConnectionService extends ConnectionService {
         /** ${inheritDoc} */
         @Override
         public void onReject() {
-            setDisconnected(DisconnectCause.INCOMING_REJECTED, null);
+            setDisconnected(new DisconnectCause(DisconnectCause.REJECTED));
             destroyCall(this);
             destroy();
         }
@@ -336,9 +336,8 @@ public class TestConnectionService extends ConnectionService {
             connection.setVideoState(videoState);
             return connection;
         } else {
-            return Connection.createFailedConnection(
-                    DisconnectCause.NOT_VALID,
-                    "Invalid inputs: " + accountHandle + " " + componentName);
+            return Connection.createFailedConnection(new DisconnectCause(DisconnectCause.ERROR,
+                    "Invalid inputs: " + accountHandle + " " + componentName));
         }
     }
 
