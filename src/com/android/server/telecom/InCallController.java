@@ -454,7 +454,9 @@ public final class InCallController extends CallsManagerListenerBase {
         if (!childCalls.isEmpty()) {
             connectTimeMillis = Long.MAX_VALUE;
             for (Call child : childCalls) {
-                connectTimeMillis = Math.min(child.getConnectTimeMillis(), connectTimeMillis);
+                if (child.getConnectTimeMillis() > 0) {
+                    connectTimeMillis = Math.min(child.getConnectTimeMillis(), connectTimeMillis);
+                }
                 childCallIds.add(mCallIdMapper.getCallId(child));
             }
         }
