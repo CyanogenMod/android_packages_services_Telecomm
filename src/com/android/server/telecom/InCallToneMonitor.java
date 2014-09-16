@@ -16,8 +16,8 @@
 
 package com.android.server.telecom;
 
+import android.media.ToneGenerator;
 import android.telecom.CallState;
-import android.telephony.DisconnectCause;
 
 import java.util.Collection;
 
@@ -47,42 +47,27 @@ public final class InCallToneMonitor extends CallsManagerListenerBase {
 
             Log.v(this, "Disconnect cause: %d.", call.getDisconnectCause());
 
-            switch(call.getDisconnectCause()) {
-                case DisconnectCause.BUSY:
+            switch(call.getDisconnectCause().getTone()) {
+                case ToneGenerator.TONE_SUP_BUSY:
                     toneToPlay = InCallTonePlayer.TONE_BUSY;
                     break;
-                case DisconnectCause.CONGESTION:
+                case ToneGenerator.TONE_SUP_CONGESTION:
                     toneToPlay = InCallTonePlayer.TONE_CONGESTION;
                     break;
-                case DisconnectCause.CDMA_REORDER:
+                case ToneGenerator.TONE_CDMA_REORDER:
                     toneToPlay = InCallTonePlayer.TONE_REORDER;
                     break;
-                case DisconnectCause.CDMA_INTERCEPT:
+                case ToneGenerator.TONE_CDMA_ABBR_INTERCEPT:
                     toneToPlay = InCallTonePlayer.TONE_INTERCEPT;
                     break;
-                case DisconnectCause.CDMA_DROP:
+                case ToneGenerator.TONE_CDMA_CALLDROP_LITE:
                     toneToPlay = InCallTonePlayer.TONE_CDMA_DROP;
                     break;
-                case DisconnectCause.OUT_OF_SERVICE:
-                    toneToPlay = InCallTonePlayer.TONE_OUT_OF_SERVICE;
-                    break;
-                case DisconnectCause.UNOBTAINABLE_NUMBER:
+                case ToneGenerator.TONE_SUP_ERROR:
                     toneToPlay = InCallTonePlayer.TONE_UNOBTAINABLE_NUMBER;
                     break;
-                case DisconnectCause.ERROR_UNSPECIFIED:
+                case ToneGenerator.TONE_PROP_PROMPT:
                     toneToPlay = InCallTonePlayer.TONE_CALL_ENDED;
-                    break;
-                case DisconnectCause.NORMAL:
-                case DisconnectCause.LOCAL:
-                    // Only play the disconnect sound on normal disconnects if there are no other
-                    // calls present beyond the one that is currently disconnected.
-                    Collection<Call> allCalls = mCallsManager.getCalls();
-                    if (allCalls.size() == 1) {
-                        if (!allCalls.contains(call)) {
-                            Log.wtf(this, "Disconnecting call not found %s.", call);
-                        }
-                        toneToPlay = InCallTonePlayer.TONE_CALL_ENDED;
-                    }
                     break;
             }
 

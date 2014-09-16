@@ -21,9 +21,9 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.provider.CallLog.Calls;
 import android.telecom.CallState;
+import android.telecom.DisconnectCause;
 import android.telecom.PhoneAccountHandle;
 import android.telecom.VideoProfile;
-import android.telephony.DisconnectCause;
 import android.telephony.PhoneNumberUtils;
 
 import com.android.internal.telephony.CallerInfo;
@@ -92,7 +92,7 @@ final class CallLogManager extends CallsManagerListenerBase {
         boolean isNewlyDisconnected =
                 newState == CallState.DISCONNECTED || newState == CallState.ABORTED;
         boolean isCallCanceled = isNewlyDisconnected &&
-                call.getDisconnectCause() == DisconnectCause.OUTGOING_CANCELED;
+                call.getDisconnectCause().getCode() == DisconnectCause.CANCELED;
 
         // Log newly disconnected calls only if:
         // 1) It was not in the "choose account" phase when disconnected
