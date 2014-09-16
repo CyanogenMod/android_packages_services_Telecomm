@@ -16,11 +16,12 @@
 
 package com.android.server.telecom;
 
+import android.Manifest;
 import android.app.AppOpsManager;
 import android.content.ComponentName;
 import android.content.Context;
-
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.os.Binder;
 import android.os.Bundle;
@@ -286,7 +287,7 @@ public class TelecomServiceImpl extends ITelecomService.Stub {
     @Override
     public void registerPhoneAccount(PhoneAccount account) {
         try {
-            enforceModifyPermissionOrCallingPackage(
+            enforcePhoneAccountModificationForPackage(
                     account.getAccountHandle().getComponentName().getPackageName());
             if (account.hasCapabilities(PhoneAccount.CAPABILITY_CALL_PROVIDER) ||
                 account.hasCapabilities(PhoneAccount.CAPABILITY_SIM_SUBSCRIPTION)) {
@@ -333,7 +334,7 @@ public class TelecomServiceImpl extends ITelecomService.Stub {
     @Override
     public void unregisterPhoneAccount(PhoneAccountHandle accountHandle) {
         try {
-            enforceModifyPermissionOrCallingPackage(
+            enforcePhoneAccountModificationForPackage(
                     accountHandle.getComponentName().getPackageName());
             mPhoneAccountRegistrar.unregisterPhoneAccount(accountHandle);
         } catch (Exception e) {
@@ -345,7 +346,7 @@ public class TelecomServiceImpl extends ITelecomService.Stub {
     @Override
     public void clearAccounts(String packageName) {
         try {
-            enforceModifyPermissionOrCallingPackage(packageName);
+            enforcePhoneAccountModificationForPackage(packageName);
             mPhoneAccountRegistrar.clearAccounts(packageName);
         } catch (Exception e) {
             Log.e(this, e, "clearAccounts %s", packageName);
@@ -532,39 +533,23 @@ public class TelecomServiceImpl extends ITelecomService.Stub {
         return false;
     }
 
-    /**
-     * Make sure the caller has the MODIFY_PHONE_STATE permission.
-     *
-     * @throws SecurityException if the caller does not have the required permission
-     */
-    private void enforceModifyPermission() {
-        TelecomApp.getInstance().enforceCallingOrSelfPermission(
-                android.Manifest.permission.MODIFY_PHONE_STATE, null);
-    }
+    private void enforcePhoneAccountModificationForPackage(String packageName) {
+        // TODO: Use a new telecomm permission for this instead of reusing modify.
 
-    private void enforceModifyPermissionOrDefaultDialer() {
-        if (!isDefaultDialerCalling()) {
-            enforceModifyPermission();
-        }
-    }
+        int result = TelecomApp.getInstance().checkCallingOrSelfPermission(
+                Manifest.permission.MODIFY_PHONE_STATE);
 
-    private void enforceRegisterProviderOrSubscriptionPermission() {
-        TelecomApp.getInstance().enforceCallingOrSelfPermission(
-                REGISTER_PROVIDER_OR_SUBSCRIPTION, null);
-    }
+        // Callers with MODIFY_PHONE_STATE can use the PhoneAccount mechanism to implement
+        // built-in behavior even when PhoneAccounts are not exposed as a third-part API. They
+        // may also modify PhoneAccounts on behalf of any 'packageName'.
 
-    private void enforceModifyPermissionOrCallingPackage(String packageName) {
-        // TODO: Use a new telecom permission for this instead of reusing modify.
-        try {
-            enforceModifyPermission();
-        } catch (SecurityException e) {
+        if (result != PackageManager.PERMISSION_GRANTED) {
+            // Other callers are only allowed to modify PhoneAccounts if the relevant system
+            // feature is enabled ...
+            enforceConnectionServiceFeature();
+            // ... and the PhoneAccounts they refer to are for their own package.
             enforceCallingPackage(packageName);
         }
-    }
-
-    private void enforceReadPermission() {
-        TelecomApp.getInstance().enforceCallingOrSelfPermission(
-                android.Manifest.permission.READ_PHONE_STATE, null);
     }
 
     private void enforceReadPermissionOrDefaultDialer() {
@@ -573,8 +558,42 @@ public class TelecomServiceImpl extends ITelecomService.Stub {
         }
     }
 
+    private void enforceModifyPermissionOrDefaultDialer() {
+        if (!isDefaultDialerCalling()) {
+            enforceModifyPermission();
+        }
+    }
+
     private void enforceCallingPackage(String packageName) {
         mAppOpsManager.checkPackage(Binder.getCallingUid(), packageName);
+    }
+
+    private void enforceConnectionServiceFeature() {
+        enforceFeature(PackageManager.FEATURE_CONNECTION_SERVICE);
+    }
+
+    private void enforceRegisterProviderOrSubscriptionPermission() {
+        enforcePermission(REGISTER_PROVIDER_OR_SUBSCRIPTION);
+    }
+
+    private void enforceReadPermission() {
+        enforcePermission(Manifest.permission.READ_PHONE_STATE);
+    }
+
+    private void enforceModifyPermission() {
+        enforcePermission(Manifest.permission.MODIFY_PHONE_STATE);
+    }
+
+    private void enforcePermission(String permission) {
+        TelecomApp.getInstance().enforceCallingOrSelfPermission(permission, null);
+    }
+
+    private void enforceFeature(String feature) {
+        PackageManager pm = TelecomApp.getInstance().getPackageManager();
+        if (!pm.hasSystemFeature(feature)) {
+            throw new UnsupportedOperationException(
+                    "System does not support feature " + feature);
+        }
     }
 
     private boolean isDefaultDialerCalling() {
