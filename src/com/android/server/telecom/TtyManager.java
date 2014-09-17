@@ -25,6 +25,8 @@ import android.os.UserHandle;
 import android.provider.Settings;
 import android.telecom.TelecomManager;
 
+// TODO: Needed for move to system service: import com.android.internal.R;
+
 final class TtyManager implements WiredHeadsetManager.Listener {
     private final TtyBroadcastReceiver mReceiver = new TtyBroadcastReceiver();
     private final Context mContext;

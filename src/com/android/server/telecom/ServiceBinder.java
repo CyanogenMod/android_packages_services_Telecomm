@@ -23,7 +23,7 @@ import android.content.ServiceConnection;
 import android.os.IBinder;
 import android.os.IInterface;
 
-import com.google.common.base.Preconditions;
+import com.android.internal.util.Preconditions;
 import com.google.common.base.Strings;
 
 import com.google.common.collect.Sets;
@@ -166,12 +166,13 @@ abstract class ServiceBinder<ServiceInterface extends IInterface> {
      *
      * @param serviceAction The intent-action used with {@link Context#bindService}.
      * @param componentName The component name of the service with which to bind.
+     * @param context The context.
      */
-    protected ServiceBinder(String serviceAction, ComponentName componentName) {
+    protected ServiceBinder(String serviceAction, ComponentName componentName, Context context) {
         Preconditions.checkState(!Strings.isNullOrEmpty(serviceAction));
         Preconditions.checkNotNull(componentName);
 
-        mContext = TelecomApp.getInstance();
+        mContext = context;
         mServiceAction = serviceAction;
         mComponentName = componentName;
     }

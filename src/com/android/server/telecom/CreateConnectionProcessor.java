@@ -16,10 +16,14 @@
 
 package com.android.server.telecom;
 
+import android.content.Context;
 import android.telecom.DisconnectCause;
 import android.telecom.ParcelableConnection;
+import android.telecom.Phone;
 import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
+
+// TODO: Needed for move to system service: import com.android.internal.R;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -83,12 +87,17 @@ final class CreateConnectionProcessor {
     private Iterator<CallAttemptRecord> mAttemptRecordIterator;
     private CreateConnectionResponse mResponse;
     private DisconnectCause mLastErrorDisconnectCause;
+    private final PhoneAccountRegistrar mPhoneAccountRegistrar;
+    private final Context mContext;
 
     CreateConnectionProcessor(
-            Call call, ConnectionServiceRepository repository, CreateConnectionResponse response) {
+            Call call, ConnectionServiceRepository repository, CreateConnectionResponse response,
+            PhoneAccountRegistrar phoneAccountRegistrar, Context context) {
         mCall = call;
         mRepository = repository;
         mResponse = response;
+        mPhoneAccountRegistrar = phoneAccountRegistrar;
+        mContext = context;
     }
 
     void process() {
@@ -124,12 +133,12 @@ final class CreateConnectionProcessor {
 
     private void attemptNextPhoneAccount() {
         Log.v(this, "attemptNextPhoneAccount");
-        PhoneAccountRegistrar registrar = TelecomApp.getInstance().getPhoneAccountRegistrar();
         CallAttemptRecord attempt = null;
         if (mAttemptRecordIterator.hasNext()) {
             attempt = mAttemptRecordIterator.next();
 
-            if (!registrar.phoneAccountHasPermission(attempt.connectionManagerPhoneAccount)) {
+            if (!mPhoneAccountRegistrar.phoneAccountHasPermission(
+                    attempt.connectionManagerPhoneAccount)) {
                 Log.w(this,
                         "Connection mgr does not have BIND_CONNECTION_SERVICE for attempt: %s",
                         attempt);
@@ -140,7 +149,7 @@ final class CreateConnectionProcessor {
             // If the target PhoneAccount differs from the ConnectionManager phone acount, ensure it
             // also has BIND_CONNECTION_SERVICE permission.
             if (!attempt.connectionManagerPhoneAccount.equals(attempt.targetPhoneAccount) &&
-                    !registrar.phoneAccountHasPermission(attempt.targetPhoneAccount)) {
+                    !mPhoneAccountRegistrar.phoneAccountHasPermission(attempt.targetPhoneAccount)) {
                 Log.w(this,
                         "Target PhoneAccount does not have BIND_CONNECTION_SERVICE for attempt: %s",
                         attempt);
@@ -185,8 +194,7 @@ final class CreateConnectionProcessor {
             return false;
         }
 
-        PhoneAccountRegistrar registrar = TelecomApp.getInstance().getPhoneAccountRegistrar();
-        PhoneAccountHandle connectionManager = registrar.getSimCallManager();
+        PhoneAccountHandle connectionManager = mPhoneAccountRegistrar.getSimCallManager();
         if (connectionManager == null) {
             return false;
         }
@@ -197,7 +205,8 @@ final class CreateConnectionProcessor {
         }
 
         // Connection managers are only allowed to manage SIM subscriptions.
-        PhoneAccount targetPhoneAccount = registrar.getPhoneAccount(targetPhoneAccountHandle);
+        PhoneAccount targetPhoneAccount = mPhoneAccountRegistrar.getPhoneAccount(
+                targetPhoneAccountHandle);
         boolean isSimSubscription = (targetPhoneAccount.getCapabilities() &
                 PhoneAccount.CAPABILITY_SIM_SUBSCRIPTION) != 0;
         if (!isSimSubscription) {
@@ -211,7 +220,7 @@ final class CreateConnectionProcessor {
     private void adjustAttemptsForConnectionManager() {
         if (shouldSetConnectionManager()) {
             CallAttemptRecord record = new CallAttemptRecord(
-                    TelecomApp.getInstance().getPhoneAccountRegistrar().getSimCallManager(),
+                    mPhoneAccountRegistrar.getSimCallManager(),
                     mAttemptRecords.get(0).targetPhoneAccount);
             Log.v(this, "setConnectionManager, changing %s -> %s",
                     mAttemptRecords.get(0).targetPhoneAccount, record);
@@ -224,11 +233,10 @@ final class CreateConnectionProcessor {
     // If we are possibly attempting to call a local emergency number, ensure that the
     // plain PSTN connection services are listed, and nothing else.
     private void adjustAttemptsForEmergency()  {
-        if (TelephonyUtil.shouldProcessAsEmergency(TelecomApp.getInstance(), mCall.getHandle())) {
+        if (TelephonyUtil.shouldProcessAsEmergency(mContext, mCall.getHandle())) {
             Log.i(this, "Emergency number detected");
             mAttemptRecords.clear();
-            List<PhoneAccount> allAccounts = TelecomApp.getInstance()
-                    .getPhoneAccountRegistrar().getAllPhoneAccounts();
+            List<PhoneAccount> allAccounts = mPhoneAccountRegistrar.getAllPhoneAccounts();
             // First, add SIM phone accounts which can place emergency calls.
             for (PhoneAccount phoneAccount : allAccounts) {
                 if (phoneAccount.hasCapabilities(PhoneAccount.CAPABILITY_PLACE_EMERGENCY_CALLS) &&
@@ -243,14 +251,13 @@ final class CreateConnectionProcessor {
             }
 
             // Next, add the connection manager account as a backup if it can place emergency calls.
-            PhoneAccountHandle callManagerHandle = TelecomApp.getInstance()
-                    .getPhoneAccountRegistrar().getSimCallManager();
+            PhoneAccountHandle callManagerHandle = mPhoneAccountRegistrar.getSimCallManager();
             if (callManagerHandle != null) {
-                PhoneAccount callManager = TelecomApp.getInstance()
-                        .getPhoneAccountRegistrar().getPhoneAccount(callManagerHandle);
+                PhoneAccount callManager = mPhoneAccountRegistrar
+                        .getPhoneAccount(callManagerHandle);
                 if (callManager.hasCapabilities(PhoneAccount.CAPABILITY_PLACE_EMERGENCY_CALLS)) {
                     CallAttemptRecord callAttemptRecord = new CallAttemptRecord(callManagerHandle,
-                            TelecomApp.getInstance().getPhoneAccountRegistrar().
+                            mPhoneAccountRegistrar.
                                     getDefaultOutgoingPhoneAccount(mCall.getHandle().getScheme())
                     );
 

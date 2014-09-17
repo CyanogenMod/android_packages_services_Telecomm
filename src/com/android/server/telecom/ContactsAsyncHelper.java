@@ -27,6 +27,8 @@ import android.os.HandlerThread;
 import android.os.Looper;
 import android.os.Message;
 
+// TODO: Needed for move to system service: import com.android.internal.R;
+
 import java.io.IOException;
 import java.io.InputStream;
 
