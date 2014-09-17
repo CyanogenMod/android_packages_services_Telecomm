@@ -294,8 +294,6 @@ public class TelecomServiceImpl extends ITelecomService.Stub {
                 enforceRegisterProviderOrSubscriptionPermission();
             }
 
-            enforceModifyPermission();
-
             mPhoneAccountRegistrar.registerPhoneAccount(account);
         } catch (Exception e) {
             Log.e(this, e, "registerPhoneAccount %s", account);
