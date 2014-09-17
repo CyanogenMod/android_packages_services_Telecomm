@@ -16,6 +16,7 @@
 
 package com.android.server.telecom;
 
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
@@ -44,7 +45,7 @@ import com.android.internal.telephony.CallerInfoAsyncQuery.OnQueryCompleteListen
 import com.android.internal.telephony.SmsApplication;
 import com.android.server.telecom.ContactsAsyncHelper.OnImageLoadCompleteListener;
 
-import com.google.common.base.Preconditions;
+import com.android.internal.util.Preconditions;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -275,10 +276,13 @@ final class Call implements CreateConnectionResponse {
     private boolean mIsVoipAudioMode;
     private StatusHints mStatusHints;
     private final ConnectionServiceRepository mRepository;
+    private final Context mContext;
 
     /**
      * Persists the specified parameters and initializes the new instance.
      *
+     * @param context The context.
+     * @param repository The connection service repository.
      * @param handle The handle to dial.
      * @param gatewayInfo Gateway information to use for the call.
      * @param connectionManagerPhoneAccountHandle Account to use for the service managing the call.
@@ -289,6 +293,7 @@ final class Call implements CreateConnectionResponse {
      * @param isIncoming True if this is an incoming call.
      */
     Call(
+            Context context,
             ConnectionServiceRepository repository,
             Uri handle,
             GatewayInfo gatewayInfo,
@@ -297,6 +302,7 @@ final class Call implements CreateConnectionResponse {
             boolean isIncoming,
             boolean isConference) {
         mState = isConference ? CallState.ACTIVE : CallState.NEW;
+        mContext = context;
         mRepository = repository;
         setHandle(handle);
         setHandle(handle, TelecomManager.PRESENTATION_ALLOWED);
@@ -384,8 +390,8 @@ final class Call implements CreateConnectionResponse {
         if (!Objects.equals(handle, mHandle) || presentation != mHandlePresentation) {
             mHandle = handle;
             mHandlePresentation = presentation;
-            mIsEmergencyCall = mHandle != null && PhoneNumberUtils.isLocalEmergencyNumber(
-                    TelecomApp.getInstance(), mHandle.getSchemeSpecificPart());
+            mIsEmergencyCall = mHandle != null && PhoneNumberUtils.isLocalEmergencyNumber(mContext,
+                    mHandle.getSchemeSpecificPart());
             startCallerInfoLookup();
             for (Listener l : mListeners) {
                 l.onHandleChanged(this);
@@ -543,6 +549,15 @@ final class Call implements CreateConnectionResponse {
         return mConnectionService;
     }
 
+    /**
+     * Retrieves the {@link Context} for the call.
+     *
+     * @return The {@link Context}.
+     */
+    Context getContext() {
+        return mContext;
+    }
+
     void setConnectionService(ConnectionServiceWrapper service) {
         Preconditions.checkNotNull(service);
 
@@ -597,10 +612,13 @@ final class Call implements CreateConnectionResponse {
     /**
      * Starts the create connection sequence. Upon completion, there should exist an active
      * connection through a connection service (or the call will have failed).
+     *
+     * @param phoneAccountRegistrar The phone account registrar.
      */
-    void startCreateConnection() {
+    void startCreateConnection(PhoneAccountRegistrar phoneAccountRegistrar) {
         Preconditions.checkState(mCreateConnectionProcessor == null);
-        mCreateConnectionProcessor = new CreateConnectionProcessor(this, mRepository, this);
+        mCreateConnectionProcessor = new CreateConnectionProcessor(this, mRepository, this,
+                phoneAccountRegistrar, mContext);
         mCreateConnectionProcessor.process();
     }
 
@@ -635,7 +653,8 @@ final class Call implements CreateConnectionResponse {
 
             // Timeout the direct-to-voicemail lookup execution so that we dont wait too long before
             // showing the user the incoming call screen.
-            mHandler.postDelayed(mDirectToVoicemailRunnable, Timeouts.getDirectToVoicemailMillis());
+            mHandler.postDelayed(mDirectToVoicemailRunnable, Timeouts.getDirectToVoicemailMillis(
+                    mContext.getContentResolver()));
         } else {
             for (Listener l : mListeners) {
                 l.onSuccessfulOutgoingCall(this,
@@ -955,7 +974,7 @@ final class Call implements CreateConnectionResponse {
         }
 
         // Is there a valid SMS application on the phone?
-        if (SmsApplication.getDefaultRespondViaMessageApplication(TelecomApp.getInstance(),
+        if (SmsApplication.getDefaultRespondViaMessageApplication(mContext,
                 true /*updateIfNeeded*/) == null) {
             return false;
         }
@@ -1015,7 +1034,7 @@ final class Call implements CreateConnectionResponse {
             Log.v(this, "Looking up information for: %s.", Log.piiHandle(number));
             CallerInfoAsyncQuery.startQuery(
                     mQueryToken,
-                    TelecomApp.getInstance(),
+                    mContext,
                     number,
                     sCallerInfoQueryListener,
                     this);
@@ -1041,7 +1060,7 @@ final class Call implements CreateConnectionResponse {
                         mCallerInfo.contactDisplayPhotoUri, this);
                 ContactsAsyncHelper.startObtainPhotoAsync(
                         token,
-                        TelecomApp.getInstance(),
+                        mContext,
                         mCallerInfo.contactDisplayPhotoUri,
                         sPhotoLoadListener,
                         this);
@@ -1100,7 +1119,8 @@ final class Call implements CreateConnectionResponse {
                             Log.w(Call.this, "Error obtaining canned SMS responses: %d %s", code,
                                     msg);
                         }
-                    }
+                    },
+                    mContext
             );
         } else {
             Log.d(this, "maybeLoadCannedSmsResponses: doing nothing");

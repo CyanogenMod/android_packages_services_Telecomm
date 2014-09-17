@@ -38,6 +38,7 @@ import android.telecom.PhoneCapabilities;
 import android.telecom.TelecomManager;
 import android.util.ArrayMap;
 
+// TODO: Needed for move to system service: import com.android.internal.R;
 import com.android.internal.telecom.IInCallService;
 import com.google.common.collect.ImmutableCollection;
 
@@ -135,9 +136,11 @@ public final class InCallController extends CallsManagerListenerBase {
     /** The {@link ComponentName} of the default InCall UI. */
     private final ComponentName mInCallComponentName;
 
-    public InCallController() {
-        Context context = TelecomApp.getInstance();
-        Resources resources = context.getResources();
+    private final Context mContext;
+
+    public InCallController(Context context) {
+        mContext = context;
+        Resources resources = mContext.getResources();
 
         mInCallComponentName = new ComponentName(
                 resources.getString(R.string.ui_default_package),
@@ -245,7 +248,7 @@ public final class InCallController extends CallsManagerListenerBase {
             mServiceConnections.entrySet().iterator();
         while (iterator.hasNext()) {
             Log.i(this, "Unbinding from InCallService %s");
-            TelecomApp.getInstance().unbindService(iterator.next().getValue());
+            mContext.unbindService(iterator.next().getValue());
             iterator.remove();
         }
         mInCallServices.clear();
@@ -259,8 +262,8 @@ public final class InCallController extends CallsManagerListenerBase {
         ThreadUtil.checkOnMainThread();
         if (mInCallServices.isEmpty()) {
             mServiceConnections.clear();
-            Context context = TelecomApp.getInstance();
-            PackageManager packageManager = TelecomApp.getInstance().getPackageManager();
+
+            PackageManager packageManager = mContext.getPackageManager();
             Intent serviceIntent = new Intent(InCallService.SERVICE_INTERFACE);
 
             for (ResolveInfo entry : packageManager.queryIntentServices(serviceIntent, 0)) {
@@ -295,7 +298,7 @@ public final class InCallController extends CallsManagerListenerBase {
                         Intent intent = new Intent(InCallService.SERVICE_INTERFACE);
                         intent.setComponent(componentName);
 
-                        if (context.bindServiceAsUser(intent, inCallServiceConnection,
+                        if (mContext.bindServiceAsUser(intent, inCallServiceConnection,
                                 Context.BIND_AUTO_CREATE, UserHandle.CURRENT)) {
                             mServiceConnections.put(componentName, inCallServiceConnection);
                         }
@@ -359,7 +362,6 @@ public final class InCallController extends CallsManagerListenerBase {
     private void onDisconnected(ComponentName disconnectedComponent) {
         Log.i(this, "onDisconnected from %s", disconnectedComponent);
         ThreadUtil.checkOnMainThread();
-        Context context = TelecomApp.getInstance();
 
         if (mInCallServices.containsKey(disconnectedComponent)) {
             mInCallServices.remove(disconnectedComponent);
@@ -382,7 +384,7 @@ public final class InCallController extends CallsManagerListenerBase {
                         mServiceConnections.get(disconnectedComponent);
 
                 // We still need to call unbind even though it disconnected.
-                context.unbindService(serviceConnection);
+                mContext.unbindService(serviceConnection);
 
                 mServiceConnections.remove(disconnectedComponent);
                 mInCallServices.remove(disconnectedComponent);
