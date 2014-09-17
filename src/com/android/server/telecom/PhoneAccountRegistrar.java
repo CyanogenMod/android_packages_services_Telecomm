@@ -21,6 +21,8 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.content.pm.ServiceInfo;
+import android.os.Environment;
+import android.os.UserHandle;
 import android.provider.Settings;
 import android.telecom.ConnectionService;
 import android.telecom.PhoneAccount;
@@ -33,6 +35,7 @@ import android.text.TextUtils;
 import android.util.AtomicFile;
 import android.util.Xml;
 
+// TODO: Needed for move to system service: import com.android.internal.R;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.util.FastXmlSerializer;
 import com.android.internal.util.XmlUtils;
@@ -94,8 +97,16 @@ public final class PhoneAccountRegistrar {
 
     @VisibleForTesting
     public PhoneAccountRegistrar(Context context, String fileName) {
-        // TODO: Change file location when Telecom is part of system
+        // TODO: This file path is subject to change -- it is storing the phone account registry
+        // state file in the path /data/system/users/0/, which is likely not correct in a
+        // multi-user setting.
+        /** UNCOMMENT_FOR_MOVE_TO_SYSTEM_SERVICE
+        String filePath = Environment.getUserSystemDirectory(UserHandle.myUserId()).
+                getAbsolutePath();
+        mAtomicFile = new AtomicFile(new File(filePath, fileName));
+         UNCOMMENT_FOR_MOVE_TO_SYSTEM_SERVICE */
         mAtomicFile = new AtomicFile(new File(context.getFilesDir(), fileName));
+
         mState = new State();
         mContext = context;
         read();
@@ -419,7 +430,7 @@ public final class PhoneAccountRegistrar {
      * @return {@code True} if the phone account has permission.
      */
     public boolean phoneAccountHasPermission(PhoneAccountHandle phoneAccountHandle) {
-        PackageManager packageManager = TelecomApp.getInstance().getPackageManager();
+        PackageManager packageManager = mContext.getPackageManager();
         try {
             ServiceInfo serviceInfo = packageManager.getServiceInfo(
                     phoneAccountHandle.getComponentName(), 0);
