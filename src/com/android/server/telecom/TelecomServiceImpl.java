@@ -193,11 +193,11 @@ public class TelecomServiceImpl extends ITelecomService.Stub {
     }
 
     @Override
-    public List<PhoneAccountHandle> getEnabledPhoneAccounts() {
+    public List<PhoneAccountHandle> getCallCapablePhoneAccounts() {
         try {
-            return mPhoneAccountRegistrar.getEnabledPhoneAccounts();
+            return mPhoneAccountRegistrar.getCallCapablePhoneAccounts();
         } catch (Exception e) {
-            Log.e(this, e, "getEnabledPhoneAccounts");
+            Log.e(this, e, "getCallCapablePhoneAccounts");
             throw e;
         }
     }
@@ -205,7 +205,7 @@ public class TelecomServiceImpl extends ITelecomService.Stub {
     @Override
     public List<PhoneAccountHandle> getPhoneAccountsSupportingScheme(String uriScheme) {
         try {
-            return mPhoneAccountRegistrar.getEnabledPhoneAccounts(uriScheme);
+            return mPhoneAccountRegistrar.getCallCapablePhoneAccounts(uriScheme);
         } catch (Exception e) {
             Log.e(this, e, "getPhoneAccountsSupportingScheme");
             throw e;
@@ -294,39 +294,11 @@ public class TelecomServiceImpl extends ITelecomService.Stub {
                 enforceRegisterProviderOrSubscriptionPermission();
             }
 
-            // If the account is marked as enabled or has CAPABILITY_ALWAYS_ENABLED set, check to
-            // ensure the caller has modify permission.  If they do not, set the account to be
-            // disabled and remove CAPABILITY_ALWAYS_ENABLED.
-            if (account.isEnabled() ||
-                    account.hasCapabilities(PhoneAccount.CAPABILITY_ALWAYS_ENABLED)) {
-                try {
-                    enforceModifyPermission();
-                } catch (SecurityException e) {
-                    // Caller does not have modify permission, so change account to disabled by
-                    // default and remove the CAPABILITY_ALWAYS_ENABLED capability.
-                    int capabilities = account.getCapabilities() &
-                            ~PhoneAccount.CAPABILITY_ALWAYS_ENABLED;
-                    account = account.toBuilder()
-                            .setEnabled(false)
-                            .setCapabilities(capabilities)
-                            .build();
-                }
-            }
+            enforceModifyPermission();
 
             mPhoneAccountRegistrar.registerPhoneAccount(account);
         } catch (Exception e) {
             Log.e(this, e, "registerPhoneAccount %s", account);
-            throw e;
-        }
-    }
-
-    @Override
-    public void setPhoneAccountEnabled(PhoneAccountHandle account, boolean isEnabled) {
-        try {
-            enforceModifyPermission();
-            mPhoneAccountRegistrar.setPhoneAccountEnabled(account, isEnabled);
-        } catch (Exception e) {
-            Log.e(this, e, "setPhoneAccountEnabled %s %d", account, isEnabled ? 1 : 0);
             throw e;
         }
     }
