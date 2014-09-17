@@ -256,6 +256,17 @@ public class TestConnectionManager extends ConnectionService {
                 mRemote.unregisterCallback(mRemoteCallback);
                 mManagedConferenceByRemote.remove(mRemote);
             }
+
+        };
+
+        @Override
+        public void onPlayDtmfTone(char c) {
+            mRemote.playDtmfTone(c);
+        };
+
+        @Override
+        public void onStopDtmfTone() {
+            mRemote.stopDtmfTone();
         };
 
         private final RemoteConference mRemote;
