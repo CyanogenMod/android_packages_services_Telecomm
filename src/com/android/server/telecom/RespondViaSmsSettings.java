@@ -27,6 +27,8 @@ import android.preference.PreferenceActivity;
 import android.view.Menu;
 import android.view.MenuItem;
 
+// TODO: Needed for move to system service: import com.android.internal.R;
+
 /**
  * Helper class to manage the "Respond via SMS Message" feature for incoming calls.
  */
@@ -52,7 +54,7 @@ public class RespondViaSmsSettings {
             // This function guarantees that QuickResponses will be in our
             // SharedPreferences with the proper values considering there may be
             // old QuickResponses in Telephony pre L.
-            QuickResponseUtils.maybeMigrateLegacyQuickResponses();
+            QuickResponseUtils.maybeMigrateLegacyQuickResponses(this);
 
             getPreferenceManager().setSharedPreferencesName(
                     QuickResponseUtils.SHARED_PREFERENCES_NAME);

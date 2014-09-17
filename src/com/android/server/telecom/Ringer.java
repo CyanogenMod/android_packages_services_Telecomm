@@ -49,7 +49,7 @@ final class Ringer extends CallsManagerListenerBase {
     /** Indicate that we want the pattern to repeat at the step which turns on vibration. */
     private static final int VIBRATION_PATTERN_REPEAT = 1;
 
-    private final AsyncRingtonePlayer mRingtonePlayer = new AsyncRingtonePlayer();
+    private final AsyncRingtonePlayer mRingtonePlayer;
 
     /**
      * Used to keep ordering of unanswered incoming calls. There can easily exist multiple incoming
@@ -83,7 +83,8 @@ final class Ringer extends CallsManagerListenerBase {
         mContext = context;
         // We don't rely on getSystemService(Context.VIBRATOR_SERVICE) to make sure this
         // vibrator object will be isolated from others.
-        mVibrator = new SystemVibrator(TelecomApp.getInstance());
+        mVibrator = new SystemVibrator(context);
+        mRingtonePlayer = new AsyncRingtonePlayer(context);
     }
 
     @Override
@@ -197,7 +198,7 @@ final class Ringer extends CallsManagerListenerBase {
                 Log.v(this, "startRingingOrCallWaiting, skipping because volume is 0");
             }
 
-            if (shouldVibrate(TelecomApp.getInstance()) && !mIsVibrating) {
+            if (shouldVibrate(mContext) && !mIsVibrating) {
                 mVibrator.vibrate(VIBRATION_PATTERN, VIBRATION_PATTERN_REPEAT,
                         VIBRATION_ATTRIBUTES);
                 mIsVibrating = true;

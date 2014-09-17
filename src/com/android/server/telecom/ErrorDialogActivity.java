@@ -22,6 +22,8 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 
+// TODO: Needed for move to system service: import com.android.internal.R;
+
 /**
  * Used to display an error dialog from within the Telecom service when an outgoing call fails
  */

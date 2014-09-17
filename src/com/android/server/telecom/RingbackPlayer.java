@@ -18,7 +18,7 @@ package com.android.server.telecom;
 
 import android.telecom.CallState;
 
-import com.google.common.base.Preconditions;
+import com.android.internal.util.Preconditions;
 
 /**
  * Plays ringback tones. Ringback is different from other tones because it operates as the current

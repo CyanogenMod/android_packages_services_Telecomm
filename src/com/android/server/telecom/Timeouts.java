@@ -16,6 +16,7 @@
 
 package com.android.server.telecom;
 
+import android.content.ContentResolver;
 import android.provider.Settings;
 
 /**
@@ -34,13 +35,13 @@ public final class Timeouts {
      * Returns the timeout value from Settings or the default value if it hasn't been changed. This
      * method is safe to call from any thread, including the UI thread.
      *
+     * @param contentResolver The content resolved.
      * @param key Settings key to retrieve.
      * @param defaultValue Default value, in milliseconds.
      * @return The timeout value from Settings or the default value if it hasn't been changed.
      */
-    private static long get(String key, long defaultValue) {
-        return Settings.Secure.getLong(
-                TelecomApp.getInstance().getContentResolver(), PREFIX + key, defaultValue);
+    private static long get(ContentResolver contentResolver, String key, long defaultValue) {
+        return Settings.Secure.getLong(contentResolver, PREFIX + key, defaultValue);
     }
 
     /**
@@ -48,7 +49,7 @@ public final class Timeouts {
      * to complete. If the query goes beyond this timeout, the incoming call screen is shown to the
      * user.
      */
-    public static long getDirectToVoicemailMillis() {
-        return get("direct_to_voicemail_ms", 500L);
+    public static long getDirectToVoicemailMillis(ContentResolver contentResolver) {
+        return get(contentResolver, "direct_to_voicemail_ms", 500L);
     }
 }

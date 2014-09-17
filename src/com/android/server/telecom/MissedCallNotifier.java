@@ -37,6 +37,8 @@ import android.text.BidiFormatter;
 import android.text.TextDirectionHeuristics;
 import android.text.TextUtils;
 
+// TODO: Needed for move to system service: import com.android.internal.R;
+
 /**
  * Creates a notification for calls that the user missed (neither answered nor rejected).
  * TODO: Make TelephonyManager.clearMissedCalls call into this class.
@@ -284,7 +286,8 @@ class MissedCallNotifier extends CallsManagerListenerBase {
                             }
 
                             // Convert the data to a call object
-                            Call call = new Call(null, null, null, null, null, true, false);
+                            Call call = new Call(mContext, null, null, null, null, null, true,
+                                    false);
                             call.setDisconnectCause(new DisconnectCause(DisconnectCause.MISSED));
                             call.setState(CallState.DISCONNECTED);
 
