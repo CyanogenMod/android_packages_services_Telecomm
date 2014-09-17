@@ -144,7 +144,7 @@ public class CallServiceNotifier {
     public void showAllPhoneAccounts(Context context) {
         TelecomManager telecomManager =
                 (TelecomManager) context.getSystemService(Context.TELECOM_SERVICE);
-        List<PhoneAccountHandle> accounts = telecomManager.getEnabledPhoneAccounts();
+        List<PhoneAccountHandle> accounts = telecomManager.getCallCapablePhoneAccounts();
 
         Toast.makeText(context, accounts.toString(), Toast.LENGTH_LONG).show();
     }
