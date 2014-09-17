@@ -16,6 +16,7 @@
 
 package com.android.server.telecom;
 
+import android.content.Context;
 import android.net.Uri;
 import android.os.Bundle;
 
@@ -30,6 +31,7 @@ import android.telecom.PhoneCapabilities;
 import android.telephony.TelephonyManager;
 
 import com.android.internal.util.ArrayUtils;
+import com.android.internal.util.IndentingPrintWriter;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 
@@ -68,7 +70,12 @@ public final class CallsManager extends Call.ListenerBase {
         void onVideoStateChanged(Call call);
     }
 
-    private static final CallsManager INSTANCE = new CallsManager();
+    /**
+     * Singleton instance of the {@link CallsManager}, initialized from {@link TelecomService}.
+     */
+    private static CallsManager INSTANCE = null;
+
+    private static final String TAG = "CallsManager";
 
     private static final int MAXIMUM_LIVE_CALLS = 1;
     private static final int MAXIMUM_HOLD_CALLS = 1;
@@ -92,10 +99,9 @@ public final class CallsManager extends Call.ListenerBase {
     private final Set<Call> mCalls = Collections.newSetFromMap(
             new ConcurrentHashMap<Call, Boolean>(8, 0.9f, 1));
 
-    private final ConnectionServiceRepository mConnectionServiceRepository =
-            new ConnectionServiceRepository();
-    private final DtmfLocalTonePlayer mDtmfLocalTonePlayer = new DtmfLocalTonePlayer();
-    private final InCallController mInCallController = new InCallController();
+    private final ConnectionServiceRepository mConnectionServiceRepository;
+    private final DtmfLocalTonePlayer mDtmfLocalTonePlayer;
+    private final InCallController mInCallController;
     private final CallAudioManager mCallAudioManager;
     private final Ringer mRinger;
     // For this set initial table size to 16 because we add 13 listeners in
@@ -108,6 +114,9 @@ public final class CallsManager extends Call.ListenerBase {
     private final ProximitySensorManager mProximitySensorManager;
     private final PhoneStateBroadcaster mPhoneStateBroadcaster;
     private final CallLogManager mCallLogManager;
+    private final Context mContext;
+    private final PhoneAccountRegistrar mPhoneAccountRegistrar;
+    private final MissedCallNotifier mMissedCallNotifier;
 
     /**
      * The call the user is currently interacting with. This is the call that should have audio
@@ -121,21 +130,36 @@ public final class CallsManager extends Call.ListenerBase {
     }
 
     /**
+     * Sets the static singleton instance.
+     *
+     * @param instance The instance to set.
+     */
+    static void initialize(CallsManager instance) {
+        INSTANCE = instance;
+    }
+
+    /**
      * Initializes the required Telecom components.
      */
-    private CallsManager() {
-        TelecomApp app = TelecomApp.getInstance();
-
-        StatusBarNotifier statusBarNotifier = new StatusBarNotifier(app, this);
-        mWiredHeadsetManager = new WiredHeadsetManager(app);
-        mCallAudioManager = new CallAudioManager(app, statusBarNotifier, mWiredHeadsetManager);
+     CallsManager(Context context, MissedCallNotifier missedCallNotifier,
+             PhoneAccountRegistrar phoneAccountRegistrar) {
+        mContext = context;
+        mPhoneAccountRegistrar = phoneAccountRegistrar;
+        mMissedCallNotifier = missedCallNotifier;
+        StatusBarNotifier statusBarNotifier = new StatusBarNotifier(context, this);
+        mWiredHeadsetManager = new WiredHeadsetManager(context);
+        mCallAudioManager = new CallAudioManager(context, statusBarNotifier, mWiredHeadsetManager);
         InCallTonePlayer.Factory playerFactory = new InCallTonePlayer.Factory(mCallAudioManager);
-        mRinger = new Ringer(mCallAudioManager, this, playerFactory, app);
-        mHeadsetMediaButton = new HeadsetMediaButton(app, this);
-        mTtyManager = new TtyManager(app, mWiredHeadsetManager);
-        mProximitySensorManager = new ProximitySensorManager(app);
+        mRinger = new Ringer(mCallAudioManager, this, playerFactory, context);
+        mHeadsetMediaButton = new HeadsetMediaButton(context, this);
+        mTtyManager = new TtyManager(context, mWiredHeadsetManager);
+        mProximitySensorManager = new ProximitySensorManager(context);
         mPhoneStateBroadcaster = new PhoneStateBroadcaster();
-        mCallLogManager = new CallLogManager(app);
+        mCallLogManager = new CallLogManager(context);
+        mInCallController = new InCallController(context);
+        mDtmfLocalTonePlayer = new DtmfLocalTonePlayer(context);
+        mConnectionServiceRepository = new ConnectionServiceRepository(mPhoneAccountRegistrar,
+                context);
 
         mListeners.add(statusBarNotifier);
         mListeners.add(mCallLogManager);
@@ -145,7 +169,7 @@ public final class CallsManager extends Call.ListenerBase {
         mListeners.add(new RingbackPlayer(this, playerFactory));
         mListeners.add(new InCallToneMonitor(playerFactory, this));
         mListeners.add(mCallAudioManager);
-        mListeners.add(app.getMissedCallNotifier());
+        mListeners.add(missedCallNotifier);
         mListeners.add(mDtmfLocalTonePlayer);
         mListeners.add(mHeadsetMediaButton);
         mListeners.add(RespondViaSmsManager.getInstance());
@@ -188,8 +212,7 @@ public final class CallsManager extends Call.ListenerBase {
             incomingCall.reject(false, null);
             // since the call was not added to the list of calls, we have to call the missed
             // call notifier and the call logger manually.
-            TelecomApp.getInstance().getMissedCallNotifier()
-                    .showMissedCallNotification(incomingCall);
+            mMissedCallNotifier.showMissedCallNotification(incomingCall);
             mCallLogManager.logCall(incomingCall, Calls.MISSED_TYPE);
         } else {
             addCall(incomingCall);
@@ -290,6 +313,7 @@ public final class CallsManager extends Call.ListenerBase {
         Log.d(this, "processIncomingCallIntent");
         Uri handle = extras.getParcelable(TelephonyManager.EXTRA_INCOMING_NUMBER);
         Call call = new Call(
+                mContext,
                 mConnectionServiceRepository,
                 handle,
                 null /* gatewayInfo */,
@@ -301,7 +325,7 @@ public final class CallsManager extends Call.ListenerBase {
         call.setExtras(extras);
         // TODO: Move this to be a part of addCall()
         call.addListener(this);
-        call.startCreateConnection();
+        call.startCreateConnection(mPhoneAccountRegistrar);
     }
 
     /**
@@ -313,14 +337,12 @@ public final class CallsManager extends Call.ListenerBase {
      * @param extras The optional extras Bundle passed with the intent used for the incoming call.
      */
     Call startOutgoingCall(Uri handle, PhoneAccountHandle phoneAccountHandle, Bundle extras) {
-        TelecomApp app = TelecomApp.getInstance();
-
         // Only dial with the requested phoneAccount if it is still valid. Otherwise treat this call
         // as if a phoneAccount was not specified (does the default behavior instead).
         // Note: We will not attempt to dial with a requested phoneAccount if it is disabled.
         if (phoneAccountHandle != null) {
             List<PhoneAccountHandle> accounts =
-                    app.getPhoneAccountRegistrar().getCallCapablePhoneAccounts(handle.getScheme());
+                    mPhoneAccountRegistrar.getCallCapablePhoneAccounts(handle.getScheme());
             if (!accounts.contains(phoneAccountHandle)) {
                 phoneAccountHandle = null;
             }
@@ -330,7 +352,7 @@ public final class CallsManager extends Call.ListenerBase {
             // No preset account, check if default exists that supports the URI scheme for the
             // handle.
             PhoneAccountHandle defaultAccountHandle =
-                    app.getPhoneAccountRegistrar().getDefaultOutgoingPhoneAccount(
+                    mPhoneAccountRegistrar.getDefaultOutgoingPhoneAccount(
                             handle.getScheme());
             if (defaultAccountHandle != null) {
                 phoneAccountHandle = defaultAccountHandle;
@@ -340,6 +362,7 @@ public final class CallsManager extends Call.ListenerBase {
         // Create a call with original handle. The handle may be changed when the call is attached
         // to a connection service, but in most cases will remain the same.
         Call call = new Call(
+                mContext,
                 mConnectionServiceRepository,
                 handle,
                 null /* gatewayInfo */,
@@ -349,7 +372,8 @@ public final class CallsManager extends Call.ListenerBase {
                 false /* isConference */);
         call.setExtras(extras);
 
-        boolean isEmergencyCall = TelephonyUtil.shouldProcessAsEmergency(app, call.getHandle());
+        boolean isEmergencyCall = TelephonyUtil.shouldProcessAsEmergency(mContext,
+                call.getHandle());
 
         // Do not support any more live calls.  Our options are to move a call to hold, disconnect
         // a call, or cancel this call altogether.
@@ -405,8 +429,8 @@ public final class CallsManager extends Call.ListenerBase {
         call.setStartWithSpeakerphoneOn(speakerphoneOn);
         call.setVideoState(videoState);
 
-        TelecomApp app = TelecomApp.getInstance();
-        boolean isEmergencyCall = TelephonyUtil.shouldProcessAsEmergency(app, call.getHandle());
+        boolean isEmergencyCall = TelephonyUtil.shouldProcessAsEmergency(mContext,
+                call.getHandle());
         if (isEmergencyCall) {
             // Emergency -- CreateConnectionProcessor will choose accounts automatically
             call.setTargetPhoneAccount(null);
@@ -415,7 +439,7 @@ public final class CallsManager extends Call.ListenerBase {
         if (call.getTargetPhoneAccount() != null || isEmergencyCall) {
             // If the account has been set, proceed to place the outgoing call.
             // Otherwise the connection will be initiated when the account is set by the user.
-            call.startCreateConnection();
+            call.startCreateConnection(mPhoneAccountRegistrar);
         }
     }
 
@@ -628,7 +652,7 @@ public final class CallsManager extends Call.ListenerBase {
             // Note: emergency calls never go through account selection dialog so they never
             // arrive here.
             if (makeRoomForOutgoingCall(call, false /* isEmergencyCall */)) {
-                call.startCreateConnection();
+                call.startCreateConnection(mPhoneAccountRegistrar);
             } else {
                 call.disconnect();
             }
@@ -800,6 +824,7 @@ public final class CallsManager extends Call.ListenerBase {
             PhoneAccountHandle phoneAccount,
             ParcelableConference parcelableConference) {
         Call call = new Call(
+                mContext,
                 mConnectionServiceRepository,
                 null /* handle */,
                 null /* gatewayInfo */,
@@ -825,6 +850,23 @@ public final class CallsManager extends Call.ListenerBase {
      */
     int getCallState() {
         return mPhoneStateBroadcaster.getCallState();
+    }
+
+    /**
+     * Retrieves the {@link PhoneAccountRegistrar}.
+     *
+     * @return The {@link PhoneAccountRegistrar}.
+     */
+    PhoneAccountRegistrar getPhoneAccountRegistrar() {
+        return mPhoneAccountRegistrar;
+    }
+
+    /**
+     * Retrieves the {@link MissedCallNotifier}
+     * @return The {@link MissedCallNotifier}.
+     */
+    MissedCallNotifier getMissedCallNotifier() {
+        return mMissedCallNotifier;
     }
 
     /**
@@ -1017,5 +1059,24 @@ public final class CallsManager extends Call.ListenerBase {
             return false;
         }
         return true;
+    }
+
+    /**
+     * Dumps the state of the {@link CallsManager}.
+     *
+     * @param pw The {@code IndentingPrintWriter} to write the state to.
+     */
+    public void dump(IndentingPrintWriter pw) {
+        mContext.enforceCallingOrSelfPermission(android.Manifest.permission.DUMP, TAG);
+        pw.increaseIndent();
+        if (mCalls != null) {
+            pw.println("mCalls: ");
+            pw.increaseIndent();
+            for (Call call : mCalls) {
+                pw.println(call);
+            }
+            pw.decreaseIndent();
+        }
+        pw.decreaseIndent();
     }
 }

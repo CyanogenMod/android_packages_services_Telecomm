@@ -178,20 +178,8 @@
             </intent-filter>
         </activity-alias>
 
-        <receiver android:name="TelecomBroadcastReceiver" android:exported="false">
-            <intent-filter>
-                <action android:name="com.android.server.telecom.ACTION_CALL_BACK_FROM_NOTIFICATION" />
-                <action android:name="com.android.server.telecom.ACTION_CALL_BACK_FROM_NOTIFICATION" />
-                <action android:name="com.android.server.telecom.ACTION_SEND_SMS_FROM_NOTIFICATION" />
-            </intent-filter>
-        </receiver>
-
-        <receiver android:name="PhoneAccountBroadcastReceiver">
-            <intent-filter>
-                <action android:name="android.intent.action.PACKAGE_FULLY_REMOVED" />
-                <data android:scheme="package" />
-            </intent-filter>
-        </receiver>
+        <!-- Note: Broadcast receivers are now set up in TelecomApp as a step in the transition to
+             running under the system process. -->
 
         <activity android:name=".RespondViaSmsSettings$Settings"
                   android:label="@string/respond_via_sms_setting_title"
