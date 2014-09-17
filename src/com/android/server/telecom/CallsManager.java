@@ -22,11 +22,11 @@ import android.os.Bundle;
 import android.provider.CallLog.Calls;
 import android.telecom.AudioState;
 import android.telecom.CallState;
+import android.telecom.DisconnectCause;
 import android.telecom.GatewayInfo;
 import android.telecom.ParcelableConference;
 import android.telecom.PhoneAccountHandle;
 import android.telecom.PhoneCapabilities;
-import android.telephony.DisconnectCause;
 import android.telephony.TelephonyManager;
 
 import com.android.internal.util.ArrayUtils;
@@ -172,11 +172,11 @@ public final class CallsManager extends Call.ListenerBase {
     }
 
     @Override
-    public void onFailedOutgoingCall(Call call, int errorCode, String errorMsg) {
+    public void onFailedOutgoingCall(Call call, DisconnectCause disconnectCause) {
         Log.v(this, "onFailedOutgoingCall, call: %s", call);
 
         // TODO: Replace disconnect cause with more specific disconnect causes.
-        markCallAsDisconnected(call, errorCode, errorMsg);
+        markCallAsDisconnected(call, disconnectCause);
     }
 
     @Override
@@ -670,11 +670,10 @@ public final class CallsManager extends Call.ListenerBase {
      * Marks the specified call as STATE_DISCONNECTED and notifies the in-call app. If this was the
      * last live call, then also disconnect from the in-call controller.
      *
-     * @param disconnectCause The disconnect reason, see {@link android.telephony.DisconnectCause}.
-     * @param disconnectMessage Optional message about the disconnect.
+     * @param disconnectCause The disconnect cause, see {@link android.telecomm.DisconnectCause}.
      */
-    void markCallAsDisconnected(Call call, int disconnectCause, String disconnectMessage) {
-        call.setDisconnectCause(disconnectCause, disconnectMessage);
+    void markCallAsDisconnected(Call call, DisconnectCause disconnectCause) {
+        call.setDisconnectCause(disconnectCause);
         setCallState(call, CallState.DISCONNECTED);
         removeCall(call);
     }
@@ -696,7 +695,7 @@ public final class CallsManager extends Call.ListenerBase {
         if (service != null) {
             for (Call call : mCalls) {
                 if (call.getConnectionService() == service) {
-                    markCallAsDisconnected(call, DisconnectCause.ERROR_UNSPECIFIED, null);
+                    markCallAsDisconnected(call, new DisconnectCause(DisconnectCause.ERROR));
                 }
             }
         }
