@@ -933,7 +933,9 @@ public final class CallsManager extends Call.ListenerBase {
             Log.v(this, "Updating foreground call, %s -> %s.", mForegroundCall, newForegroundCall);
             Call oldForegroundCall = mForegroundCall;
             mForegroundCall = newForegroundCall;
-
+            if (mForegroundCall != null && mForegroundCall.getState() == CallState.ON_HOLD) {
+                mForegroundCall.unhold();
+            }
             for (CallsManagerListener listener : mListeners) {
                 listener.onForegroundCallChanged(oldForegroundCall, mForegroundCall);
             }
