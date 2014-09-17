@@ -21,6 +21,7 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
 
+// TODO: Needed for move to system service: import com.android.internal.R;
 
 /**
  * Utils class that exposes some helper routines to used to manage the QuickResponses
@@ -48,7 +49,7 @@ public class QuickResponseUtils {
      * current SharedPreferences.  This is a lazy migration as it happens only when
      * the QuickResponse settings are viewed or if they are queried via RespondViaSmsManager.
      */
-    public static void maybeMigrateLegacyQuickResponses() {
+    public static void maybeMigrateLegacyQuickResponses(Context context) {
         // The algorithm will go as such:
         // If Telecom QuickResponses exist, we will skip migration because this implies
         // that a user has already specified their desired QuickResponses and have abandoned any
@@ -59,11 +60,9 @@ public class QuickResponseUtils {
         // function is called.
 
         Log.d(LOG_TAG, "maybeMigrateLegacyQuickResponses() - Starting");
-
-        final Context telecomContext = TelecomApp.getInstance();
-        final SharedPreferences prefs = telecomContext.getSharedPreferences(
+        final SharedPreferences prefs = context.getSharedPreferences(
                 SHARED_PREFERENCES_NAME, Context.MODE_PRIVATE);
-        final Resources res = telecomContext.getResources();
+        final Resources res = context.getResources();
 
         final boolean responsesExist = prefs.contains(KEY_CANNED_RESPONSE_PREF_1);
         if (responsesExist) {
@@ -84,7 +83,7 @@ public class QuickResponseUtils {
         // the Telephony package and we'll fall back on using our default values.
         Context telephonyContext = null;
         try {
-            telephonyContext = telecomContext.createPackageContext(PACKAGE_NAME_TELEPHONY, 0);
+            telephonyContext = context.createPackageContext(PACKAGE_NAME_TELEPHONY, 0);
         } catch (PackageManager.NameNotFoundException e) {
             Log.e(LOG_TAG, e, "maybeMigrateLegacyQuickResponses() - Can't find Telephony package.");
         }
