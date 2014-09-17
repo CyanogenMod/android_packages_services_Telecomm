@@ -31,6 +31,8 @@ import android.telephony.DisconnectCause;
 import android.telephony.PhoneNumberUtils;
 import android.text.TextUtils;
 
+// TODO: Needed for move to system service: import com.android.internal.R;
+
 /**
  * OutgoingCallIntentBroadcaster receives CALL and CALL_PRIVILEGED Intents, and broadcasts the
  * ACTION_NEW_OUTGOING_CALL intent. ACTION_NEW_OUTGOING_CALL is an ordered broadcast intent which
@@ -69,14 +71,17 @@ class NewOutgoingCallIntentBroadcaster {
     private final CallsManager mCallsManager;
     private final Call mCall;
     private final Intent mIntent;
+    private final Context mContext;
+
     /*
      * Whether or not the outgoing call intent originated from the default phone application. If
      * so, it will be allowed to make emergency calls, even with the ACTION_CALL intent.
      */
     private final boolean mIsDefaultOrSystemPhoneApp;
 
-    NewOutgoingCallIntentBroadcaster(CallsManager callsManager, Call call, Intent intent,
-            boolean isDefaultPhoneApp) {
+    NewOutgoingCallIntentBroadcaster(Context context, CallsManager callsManager, Call call,
+            Intent intent, boolean isDefaultPhoneApp) {
+        mContext = context;
         mCallsManager = callsManager;
         mCall = call;
         mIntent = intent;
@@ -102,7 +107,7 @@ class NewOutgoingCallIntentBroadcaster {
             if (resultNumber == null) {
                 Log.v(this, "Call cancelled (null number), returning...");
                 endEarly = true;
-            } else if (PhoneNumberUtils.isPotentialLocalEmergencyNumber(context, resultNumber)) {
+            } else if (PhoneNumberUtils.isPotentialLocalEmergencyNumber(mContext, resultNumber)) {
                 Log.w(this, "Cannot modify outgoing call to emergency number %s.", resultNumber);
                 endEarly = true;
             }
@@ -153,8 +158,6 @@ class NewOutgoingCallIntentBroadcaster {
     int processIntent() {
         Log.v(this, "Processing call intent in OutgoingCallIntentBroadcaster.");
 
-        final Context context = TelecomApp.getInstance();
-
         Intent intent = mIntent;
         String action = intent.getAction();
         final Uri handle = intent.getData();
@@ -183,7 +186,7 @@ class NewOutgoingCallIntentBroadcaster {
             }
         }
 
-        String number = PhoneNumberUtils.getNumberFromIntent(intent, context);
+        String number = PhoneNumberUtils.getNumberFromIntent(intent, mContext);
         if (TextUtils.isEmpty(number)) {
             Log.w(this, "Empty number obtained from the call intent.");
             return DisconnectCause.NO_PHONE_NUMBER_SUPPLIED;
@@ -195,7 +198,7 @@ class NewOutgoingCallIntentBroadcaster {
             number = PhoneNumberUtils.stripSeparators(number);
         }
 
-        final boolean isPotentialEmergencyNumber = isPotentialEmergencyNumber(context, number);
+        final boolean isPotentialEmergencyNumber = isPotentialEmergencyNumber(number);
         Log.v(this, "isPotentialEmergencyNumber = %s", isPotentialEmergencyNumber);
 
         rewriteCallIntentAction(intent, isPotentialEmergencyNumber);
@@ -209,7 +212,7 @@ class NewOutgoingCallIntentBroadcaster {
                 if (!mIsDefaultOrSystemPhoneApp) {
                     Log.w(this, "Cannot call potential emergency number %s with CALL Intent %s "
                             + "unless caller is system or default dialer.", number, intent);
-                    launchSystemDialer(context, intent.getData());
+                    launchSystemDialer(intent.getData());
                     return DisconnectCause.OUTGOING_CANCELED;
                 } else {
                     callImmediately = true;
@@ -245,7 +248,7 @@ class NewOutgoingCallIntentBroadcaster {
             // initiate the call again because of the presence of the EXTRA_ALREADY_CALLED extra.
         }
 
-        broadcastIntent(intent, number, context, !callImmediately);
+        broadcastIntent(intent, number, !callImmediately);
         return DisconnectCause.NOT_DISCONNECTED;
     }
 
@@ -255,14 +258,12 @@ class NewOutgoingCallIntentBroadcaster {
      *
      * @param originalCallIntent The original call intent.
      * @param number Call number that was stored in the original call intent.
-     * @param context Valid context to send the ordered broadcast using.
      * @param receiverRequired Whether or not the result from the ordered broadcast should be
      *     processed using a {@link NewOutgoingCallIntentBroadcaster}.
      */
     private void broadcastIntent(
             Intent originalCallIntent,
             String number,
-            Context context,
             boolean receiverRequired) {
         Intent broadcastIntent = new Intent(Intent.ACTION_NEW_OUTGOING_CALL);
         if (number != null) {
@@ -276,7 +277,7 @@ class NewOutgoingCallIntentBroadcaster {
 
         checkAndCopyProviderExtras(originalCallIntent, broadcastIntent);
 
-        context.sendOrderedBroadcastAsUser(
+        mContext.sendOrderedBroadcastAsUser(
                 broadcastIntent,
                 UserHandle.OWNER,
                 PERMISSION,
@@ -350,9 +351,9 @@ class NewOutgoingCallIntentBroadcaster {
         return null;
     }
 
-    private void launchSystemDialer(Context context, Uri handle) {
+    private void launchSystemDialer(Uri handle) {
         Intent systemDialerIntent = new Intent();
-        final Resources resources = context.getResources();
+        final Resources resources = mContext.getResources();
         systemDialerIntent.setClassName(
                 resources.getString(R.string.ui_default_package),
                 resources.getString(R.string.dialer_default_class));
@@ -360,7 +361,7 @@ class NewOutgoingCallIntentBroadcaster {
         systemDialerIntent.setData(handle);
         systemDialerIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         Log.v(this, "calling startActivity for default dialer: %s", systemDialerIntent);
-        context.startActivity(systemDialerIntent);
+        mContext.startActivity(systemDialerIntent);
     }
 
     /**
@@ -373,14 +374,14 @@ class NewOutgoingCallIntentBroadcaster {
      * still result in an emergency call with some networks), we use
      * isPotentialLocalEmergencyNumber instead of isLocalEmergencyNumber.
      *
-     * @param context Valid context
      * @param number number to inspect in order to determine whether or not an emergency number
      * is potentially being dialed
      * @return True if the handle is potentially an emergency number.
      */
-    private boolean isPotentialEmergencyNumber(Context context, String number) {
+    private boolean isPotentialEmergencyNumber(String number) {
         Log.v(this, "Checking restrictions for number : %s", Log.pii(number));
-        return (number != null) && PhoneNumberUtils.isPotentialLocalEmergencyNumber(context,number);
+        return (number != null) && PhoneNumberUtils.isPotentialLocalEmergencyNumber(mContext,
+                number);
     }
 
     /**

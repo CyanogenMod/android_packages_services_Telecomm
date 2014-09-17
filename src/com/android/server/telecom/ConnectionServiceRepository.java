@@ -17,6 +17,7 @@
 package com.android.server.telecom;
 
 import android.content.ComponentName;
+import android.content.Context;
 
 import java.util.HashMap;
 
@@ -27,8 +28,12 @@ final class ConnectionServiceRepository
         implements ServiceBinder.Listener<ConnectionServiceWrapper> {
     private final HashMap<ComponentName, ConnectionServiceWrapper> mServiceCache =
             new HashMap<ComponentName, ConnectionServiceWrapper>();
+    private final PhoneAccountRegistrar mPhoneAccountRegistrar;
+    private final Context mContext;
 
-    ConnectionServiceRepository() {
+    ConnectionServiceRepository(PhoneAccountRegistrar phoneAccountRegistrar, Context context) {
+        mPhoneAccountRegistrar = phoneAccountRegistrar;
+        mContext = context;
     }
 
     ConnectionServiceWrapper getService(ComponentName componentName) {
@@ -37,7 +42,8 @@ final class ConnectionServiceRepository
             service = new ConnectionServiceWrapper(
                     componentName,
                     this,
-                    TelecomApp.getInstance().getPhoneAccountRegistrar());
+                    mPhoneAccountRegistrar,
+                    mContext);
             service.addListener(this);
             mServiceCache.put(componentName, service);
         }

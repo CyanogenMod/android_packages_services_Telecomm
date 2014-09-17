@@ -21,7 +21,7 @@ import android.media.AudioManager;
 import android.telecom.AudioState;
 import android.telecom.CallState;
 
-import com.google.common.base.Preconditions;
+import com.android.internal.util.Preconditions;
 
 import java.util.Objects;
 

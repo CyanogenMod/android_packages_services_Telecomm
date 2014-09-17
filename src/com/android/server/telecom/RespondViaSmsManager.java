@@ -16,6 +16,7 @@
 
 package com.android.server.telecom;
 
+// TODO: Needed for move to system service: import com.android.internal.R;
 import com.android.internal.os.SomeArgs;
 import com.android.internal.telephony.SmsApplication;
 
@@ -47,7 +48,7 @@ public class RespondViaSmsManager extends CallsManagerListenerBase {
         @Override
         public void handleMessage(Message msg) {
             switch (msg.what) {
-                case MSG_CANNED_TEXT_MESSAGES_READY:
+                case MSG_CANNED_TEXT_MESSAGES_READY: {
                     SomeArgs args = (SomeArgs) msg.obj;
                     try {
                         Response<Void, List<String>> response =
@@ -63,9 +64,18 @@ public class RespondViaSmsManager extends CallsManagerListenerBase {
                         args.recycle();
                     }
                     break;
-                case MSG_SHOW_SENT_TOAST:
-                    showMessageSentToast((String) msg.obj);
+                }
+                case MSG_SHOW_SENT_TOAST: {
+                    SomeArgs args = (SomeArgs) msg.obj;
+                    try {
+                        String toastMessage = (String) args.arg1;
+                        Context context = (Context) args.arg2;
+                        showMessageSentToast(toastMessage, context);
+                    } finally {
+                        args.recycle();
+                    }
                     break;
+                }
             }
         }
     };
@@ -83,8 +93,10 @@ public class RespondViaSmsManager extends CallsManagerListenerBase {
      *
      * @param response An object to receive an async reply, which will be called from
      *                 the main thread.
+     * @param context The context.
      */
-    public void loadCannedTextMessages(final Response<Void, List<String>> response) {
+    public void loadCannedTextMessages(final Response<Void, List<String>> response,
+            final Context context) {
         new Thread() {
             @Override
             public void run() {
@@ -93,11 +105,11 @@ public class RespondViaSmsManager extends CallsManagerListenerBase {
                 // This function guarantees that QuickResponses will be in our
                 // SharedPreferences with the proper values considering there may be
                 // old QuickResponses in Telephony pre L.
-                QuickResponseUtils.maybeMigrateLegacyQuickResponses();
+                QuickResponseUtils.maybeMigrateLegacyQuickResponses(context);
 
-                final SharedPreferences prefs = TelecomApp.getInstance().getSharedPreferences(
+                final SharedPreferences prefs = context.getSharedPreferences(
                         QuickResponseUtils.SHARED_PREFERENCES_NAME, Context.MODE_PRIVATE);
-                final Resources res = TelecomApp.getInstance().getInstance().getResources();
+                final Resources res = context.getResources();
 
                 final ArrayList<String> textMessages = new ArrayList<>(
                         QuickResponseUtils.NUM_CANNED_RESPONSES);
@@ -128,19 +140,21 @@ public class RespondViaSmsManager extends CallsManagerListenerBase {
     @Override
     public void onIncomingCallRejected(Call call, boolean rejectWithMessage, String textMessage) {
         if (rejectWithMessage) {
-            rejectCallWithMessage(call.getHandle().getSchemeSpecificPart(), textMessage);
+
+            rejectCallWithMessage(call.getContext(), call.getHandle().getSchemeSpecificPart(),
+                    textMessage);
         }
     }
 
-    private void showMessageSentToast(final String phoneNumber) {
+    private void showMessageSentToast(final String phoneNumber, final Context context) {
         // ...and show a brief confirmation to the user (since
         // otherwise it's hard to be sure that anything actually
         // happened.)
-        final Resources res = TelecomApp.getInstance().getResources();
+        final Resources res = context.getResources();
         final String formatString = res.getString(
                 R.string.respond_via_sms_confirmation_format);
         final String confirmationMsg = String.format(formatString, phoneNumber);
-        Toast.makeText(TelecomApp.getInstance(), confirmationMsg,
+        Toast.makeText(context, confirmationMsg,
                 Toast.LENGTH_LONG).show();
 
         // TODO: If the device is locked, this toast won't actually ever
@@ -161,19 +175,23 @@ public class RespondViaSmsManager extends CallsManagerListenerBase {
     /**
      * Reject the call with the specified message. If message is null this call is ignored.
      */
-    private void rejectCallWithMessage(String phoneNumber, String textMessage) {
+    private void rejectCallWithMessage(Context context, String phoneNumber, String textMessage) {
         if (textMessage != null) {
             final ComponentName component =
-                    SmsApplication.getDefaultRespondViaMessageApplication(
-                            TelecomApp.getInstance(), true /*updateIfNeeded*/);
+                    SmsApplication.getDefaultRespondViaMessageApplication(context,
+                            true /*updateIfNeeded*/);
             if (component != null) {
                 // Build and send the intent
                 final Uri uri = Uri.fromParts(Constants.SCHEME_SMSTO, phoneNumber, null);
                 final Intent intent = new Intent(TelephonyManager.ACTION_RESPOND_VIA_MESSAGE, uri);
                 intent.putExtra(Intent.EXTRA_TEXT, textMessage);
-                mHandler.obtainMessage(MSG_SHOW_SENT_TOAST, phoneNumber).sendToTarget();
+
+                SomeArgs args = SomeArgs.obtain();
+                args.arg1 = phoneNumber;
+                args.arg2 = context;
+                mHandler.obtainMessage(MSG_SHOW_SENT_TOAST, args).sendToTarget();
                 intent.setComponent(component);
-                TelecomApp.getInstance().startService(intent);
+                context.startService(intent);
             }
         }
     }
