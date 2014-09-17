@@ -32,6 +32,8 @@ import android.telephony.PhoneNumberUtils;
 import android.text.TextUtils;
 import android.widget.Toast;
 
+// TODO: Needed for move to system service: import com.android.internal.R;
+
 /**
  * Activity that handles system CALL actions and forwards them to {@link CallsManager}.
  * Handles all three CALL action types: CALL, CALL_PRIVILEGED, and CALL_EMERGENCY.
@@ -159,7 +161,7 @@ public class CallActivity extends Activity {
             setResult(RESULT_CANCELED);
         } else {
             NewOutgoingCallIntentBroadcaster broadcaster = new NewOutgoingCallIntentBroadcaster(
-                    mCallsManager, call, intent, isDefaultDialer());
+                    this, mCallsManager, call, intent, isDefaultDialer());
             final int result = broadcaster.processIntent();
             final boolean success = result == DisconnectCause.NOT_DISCONNECTED;
 

@@ -16,10 +16,12 @@
 
 package com.android.server.telecom;
 
+import android.content.Context;
 import android.media.AudioManager;
 import android.media.ToneGenerator;
 import android.provider.Settings;
 
+// TODO: Needed for move to system service: import com.android.internal.R;
 import com.google.common.collect.ImmutableMap;
 
 import java.util.Map;
@@ -52,6 +54,13 @@ class DtmfLocalTonePlayer extends CallsManagerListenerBase {
 
     /** The current call associated with an existing dtmf session. */
     private Call mCall;
+
+    /** The context. */
+    private final Context mContext;
+
+    public DtmfLocalTonePlayer(Context context) {
+        mContext = context;
+    }
 
     /** {@inheritDoc} */
     @Override
@@ -110,12 +119,11 @@ class DtmfLocalTonePlayer extends CallsManagerListenerBase {
         if (call == null) {
             return;
         }
-        TelecomApp app = TelecomApp.getInstance();
-
+        final Context context = call.getContext();
         final boolean areLocalTonesEnabled;
-        if (app.getResources().getBoolean(R.bool.allow_local_dtmf_tones)) {
+        if (context.getResources().getBoolean(R.bool.allow_local_dtmf_tones)) {
             areLocalTonesEnabled = Settings.System.getInt(
-                    app.getContentResolver(), Settings.System.DTMF_TONE_WHEN_DIALING, 1) == 1;
+                    context.getContentResolver(), Settings.System.DTMF_TONE_WHEN_DIALING, 1) == 1;
         } else {
             areLocalTonesEnabled = false;
         }

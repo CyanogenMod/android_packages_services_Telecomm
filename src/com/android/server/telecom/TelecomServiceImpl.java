@@ -37,8 +37,12 @@ import android.telecom.PhoneAccountHandle;
 import android.telecom.TelecomManager;
 import android.telephony.TelephonyManager;
 
+// TODO: Needed for move to system service: import com.android.internal.R;
 import com.android.internal.telecom.ITelecomService;
+import com.android.internal.util.IndentingPrintWriter;
 
+import java.io.FileDescriptor;
+import java.io.PrintWriter;
 import java.util.List;
 
 /**
@@ -47,6 +51,9 @@ import java.util.List;
 public class TelecomServiceImpl extends ITelecomService.Stub {
     private static final String REGISTER_PROVIDER_OR_SUBSCRIPTION =
             "com.android.server.telecom.permission.REGISTER_PROVIDER_OR_SUBSCRIPTION";
+
+    /** The context. */
+    private Context mContext;
 
     /** ${inheritDoc} */
     @Override
@@ -125,35 +132,19 @@ public class TelecomServiceImpl extends ITelecomService.Stub {
     private static TelecomServiceImpl sInstance;
 
     private final MainThreadHandler mMainThreadHandler = new MainThreadHandler();
-    private final CallsManager mCallsManager = CallsManager.getInstance();
+    private final CallsManager mCallsManager;
     private final MissedCallNotifier mMissedCallNotifier;
     private final PhoneAccountRegistrar mPhoneAccountRegistrar;
     private final AppOpsManager mAppOpsManager;
 
-    private TelecomServiceImpl(
-            MissedCallNotifier missedCallNotifier, PhoneAccountRegistrar phoneAccountRegistrar) {
+    public TelecomServiceImpl(
+            MissedCallNotifier missedCallNotifier, PhoneAccountRegistrar phoneAccountRegistrar,
+            CallsManager callsManager, Context context) {
         mMissedCallNotifier = missedCallNotifier;
         mPhoneAccountRegistrar = phoneAccountRegistrar;
-        mAppOpsManager =
-                (AppOpsManager) TelecomApp.getInstance().getSystemService(Context.APP_OPS_SERVICE);
-
-        publish();
-    }
-
-    /**
-     * Initialize the singleton TelecommServiceImpl instance.
-     * This is only done once, at startup, from TelecommApp.onCreate().
-     */
-    static TelecomServiceImpl init(
-            MissedCallNotifier missedCallNotifier, PhoneAccountRegistrar phoneAccountRegistrar) {
-        synchronized (TelecomServiceImpl.class) {
-            if (sInstance == null) {
-                sInstance = new TelecomServiceImpl(missedCallNotifier, phoneAccountRegistrar);
-            } else {
-                Log.wtf(TAG, "init() called multiple times!  sInstance %s", sInstance);
-            }
-            return sInstance;
-        }
+        mCallsManager = callsManager;
+        mContext = context;
+        mAppOpsManager = (AppOpsManager) mContext.getSystemService(Context.APP_OPS_SERVICE);
     }
 
     //
@@ -339,7 +330,7 @@ public class TelecomServiceImpl extends ITelecomService.Stub {
      */
     @Override
     public ComponentName getDefaultPhoneApp() {
-        Resources resources = TelecomApp.getInstance().getResources();
+        Resources resources = mContext.getResources();
         return new ComponentName(
                 resources.getString(R.string.ui_default_package),
                 resources.getString(R.string.dialer_default_class));
@@ -454,7 +445,7 @@ public class TelecomServiceImpl extends ITelecomService.Stub {
                     Binder.getCallingUid(), phoneAccountHandle.getComponentName().getPackageName());
 
             Intent intent = new Intent(TelecomManager.ACTION_INCOMING_CALL);
-            intent.setPackage(TelecomApp.getInstance().getPackageName());
+            intent.setPackage(mContext.getPackageName());
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             intent.putExtra(TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE, phoneAccountHandle);
             if (extras != null) {
@@ -462,7 +453,7 @@ public class TelecomServiceImpl extends ITelecomService.Stub {
             }
 
             long token = Binder.clearCallingIdentity();
-            TelecomApp.getInstance().startActivityAsUser(intent, UserHandle.CURRENT);
+            mContext.startActivityAsUser(intent, UserHandle.CURRENT);
             Binder.restoreCallingIdentity(token);
         }
     }
@@ -505,8 +496,7 @@ public class TelecomServiceImpl extends ITelecomService.Stub {
     private void enforcePhoneAccountModificationForPackage(String packageName) {
         // TODO: Use a new telecomm permission for this instead of reusing modify.
 
-        int result = TelecomApp.getInstance().checkCallingOrSelfPermission(
-                Manifest.permission.MODIFY_PHONE_STATE);
+        int result = mContext.checkCallingOrSelfPermission(Manifest.permission.MODIFY_PHONE_STATE);
 
         // Callers with MODIFY_PHONE_STATE can use the PhoneAccount mechanism to implement
         // built-in behavior even when PhoneAccounts are not exposed as a third-part API. They
@@ -554,11 +544,11 @@ public class TelecomServiceImpl extends ITelecomService.Stub {
     }
 
     private void enforcePermission(String permission) {
-        TelecomApp.getInstance().enforceCallingOrSelfPermission(permission, null);
+        mContext.enforceCallingOrSelfPermission(permission, null);
     }
 
     private void enforceFeature(String feature) {
-        PackageManager pm = TelecomApp.getInstance().getPackageManager();
+        PackageManager pm = mContext.getPackageManager();
         if (!pm.hasSystemFeature(feature)) {
             throw new UnsupportedOperationException(
                     "System does not support feature " + feature);
@@ -580,13 +570,7 @@ public class TelecomServiceImpl extends ITelecomService.Stub {
     }
 
     private TelephonyManager getTelephonyManager() {
-        return (TelephonyManager)
-                TelecomApp.getInstance().getSystemService(Context.TELEPHONY_SERVICE);
-    }
-
-    private void publish() {
-        Log.d(this, "publish: %s", this);
-        ServiceManager.addService(SERVICE_NAME, this);
+        return (TelephonyManager)mContext.getSystemService(Context.TELEPHONY_SERVICE);
     }
 
     private MainThreadRequest sendRequestAsync(int command, int arg1) {
@@ -618,6 +602,18 @@ public class TelecomServiceImpl extends ITelecomService.Stub {
                 }
             }
             return request.result;
+        }
+    }
+
+    @Override
+    protected void dump(FileDescriptor fd, final PrintWriter writer, String[] args) {
+        mContext.enforceCallingOrSelfPermission(android.Manifest.permission.DUMP, TAG);
+        final IndentingPrintWriter pw = new IndentingPrintWriter(writer, "  ");
+        if (mCallsManager != null) {
+            pw.println("mCallsManager: ");
+            pw.increaseIndent();
+            mCallsManager.dump(pw);
+            pw.decreaseIndent();
         }
     }
 }

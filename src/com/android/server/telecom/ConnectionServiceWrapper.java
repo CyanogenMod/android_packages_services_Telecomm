@@ -17,6 +17,7 @@
 package com.android.server.telecom;
 
 import android.content.ComponentName;
+import android.content.Context;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -42,7 +43,7 @@ import com.android.internal.telecom.IConnectionService;
 import com.android.internal.telecom.IConnectionServiceAdapter;
 import com.android.internal.telecom.IVideoProvider;
 import com.android.internal.telecom.RemoteServiceCallback;
-import com.google.common.base.Preconditions;
+import com.android.internal.util.Preconditions;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -560,6 +561,7 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
     private Binder mBinder = new Binder();
     private IConnectionService mServiceInterface;
     private final ConnectionServiceRepository mConnectionServiceRepository;
+    private final PhoneAccountRegistrar mPhoneAccountRegistrar;
 
     /**
      * Creates a connection service.
@@ -567,17 +569,20 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
      * @param componentName The component name of the service with which to bind.
      * @param connectionServiceRepository Connection service repository.
      * @param phoneAccountRegistrar Phone account registrar
+     * @param context The context.
      */
     ConnectionServiceWrapper(
             ComponentName componentName,
             ConnectionServiceRepository connectionServiceRepository,
-            PhoneAccountRegistrar phoneAccountRegistrar) {
-        super(ConnectionService.SERVICE_INTERFACE, componentName);
+            PhoneAccountRegistrar phoneAccountRegistrar,
+            Context context) {
+        super(ConnectionService.SERVICE_INTERFACE, componentName, context);
         mConnectionServiceRepository = connectionServiceRepository;
         phoneAccountRegistrar.addListener(new PhoneAccountRegistrar.Listener() {
             // TODO -- Upon changes to PhoneAccountRegistrar, need to re-wire connections
             // To do this, we must proxy remote ConnectionService objects
         });
+        mPhoneAccountRegistrar = phoneAccountRegistrar;
     }
 
     /** See {@link IConnectionService#addConnectionServiceAdapter}. */
@@ -913,11 +918,9 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
     }
 
     private void queryRemoteConnectionServices(final RemoteServiceCallback callback) {
-        PhoneAccountRegistrar registrar = TelecomApp.getInstance().getPhoneAccountRegistrar();
-
         // Only give remote connection services to this connection service if it is listed as
         // the connection manager.
-        PhoneAccountHandle simCallManager = registrar.getSimCallManager();
+        PhoneAccountHandle simCallManager = mPhoneAccountRegistrar.getSimCallManager();
         Log.d(this, "queryRemoteConnectionServices finds simCallManager = %s", simCallManager);
         if (simCallManager == null ||
                 !simCallManager.getComponentName().equals(getComponentName())) {
@@ -928,8 +931,8 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
         // Make a list of ConnectionServices that are listed as being associated with SIM accounts
         final Set<ConnectionServiceWrapper> simServices = Collections.newSetFromMap(
                 new ConcurrentHashMap<ConnectionServiceWrapper, Boolean>(8, 0.9f, 1));
-        for (PhoneAccountHandle handle : registrar.getCallCapablePhoneAccounts()) {
-            PhoneAccount account = registrar.getPhoneAccount(handle);
+        for (PhoneAccountHandle handle : mPhoneAccountRegistrar.getCallCapablePhoneAccounts()) {
+            PhoneAccount account = mPhoneAccountRegistrar.getPhoneAccount(handle);
             if ((account.getCapabilities() & PhoneAccount.CAPABILITY_SIM_SUBSCRIPTION) != 0) {
                 ConnectionServiceWrapper service =
                         mConnectionServiceRepository.getService(handle.getComponentName());
