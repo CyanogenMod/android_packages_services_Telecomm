@@ -16,6 +16,7 @@
 
 package com.android.server.telecom;
 
+import android.content.Context;
 import android.media.AudioManager;
 import android.media.Ringtone;
 import android.media.RingtoneManager;
@@ -25,7 +26,7 @@ import android.os.HandlerThread;
 import android.os.Message;
 import android.provider.Settings;
 
-import com.google.common.base.Preconditions;
+import com.android.internal.util.Preconditions;
 
 /**
  * Plays the default ringtone. Uses {@link Ringtone} in a separate thread so that this class can be
@@ -45,6 +46,15 @@ class AsyncRingtonePlayer {
 
     /** The current ringtone. Only used by the ringtone thread. */
     private Ringtone mRingtone;
+
+    /**
+     * The context.
+     */
+    private final Context mContext;
+
+    AsyncRingtonePlayer(Context context) {
+        mContext = context;
+    }
 
     /** Plays the ringtone. */
     void play(Uri ringtone) {
@@ -185,7 +195,7 @@ class AsyncRingtonePlayer {
             ringtoneUri = Settings.System.DEFAULT_RINGTONE_URI;
         }
 
-        Ringtone ringtone = RingtoneManager.getRingtone(TelecomApp.getInstance(), ringtoneUri);
+        Ringtone ringtone = RingtoneManager.getRingtone(mContext, ringtoneUri);
         ringtone.setStreamType(AudioManager.STREAM_RING);
         return ringtone;
     }
