@@ -784,6 +784,19 @@ public final class CallsManager extends Call.ListenerBase {
     void markCallAsDisconnected(Call call, DisconnectCause disconnectCause) {
         call.setDisconnectCause(disconnectCause);
         setCallState(call, CallState.DISCONNECTED);
+        PhoneAccount phAcc = TelecommApp.getInstance().getPhoneAccountRegistrar()
+                    .getPhoneAccount(call.getTargetPhoneAccount());
+        if ((call.getTargetPhoneAccount().getId().equals(getActiveSubscription())) &&
+                    (phAcc.isSet(PhoneAccount.LCH)) && (getConversationSub() != null) &&
+                    (!getConversationSub().equals(getActiveSubscription()))) {
+            Log.d(this,"Set active sub to conversation sub");
+            setActiveSubscription(getConversationSub());
+        }
+        removeCall(call);
+        if (!hasAnyCalls()) {
+            updateLchStatus(null);
+            manageMSimInCallTones(false);
+        }
     }
 
     /**
