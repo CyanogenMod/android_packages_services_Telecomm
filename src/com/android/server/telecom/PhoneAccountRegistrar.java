@@ -303,6 +303,24 @@ public final class PhoneAccountRegistrar {
     }
 
     /**
+     * Retrieves a list of all phone accounts registered by a specified package.
+     *
+     * @param packageName The name of the package that registered the phone accounts.
+     * @return The phone account handles.
+     */
+    public List<PhoneAccountHandle> getPhoneAccountsForPackage(String packageName) {
+        List<PhoneAccountHandle> accountHandles = new ArrayList<>();
+        for (PhoneAccount m : mState.accounts) {
+            if (Objects.equals(
+                    packageName,
+                    m.getAccountHandle().getComponentName().getPackageName())) {
+                accountHandles.add(m.getAccountHandle());
+            }
+        }
+        return accountHandles;
+    }
+
+    /**
      * Retrieves a list of all phone account handles with the connection manager capability.
      *
      * @return The phone account handles.
