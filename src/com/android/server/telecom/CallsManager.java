@@ -19,7 +19,7 @@ package com.android.server.telecom;
 import android.content.Context;
 import android.net.Uri;
 import android.os.Bundle;
-
+import android.os.Parcelable;
 import android.provider.CallLog.Calls;
 import android.telecom.AudioState;
 import android.telecom.CallState;
@@ -337,12 +337,25 @@ public final class CallsManager extends Call.ListenerBase {
      * @param extras The optional extras Bundle passed with the intent used for the incoming call.
      */
     Call startOutgoingCall(Uri handle, PhoneAccountHandle phoneAccountHandle, Bundle extras) {
+        // Create a call with original handle. The handle may be changed when the call is attached
+        // to a connection service, but in most cases will remain the same.
+        Call call = new Call(
+                mContext,
+                mConnectionServiceRepository,
+                handle,
+                null /* gatewayInfo */,
+                null /* connectionManagerPhoneAccount */,
+                null /* phoneAccountHandle */,
+                false /* isIncoming */,
+                false /* isConference */);
+
+        List<PhoneAccountHandle> accounts =
+                mPhoneAccountRegistrar.getCallCapablePhoneAccounts(handle.getScheme());
+
         // Only dial with the requested phoneAccount if it is still valid. Otherwise treat this call
         // as if a phoneAccount was not specified (does the default behavior instead).
         // Note: We will not attempt to dial with a requested phoneAccount if it is disabled.
         if (phoneAccountHandle != null) {
-            List<PhoneAccountHandle> accounts =
-                    mPhoneAccountRegistrar.getCallCapablePhoneAccounts(handle.getScheme());
             if (!accounts.contains(phoneAccountHandle)) {
                 phoneAccountHandle = null;
             }
@@ -359,18 +372,7 @@ public final class CallsManager extends Call.ListenerBase {
             }
         }
 
-        // Create a call with original handle. The handle may be changed when the call is attached
-        // to a connection service, but in most cases will remain the same.
-        Call call = new Call(
-                mContext,
-                mConnectionServiceRepository,
-                handle,
-                null /* gatewayInfo */,
-                null /* connectionManagerPhoneAccount */,
-                phoneAccountHandle,
-                false /* isIncoming */,
-                false /* isConference */);
-        call.setExtras(extras);
+        call.setTargetPhoneAccount(phoneAccountHandle);
 
         boolean isEmergencyCall = TelephonyUtil.shouldProcessAsEmergency(mContext,
                 call.getHandle());
@@ -385,9 +387,12 @@ public final class CallsManager extends Call.ListenerBase {
         if (phoneAccountHandle == null && !isEmergencyCall) {
             // This is the state where the user is expected to select an account
             call.setState(CallState.PRE_DIAL_WAIT);
+            extras.putParcelableList(android.telecom.Call.AVAILABLE_PHONE_ACCOUNTS, accounts);
         } else {
             call.setState(CallState.CONNECTING);
         }
+
+        call.setExtras(extras);
 
         if (!isPotentialMMICode(handle)) {
             addCall(call);
