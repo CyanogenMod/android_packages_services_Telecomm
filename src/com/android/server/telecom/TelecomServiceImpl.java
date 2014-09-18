@@ -204,6 +204,16 @@ public class TelecomServiceImpl extends ITelecomService.Stub {
     }
 
     @Override
+    public List<PhoneAccountHandle> getPhoneAccountsForPackage(String packageName) {
+        try {
+            return mPhoneAccountRegistrar.getPhoneAccountsForPackage(packageName);
+        } catch (Exception e) {
+            Log.e(this, e, "getPhoneAccountsForPackage");
+            throw e;
+        }
+    }
+
+    @Override
     public PhoneAccount getPhoneAccount(PhoneAccountHandle accountHandle) {
         try {
             return mPhoneAccountRegistrar.getPhoneAccount(accountHandle);
