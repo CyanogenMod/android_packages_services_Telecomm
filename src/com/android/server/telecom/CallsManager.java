@@ -299,6 +299,14 @@ public final class CallsManager extends Call.ListenerBase {
         return mTtyManager.getCurrentTtyMode();
     }
 
+    void addListener(CallsManagerListener listener) {
+        mListeners.add(listener);
+    }
+
+    void removeListener(CallsManagerListener listener) {
+        mListeners.remove(listener);
+    }
+
     /**
      * Starts the process to attach the call to a connection service.
      *
@@ -792,6 +800,22 @@ public final class CallsManager extends Call.ListenerBase {
             }
         }
         return true;
+    }
+
+    Call getRingingCall() {
+        return getFirstCallWithState(CallState.RINGING);
+    }
+
+    Call getActiveCall() {
+        return getFirstCallWithState(CallState.ACTIVE);
+    }
+
+    Call getDialingOrConnectingCall() {
+        return getFirstCallWithState(CallState.DIALING, CallState.CONNECTING);
+    }
+
+    Call getHeldCall() {
+        return getFirstCallWithState(CallState.ON_HOLD);
     }
 
     Call getFirstCallWithState(int... states) {
