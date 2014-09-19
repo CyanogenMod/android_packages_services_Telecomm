@@ -45,7 +45,7 @@ public final class InCallToneMonitor extends CallsManagerListenerBase {
         if (newState == CallState.DISCONNECTED) {
             int toneToPlay = InCallTonePlayer.TONE_INVALID;
 
-            Log.v(this, "Disconnect cause: %d.", call.getDisconnectCause());
+            Log.v(this, "Disconnect cause: %s.", call.getDisconnectCause());
 
             switch(call.getDisconnectCause().getTone()) {
                 case ToneGenerator.TONE_SUP_BUSY:
