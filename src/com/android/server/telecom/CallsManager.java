@@ -779,6 +779,14 @@ public final class CallsManager extends Call.ListenerBase {
             return false;
         }
 
+        // Use canManageConference as a mechanism to check if the call is CDMA.
+        // Disable "Add Call" for CDMA calls which are conference calls.
+        boolean canManageConference = PhoneCapabilities.MANAGE_CONFERENCE
+                == (call.getCallCapabilities() & PhoneCapabilities.MANAGE_CONFERENCE);
+        if (call.isConference() && !canManageConference) {
+            return false;
+        }
+
         // Loop through all the other calls and there exists a top level (has no parent) call
         // that is not the specified call, return false.
         for (Call otherCall : mCalls) {
