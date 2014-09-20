@@ -36,11 +36,6 @@
     <string name="respond_via_sms_edittext_dialog_title" msgid="20379890418289778">"Rýchla odpoveď"</string>
     <string name="respond_via_sms_menu_reset_default_activity" msgid="1461742052902053466">"Obnoviť predvolenú aplikáciu"</string>
     <string name="respond_via_sms_confirmation_format" msgid="7229149977515784269">"Správa bola odoslaná na číslo <xliff:g id="PHONE_NUMBER">%s</xliff:g>."</string>
-    <string name="phone_account_preferences_title" msgid="5042332049625236956">"Nastavenia telefónneho účtu"</string>
-    <string name="default_outgoing_account_title" msgid="8261079649574578970">"Predvolený odchádzajúci účet"</string>
-    <string name="sim_call_manager_account" msgid="2559930293628077755">"Účet volania prostredníctvom siete Wi-Fi"</string>
-    <string name="account_ask_every_time" msgid="944077828070287407">"Vždy sa opýtať"</string>
-    <string name="do_not_use_sim_call_manager" msgid="5519252524007323694">"Nepoužívať volanie prostredníctvom siete Wi-Fi"</string>
     <string name="outgoing_call_not_allowed" msgid="1434784869685645427">"Tento používateľ smie uskutočňovať iba tiesňové hovory."</string>
     <string name="outgoing_call_error_no_phone_number_supplied" msgid="4987143284589568716">"Hovor sa nepodarilo spojiť, nebolo zadané platné číslo."</string>
     <string name="no_vm_number" msgid="4164780423805688336">"Chýba číslo hlasovej schránky"</string>
