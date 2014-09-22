@@ -812,7 +812,30 @@ public class CallsManager extends Call.ListenerBase
             call.setVideoState(videoState);
         }
 
-        List<PhoneAccountHandle> accounts = constructPossiblePhoneAccounts(handle, initiatingUser);
+        boolean isAddParticipant = ((extras != null) && (extras.getBoolean(
+                TelephonyProperties.ADD_PARTICIPANT_KEY, false)));
+        boolean isSkipSchemaOrConfUri = ((extras != null) && (extras.getBoolean(
+                TelephonyProperties.EXTRA_SKIP_SCHEMA_PARSING, false) ||
+                extras.getBoolean(TelephonyProperties.EXTRA_DIAL_CONFERENCE_URI, false)));
+
+        if (isAddParticipant) {
+            String number = handle.getSchemeSpecificPart();
+            if (!isSkipSchemaOrConfUri) {
+                number = PhoneNumberUtils.stripSeparators(number);
+            }
+            addParticipant(number);
+            mInCallController.bringToForeground(false);
+            return null;
+        }
+
+        // Force tel scheme for ims conf uri/skip schema calls to avoid selection of sip accounts
+        String scheme = (isSkipSchemaOrConfUri? PhoneAccount.SCHEME_TEL: handle.getScheme());
+
+        Log.d(this, "startOutgoingCall :: isAddParticipant=" + isAddParticipant
+                + " isSkipSchemaOrConfUri=" + isSkipSchemaOrConfUri + " scheme=" + scheme);
+
+        List<PhoneAccountHandle> accounts =
+                constructPossiblePhoneAccounts(handle, initiatingUser, scheme);
         Log.v(this, "startOutgoingCall found accounts = " + accounts);
 
         // Only dial with the requested phoneAccount if it is still valid. Otherwise treat this call
@@ -829,7 +852,7 @@ public class CallsManager extends Call.ListenerBase
             // handle and verify it can be used.
             if(accounts.size() > 1) {
                 PhoneAccountHandle defaultPhoneAccountHandle =
-                        mPhoneAccountRegistrar.getOutgoingPhoneAccountForScheme(handle.getScheme(),
+                        mPhoneAccountRegistrar.getOutgoingPhoneAccountForScheme(scheme,
                                 initiatingUser);
                 if (defaultPhoneAccountHandle != null &&
                         accounts.contains(defaultPhoneAccountHandle)) {
@@ -839,7 +862,6 @@ public class CallsManager extends Call.ListenerBase
                 // Use the only PhoneAccount that is available
                 phoneAccountHandle = accounts.get(0);
             }
-
         }
 
         call.setTargetPhoneAccount(phoneAccountHandle);
@@ -962,6 +984,23 @@ public class CallsManager extends Call.ListenerBase
             markCallAsRemoved(call);
         }
     }
+
+    /**
+     * Attempts to add participant in a call.
+     *
+     * @param number number to connect the call with.
+     */
+    private void addParticipant(String number) {
+        Log.i(this, "addParticipant number ="+number);
+        if (getForegroundCall() == null) {
+            // don't do anything if the call no longer exists
+            Log.i(this, "Canceling unknown call.");
+            return;
+        } else {
+            getForegroundCall().addParticipantWithConference(number);
+        }
+    }
+
 
     /**
      * Attempts to start a conference call for the specified call.
@@ -1190,12 +1229,16 @@ public class CallsManager extends Call.ListenerBase
     // Construct the list of possible PhoneAccounts that the outgoing call can use based on the
     // active calls in CallsManager. If any of the active calls are on a SIM based PhoneAccount,
     // then include only that SIM based PhoneAccount and any non-SIM PhoneAccounts, such as SIP.
-    private List<PhoneAccountHandle> constructPossiblePhoneAccounts(Uri handle, UserHandle user) {
+    private List<PhoneAccountHandle> constructPossiblePhoneAccounts(
+            Uri handle, UserHandle user, String scheme) {
         if (handle == null) {
             return Collections.emptyList();
         }
+        if (scheme == null) {
+            scheme = handle.getScheme();
+        }
         List<PhoneAccountHandle> allAccounts =
-                mPhoneAccountRegistrar.getCallCapablePhoneAccounts(handle.getScheme(), false, user);
+                mPhoneAccountRegistrar.getCallCapablePhoneAccounts(scheme, false, user);
         // First check the Radio SIM Technology
         if(mRadioSimVariants == null) {
             TelephonyManager tm = (TelephonyManager) mContext.getSystemService(

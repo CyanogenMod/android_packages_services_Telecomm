@@ -31,9 +31,11 @@ import android.telecom.PhoneAccount;
 import android.telecom.TelecomManager;
 import android.telecom.VideoProfile;
 import android.telephony.DisconnectCause;
+import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.internal.telephony.TelephonyProperties;
 
 // TODO: Needed for move to system service: import com.android.internal.R;
 
@@ -137,18 +139,26 @@ public class NewOutgoingCallIntentBroadcaster {
                     return;
                 }
 
-                Uri resultHandleUri = Uri.fromParts(
-                        mPhoneNumberUtilsAdapter.isUriNumber(resultNumber) ?
-                                PhoneAccount.SCHEME_SIP : PhoneAccount.SCHEME_TEL,
-                        resultNumber, null);
-
+                boolean isSkipSchemaParsing = mIntent.getBooleanExtra(
+                        TelephonyProperties.EXTRA_SKIP_SCHEMA_PARSING, false);
+                Uri resultHandleUri = null;
                 Uri originalUri = mIntent.getData();
+
+                if (isSkipSchemaParsing) {
+                    // resultNumber does not have the schema present
+                    // hence use originalUri which is same as handle
+                    resultHandleUri = Uri.fromParts(PhoneAccount.SCHEME_TEL,
+                            originalUri.toString(), null);
+                } else {
+                    resultHandleUri = Uri.fromParts(mPhoneNumberUtilsAdapter.isUriNumber(resultNumber) ?
+                            PhoneAccount.SCHEME_SIP : PhoneAccount.SCHEME_TEL, resultNumber, null);
+                }
 
                 if (originalUri.getSchemeSpecificPart().equals(resultNumber)) {
                     Log.v(this, "Call number unmodified after new outgoing call intent broadcast.");
                 } else {
                     Log.v(this, "Retrieved modified handle after outgoing call intent broadcast: "
-                                    + "Original: %s, Modified: %s",
+                            + "Original: %s, Modified: %s",
                             Log.pii(originalUri),
                             Log.pii(resultHandleUri));
                 }
@@ -219,13 +229,20 @@ public class NewOutgoingCallIntentBroadcaster {
         }
 
         String number = mPhoneNumberUtilsAdapter.getNumberFromIntent(intent, mContext);
-        if (TextUtils.isEmpty(number)) {
+        boolean isConferenceUri = intent.getBooleanExtra(
+                TelephonyProperties.EXTRA_DIAL_CONFERENCE_URI, false);
+        if (!isConferenceUri && TextUtils.isEmpty(number)) {
             Log.w(this, "Empty number obtained from the call intent.");
             return DisconnectCause.NO_PHONE_NUMBER_SUPPLIED;
         }
 
         boolean isUriNumber = mPhoneNumberUtilsAdapter.isUriNumber(number);
-        if (!isUriNumber) {
+        boolean isSkipSchemaParsing = intent.getBooleanExtra(
+                TelephonyProperties.EXTRA_SKIP_SCHEMA_PARSING, false);
+        Log.v(this,"processIntent isConferenceUri: " + isConferenceUri +
+                " isSkipSchemaParsing = "+isSkipSchemaParsing);
+
+        if (!isUriNumber && !isConferenceUri && !isSkipSchemaParsing) {
             number = mPhoneNumberUtilsAdapter.convertKeypadLettersToDigits(number);
             number = mPhoneNumberUtilsAdapter.stripSeparators(number);
         }
@@ -282,7 +299,11 @@ public class NewOutgoingCallIntentBroadcaster {
 
         UserHandle targetUser = mCall.getInitiatingUser();
         Log.i(this, "Sending NewOutgoingCallBroadcast for %s to %s", mCall, targetUser);
-        broadcastIntent(intent, number, !callImmediately, targetUser);
+        if (isSkipSchemaParsing) {
+            broadcastIntent(intent, handle.toString(), !callImmediately, targetUser);
+        } else {
+            broadcastIntent(intent, number, !callImmediately, targetUser);
+        }
         return DisconnectCause.NOT_DISCONNECTED;
     }
 
