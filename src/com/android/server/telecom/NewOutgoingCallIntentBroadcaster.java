@@ -197,9 +197,12 @@ class NewOutgoingCallIntentBroadcaster {
         boolean isUriNumber = PhoneNumberUtils.isUriNumber(number);
         boolean isConferenceUri = intent.getBooleanExtra(
                 TelephonyProperties.EXTRA_DIAL_CONFERENCE_URI, false);
-        Log.v(this,"processIntent isConferenceUri: " + isConferenceUri);
+        boolean isSkipSchemaParsing = intent.getBooleanExtra(
+                TelephonyProperties.EXTRA_SKIP_SCHEMA_PARSING, false);
+        Log.v(this,"processIntent isConferenceUri: " + isConferenceUri +
+                " isSkipSchemaParsing = "+isSkipSchemaParsing);
 
-        if (!isUriNumber && !isConferenceUri) {
+        if (!isUriNumber && !isConferenceUri && !isSkipSchemaParsing) {
             number = PhoneNumberUtils.convertKeypadLettersToDigits(number);
             number = PhoneNumberUtils.stripSeparators(number);
         }

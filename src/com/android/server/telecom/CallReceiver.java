@@ -82,7 +82,14 @@ public class CallReceiver extends BroadcastReceiver {
             if (clientExtras == null) clientExtras = new Bundle();
             clientExtras.putBoolean(TelephonyProperties.ADD_PARTICIPANT_KEY, isAddParticipant);
         }
-
+        boolean isSkipSchemaParsing = intent.getBooleanExtra(
+                TelephonyProperties.EXTRA_SKIP_SCHEMA_PARSING, false);
+        Log.d(this, "isSkipSchemaParsing = "+isSkipSchemaParsing);
+        if (isSkipSchemaParsing) {
+            if (clientExtras == null) clientExtras = new Bundle();
+            clientExtras.putBoolean(TelephonyProperties.EXTRA_SKIP_SCHEMA_PARSING,
+                    isSkipSchemaParsing);
+        }
         if (clientExtras == null) {
             clientExtras = Bundle.EMPTY;
         }
