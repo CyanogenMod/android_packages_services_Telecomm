@@ -82,7 +82,7 @@ public class UserCallIntentProcessor {
         if (Intent.ACTION_CALL.equals(action) ||
                 Intent.ACTION_CALL_PRIVILEGED.equals(action) ||
                 Intent.ACTION_CALL_EMERGENCY.equals(action)) {
-            processOutgoingCallIntent(intent, callingPackageName, canCallNonEmergency);
+                processOutgoingCallIntent(intent, callingPackageName, canCallNonEmergency);
         }
     }
 

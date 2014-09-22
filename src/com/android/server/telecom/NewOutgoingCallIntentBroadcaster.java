@@ -32,7 +32,10 @@ import android.telecom.TelecomManager;
 import android.telecom.VideoProfile;
 import android.telephony.DisconnectCause;
 import android.telephony.PhoneNumberUtils;
+import android.telephony.TelephonyManager;
 import android.text.TextUtils;
+
+import com.android.internal.telephony.TelephonyProperties;
 
 // TODO: Needed for move to system service: import com.android.internal.R;
 
@@ -122,10 +125,20 @@ class NewOutgoingCallIntentBroadcaster {
                 return;
             }
 
-            Uri resultHandleUri = Uri.fromParts(PhoneNumberUtils.isUriNumber(resultNumber) ?
-                    PhoneAccount.SCHEME_SIP : PhoneAccount.SCHEME_TEL, resultNumber, null);
-
+            boolean isSkipSchemaParsing = mIntent.getBooleanExtra(
+                    TelephonyProperties.EXTRA_SKIP_SCHEMA_PARSING, false);
+            Uri resultHandleUri = null;
             Uri originalUri = mIntent.getData();
+
+            if (isSkipSchemaParsing) {
+                // resultNumber does not have the schema present
+                // hence use originalUri which is same as handle
+                resultHandleUri = Uri.fromParts(PhoneAccount.SCHEME_TEL,
+                        originalUri.toString(), null);
+            } else {
+                resultHandleUri = Uri.fromParts(PhoneNumberUtils.isUriNumber(resultNumber) ?
+                        PhoneAccount.SCHEME_SIP : PhoneAccount.SCHEME_TEL, resultNumber, null);
+            }
 
             if (originalUri.getSchemeSpecificPart().equals(resultNumber)) {
                 Log.v(this, "Call number unmodified after new outgoing call intent broadcast.");
@@ -192,13 +205,20 @@ class NewOutgoingCallIntentBroadcaster {
         }
 
         String number = PhoneNumberUtils.getNumberFromIntent(intent, mContext);
-        if (TextUtils.isEmpty(number)) {
+        boolean isConferenceUri = intent.getBooleanExtra(
+                TelephonyProperties.EXTRA_DIAL_CONFERENCE_URI, false);
+        if (!isConferenceUri && TextUtils.isEmpty(number)) {
             Log.w(this, "Empty number obtained from the call intent.");
             return DisconnectCause.NO_PHONE_NUMBER_SUPPLIED;
         }
 
         boolean isUriNumber = PhoneNumberUtils.isUriNumber(number);
-        if (!isUriNumber) {
+        boolean isSkipSchemaParsing = intent.getBooleanExtra(
+                TelephonyProperties.EXTRA_SKIP_SCHEMA_PARSING, false);
+        Log.v(this,"processIntent isConferenceUri: " + isConferenceUri +
+                " isSkipSchemaParsing = "+isSkipSchemaParsing);
+
+        if (!isUriNumber && !isConferenceUri && !isSkipSchemaParsing) {
             number = PhoneNumberUtils.convertKeypadLettersToDigits(number);
             number = PhoneNumberUtils.stripSeparators(number);
         }
@@ -254,7 +274,11 @@ class NewOutgoingCallIntentBroadcaster {
         }
 
         Log.i(this, "Sending NewOutgoingCallBroadcast for %s", mCall);
-        broadcastIntent(intent, number, !callImmediately);
+        if (isSkipSchemaParsing) {
+            broadcastIntent(intent, handle.toString(), !callImmediately);
+        } else {
+            broadcastIntent(intent, number, !callImmediately);
+        }
         return DisconnectCause.NOT_DISCONNECTED;
     }
 

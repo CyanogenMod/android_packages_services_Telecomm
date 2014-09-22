@@ -774,7 +774,10 @@ public final class InCallController extends CallsManagerListenerBase {
         android.telecom.Call.Details.CAPABILITY_CAN_PAUSE_VIDEO,
 
         Connection.CAPABILITY_VOICE_PRIVACY,
-        android.telecom.Call.Details.CAPABILITY_VOICE_PRIVACY
+        android.telecom.Call.Details.CAPABILITY_VOICE_PRIVACY,
+
+        Connection.CAPABILITY_ADD_PARTICIPANT,
+        android.telecom.Call.Details.CAPABILITY_ADD_PARTICIPANT
     };
 
     private static int convertConnectionToCallCapabilities(int connectionCapabilities) {

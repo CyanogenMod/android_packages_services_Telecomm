@@ -616,8 +616,30 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
                     VideoProfile.STATE_AUDIO_ONLY));
         }
 
+        boolean isAddParticipant = ((extras != null) && (extras.getBoolean(
+                TelephonyProperties.ADD_PARTICIPANT_KEY, false)));
+        boolean isSkipSchemaOrConfUri = ((extras != null) && (extras.getBoolean(
+                TelephonyProperties.EXTRA_SKIP_SCHEMA_PARSING, false) ||
+                extras.getBoolean(TelephonyProperties.EXTRA_DIAL_CONFERENCE_URI, false)));
+
+        if (isAddParticipant) {
+            String number = handle.getSchemeSpecificPart();
+            if (!isSkipSchemaOrConfUri) {
+                number = PhoneNumberUtils.stripSeparators(number);
+            }
+            addParticipant(number);
+            mInCallController.bringToForeground(false);
+            return null;
+        }
+
+        // Force tel scheme for ims conf uri/skip schema calls to avoid selection of sip accounts
+        String scheme = (isSkipSchemaOrConfUri? PhoneAccount.SCHEME_TEL: handle.getScheme());
+
+        Log.d(this, "startOutgoingCall :: isAddParticipant=" + isAddParticipant
+                + " isSkipSchemaOrConfUri=" + isSkipSchemaOrConfUri + " scheme=" + scheme);
+
         List<PhoneAccountHandle> accounts =
-                mPhoneAccountRegistrar.getCallCapablePhoneAccounts(handle.getScheme(), false);
+                mPhoneAccountRegistrar.getCallCapablePhoneAccounts(scheme, false);
 
         Log.v(this, "startOutgoingCall found accounts = " + accounts);
 
@@ -650,7 +672,7 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
             // No preset account, check if default exists that supports the URI scheme for the
             // handle.
             phoneAccountHandle =
-                    mPhoneAccountRegistrar.getOutgoingPhoneAccountForScheme(handle.getScheme());
+                    mPhoneAccountRegistrar.getOutgoingPhoneAccountForScheme(scheme);
         }
 
         call.setTargetPhoneAccount(phoneAccountHandle);
@@ -751,6 +773,23 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
             call.startCreateConnection(mPhoneAccountRegistrar);
         }
     }
+
+    /**
+     * Attempts to add participant in a call.
+     *
+     * @param number number to connect the call with.
+     */
+    private void addParticipant(String number) {
+        Log.i(this, "addParticipant number ="+number);
+        if (getForegroundCall() == null) {
+            // don't do anything if the call no longer exists
+            Log.i(this, "Canceling unknown call.");
+            return;
+        } else {
+            getForegroundCall().addParticipantWithConference(number);
+        }
+    }
+
 
     /**
      * Attempts to start a conference call for the specified call.
