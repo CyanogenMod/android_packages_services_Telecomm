@@ -826,7 +826,7 @@ final class Call implements CreateConnectionResponse {
      */
     Uri getContactUri() {
         if (mCallerInfo == null || !mCallerInfo.contactExists) {
-            return null;
+            return getHandle();
         }
         return Contacts.getLookupUri(mCallerInfo.contactIdOrZero, mCallerInfo.lookupKey);
     }
