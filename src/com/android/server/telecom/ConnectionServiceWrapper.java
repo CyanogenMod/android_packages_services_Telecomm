@@ -80,6 +80,7 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
     private static final int MSG_SET_CALLER_DISPLAY_NAME = 18;
     private static final int MSG_SET_VIDEO_STATE = 19;
     private static final int MSG_SET_CONFERENCEABLE_CONNECTIONS = 20;
+    private static final int MSG_SET_EXTRAS = 21;
     private static final int MSG_SET_DISCONNECTED_WITH_SUPP_NOTIFICATION = 22;
     private static final int MSG_SET_PHONE_ACCOUNT = 23;
 
@@ -108,6 +109,20 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                         //Log.w(this, "setActive, unknown call id: %s", msg.obj);
                     }
                     break;
+                case MSG_SET_EXTRAS: {
+                    SomeArgs args = (SomeArgs) msg.obj;
+                    try {
+                        String callId = (String) args.arg1;
+                        Bundle extras = (Bundle) args.arg2;
+                        call = mCallIdMapper.getCall(callId);
+                        if (call != null) {
+                            mCallsManager.setCallExtras(call, extras);
+                        }
+                    } finally {
+                        args.recycle();
+                    }
+                    break;
+                }
                 case MSG_SET_RINGING:
                     call = mCallIdMapper.getCall(msg.obj);
                     if (call != null) {
@@ -417,6 +432,15 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
             if (mCallIdMapper.isValidCallId(callId) || mCallIdMapper.isValidConferenceId(callId)) {
                 mHandler.obtainMessage(MSG_SET_ACTIVE, callId).sendToTarget();
             }
+        }
+
+        @Override
+        public void setExtras(String callId, Bundle extras) {
+            logIncoming("setExtras size= " + extras.size() + " | callId= " + callId);
+            SomeArgs args = SomeArgs.obtain();
+            args.arg1 = callId;
+            args.arg2 = extras;
+            mHandler.obtainMessage(MSG_SET_EXTRAS, args).sendToTarget();
         }
 
         @Override
