@@ -20,9 +20,9 @@ import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.res.Configuration;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.UserHandle;
 import android.os.UserManager;
 import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
@@ -44,16 +44,14 @@ import android.widget.Toast;
  * In L, any app that has the CALL_PRIVILEGED permission can continue to make outgoing emergency
  * calls via ACTION_CALL_PRIVILEGED.
  *
- * In addition, the default dialer (identified via {@link android.telecom.TelecomManager#getDefaultPhoneApp()}
- * will also be granted the ability to make emergency outgoing calls using the CALL action. In
- * order to do this, it must call startActivityForResult on the CALL intent to allow its package
- * name to be passed to {@link CallActivity}. Calling startActivity will continue to work on all
- * non-emergency numbers just like it did pre-L.
+ * In addition, the default dialer (identified via
+ * {@link android.telecom.TelecomManager#getDefaultPhoneApp()} will also be granted the ability to
+ * make emergency outgoing calls using the CALL action. In order to do this, it must call
+ * startActivityForResult on the CALL intent to allow its package name to be passed to
+ * {@link CallActivity}. Calling startActivity will continue to work on all non-emergency numbers
+ * just like it did pre-L.
  */
 public class CallActivity extends Activity {
-
-    private CallsManager mCallsManager = CallsManager.getInstance();
-    private boolean mIsVoiceCapable;
 
     /**
      * {@inheritDoc}
@@ -65,29 +63,13 @@ public class CallActivity extends Activity {
     protected void onCreate(Bundle bundle) {
         super.onCreate(bundle);
 
-        mIsVoiceCapable = isVoiceCapable();
-
-        // TODO: This activity will be displayed until the next screen which could be
-        // the in-call UI and error dialog or potentially a call-type selection dialog.
-        // Traditionally, this has been a black screen with a spinner. We need to reevaluate if this
-        // is still desired and add back if necessary. Currently, the activity is set to NoDisplay
-        // theme which means it shows no UI.
-
-        Intent intent = getIntent();
-        Configuration configuration = getResources().getConfiguration();
-
-        Log.d(this, "onCreate: this = %s, bundle = %s", this, bundle);
-        Log.d(this, " - intent = %s", intent);
-        Log.d(this, " - configuration = %s", configuration);
-
         // TODO: Figure out if there is something to restore from bundle.
         // See OutgoingCallBroadcaster in services/Telephony for more.
 
-        processIntent(intent);
+        processIntent(getIntent());
 
         // This activity does not have associated UI, so close.
         finish();
-
         Log.d(this, "onCreate: end");
     }
 
@@ -98,14 +80,12 @@ public class CallActivity extends Activity {
      */
     private void processIntent(Intent intent) {
         // Ensure call intents are not processed on devices that are not capable of calling.
-        if (!mIsVoiceCapable) {
+        if (!isVoiceCapable()) {
             setResult(RESULT_CANCELED);
             return;
         }
 
         String action = intent.getAction();
-
-        // TODO: Check for non-voice capable devices before reading any intents.
 
         if (Intent.ACTION_CALL.equals(action) ||
                 Intent.ACTION_CALL_PRIVILEGED.equals(action) ||
@@ -143,6 +123,12 @@ public class CallActivity extends Activity {
             return;
         }
 
+        // This must come after the code which checks to see if this user is allowed to place
+        // outgoing calls.
+        if (maybeSwitchToPrimaryUser(intent, true /* isForResult */)) {
+            return;
+        }
+
         PhoneAccountHandle phoneAccountHandle = intent.getParcelableExtra(
                 TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE);
 
@@ -155,13 +141,13 @@ public class CallActivity extends Activity {
         }
 
         // Send to CallsManager to ensure the InCallUI gets kicked off before the broadcast returns
-        Call call = mCallsManager.startOutgoingCall(handle, phoneAccountHandle, clientExtras);
+        Call call = getCallsManager().startOutgoingCall(handle, phoneAccountHandle, clientExtras);
 
         if (call == null) {
             setResult(RESULT_CANCELED);
         } else {
             NewOutgoingCallIntentBroadcaster broadcaster = new NewOutgoingCallIntentBroadcaster(
-                    this, mCallsManager, call, intent, isDefaultDialer());
+                    this, getCallsManager(), call, intent, isDefaultDialer());
             final int result = broadcaster.processIntent();
             final boolean success = result == DisconnectCause.NOT_DISCONNECTED;
 
@@ -190,6 +176,10 @@ public class CallActivity extends Activity {
             return;
         }
 
+        if (maybeSwitchToPrimaryUser(intent, false /* isForResult */)) {
+            return;
+        }
+
         Bundle clientExtras = null;
         if (intent.hasExtra(TelecomManager.EXTRA_INCOMING_CALL_EXTRAS)) {
             clientExtras = intent.getBundleExtra(TelecomManager.EXTRA_INCOMING_CALL_EXTRAS);
@@ -200,7 +190,7 @@ public class CallActivity extends Activity {
 
         Log.d(this, "Processing incoming call from connection service [%s]",
                 phoneAccountHandle.getComponentName());
-        mCallsManager.processIncomingCallIntent(phoneAccountHandle, clientExtras);
+        getCallsManager().processIncomingCallIntent(phoneAccountHandle, clientExtras);
     }
 
     private boolean isDefaultDialer() {
@@ -243,5 +233,29 @@ public class CallActivity extends Activity {
             errorIntent.putExtra(ErrorDialogActivity.ERROR_MESSAGE_ID_EXTRA, errorMessageId);
         }
         startActivity(errorIntent);
+    }
+
+    /**
+     * Checks to see if we are running as a secondary user and if so, starts an activity with the
+     * specified intent on the primary user.
+     *
+     * @return True if the intent was resent to the primary user, false otherwise.
+     */
+    private boolean maybeSwitchToPrimaryUser(Intent intent, boolean isForResult) {
+        // Check to see if the we are running as a secondary user and if so, forward the intent to
+        // the primary user. The core of Telecom only runs in the primary user space so this in
+        // necessary for secondary users.
+        if (UserHandle.myUserId() != UserHandle.USER_OWNER) {
+            if (isForResult) {
+                intent.addFlags(Intent.FLAG_ACTIVITY_FORWARD_RESULT);
+            }
+            startActivityAsUser(intent, UserHandle.OWNER);
+            return true;
+        }
+        return false;
+    }
+
+    CallsManager getCallsManager() {
+        return CallsManager.getInstance();
     }
 }
