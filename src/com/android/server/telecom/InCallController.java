@@ -197,6 +197,11 @@ public final class InCallController extends CallsManagerListenerBase {
     }
 
     @Override
+    public void onCallExtrasUpdated(Call call) {
+        updateCall(call);
+    }
+
+    @Override
     public void onConnectionServiceChanged(
             Call call,
             ConnectionServiceWrapper oldService,
