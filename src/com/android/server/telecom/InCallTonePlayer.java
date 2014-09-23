@@ -183,6 +183,10 @@ public final class InCallTonePlayer extends Thread {
                 stream = AudioManager.STREAM_BLUETOOTH_SCO;
             }
 
+            if (toneType == ToneGenerator.TONE_SUPERVISORY_CH) {
+                stream = AudioManager.STREAM_INCALL_MUSIC;
+            }
+
             // If the ToneGenerator creation fails, just continue without it. It is a local audio
             // signal, and is not as important.
             try {
