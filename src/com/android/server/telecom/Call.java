@@ -170,6 +170,11 @@ final class Call implements CreateConnectionResponse {
         }
     };
 
+    // Key used to pack OEM call extras within a Call object's
+    // mExtras Bundle. Used by the setCallExtras method in
+    // CallsManager.
+    public static final String KEY_OEM_EXTRAS = "OEMExtras";
+
     /** True if this is an incoming call. */
     private final boolean mIsIncoming;
 

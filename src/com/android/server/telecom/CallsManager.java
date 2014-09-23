@@ -65,6 +65,7 @@ public final class CallsManager extends Call.ListenerBase {
         void onCallAdded(Call call);
         void onCallRemoved(Call call);
         void onCallStateChanged(Call call, int oldState, int newState);
+        void onCallExtrasUpdated(Call call);
         void onConnectionServiceChanged(
                 Call call,
                 ConnectionServiceWrapper oldService,
@@ -1262,6 +1263,30 @@ public final class CallsManager extends Call.ListenerBase {
             }
         }
         manageMSimInCallTones(false);
+    }
+
+    /**
+     * Adds OEM extras from lower layers into Call's extras.
+     *
+     * @param call The call.
+     * @param extras OEM call extras.
+     */
+    void setCallExtras(Call call, Bundle extras) {
+        if (extras == null) {
+            Log.d(this, "setCallExtras Null extras Bundle");
+            return;
+        }
+        Bundle callExtras = call.getExtras();
+
+        // NOTE: OEM extras are packed "as is" within the Call
+        // object's mExtras Bundle so as to preserve the
+        // original contents of the mExtras Bundle. We don't
+        // want to overwrite mExtras with the OEM extras.
+        callExtras.putBundle(Call.KEY_OEM_EXTRAS, extras);
+
+        for (CallsManagerListener listener : mListeners) {
+            listener.onCallExtrasUpdated(call);
+        }
     }
 
     /**
