@@ -38,6 +38,13 @@
             </intent-filter>
         </service>
 
+        <service android:name="com.android.server.telecom.tests.MockConnectionService"
+                 android:permission="android.permission.BIND_CONNECTION_SERVICE" >
+            <intent-filter>
+                <action android:name="android.telecom.ConnectionService" />
+            </intent-filter>
+        </service>
+
         <service android:name="com.android.server.telecom.testapps.TestConnectionManager"
                  android:permission="android.permission.BIND_CONNECTION_SERVICE" >
             <intent-filter>
