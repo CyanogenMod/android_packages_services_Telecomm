@@ -421,8 +421,12 @@ public class TelecomServiceImpl extends ITelecomService.Stub {
 
         // Switch identity so that TelephonyManager checks Telecom's permissions instead.
         long token = Binder.clearCallingIdentity();
-        boolean retval = getTelephonyManager().handlePinMmi(dialString);
-        Binder.restoreCallingIdentity(token);
+        boolean retval = false;
+        try {
+            retval = getTelephonyManager().handlePinMmi(dialString);
+        } finally {
+            Binder.restoreCallingIdentity(token);
+        }
 
         return retval;
     }
@@ -462,9 +466,7 @@ public class TelecomServiceImpl extends ITelecomService.Stub {
                 intent.putExtra(TelecomManager.EXTRA_INCOMING_CALL_EXTRAS, extras);
             }
 
-            long token = Binder.clearCallingIdentity();
-            mContext.startActivityAsUser(intent, UserHandle.CURRENT);
-            Binder.restoreCallingIdentity(token);
+            mContext.startActivity(intent);
         }
     }
 
