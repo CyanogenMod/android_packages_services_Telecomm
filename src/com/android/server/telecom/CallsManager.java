@@ -384,7 +384,7 @@ public final class CallsManager extends Call.ListenerBase {
             return null;
         }
 
-        if (phoneAccountHandle == null && !isEmergencyCall) {
+        if (phoneAccountHandle == null && accounts.size() > 1 && !isEmergencyCall) {
             // This is the state where the user is expected to select an account
             call.setState(CallState.PRE_DIAL_WAIT);
             extras.putParcelableList(android.telecom.Call.AVAILABLE_PHONE_ACCOUNTS, accounts);
