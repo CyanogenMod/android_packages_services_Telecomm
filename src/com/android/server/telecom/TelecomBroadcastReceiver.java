@@ -38,13 +38,6 @@ public final class TelecomBroadcastReceiver extends BroadcastReceiver {
     static final String ACTION_CLEAR_MISSED_CALLS =
             "com.android.server.telecom.ACTION_CLEAR_MISSED_CALLS";
 
-    /** The missed call notifier. */
-    private final MissedCallNotifier mMissedCallNotifier;
-
-    public TelecomBroadcastReceiver(MissedCallNotifier missedCallNotifier) {
-        mMissedCallNotifier = missedCallNotifier;
-    }
-
     /** {@inheritDoc} */
     @Override
     public void onReceive(Context context, Intent intent) {
@@ -52,11 +45,13 @@ public final class TelecomBroadcastReceiver extends BroadcastReceiver {
 
         Log.v(this, "Action received: %s.", action);
 
+        MissedCallNotifier missedCallNotifier = CallsManager.getInstance().getMissedCallNotifier();
+
         // Send an SMS from the missed call notification.
         if (ACTION_SEND_SMS_FROM_NOTIFICATION.equals(action)) {
             // Close the notification shade and the notification itself.
             closeSystemDialogs(context);
-            mMissedCallNotifier.clearMissedCalls();
+            missedCallNotifier.clearMissedCalls();
 
             Intent callIntent = new Intent(Intent.ACTION_SENDTO, intent.getData());
             callIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -66,7 +61,7 @@ public final class TelecomBroadcastReceiver extends BroadcastReceiver {
         } else if (ACTION_CALL_BACK_FROM_NOTIFICATION.equals(action)) {
             // Close the notification shade and the notification itself.
             closeSystemDialogs(context);
-            mMissedCallNotifier.clearMissedCalls();
+            missedCallNotifier.clearMissedCalls();
 
             Intent callIntent = new Intent(Intent.ACTION_CALL_PRIVILEGED, intent.getData());
             callIntent.setFlags(
@@ -75,7 +70,7 @@ public final class TelecomBroadcastReceiver extends BroadcastReceiver {
 
         // Clear the missed call notification and call log entries.
         } else if (ACTION_CLEAR_MISSED_CALLS.equals(action)) {
-            mMissedCallNotifier.clearMissedCalls();
+            missedCallNotifier.clearMissedCalls();
         }
     }
 
