@@ -19,7 +19,6 @@ package com.android.server.telecom;
 import android.content.Context;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Parcelable;
 import android.provider.CallLog.Calls;
 import android.telecom.AudioState;
 import android.telecom.CallState;
@@ -30,12 +29,10 @@ import android.telecom.PhoneAccountHandle;
 import android.telecom.PhoneCapabilities;
 import android.telephony.TelephonyManager;
 
-import com.android.internal.util.ArrayUtils;
 import com.android.internal.util.IndentingPrintWriter;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -1035,6 +1032,20 @@ public final class CallsManager extends Call.ListenerBase {
             // NOTE: If the amount of live calls changes beyond 1, this logic will probably
             // have to change.
             Call liveCall = getFirstCallWithState(call, LIVE_CALL_STATES);
+
+            if (hasMaximumOutgoingCalls()) {
+                // Disconnect the current outgoing call if it's not an emergency call. If the user
+                // tries to make two outgoing calls to different emergency call numbers, we will try
+                // to connect the first outgoing call.
+                if (isEmergency) {
+                    Call outgoingCall = getFirstCallWithState(OUTGOING_CALL_STATES);
+                    if (!outgoingCall.isEmergencyCall()) {
+                        outgoingCall.disconnect();
+                        return true;
+                    }
+                }
+                return false;
+            }
 
             if (hasMaximumHoldingCalls()) {
                 // There is no more room for any more calls, unless it's an emergency.
