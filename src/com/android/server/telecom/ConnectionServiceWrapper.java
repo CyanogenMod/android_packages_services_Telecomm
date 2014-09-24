@@ -198,6 +198,21 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                         }
                         ParcelableConference parcelableConference =
                                 (ParcelableConference) args.arg2;
+
+                        // Make sure that there's at least one valid call. For remote connections
+                        // we'll get a add conference msg from both the remote connection service
+                        // and from the real connection service.
+                        boolean hasValidCalls = false;
+                        for (String callId : parcelableConference.getConnectionIds()) {
+                            if (mCallIdMapper.getCall(callId) != null) {
+                                hasValidCalls = true;
+                            }
+                        }
+                        if (!hasValidCalls) {
+                            Log.d(this, "Attempting to add a conference with no valid calls");
+                            break;
+                        }
+
                         // need to create a new Call
                         Call conferenceCall = mCallsManager.createConferenceCall(
                                 null, parcelableConference);
@@ -426,7 +441,6 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
             logIncoming("removeCall %s", callId);
             if (mCallIdMapper.isValidCallId(callId) || mCallIdMapper.isValidConferenceId(callId)) {
                 mHandler.obtainMessage(MSG_REMOVE_CALL, callId).sendToTarget();
-                mHandler.obtainMessage(MSG_REMOVE_CALL, callId);
             }
         }
 
