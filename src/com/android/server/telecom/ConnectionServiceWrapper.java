@@ -81,6 +81,7 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
     private static final int MSG_SET_VIDEO_STATE = 19;
     private static final int MSG_SET_CONFERENCEABLE_CONNECTIONS = 20;
     private static final int MSG_SET_DISCONNECTED_WITH_SUPP_NOTIFICATION = 22;
+    private static final int MSG_SET_PHONE_ACCOUNT = 23;
 
     private final Handler mHandler = new Handler() {
         @Override
@@ -372,6 +373,21 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                     }
                     break;
                 }
+                case MSG_SET_PHONE_ACCOUNT: {
+                    SomeArgs args = (SomeArgs) msg.obj;
+                    try {
+                        call = mCallIdMapper.getCall(args.arg1);
+                        if (call != null) {
+                            PhoneAccountHandle pHandle = (PhoneAccountHandle) args.arg2;
+                            call.setTargetPhoneAccount(pHandle);
+                        } else {
+                            Log.w(this, "setPhoneAccountHandle, unknown call id: %s", args.arg1);
+                        }
+                    } finally {
+                        args.recycle();
+                    }
+                    break;
+                }
             }
         }
     };
@@ -594,6 +610,17 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                 args.arg1 = callId;
                 args.arg2 = conferenceableCallIds;
                 mHandler.obtainMessage(MSG_SET_CONFERENCEABLE_CONNECTIONS, args).sendToTarget();
+            }
+        }
+
+        @Override
+        public void setPhoneAccountHandle(String callId, PhoneAccountHandle pHandle) {
+            logIncoming("setPhoneAccountHandle %s %s", callId, pHandle);
+            if (mCallIdMapper.isValidCallId(callId)) {
+                SomeArgs args = SomeArgs.obtain();
+                args.arg1 = callId;
+                args.arg2 = pHandle;
+                mHandler.obtainMessage(MSG_SET_PHONE_ACCOUNT, args).sendToTarget();
             }
         }
     }

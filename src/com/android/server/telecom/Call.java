@@ -534,6 +534,7 @@ final class Call implements CreateConnectionResponse {
 
     void setTargetPhoneAccount(PhoneAccountHandle accountHandle) {
         if (!Objects.equals(mTargetPhoneAccountHandle, accountHandle)) {
+            Log.i(this, "setTargetPhoneAccount  %s ", accountHandle);
             mTargetPhoneAccountHandle = accountHandle;
             for (Listener l : mListeners) {
                 l.onTargetPhoneAccountChanged(this);
