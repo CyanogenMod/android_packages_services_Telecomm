@@ -466,7 +466,9 @@ public class TelecomServiceImpl extends ITelecomService.Stub {
                 intent.putExtra(TelecomManager.EXTRA_INCOMING_CALL_EXTRAS, extras);
             }
 
-            mContext.startActivity(intent);
+            long token = Binder.clearCallingIdentity();
+            mContext.startActivityAsUser(intent, UserHandle.CURRENT);
+            Binder.restoreCallingIdentity(token);
         }
     }
 
