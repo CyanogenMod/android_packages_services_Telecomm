@@ -196,5 +196,10 @@
                 android:theme="@style/Theme.Telecomm.Transparent">
         </activity>
 
+        <receiver android:name=".CallReceiver"
+            android:exported="false">
+        </receiver>
+
+
     </application>
 </manifest>
