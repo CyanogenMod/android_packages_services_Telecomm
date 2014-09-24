@@ -27,7 +27,6 @@ import android.os.ServiceManager;
  * Top-level Application class for Telecom.
  */
 public final class TelecomApp extends Application {
-
     /**
      * The Telecom service implementation.
      */
@@ -49,16 +48,6 @@ public final class TelecomApp extends Application {
      */
     private CallsManager mCallsManager;
 
-    /**
-     * The Telecom broadcast receiver.
-     */
-    private TelecomBroadcastReceiver mTelecomBroadcastReceiver;
-
-    /**
-     * The {@link android.telecom.PhoneAccount} broadcast receiver.
-     */
-    private PhoneAccountBroadcastReceiver mPhoneAccountBroadcastReceiver;
-
     /** {@inheritDoc} */
     @Override
     public void onCreate() {
@@ -78,21 +67,6 @@ public final class TelecomApp extends Application {
             mTelecomService = new TelecomServiceImpl(mMissedCallNotifier, mPhoneAccountRegistrar,
                     mCallsManager, this);
             ServiceManager.addService(Context.TELECOM_SERVICE, mTelecomService);
-            mPhoneAccountBroadcastReceiver = new PhoneAccountBroadcastReceiver(
-                    mPhoneAccountRegistrar);
-            mTelecomBroadcastReceiver = new TelecomBroadcastReceiver(mMissedCallNotifier);
-
-            // Setup broadcast listener for telecom intents.
-            IntentFilter telecomFilter = new IntentFilter();
-            telecomFilter.addAction(TelecomBroadcastReceiver.ACTION_CALL_BACK_FROM_NOTIFICATION);
-            telecomFilter.addAction(TelecomBroadcastReceiver.ACTION_CALL_BACK_FROM_NOTIFICATION);
-            telecomFilter.addAction(TelecomBroadcastReceiver.ACTION_SEND_SMS_FROM_NOTIFICATION);
-            registerReceiver(mTelecomBroadcastReceiver, telecomFilter);
-
-            IntentFilter phoneAccountFilter = new IntentFilter();
-            phoneAccountFilter.addAction(Intent.ACTION_PACKAGE_FULLY_REMOVED);
-            phoneAccountFilter.addDataScheme("package");
-            registerReceiver(mPhoneAccountBroadcastReceiver, phoneAccountFilter);
         }
     }
 

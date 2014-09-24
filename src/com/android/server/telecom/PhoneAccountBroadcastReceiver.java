@@ -35,16 +35,6 @@ import java.lang.String;
  * the enabled state of the accounts is retained.
  */
 public class PhoneAccountBroadcastReceiver extends BroadcastReceiver {
-
-    /**
-     * The {@link PhoneAccountRegistrar}.
-     */
-    private final PhoneAccountRegistrar mPhoneAccountRegistrar;
-
-    public PhoneAccountBroadcastReceiver(PhoneAccountRegistrar phoneAccountRegistrar) {
-        mPhoneAccountRegistrar = phoneAccountRegistrar;
-    }
-
     /**
      * Receives the intents the class is configured to received.
      *
@@ -71,6 +61,6 @@ public class PhoneAccountBroadcastReceiver extends BroadcastReceiver {
      * @param packageName The name of the removed package.
      */
     private void handlePackageRemoved(Context context, String packageName) {
-        mPhoneAccountRegistrar.clearAccounts(packageName);
+        CallsManager.getInstance().getPhoneAccountRegistrar().clearAccounts(packageName);
     }
 }
