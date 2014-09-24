@@ -279,7 +279,7 @@ class NewOutgoingCallIntentBroadcaster {
 
         mContext.sendOrderedBroadcastAsUser(
                 broadcastIntent,
-                UserHandle.OWNER,
+                UserHandle.CURRENT,
                 PERMISSION,
                 receiverRequired ? new NewOutgoingCallBroadcastIntentReceiver() : null,
                 null,  // scheduler
