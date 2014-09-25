@@ -212,5 +212,12 @@
             android:exported="false">
         </receiver>
 
+        <service android:name="BluetoothPhoneService"
+                android:singleUser="true">
+            <intent-filter>
+                <action android:name="android.bluetooth.IBluetoothHeadsetPhone" />
+            </intent-filter>
+        </service>
+
     </application>
 </manifest>
