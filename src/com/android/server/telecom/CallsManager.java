@@ -810,8 +810,8 @@ public final class CallsManager extends Call.ListenerBase {
         return getFirstCallWithState(CallState.ACTIVE);
     }
 
-    Call getDialingOrConnectingCall() {
-        return getFirstCallWithState(CallState.DIALING, CallState.CONNECTING);
+    Call getDialingCall() {
+        return getFirstCallWithState(CallState.DIALING);
     }
 
     Call getHeldCall() {
