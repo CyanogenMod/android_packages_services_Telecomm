@@ -85,6 +85,8 @@ public final class CallsManager extends Call.ListenerBase {
     private static final int MAXIMUM_HOLD_CALLS = 1;
     private static final int MAXIMUM_RINGING_CALLS = 1;
     private static final int MAXIMUM_OUTGOING_CALLS = 1;
+    private static final int MAXIMUM_DSDA_LIVE_CALLS = 2;
+    private static final int MAXIMUM_DSDA_HOLD_CALLS = 2;
 
     private static final int[] LIVE_CALL_STATES =
             {CallState.CONNECTING, CallState.PRE_DIAL_WAIT, CallState.DIALING, CallState.ACTIVE};
@@ -212,7 +214,7 @@ public final class CallsManager extends Call.ListenerBase {
         Log.d(this, "onSuccessfulIncomingCall");
         setCallState(incomingCall, CallState.RINGING);
 
-        if (hasMaximumRingingCalls()) {
+        if (hasMaximumRingingCalls(incomingCall.getTargetPhoneAccount().getId())) {
             incomingCall.reject(false, null);
             // since the call was not added to the list of calls, we have to call the missed
             // call notifier and the call logger manually.
@@ -942,6 +944,42 @@ public final class CallsManager extends Call.ListenerBase {
         return null;
     }
 
+    /**
+     * Returns the first call that it finds with the given states for given subscription.
+     * the states are treated as having priority order so that any call with the first
+     * state will be returned before any call with states listed later in the parameter list.
+     *
+     * @param subId check calls only on this subscription
+     * @param callToSkip Call that this method should skip while searching
+     */
+    Call getFirstCallWithState(String subId, Call callToSkip, int... states) {
+        for (int currentState : states) {
+            // check the foreground first
+            if (mForegroundCall != null && mForegroundCall.getState() == currentState
+                    && mForegroundCall.getTargetPhoneAccount() != null
+                    && mForegroundCall.getTargetPhoneAccount().getId().equals(subId)) {
+                return mForegroundCall;
+            }
+
+            for (Call call : mCalls) {
+                if (Objects.equals(callToSkip, call)) {
+                    continue;
+                }
+
+                // Only operate on top-level calls
+                if (call.getParentCall() != null) {
+                    continue;
+                }
+
+                if (currentState == call.getState() && call.getTargetPhoneAccount() != null
+                        && call.getTargetPhoneAccount().equals(subId)) {
+                    return call;
+                }
+            }
+        }
+        return null;
+    }
+
     Call createConferenceCall(
             PhoneAccountHandle phoneAccount,
             ParcelableConference parcelableConference) {
@@ -1156,16 +1194,41 @@ public final class CallsManager extends Call.ListenerBase {
         return count;
     }
 
+    private int getNumCallsWithState(String subId, int... states) {
+        int count = 0;
+        for (int state : states) {
+            for (Call call : mCalls) {
+                if (call.getState() == state && call.getTargetPhoneAccount() != null
+                        && call.getTargetPhoneAccount().getId().equals(subId)) {
+                    count++;
+                }
+            }
+        }
+        return count;
+    }
+
     private boolean hasMaximumLiveCalls() {
         return MAXIMUM_LIVE_CALLS <= getNumCallsWithState(LIVE_CALL_STATES);
+    }
+
+    private boolean hasMaximumLiveCalls(String subId) {
+        return MAXIMUM_LIVE_CALLS <= getNumCallsWithState(subId, LIVE_CALL_STATES);
     }
 
     private boolean hasMaximumHoldingCalls() {
         return MAXIMUM_HOLD_CALLS <= getNumCallsWithState(CallState.ON_HOLD);
     }
 
+    private boolean hasMaximumHoldingCalls(String subId) {
+        return MAXIMUM_HOLD_CALLS <= getNumCallsWithState(subId, CallState.ON_HOLD);
+    }
+
     private boolean hasMaximumRingingCalls() {
         return MAXIMUM_RINGING_CALLS <= getNumCallsWithState(CallState.RINGING);
+    }
+
+    private boolean hasMaximumRingingCalls(String subId) {
+        return MAXIMUM_RINGING_CALLS <= getNumCallsWithState(subId, CallState.RINGING);
     }
 
     private boolean hasMaximumOutgoingCalls() {
@@ -1173,6 +1236,10 @@ public final class CallsManager extends Call.ListenerBase {
     }
 
     private boolean makeRoomForOutgoingCall(Call call, boolean isEmergency) {
+        if (TelephonyManager.getDefault().getMultiSimConfiguration()
+                == TelephonyManager.MultiSimVariants.DSDA) {
+            return makeRoomForOutgoingCallForDsda(call, isEmergency);
+        }
         if (hasMaximumLiveCalls()) {
             // NOTE: If the amount of live calls changes beyond 1, this logic will probably
             // have to change.
@@ -1225,6 +1292,42 @@ public final class CallsManager extends Call.ListenerBase {
                 // mode). Return true here and we'll run this code again after user chooses an
                 // account.
                 return true;
+            }
+
+            // Try to hold the live call before attempting the new outgoing call.
+            if (liveCall.can(PhoneCapabilities.HOLD)) {
+                liveCall.hold();
+                return true;
+            }
+
+            // The live call cannot be held so we're out of luck here.  There's no room.
+            return false;
+        }
+        return true;
+    }
+
+    private boolean makeRoomForOutgoingCallForDsda(Call call, boolean isEmergency) {
+        if (isEmergency) {
+            return true;
+        }
+
+        PhoneAccountHandle phAcc = call.getTargetPhoneAccount();
+        if (phAcc == null) {
+            if (getNumCallsWithState(LIVE_CALL_STATES) == MAXIMUM_DSDA_LIVE_CALLS
+                    && getNumCallsWithState(CallState.ON_HOLD) == MAXIMUM_DSDA_HOLD_CALLS) {
+                return false;
+            } else {
+                return true;
+            }
+        }
+        if (hasMaximumLiveCalls(phAcc.getId())) {
+            // NOTE: If the amount of live calls changes beyond 1, this logic will probably
+            // have to change.
+            Call liveCall = getFirstCallWithState(phAcc.getId(), call, LIVE_CALL_STATES);
+
+            if (hasMaximumHoldingCalls(phAcc.getId())) {
+                // There is no more room for any more calls, unless it's an emergency.
+                return false;  // No more room!
             }
 
             // Try to hold the live call before attempting the new outgoing call.
