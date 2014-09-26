@@ -426,7 +426,6 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
             logIncoming("removeCall %s", callId);
             if (mCallIdMapper.isValidCallId(callId) || mCallIdMapper.isValidConferenceId(callId)) {
                 mHandler.obtainMessage(MSG_REMOVE_CALL, callId).sendToTarget();
-                mHandler.obtainMessage(MSG_REMOVE_CALL, callId);
             }
         }
 

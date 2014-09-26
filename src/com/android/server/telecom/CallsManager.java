@@ -37,6 +37,7 @@ import com.google.common.collect.ImmutableList;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -117,6 +118,7 @@ public final class CallsManager extends Call.ListenerBase {
     private final Context mContext;
     private final PhoneAccountRegistrar mPhoneAccountRegistrar;
     private final MissedCallNotifier mMissedCallNotifier;
+    private final Set<Call> mLocallyDisconnectingCalls = new HashSet<>();
 
     /**
      * The call the user is currently interacting with. This is the call that should have audio
@@ -566,6 +568,7 @@ public final class CallsManager extends Call.ListenerBase {
         if (!mCalls.contains(call)) {
             Log.w(this, "Unknown call (%s) asked to disconnect", call);
         } else {
+            mLocallyDisconnectingCalls.add(call);
             call.disconnect();
         }
     }
@@ -704,7 +707,6 @@ public final class CallsManager extends Call.ListenerBase {
     void markCallAsDisconnected(Call call, DisconnectCause disconnectCause) {
         call.setDisconnectCause(disconnectCause);
         setCallState(call, CallState.DISCONNECTED);
-        removeCall(call);
     }
 
     /**
@@ -712,6 +714,12 @@ public final class CallsManager extends Call.ListenerBase {
      */
     void markCallAsRemoved(Call call) {
         removeCall(call);
+        if (mLocallyDisconnectingCalls.contains(call)) {
+            mLocallyDisconnectingCalls.remove(call);
+            if (mForegroundCall != null && mForegroundCall.getState() == CallState.ON_HOLD) {
+                mForegroundCall.unhold();
+            }
+        }
     }
 
     /**
@@ -988,9 +996,7 @@ public final class CallsManager extends Call.ListenerBase {
             Log.v(this, "Updating foreground call, %s -> %s.", mForegroundCall, newForegroundCall);
             Call oldForegroundCall = mForegroundCall;
             mForegroundCall = newForegroundCall;
-            if (mForegroundCall != null && mForegroundCall.getState() == CallState.ON_HOLD) {
-                mForegroundCall.unhold();
-            }
+
             for (CallsManagerListener listener : mListeners) {
                 listener.onForegroundCallChanged(oldForegroundCall, mForegroundCall);
             }
