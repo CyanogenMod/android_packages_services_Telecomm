@@ -498,10 +498,15 @@ public final class BluetoothPhoneService extends Service {
      * Sends a single clcc (C* List Current Calls) event for the specified call.
      */
     private void sendClccForCall(Call call) {
-        int index = getIndexForCall(call);
-        int direction = call.isIncoming() ? 1 : 0;
         boolean isForeground = getCallsManager().getForegroundCall() == call;
         int state = convertCallState(call.getState(), isForeground);
+
+        if (state == CALL_STATE_IDLE) {
+            return;
+        }
+
+        int index = getIndexForCall(call);
+        int direction = call.isIncoming() ? 1 : 0;
         boolean isPartOfConference = call.getParentCall() != null;
         Uri addressUri = call.getHandle();
         String address = addressUri == null ? null : addressUri.getSchemeSpecificPart();
@@ -583,6 +588,7 @@ public final class BluetoothPhoneService extends Service {
     private int getBluetoothCallStateForUpdate() {
         CallsManager callsManager = getCallsManager();
         Call ringingCall = callsManager.getRingingCall();
+        Call dialingCall = callsManager.getDialingCall();
 
         //
         // !! WARNING !!
@@ -596,7 +602,7 @@ public final class BluetoothPhoneService extends Service {
         int bluetoothCallState = CALL_STATE_IDLE;
         if (ringingCall != null) {
             bluetoothCallState = CALL_STATE_INCOMING;
-        } else if (callsManager.getDialingOrConnectingCall() != null) {
+        } else if (dialingCall != null) {
             bluetoothCallState = CALL_STATE_ALERTING;
         }
         return bluetoothCallState;
@@ -607,14 +613,16 @@ public final class BluetoothPhoneService extends Service {
             case CallState.NEW:
             case CallState.ABORTED:
             case CallState.DISCONNECTED:
+            case CallState.CONNECTING:
+            case CallState.PRE_DIAL_WAIT:
+                if (callState == CallState.CONNECTING || callState == CallState.PRE_DIAL_WAIT) {
+                    Log.w(this, "convertCallState: unexpected state %s",
+                            CallState.toString(callState));
+                }
                 return CALL_STATE_IDLE;
 
             case CallState.ACTIVE:
                 return CALL_STATE_ACTIVE;
-
-            case CallState.CONNECTING:
-            case CallState.PRE_DIAL_WAIT:
-                return CALL_STATE_DIALING;
 
             case CallState.DIALING:
                 // Yes, this is correctly returning ALERTING.
