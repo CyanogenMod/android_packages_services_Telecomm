@@ -212,6 +212,5 @@
             android:exported="false">
         </receiver>
 
-
     </application>
 </manifest>
