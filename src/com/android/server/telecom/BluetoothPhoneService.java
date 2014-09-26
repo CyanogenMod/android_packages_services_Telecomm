@@ -30,6 +30,7 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.RemoteException;
+import android.telecom.CallState;
 import android.telecom.PhoneAccount;
 import android.telephony.PhoneNumberUtils;
 import android.telephony.TelephonyManager;
@@ -37,7 +38,10 @@ import android.text.TextUtils;
 
 import com.android.server.telecom.CallsManager.CallsManagerListener;
 
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Bluetooth headset manager for Telecom. This class shares the call state with the bluetooth device
@@ -272,8 +276,11 @@ public final class BluetoothPhoneService extends Service {
                     break;
 
                 case MSG_LIST_CURRENT_CALLS:
-                    // TODO - Add current calls.
-                    request.setResult(true);
+                    try {
+                        sendListOfCalls();
+                    } finally {
+                        request.setResult(true);
+                    }
                     break;
 
                 case MSG_QUERY_PHONE_STATE:
@@ -301,6 +308,7 @@ public final class BluetoothPhoneService extends Service {
 
         @Override
         public void onCallRemoved(Call call) {
+            mClccIndexMap.remove(call);
             updateHeadsetWithCallState();
         }
 
@@ -353,6 +361,9 @@ public final class BluetoothPhoneService extends Service {
 
     private BluetoothAdapter mBluetoothAdapter;
     private BluetoothHeadset mBluetoothHeadset;
+
+    // A map from Calls to indexes used to identify calls for CLCC (C* List Current Calls).
+    private Map<Call, Integer> mClccIndexMap = new HashMap<>();
 
     public BluetoothPhoneService() {
         Log.v(TAG, "Constructor");
@@ -472,6 +483,60 @@ public final class BluetoothPhoneService extends Service {
         return null;
     }
 
+    private void sendListOfCalls() {
+        Collection<Call> mCalls = getCallsManager().getCalls();
+        for (Call call : mCalls) {
+            // We don't send the parent conference call to the bluetooth device.
+            if (!call.isConference()) {
+                sendClccForCall(call);
+            }
+        }
+        sendClccEndMarker();
+    }
+
+    /**
+     * Sends a single clcc (C* List Current Calls) event for the specified call.
+     */
+    private void sendClccForCall(Call call) {
+        int index = getIndexForCall(call);
+        int direction = call.isIncoming() ? 1 : 0;
+        boolean isForeground = getCallsManager().getForegroundCall() == call;
+        int state = convertCallState(call.getState(), isForeground);
+        boolean isPartOfConference = call.getParentCall() != null;
+        Uri addressUri = call.getHandle();
+        String address = addressUri == null ? null : addressUri.getSchemeSpecificPart();
+        int addressType = address == null ? -1 : PhoneNumberUtils.toaFromString(address);
+
+        Log.d(this, "sending clcc for call %d, %d, %d, %b, %s, %d",
+                index, direction, state, isPartOfConference, address, addressType);
+        mBluetoothHeadset.clccResponse(
+                index, direction, state, 0, isPartOfConference, address, addressType);
+    }
+
+    private void sendClccEndMarker() {
+        // End marker is recognized with an index value of 0. All other parameters are ignored.
+        mBluetoothHeadset.clccResponse(0 /* index */, 0, 0, 0, false, null, 0);
+    }
+
+    /**
+     * Returns the caches index for the specified call.  If no such index exists, then an index is
+     * given (smallest number starting from 1 that isn't already taken).
+     */
+    private int getIndexForCall(Call call) {
+        if (mClccIndexMap.containsKey(call)) {
+            return mClccIndexMap.get(call);
+        }
+
+        int i = 1;  // Indexes for bluetooth clcc are 1-based.
+        while (mClccIndexMap.containsValue(i)) {
+            i++;
+        }
+
+        // NOTE: Indexes are removed in {@link #onCallRemoved}.
+        mClccIndexMap.put(call, i);
+        return i;
+    }
+
     private void updateHeadsetWithCallState() {
         CallsManager callsManager = getCallsManager();
         Call activeCall = callsManager.getActiveCall();
@@ -535,6 +600,43 @@ public final class BluetoothPhoneService extends Service {
             bluetoothCallState = CALL_STATE_ALERTING;
         }
         return bluetoothCallState;
+    }
+
+    private int convertCallState(int callState, boolean isForegroundCall) {
+        switch (callState) {
+            case CallState.NEW:
+            case CallState.ABORTED:
+            case CallState.DISCONNECTED:
+                return CALL_STATE_IDLE;
+
+            case CallState.ACTIVE:
+                return CALL_STATE_ACTIVE;
+
+            case CallState.CONNECTING:
+            case CallState.PRE_DIAL_WAIT:
+                return CALL_STATE_DIALING;
+
+            case CallState.DIALING:
+                // Yes, this is correctly returning ALERTING.
+                // "Dialing" for BT means that we have sent information to the service provider
+                // to place the call but there is no confirmation that the call is going through.
+                // When there finally is confirmation, the ringback is played which is referred to
+                // as an "alert" tone, thus, ALERTING.
+                // TODO: We should consider using the ALERTING terms in Telecom because that
+                // seems to be more industry-standard.
+                return CALL_STATE_ALERTING;
+
+            case CallState.ON_HOLD:
+                return CALL_STATE_HELD;
+
+            case CallState.RINGING:
+                if (isForegroundCall) {
+                    return CALL_STATE_INCOMING;
+                } else {
+                    return CALL_STATE_WAITING;
+                }
+        }
+        return CALL_STATE_IDLE;
     }
 
     private CallsManager getCallsManager() {
