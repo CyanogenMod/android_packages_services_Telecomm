@@ -445,6 +445,7 @@ final class CallAudioManager extends CallsManagerListenerBase
                 case CallState.ACTIVE:
                 case CallState.ON_HOLD:
                 case CallState.DIALING:
+                case CallState.CONNECTING:
                 case CallState.RINGING:
                     route = AudioState.ROUTE_BLUETOOTH;
                     break;
