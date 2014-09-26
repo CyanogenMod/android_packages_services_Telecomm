@@ -1057,6 +1057,13 @@ public final class CallsManager extends Call.ListenerBase {
             // have to change.
             Call liveCall = getFirstCallWithState(call, LIVE_CALL_STATES);
 
+            if (call == liveCall) {
+                // If the call is already the foreground call, then we are golden.
+                // This can happen after the user selects an account in the PRE_DIAL_WAIT
+                // state since the call was already populated into the list.
+                return true;
+            }
+
             if (hasMaximumOutgoingCalls()) {
                 // Disconnect the current outgoing call if it's not an emergency call. If the user
                 // tries to make two outgoing calls to different emergency call numbers, we will try
