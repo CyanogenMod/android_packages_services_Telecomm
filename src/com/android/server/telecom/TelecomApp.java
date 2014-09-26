@@ -20,8 +20,8 @@ import android.app.Application;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.os.UserHandle;
 import android.os.ServiceManager;
+import android.os.UserHandle;
 
 /**
  * Top-level Application class for Telecom.
@@ -67,6 +67,9 @@ public final class TelecomApp extends Application {
             mTelecomService = new TelecomServiceImpl(mMissedCallNotifier, mPhoneAccountRegistrar,
                     mCallsManager, this);
             ServiceManager.addService(Context.TELECOM_SERVICE, mTelecomService);
+
+            // Start the BluetoothPhoneService
+            BluetoothPhoneService.start(this);
         }
     }
 
