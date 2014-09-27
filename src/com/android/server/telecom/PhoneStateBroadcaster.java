@@ -61,9 +61,17 @@ final class PhoneStateBroadcaster extends CallsManagerListenerBase {
 
     @Override
     public void onCallRemoved(Call call) {
-        if (!CallsManager.getInstance().hasAnyCalls()) {
-            sendPhoneStateChangedBroadcast(call, TelephonyManager.CALL_STATE_IDLE);
+        // Recalculate the current phone state based on the consolidated state of the remaining
+        // calls in the call list.
+        final CallsManager callsManager = CallsManager.getInstance();
+        int callState = TelephonyManager.CALL_STATE_IDLE;
+        if (callsManager.hasRingingCall()) {
+            callState = TelephonyManager.CALL_STATE_RINGING;
+        } else if (callsManager.getFirstCallWithState(CallState.DIALING, CallState.ACTIVE,
+                    CallState.ON_HOLD) != null) {
+            callState = TelephonyManager.CALL_STATE_OFFHOOK;
         }
+        sendPhoneStateChangedBroadcast(call, callState);
     }
 
     int getCallState() {
