@@ -176,7 +176,8 @@ final class CreateConnectionProcessor {
         } else {
             Log.v(this, "attemptNextPhoneAccount, no more accounts, failing");
             if (mResponse != null) {
-                mResponse.handleCreateConnectionFailure(mLastErrorDisconnectCause);
+                mResponse.handleCreateConnectionFailure(mLastErrorDisconnectCause != null ?
+                        mLastErrorDisconnectCause : new DisconnectCause(DisconnectCause.ERROR));
                 mResponse = null;
                 mCall.clearConnectionService();
             }
