@@ -508,7 +508,12 @@ public final class BluetoothPhoneService extends Service {
         int index = getIndexForCall(call);
         int direction = call.isIncoming() ? 1 : 0;
         boolean isPartOfConference = call.getParentCall() != null;
-        Uri addressUri = call.getHandle();
+        final Uri addressUri;
+        if (call.getGatewayInfo() != null) {
+            addressUri = call.getGatewayInfo().getOriginalAddress();
+        } else {
+            addressUri = call.getHandle();
+        }
         String address = addressUri == null ? null : addressUri.getSchemeSpecificPart();
         int addressType = address == null ? -1 : PhoneNumberUtils.toaFromString(address);
 
