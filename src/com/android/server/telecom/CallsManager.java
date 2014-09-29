@@ -834,7 +834,8 @@ public final class CallsManager extends Call.ListenerBase {
         setCallState(call, CallState.DISCONNECTED);
         PhoneAccount phAcc =
                  getPhoneAccountRegistrar().getPhoneAccount(call.getTargetPhoneAccount());
-        if ((call.getTargetPhoneAccount().getId().equals(getActiveSubscription())) &&
+        if ((call.getTargetPhoneAccount() != null &&
+                    call.getTargetPhoneAccount().getId().equals(getActiveSubscription())) &&
                     (phAcc.isSet(PhoneAccount.LCH)) && (getConversationSub() != null) &&
                     (!getConversationSub().equals(getActiveSubscription()))) {
             Log.d(this,"Set active sub to conversation sub");
