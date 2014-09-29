@@ -42,7 +42,7 @@ public final class InCallToneMonitor extends CallsManagerListenerBase {
             return;
         }
 
-        if (newState == CallState.DISCONNECTED) {
+        if (newState == CallState.DISCONNECTED && call.getDisconnectCause() != null) {
             int toneToPlay = InCallTonePlayer.TONE_INVALID;
 
             Log.v(this, "Disconnect cause: %s.", call.getDisconnectCause());
