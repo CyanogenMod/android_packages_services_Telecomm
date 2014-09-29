@@ -61,6 +61,9 @@ public class PhoneAccountBroadcastReceiver extends BroadcastReceiver {
      * @param packageName The name of the removed package.
      */
     private void handlePackageRemoved(Context context, String packageName) {
-        CallsManager.getInstance().getPhoneAccountRegistrar().clearAccounts(packageName);
+        final CallsManager callsManager = CallsManager.getInstance();
+        if (callsManager != null) {
+            callsManager.getPhoneAccountRegistrar().clearAccounts(packageName);
+        }
     }
 }
