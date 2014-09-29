@@ -134,7 +134,7 @@ final class CallLogManager extends CallsManagerListenerBase {
      */
     void logCall(Call call, int callLogType) {
         final long creationTime = call.getCreationTimeMillis();
-        final long age = call.getAgeMillis();
+        final long age = call.getDurationMillis();
 
         final String logNumber = getLogNumber(call);
 
