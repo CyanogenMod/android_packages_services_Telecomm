@@ -615,10 +615,6 @@ public final class BluetoothPhoneService extends Service {
             case CallState.DISCONNECTED:
             case CallState.CONNECTING:
             case CallState.PRE_DIAL_WAIT:
-                if (callState == CallState.CONNECTING || callState == CallState.PRE_DIAL_WAIT) {
-                    Log.w(this, "convertCallState: unexpected state %s",
-                            CallState.toString(callState));
-                }
                 return CALL_STATE_IDLE;
 
             case CallState.ACTIVE:
