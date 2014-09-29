@@ -97,6 +97,12 @@ public final class BluetoothPhoneService extends Service {
     // Add all held calls to a conference
     private static final int CHLD_TYPE_ADDHELDTOCONF = 3;
 
+    private int mNumActiveCalls = 0;
+    private int mNumHeldCalls = 0;
+    private int mBluetoothCallState = CALL_STATE_IDLE;
+    private String mRingingAddress = null;
+    private int mRingingAddressType = 0;
+
     /**
      * Binder implementation of IBluetoothHeadsetPhone. Implements the command interface that the
      * bluetooth headset code uses to control call.
@@ -512,8 +518,8 @@ public final class BluetoothPhoneService extends Service {
         String address = addressUri == null ? null : addressUri.getSchemeSpecificPart();
         int addressType = address == null ? -1 : PhoneNumberUtils.toaFromString(address);
 
-        Log.d(this, "sending clcc for call %d, %d, %d, %b, %s, %d",
-                index, direction, state, isPartOfConference, address, addressType);
+        Log.i(this, "sending clcc for call %d, %d, %d, %b, %s, %d",
+                index, direction, state, isPartOfConference, Log.piiHandle(address), addressType);
         mBluetoothHeadset.clccResponse(
                 index, direction, state, 0, isPartOfConference, address, addressType);
     }
@@ -562,26 +568,56 @@ public final class BluetoothPhoneService extends Service {
             ringingAddress = "";
         }
 
-        Log.d(TAG, "updateHeadsetWithCallState " +
-                "numActive %s, " +
-                "numHeld %s, " +
-                "callState %s, " +
-                "ringing number %s, " +
-                "ringing type %s",
-                activeCall,
-                heldCall,
-                bluetoothCallState,
-                ringingAddress,
-                ringingAddressType);
+        int numActiveCalls = activeCall == null ? 0 : 1;
+        int numHeldCalls = heldCall == null ? 0 : 1;
 
+        if (mBluetoothHeadset != null &&
+                (numActiveCalls != mNumActiveCalls ||
+                 numHeldCalls != mNumHeldCalls ||
+                 bluetoothCallState != mBluetoothCallState ||
+                 !TextUtils.equals(ringingAddress, mRingingAddress) ||
+                 ringingAddressType != mRingingAddressType)) {
 
-        if (mBluetoothHeadset != null) {
+            // If the call is transitioning into the alerting state, send DIALING first.
+            // Some devices expect to see a DIALING state prior to seeing an ALERTING state
+            // so we need to send it first.
+            boolean sendDialingFirst = mBluetoothCallState != bluetoothCallState &&
+                    bluetoothCallState == CALL_STATE_ALERTING;
+
+            mNumActiveCalls = numActiveCalls;
+            mNumHeldCalls = numHeldCalls;
+            mBluetoothCallState = bluetoothCallState;
+            mRingingAddress = ringingAddress;
+            mRingingAddressType = ringingAddressType;
+
+            if (sendDialingFirst) {
+                Log.i(TAG, "Sending dialing state");
+                mBluetoothHeadset.phoneStateChanged(
+                        mNumActiveCalls,
+                        mNumHeldCalls,
+                        CALL_STATE_DIALING,
+                        mRingingAddress,
+                        mRingingAddressType);
+            }
+
+            Log.i(TAG, "updateHeadsetWithCallState " +
+                    "numActive %s, " +
+                    "numHeld %s, " +
+                    "callState %s, " +
+                    "ringing number %s, " +
+                    "ringing type %s",
+                    mNumActiveCalls,
+                    mNumHeldCalls,
+                    mBluetoothCallState,
+                    Log.pii(mRingingAddress),
+                    mRingingAddressType);
+
             mBluetoothHeadset.phoneStateChanged(
-                    activeCall == null ? 0 : 1,
-                    heldCall == null ? 0 : 1,
-                    bluetoothCallState,
-                    ringingAddress,
-                    ringingAddressType);
+                    mNumActiveCalls,
+                    mNumHeldCalls,
+                    mBluetoothCallState,
+                    mRingingAddress,
+                    mRingingAddressType);
         }
     }
 
