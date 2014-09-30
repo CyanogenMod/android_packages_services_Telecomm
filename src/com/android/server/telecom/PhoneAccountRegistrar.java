@@ -233,7 +233,7 @@ public final class PhoneAccountRegistrar {
         Log.d(this, "set voice default, prompt =  " + voicePrompt);
 
         if (mState.defaultOutgoing == null) {
-            List<PhoneAccountHandle> outgoing = getOutgoingPhoneAccounts();
+            List<PhoneAccountHandle> outgoing = getCallCapablePhoneAccounts();
             if ((outgoing != null) && (outgoing.size() > 1) && (voicePrompt != true)) {
                 SubscriptionManager.setVoicePromptEnabled(true);
             }

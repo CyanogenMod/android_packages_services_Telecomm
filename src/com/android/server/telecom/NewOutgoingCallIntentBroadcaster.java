@@ -267,9 +267,9 @@ class NewOutgoingCallIntentBroadcaster {
         if (intent.getBooleanExtra(TelephonyProperties.ADD_PARTICIPANT_KEY, false)) {
             String scheme = isUriNumber ? PhoneAccount.SCHEME_SIP : PhoneAccount.SCHEME_TEL;
             boolean speakerphoneOn = mIntent.getBooleanExtra(
-                    TelecommManager.EXTRA_START_CALL_WITH_SPEAKERPHONE, false);
+                    TelecomManager.EXTRA_START_CALL_WITH_SPEAKERPHONE, false);
             int videoState = mIntent.getIntExtra(
-                    TelecommManager.EXTRA_START_CALL_WITH_VIDEO_STATE,
+                    TelecomManager.EXTRA_START_CALL_WITH_VIDEO_STATE,
                     VideoProfile.VideoState.AUDIO_ONLY);
 
             mCallsManager.addParticipant(mCall, Uri.fromParts(scheme, handle, null), null,

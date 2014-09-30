@@ -151,8 +151,9 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                         if (call != null) {
                             call.setNotificationType(type);
                             call.setNotificationCode(code);
-                            mCallsManager.markCallAsDisconnected(call, disconnectCause,
-                                    disconnectMessage);
+                            // FIXME this needs to be realigned
+                            mCallsManager.markCallAsDisconnected(call,
+                                    new DisconnectCause(disconnectCause));
                         } else {
                             //Log.w(this, "setDisconnected, unknown call id: %s", args.arg1);
                         }

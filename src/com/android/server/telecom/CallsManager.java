@@ -548,7 +548,7 @@ public final class CallsManager extends Call.ListenerBase {
         if (call.getTargetPhoneAccount() != null) {
             // If the account has been set, proceed to place the add participant.
             // Otherwise the connection will be initiated when the account is set by the user.
-            call.startCreateConnection();
+            call.startCreateConnection(mPhoneAccountRegistrar);
         }
     }
 
@@ -574,7 +574,7 @@ public final class CallsManager extends Call.ListenerBase {
         if (!mCalls.contains(call)) {
             Log.i(this, "Request to answer a non-existent call %s", call);
         } else {
-            Call activeCall = getFirstCallWithState(call.getTargetPhoneAccount()
+            Call activeCall = getFirstCallWithStateUsingSubId(call.getTargetPhoneAccount()
                     .getId(), CallState.ACTIVE, CallState.DIALING);
             // If the foreground call is not the ringing call and it is currently isActive() or
             // STATE_DIALING, put it on hold before answering the call.
@@ -885,7 +885,7 @@ public final class CallsManager extends Call.ListenerBase {
     }
 
     boolean hasActiveOrHoldingCall(String sub) {
-        return (getFirstCallWithState(sub, CallState.ACTIVE, CallState.ON_HOLD) != null);
+        return (getFirstCallWithStateUsingSubId(sub, CallState.ACTIVE, CallState.ON_HOLD) != null);
     }
 
     boolean hasRingingCall() {
@@ -1021,7 +1021,7 @@ public final class CallsManager extends Call.ListenerBase {
      * @param subId check calls only on this subscription
      * @param callToSkip Call that this method should skip while searching
      */
-    Call getFirstCallWithState(String subId, Call callToSkip, int... states) {
+    Call getFirstCallWithStateUsingSubId(String subId, Call callToSkip, int... states) {
         for (int currentState : states) {
             // check the foreground first
             if (mForegroundCall != null && mForegroundCall.getState() == currentState
@@ -1426,7 +1426,7 @@ public final class CallsManager extends Call.ListenerBase {
         if (hasMaximumLiveCalls(phAcc.getId())) {
             // NOTE: If the amount of live calls changes beyond 1, this logic will probably
             // have to change.
-            Call liveCall = getFirstCallWithState(phAcc.getId(), call, LIVE_CALL_STATES);
+            Call liveCall = getFirstCallWithStateUsingSubId(phAcc.getId(), call, LIVE_CALL_STATES);
 
             if (hasMaximumHoldingCalls(phAcc.getId())) {
                 // There is no more room for any more calls, unless it's an emergency.
@@ -1503,7 +1503,7 @@ public final class CallsManager extends Call.ListenerBase {
             return;
         }
         boolean changed = false;
-        for (PhoneAccountHandle ph : getPhoneAccountRegistrar().getOutgoingPhoneAccounts()) {
+        for (PhoneAccountHandle ph : getPhoneAccountRegistrar().getCallCapablePhoneAccounts()) {
             PhoneAccount phAcc = getPhoneAccountRegistrar().getPhoneAccount(ph);
             if (subId != null && subId.equals(ph.getId())
                     && !phAcc.isSet(PhoneAccount.ACTIVE)) {
@@ -1528,7 +1528,7 @@ public final class CallsManager extends Call.ListenerBase {
                     listener.onCallStateChanged(call, call.getState(), call.getState());
                 }
             }
-            Call call = getFirstCallWithState(subId, CallState.RINGING,
+            Call call = getFirstCallWithStateUsingSubId(subId, CallState.RINGING,
                     CallState.DIALING, CallState.ACTIVE, CallState.ON_HOLD);
             if (call != null) {
                 call.setActiveSubscription();
@@ -1537,7 +1537,7 @@ public final class CallsManager extends Call.ListenerBase {
     }
 
     public String getActiveSubscription() {
-        for (PhoneAccountHandle ph : getPhoneAccountRegistrar().getOutgoingPhoneAccounts()) {
+        for (PhoneAccountHandle ph : getPhoneAccountRegistrar().getCallCapablePhoneAccounts()) {
             if (getPhoneAccountRegistrar()
                     .getPhoneAccount(ph).isSet(PhoneAccount.ACTIVE)) {
                 Log.d(this, "getActiveSubscription: " + ph.getId());
@@ -1548,9 +1548,9 @@ public final class CallsManager extends Call.ListenerBase {
     }
 
     private String getConversationSub() {
-        for (PhoneAccountHandle ph : getPhoneAccountRegistrar().getOutgoingPhoneAccounts()) {
+        for (PhoneAccountHandle ph : getPhoneAccountRegistrar().getCallCapablePhoneAccounts()) {
             if (!getPhoneAccountRegistrar().getPhoneAccount(ph).isSet(PhoneAccount.ACTIVE) &&
-                    (getFirstCallWithState(ph.getId(), CallState.ACTIVE, CallState.DIALING,
+                    (getFirstCallWithStateUsingSubId(ph.getId(), CallState.ACTIVE, CallState.DIALING,
                         CallState.ON_HOLD) != null)) {
                 Log.d(this, "getConversationSub: " + ph.getId());
                 return ph.getId();
@@ -1594,7 +1594,7 @@ public final class CallsManager extends Call.ListenerBase {
      * The states are treated as having priority order so that any call with the first
      * state will be returned before any call with states listed later in the parameter list.
      */
-    Call getFirstCallWithState(String sub, int... states) {
+    Call getFirstCallWithStateUsingSubId(String sub, int... states) {
         for (int currentState : states) {
             // check the foreground first
             if (mForegroundCall != null && mForegroundCall.getState() == currentState
@@ -1615,7 +1615,7 @@ public final class CallsManager extends Call.ListenerBase {
     }
 
     private String getLchSub() {
-        for (PhoneAccountHandle ph : getPhoneAccountRegistrar().getOutgoingPhoneAccounts()) {
+        for (PhoneAccountHandle ph : getPhoneAccountRegistrar().getCallCapablePhoneAccounts()) {
             if (getPhoneAccountRegistrar().getPhoneAccount(ph).isSet(PhoneAccount.LCH)) {
                 return ph.getId();
             }
@@ -1647,7 +1647,7 @@ public final class CallsManager extends Call.ListenerBase {
     }
 
     private Call getNonRingingLiveCall(String subId) {
-        return getFirstCallWithState(subId, CallState.DIALING,
+        return getFirstCallWithStateUsingSubId(subId, CallState.DIALING,
                 CallState.ACTIVE, CallState.ON_HOLD);
     }
 
@@ -1721,7 +1721,7 @@ public final class CallsManager extends Call.ListenerBase {
      */
     private void updateLchStatus(String subInConversation) {
         Log.i(this, "updateLchStatus subInConversation: " + subInConversation);
-        for (PhoneAccountHandle ph : getPhoneAccountRegistrar().getOutgoingPhoneAccounts()) {
+        for (PhoneAccountHandle ph : getPhoneAccountRegistrar().getCallCapablePhoneAccounts()) {
             String sub = ph.getId();
             PhoneAccount phAcc = getPhoneAccountRegistrar().getPhoneAccount(ph);
             boolean lchState = false;
