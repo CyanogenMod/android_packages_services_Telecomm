@@ -198,8 +198,7 @@ public final class CallsManager extends Call.ListenerBase {
     public void onFailedOutgoingCall(Call call, DisconnectCause disconnectCause) {
         Log.v(this, "onFailedOutgoingCall, call: %s", call);
 
-        // TODO: Replace disconnect cause with more specific disconnect causes.
-        markCallAsDisconnected(call, disconnectCause);
+        markCallAsRemoved(call);
     }
 
     @Override
