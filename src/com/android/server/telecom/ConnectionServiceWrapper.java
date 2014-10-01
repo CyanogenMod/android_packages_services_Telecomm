@@ -643,7 +643,8 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                                     call.getHandle(),
                                     extras,
                                     call.getVideoState()),
-                            call.isIncoming());
+                            call.isIncoming(),
+                            call.isUnknown());
                 } catch (RemoteException e) {
                     Log.e(this, e, "Failure to createConnection -- %s", getComponentName());
                     mPendingResponses.remove(callId).handleCreateConnectionFailure(
