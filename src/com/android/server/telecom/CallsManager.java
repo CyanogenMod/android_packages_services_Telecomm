@@ -25,8 +25,10 @@ import android.telecom.CallState;
 import android.telecom.DisconnectCause;
 import android.telecom.GatewayInfo;
 import android.telecom.ParcelableConference;
+import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
 import android.telecom.PhoneCapabilities;
+import android.telecom.TelecomManager;
 import android.telephony.TelephonyManager;
 
 import com.android.internal.util.IndentingPrintWriter;
@@ -383,10 +385,11 @@ public final class CallsManager extends Call.ListenerBase {
 
         boolean isEmergencyCall = TelephonyUtil.shouldProcessAsEmergency(mContext,
                 call.getHandle());
+        boolean isPotentialInCallMMICode = isPotentialInCallMMICode(handle);
 
         // Do not support any more live calls.  Our options are to move a call to hold, disconnect
         // a call, or cancel this call altogether.
-        if (!makeRoomForOutgoingCall(call, isEmergencyCall)) {
+        if (!isPotentialInCallMMICode && !makeRoomForOutgoingCall(call, isEmergencyCall)) {
             // just cancel at this point.
             return null;
         }
@@ -401,10 +404,10 @@ public final class CallsManager extends Call.ListenerBase {
 
         call.setExtras(extras);
 
-        if (!isPotentialMMICode(handle)) {
-            addCall(call);
-        } else {
+        if (isPotentialMMICode(handle) || isPotentialInCallMMICode) {
             call.addListener(this);
+        } else {
+            addCall(call);
         }
 
         return call;
@@ -1027,6 +1030,33 @@ public final class CallsManager extends Call.ListenerBase {
     private boolean isPotentialMMICode(Uri handle) {
         return (handle != null && handle.getSchemeSpecificPart() != null
                 && handle.getSchemeSpecificPart().contains("#"));
+    }
+
+    /**
+     * Determines if a dialed number is potentially an In-Call MMI code.  In-Call MMI codes are
+     * MMI codes which can be dialed when one or more calls are in progress.
+     * <P>
+     * Checks for numbers formatted similar to the MMI codes defined in:
+     * {@link com.android.internal.telephony.gsm.GSMPhone#handleInCallMmiCommands(String)}
+     * and
+     * {@link com.android.internal.telephony.imsphone.ImsPhone#handleInCallMmiCommands(String)}
+     *
+     * @param handle The URI to call.
+     * @return {@code True} if the URI represents a number which could be an in-call MMI code.
+     */
+    private boolean isPotentialInCallMMICode(Uri handle) {
+        if (handle != null && handle.getSchemeSpecificPart() != null &&
+                handle.getScheme().equals(PhoneAccount.SCHEME_TEL)) {
+
+            String dialedNumber = handle.getSchemeSpecificPart();
+            return (dialedNumber.equals("0") ||
+                    (dialedNumber.startsWith("1") && dialedNumber.length() <= 2) ||
+                    (dialedNumber.startsWith("2") && dialedNumber.length() <= 2) ||
+                    dialedNumber.equals("3") ||
+                    dialedNumber.equals("4") ||
+                    dialedNumber.equals("5"));
+        }
+        return false;
     }
 
     private int getNumCallsWithState(int... states) {
