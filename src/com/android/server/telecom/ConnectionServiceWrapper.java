@@ -551,7 +551,7 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
         public void setConferenceableConnections(
                 String callId, List<String> conferenceableCallIds) {
             logIncoming("setConferenceableConnections %s %s", callId, conferenceableCallIds);
-            if (mCallIdMapper.isValidCallId(callId)) {
+            if (mCallIdMapper.isValidCallId(callId) || mCallIdMapper.isValidConferenceId(callId)) {
                 SomeArgs args = SomeArgs.obtain();
                 args.arg1 = callId;
                 args.arg2 = conferenceableCallIds;
