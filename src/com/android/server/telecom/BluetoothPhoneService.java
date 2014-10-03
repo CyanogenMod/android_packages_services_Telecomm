@@ -32,6 +32,7 @@ import android.os.Message;
 import android.os.RemoteException;
 import android.telecom.CallState;
 import android.telecom.PhoneAccount;
+import android.telecom.PhoneCapabilities;
 import android.telephony.PhoneNumberUtils;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
@@ -145,9 +146,16 @@ public final class BluetoothPhoneService extends Service {
 
         @Override
         public boolean listCurrentCalls() throws RemoteException {
-            Log.i(TAG, "listcurrentCalls");
+            // only log if it is after we recently updated the headset state or else it can clog
+            // the android log since this can be queried every second.
+            boolean logQuery = mHeadsetUpdatedRecently;
+            mHeadsetUpdatedRecently = false;
+
+            if (logQuery) {
+                Log.i(TAG, "listcurrentCalls");
+            }
             enforceModifyPermission();
-            return sendSynchronousRequest(MSG_LIST_CURRENT_CALLS);
+            return sendSynchronousRequest(MSG_LIST_CURRENT_CALLS, logQuery ? 1 : 0);
         }
 
         @Override
@@ -283,7 +291,7 @@ public final class BluetoothPhoneService extends Service {
 
                 case MSG_LIST_CURRENT_CALLS:
                     try {
-                        sendListOfCalls();
+                        sendListOfCalls(request.param == 1);
                     } finally {
                         request.setResult(true);
                     }
@@ -371,6 +379,8 @@ public final class BluetoothPhoneService extends Service {
     // A map from Calls to indexes used to identify calls for CLCC (C* List Current Calls).
     private Map<Call, Integer> mClccIndexMap = new HashMap<>();
 
+    private boolean mHeadsetUpdatedRecently = false;
+
     public BluetoothPhoneService() {
         Log.v(TAG, "Constructor");
     }
@@ -418,6 +428,8 @@ public final class BluetoothPhoneService extends Service {
         Call ringingCall = callsManager.getRingingCall();
         Call heldCall = callsManager.getHeldCall();
 
+        Log.v(TAG, "Active: %s\nRinging: %s\nHeld: %s", activeCall, ringingCall, heldCall);
+
         if (chld == CHLD_TYPE_RELEASEHELD) {
             if (ringingCall != null) {
                 callsManager.rejectCall(ringingCall, false, null);
@@ -437,7 +449,10 @@ public final class BluetoothPhoneService extends Service {
                 return true;
             }
         } else if (chld == CHLD_TYPE_HOLDACTIVE_ACCEPTHELD) {
-            if (ringingCall != null) {
+            if (activeCall != null && activeCall.can(PhoneCapabilities.SWAP_CONFERENCE)) {
+                activeCall.swapConference();
+                return true;
+            } else if (ringingCall != null) {
                 callsManager.answerCall(ringingCall, 0);
                 return true;
             } else if (heldCall != null) {
@@ -445,16 +460,21 @@ public final class BluetoothPhoneService extends Service {
                 // currently-held call.
                 callsManager.unholdCall(heldCall);
                 return true;
-            } else if (activeCall != null) {
+            } else if (activeCall != null && activeCall.can(PhoneCapabilities.HOLD)) {
                 callsManager.holdCall(activeCall);
                 return true;
             }
         } else if (chld == CHLD_TYPE_ADDHELDTOCONF) {
             if (activeCall != null) {
-                List<Call> conferenceable = activeCall.getConferenceableCalls();
-                if (!conferenceable.isEmpty()) {
-                    callsManager.conference(activeCall, conferenceable.get(0));
+                if (activeCall != null && activeCall.can(PhoneCapabilities.MERGE_CONFERENCE)) {
+                    activeCall.mergeConference();
                     return true;
+                } else {
+                    List<Call> conferenceable = activeCall.getConferenceableCalls();
+                    if (!conferenceable.isEmpty()) {
+                        callsManager.conference(activeCall, conferenceable.get(0));
+                        return true;
+                   }
                 }
             }
         }
@@ -489,12 +509,12 @@ public final class BluetoothPhoneService extends Service {
         return null;
     }
 
-    private void sendListOfCalls() {
+    private void sendListOfCalls(boolean shouldLog) {
         Collection<Call> mCalls = getCallsManager().getCalls();
         for (Call call : mCalls) {
             // We don't send the parent conference call to the bluetooth device.
             if (!call.isConference()) {
-                sendClccForCall(call);
+                sendClccForCall(call, shouldLog);
             }
         }
         sendClccEndMarker();
@@ -503,17 +523,50 @@ public final class BluetoothPhoneService extends Service {
     /**
      * Sends a single clcc (C* List Current Calls) event for the specified call.
      */
-    private void sendClccForCall(Call call) {
+    private void sendClccForCall(Call call, boolean shouldLog) {
         boolean isForeground = getCallsManager().getForegroundCall() == call;
         int state = convertCallState(call.getState(), isForeground);
+        boolean isPartOfConference = false;
 
         if (state == CALL_STATE_IDLE) {
             return;
         }
 
+        Call conferenceCall = call.getParentCall();
+        if (conferenceCall != null) {
+            isPartOfConference = true;
+
+            // Run some alternative states for Conference-level merge/swap support.
+            // Basically, if call supports swapping or merging at the conference-level, then we need
+            // to expose the calls as having distinct states (ACTIVE vs HOLD) or the functionality
+            // won't show up on the bluetooth device.
+
+            // Before doing any special logic, ensure that we are dealing with an ACTIVE call and
+            // that the conference itself has a notion of the current "active" child call.
+            Call activeChild = conferenceCall.getConferenceLevelActiveCall();
+            if (state == CALL_STATE_ACTIVE && activeChild != null) {
+                // Reevaluate state if we can MERGE or if we can SWAP without previously having
+                // MERGED.
+                boolean shouldReevaluateState =
+                        conferenceCall.can(PhoneCapabilities.MERGE_CONFERENCE) ||
+                        (conferenceCall.can(PhoneCapabilities.SWAP_CONFERENCE) &&
+                         !conferenceCall.wasConferencePreviouslyMerged());
+
+                if (shouldReevaluateState) {
+                    isPartOfConference = false;
+                    if (call == activeChild) {
+                        state = CALL_STATE_ACTIVE;
+                    } else {
+                        // At this point we know there is an "active" child and we know that it is
+                        // not this call, so set it to HELD instead.
+                        state = CALL_STATE_HELD;
+                    }
+                }
+            }
+        }
+
         int index = getIndexForCall(call);
         int direction = call.isIncoming() ? 1 : 0;
-        boolean isPartOfConference = call.getParentCall() != null;
         final Uri addressUri;
         if (call.getGatewayInfo() != null) {
             addressUri = call.getGatewayInfo().getOriginalAddress();
@@ -523,8 +576,11 @@ public final class BluetoothPhoneService extends Service {
         String address = addressUri == null ? null : addressUri.getSchemeSpecificPart();
         int addressType = address == null ? -1 : PhoneNumberUtils.toaFromString(address);
 
-        Log.i(this, "sending clcc for call %d, %d, %d, %b, %s, %d",
-                index, direction, state, isPartOfConference, Log.piiHandle(address), addressType);
+        if (shouldLog) {
+            Log.i(this, "sending clcc for call %d, %d, %d, %b, %s, %d",
+                    index, direction, state, isPartOfConference, Log.piiHandle(address),
+                    addressType);
+        }
         mBluetoothHeadset.clccResponse(
                 index, direction, state, 0, isPartOfConference, address, addressType);
     }
@@ -576,6 +632,19 @@ public final class BluetoothPhoneService extends Service {
         int numActiveCalls = activeCall == null ? 0 : 1;
         int numHeldCalls = heldCall == null ? 0 : 1;
 
+        // For conference calls which support swapping the active call within the conference
+        // (namely CDMA calls) we need to expose that as a held call in order for the BT device
+        // to show "swap" and "merge" functionality.
+        if (activeCall != null && activeCall.isConference()) {
+            if (activeCall.can(PhoneCapabilities.SWAP_CONFERENCE)) {
+                // Indicate that BT device should show SWAP command by indicating that there is a
+                // call on hold, but only if the conference wasn't previously merged.
+                numHeldCalls = activeCall.wasConferencePreviouslyMerged() ? 0 : 1;
+            } else if (activeCall.can(PhoneCapabilities.MERGE_CONFERENCE)) {
+                numHeldCalls = 1;  // Merge is available, so expose via numHeldCalls.
+            }
+        }
+
         if (mBluetoothHeadset != null &&
                 (numActiveCalls != mNumActiveCalls ||
                  numHeldCalls != mNumHeldCalls ||
@@ -623,6 +692,8 @@ public final class BluetoothPhoneService extends Service {
                     mBluetoothCallState,
                     mRingingAddress,
                     mRingingAddressType);
+
+            mHeadsetUpdatedRecently = true;
         }
     }
 

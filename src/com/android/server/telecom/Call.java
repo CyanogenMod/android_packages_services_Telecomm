@@ -278,6 +278,14 @@ final class Call implements CreateConnectionResponse {
     private final ConnectionServiceRepository mRepository;
     private final Context mContext;
 
+    private boolean mWasConferencePreviouslyMerged = false;
+
+    // For conferences which support merge/swap at their level, we retain a notion of an active call.
+    // This is used for BluetoothPhoneService.  In order to support hold/merge, it must have the notion
+    // of the current "active" call within the conference call. This maintains the "active" call and
+    // switches every time the user hits "swap".
+    private Call mConferenceLevelActiveCall = null;
+
     /**
      * Persists the specified parameters and initializes the new instance.
      *
@@ -543,6 +551,14 @@ final class Call implements CreateConnectionResponse {
 
     List<Call> getChildCalls() {
         return mChildCalls;
+    }
+
+    boolean wasConferencePreviouslyMerged() {
+        return mWasConferencePreviouslyMerged;
+    }
+
+    Call getConferenceLevelActiveCall() {
+        return mConferenceLevelActiveCall;
     }
 
     ConnectionServiceWrapper getConnectionService() {
@@ -866,6 +882,7 @@ final class Call implements CreateConnectionResponse {
             Log.w(this, "merging conference calls without a connection service.");
         } else if (can(PhoneCapabilities.MERGE_CONFERENCE)) {
             mConnectionService.mergeConference(this);
+            mWasConferencePreviouslyMerged = true;
         }
     }
 
@@ -874,6 +891,20 @@ final class Call implements CreateConnectionResponse {
             Log.w(this, "swapping conference calls without a connection service.");
         } else if (can(PhoneCapabilities.SWAP_CONFERENCE)) {
             mConnectionService.swapConference(this);
+            switch (mChildCalls.size()) {
+                case 1:
+                    mConferenceLevelActiveCall = mChildCalls.get(0);
+                    break;
+                case 2:
+                    // swap
+                    mConferenceLevelActiveCall = mChildCalls.get(0) == mConferenceLevelActiveCall ?
+                            mChildCalls.get(1) : mChildCalls.get(0);
+                    break;
+                default:
+                    // For anything else 0, or 3+, set it to null since it is impossible to tell.
+                    mConferenceLevelActiveCall = null;
+                    break;
+            }
         }
     }
 
@@ -917,6 +948,9 @@ final class Call implements CreateConnectionResponse {
 
     private void addChildCall(Call call) {
         if (!mChildCalls.contains(call)) {
+            // Set the pseudo-active call to the latest child added to the conference.
+            // See definition of mConferenceLevelActiveCall for more detail.
+            mConferenceLevelActiveCall = call;
             mChildCalls.add(call);
 
             for (Listener l : mListeners) {
