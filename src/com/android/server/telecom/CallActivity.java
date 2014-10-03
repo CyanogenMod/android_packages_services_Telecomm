@@ -112,11 +112,20 @@ public class CallActivity extends Activity {
         }
 
         intent.putExtra(CallReceiver.KEY_IS_DEFAULT_DIALER, isDefaultDialer());
-        sendBroadcastToReceiver(intent, false /* isIncoming */);
+
+        if (UserHandle.myUserId() == UserHandle.USER_OWNER) {
+            CallReceiver.processOutgoingCallIntent(getApplicationContext(), intent);
+        } else {
+            sendBroadcastToReceiver(intent, false /* isIncoming */);
+        }
     }
 
     private void processIncomingCallIntent(Intent intent) {
-        sendBroadcastToReceiver(intent, true /* isIncoming */);
+        if (UserHandle.myUserId() == UserHandle.USER_OWNER) {
+            CallReceiver.processIncomingCallIntent(intent);
+        } else {
+            sendBroadcastToReceiver(intent, true /* isIncoming */);
+        }
     }
 
     private boolean isDefaultDialer() {
