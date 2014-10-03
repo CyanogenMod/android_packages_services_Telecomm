@@ -936,6 +936,10 @@ final class Call implements CreateConnectionResponse {
     void setConferenceableCalls(List<Call> conferenceableCalls) {
         mConferenceableCalls.clear();
         mConferenceableCalls.addAll(conferenceableCalls);
+
+        for (Listener l : mListeners) {
+            l.onConferenceableCallsChanged(this);
+        }
     }
 
     List<Call> getConferenceableCalls() {
