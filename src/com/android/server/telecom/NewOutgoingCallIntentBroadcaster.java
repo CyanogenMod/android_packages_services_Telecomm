@@ -190,14 +190,14 @@ class NewOutgoingCallIntentBroadcaster {
         }
 
         String number = PhoneNumberUtils.getNumberFromIntent(intent, mContext);
-        if (TextUtils.isEmpty(number)) {
+        boolean isConferenceUri = intent.getBooleanExtra(
+                TelephonyProperties.EXTRA_DIAL_CONFERENCE_URI, false);
+        if (!isConferenceUri && TextUtils.isEmpty(number)) {
             Log.w(this, "Empty number obtained from the call intent.");
             return DisconnectCause.NO_PHONE_NUMBER_SUPPLIED;
         }
 
         boolean isUriNumber = PhoneNumberUtils.isUriNumber(number);
-        boolean isConferenceUri = intent.getBooleanExtra(
-                TelephonyProperties.EXTRA_DIAL_CONFERENCE_URI, false);
         boolean isSkipSchemaParsing = intent.getBooleanExtra(
                 TelephonyProperties.EXTRA_SKIP_SCHEMA_PARSING, false);
         Log.v(this,"processIntent isConferenceUri: " + isConferenceUri +
