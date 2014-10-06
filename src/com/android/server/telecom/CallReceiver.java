@@ -19,6 +19,7 @@ import android.telephony.PhoneNumberUtils;
  * the primary user.
  */
 public class CallReceiver extends BroadcastReceiver {
+    private static final String TAG = CallReceiver.class.getName();
 
     static final String KEY_IS_INCOMING_CALL = "is_incoming_call";
     static final String KEY_IS_DEFAULT_DIALER =
@@ -27,7 +28,7 @@ public class CallReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
         final boolean isIncomingCall = intent.getBooleanExtra(KEY_IS_INCOMING_CALL, false);
-        Log.d(this, "onReceive - isIncomingCall: %s", isIncomingCall);
+        Log.i(TAG, "onReceive - isIncomingCall: %s", isIncomingCall);
 
         if (isIncomingCall) {
             processIncomingCallIntent(intent);
@@ -41,7 +42,7 @@ public class CallReceiver extends BroadcastReceiver {
      *
      * @param intent Call intent containing data about the handle to call.
      */
-    private void processOutgoingCallIntent(Context context, Intent intent) {
+    static void processOutgoingCallIntent(Context context, Intent intent) {
         Uri handle = intent.getData();
         String scheme = handle.getScheme();
         String uriString = handle.getSchemeSpecificPart();
@@ -84,16 +85,16 @@ public class CallReceiver extends BroadcastReceiver {
         }
     }
 
-    private void processIncomingCallIntent(Intent intent) {
+    static void processIncomingCallIntent(Intent intent) {
         PhoneAccountHandle phoneAccountHandle = intent.getParcelableExtra(
                 TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE);
 
         if (phoneAccountHandle == null) {
-            Log.w(this, "Rejecting incoming call due to null phone account");
+            Log.w(TAG, "Rejecting incoming call due to null phone account");
             return;
         }
         if (phoneAccountHandle.getComponentName() == null) {
-            Log.w(this, "Rejecting incoming call due to null component name");
+            Log.w(TAG, "Rejecting incoming call due to null component name");
             return;
         }
 
@@ -105,16 +106,17 @@ public class CallReceiver extends BroadcastReceiver {
             clientExtras = Bundle.EMPTY;
         }
 
-        Log.d(this, "Processing incoming call from connection service [%s]",
+        Log.d(TAG, "Processing incoming call from connection service [%s]",
                 phoneAccountHandle.getComponentName());
         getCallsManager().processIncomingCallIntent(phoneAccountHandle, clientExtras);
     }
 
-    CallsManager getCallsManager() {
+    static CallsManager getCallsManager() {
         return CallsManager.getInstance();
     }
 
-    private void disconnectCallAndShowErrorDialog(Context context, Call call, int errorCode) {
+    private static void disconnectCallAndShowErrorDialog(
+            Context context, Call call, int errorCode) {
         call.disconnect();
         final Intent errorIntent = new Intent(context, ErrorDialogActivity.class);
         int errorMessageId = -1;
