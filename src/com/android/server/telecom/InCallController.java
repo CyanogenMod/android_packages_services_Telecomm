@@ -261,8 +261,6 @@ public final class InCallController extends CallsManagerListenerBase {
     private void bind() {
         ThreadUtil.checkOnMainThread();
         if (mInCallServices.isEmpty()) {
-            mServiceConnections.clear();
-
             PackageManager packageManager = mContext.getPackageManager();
             Intent serviceIntent = new Intent(InCallService.SERVICE_INTERFACE);
 
@@ -289,10 +287,13 @@ public final class InCallController extends CallsManagerListenerBase {
                         continue;
                     }
 
-                    Log.i(this, "Attempting to bind to InCall " + serviceInfo.packageName);
                     InCallServiceConnection inCallServiceConnection = new InCallServiceConnection();
                     ComponentName componentName = new ComponentName(serviceInfo.packageName,
                             serviceInfo.name);
+
+                    Log.i(this, "Attempting to bind to InCall %s, is dupe? %b ",
+                            serviceInfo.packageName,
+                            mServiceConnections.containsKey(componentName));
 
                     if (!mServiceConnections.containsKey(componentName)) {
                         Intent intent = new Intent(InCallService.SERVICE_INTERFACE);
