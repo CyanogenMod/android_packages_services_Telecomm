@@ -156,8 +156,7 @@ public class CallActivity extends Activity {
      */
     private boolean sendBroadcastToReceiver(Intent intent, boolean incoming) {
         intent.putExtra(CallReceiver.KEY_IS_INCOMING_CALL, incoming);
-        // Clear out any flags set previously since we don't need it for the broadcast.
-        intent.setFlags(0);
+        intent.setFlags(Intent.FLAG_RECEIVER_FOREGROUND);
         intent.setClass(this, CallReceiver.class);
         Log.d(this, "Sending broadcast as user to CallReceiver- isIncoming: %s", incoming);
         sendBroadcastAsUser(intent, UserHandle.OWNER);
