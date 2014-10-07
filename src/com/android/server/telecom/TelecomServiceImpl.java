@@ -37,6 +37,7 @@ import android.telecom.PhoneAccountHandle;
 import android.telecom.TelecomManager;
 import android.telephony.TelephonyManager;
 
+
 // TODO: Needed for move to system service: import com.android.internal.R;
 import com.android.internal.telecom.ITelecomService;
 import com.android.internal.util.IndentingPrintWriter;
@@ -469,6 +470,29 @@ public class TelecomServiceImpl extends ITelecomService.Stub {
             long token = Binder.clearCallingIdentity();
             mContext.startActivityAsUser(intent, UserHandle.CURRENT);
             Binder.restoreCallingIdentity(token);
+        }
+    }
+
+    /**
+     * @see android.telecom.TelecomManager#addNewUnknownCall
+     */
+    @Override
+    public void addNewUnknownCall(PhoneAccountHandle phoneAccountHandle, Bundle extras) {
+        if (phoneAccountHandle != null && phoneAccountHandle.getComponentName() != null &&
+                TelephonyUtil.isPstnComponentName(phoneAccountHandle.getComponentName())) {
+            mAppOpsManager.checkPackage(
+                    Binder.getCallingUid(), phoneAccountHandle.getComponentName().getPackageName());
+
+            Intent intent = new Intent(TelecomManager.ACTION_NEW_UNKNOWN_CALL);
+            intent.setClass(mContext, CallReceiver.class);
+            intent.setFlags(Intent.FLAG_RECEIVER_FOREGROUND);
+            intent.putExtras(extras);
+            intent.putExtra(CallReceiver.KEY_IS_UNKNOWN_CALL, true);
+            intent.putExtra(TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE, phoneAccountHandle);
+            mContext.sendBroadcastAsUser(intent, UserHandle.OWNER);
+        } else {
+            Log.i(this, "Null phoneAccountHandle or not initiated by Telephony. Ignoring request"
+                    + " to add new unknown call.");
         }
     }
 

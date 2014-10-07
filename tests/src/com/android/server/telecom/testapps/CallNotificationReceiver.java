@@ -22,14 +22,18 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.telecom.CallState;
 import android.telecom.PhoneAccountHandle;
 import android.telecom.TelecomManager;
+import android.util.Log;
 
 /**
  * This class receives the notification callback intents used to update call states for
  * {@link TestConnectionService}.
  */
 public class CallNotificationReceiver extends BroadcastReceiver {
+
+    static final String TAG = CallNotificationReceiver.class.getSimpleName();
     /**
      * Exit intent action is sent when the user clicks the "exit" action of the
      * TestConnectionService notification. Used to cancel (remove) the notification.
@@ -82,5 +86,23 @@ public class CallNotificationReceiver extends BroadcastReceiver {
         }
 
         TelecomManager.from(context).addNewIncomingCall(phoneAccount, extras);
+    }
+
+    public static void addNewUnknownCall(Context context, Uri handle, Bundle extras) {
+        Log.i(TAG, "Adding new unknown call with handle " + handle);
+        PhoneAccountHandle phoneAccount = new PhoneAccountHandle(
+                new ComponentName(context, TestConnectionService.class),
+                CallServiceNotifier.SIM_SUBSCRIPTION_ID);
+
+        if (extras == null) {
+            extras = new Bundle();
+        }
+
+        if (handle != null) {
+            extras.putParcelable(TelecomManager.EXTRA_UNKNOWN_CALL_HANDLE, handle);
+            extras.putParcelable(TestConnectionService.EXTRA_HANDLE, handle);
+        }
+
+        TelecomManager.from(context).addNewUnknownCall(phoneAccount, extras);
     }
 }
