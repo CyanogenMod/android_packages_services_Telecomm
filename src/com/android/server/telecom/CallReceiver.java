@@ -21,16 +21,21 @@ import android.telephony.PhoneNumberUtils;
 public class CallReceiver extends BroadcastReceiver {
     private static final String TAG = CallReceiver.class.getName();
 
+    static final String KEY_IS_UNKNOWN_CALL = "is_unknown_call";
     static final String KEY_IS_INCOMING_CALL = "is_incoming_call";
     static final String KEY_IS_DEFAULT_DIALER =
             "is_default_dialer";
 
     @Override
     public void onReceive(Context context, Intent intent) {
+        final boolean isUnknownCall = intent.getBooleanExtra(KEY_IS_UNKNOWN_CALL, false);
         final boolean isIncomingCall = intent.getBooleanExtra(KEY_IS_INCOMING_CALL, false);
-        Log.i(TAG, "onReceive - isIncomingCall: %s", isIncomingCall);
+        Log.i(this, "onReceive - isIncomingCall: %s isUnknownCall: %s", isIncomingCall,
+                isUnknownCall);
 
-        if (isIncomingCall) {
+        if (isUnknownCall) {
+            processUnknownCallIntent(intent);
+        } else if (isIncomingCall) {
             processIncomingCallIntent(intent);
         } else {
             processOutgoingCallIntent(context, intent);
@@ -109,6 +114,22 @@ public class CallReceiver extends BroadcastReceiver {
         Log.d(TAG, "Processing incoming call from connection service [%s]",
                 phoneAccountHandle.getComponentName());
         getCallsManager().processIncomingCallIntent(phoneAccountHandle, clientExtras);
+    }
+
+    private void processUnknownCallIntent(Intent intent) {
+        PhoneAccountHandle phoneAccountHandle = intent.getParcelableExtra(
+                TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE);
+
+        if (phoneAccountHandle == null) {
+            Log.w(this, "Rejecting unknown call due to null phone account");
+            return;
+        }
+        if (phoneAccountHandle.getComponentName() == null) {
+            Log.w(this, "Rejecting unknown call due to null component name");
+            return;
+        }
+
+        getCallsManager().addNewUnknownCall(phoneAccountHandle, intent.getExtras());
     }
 
     static CallsManager getCallsManager() {

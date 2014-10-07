@@ -70,6 +70,8 @@ final class Call implements CreateConnectionResponse {
         void onFailedOutgoingCall(Call call, DisconnectCause disconnectCause);
         void onSuccessfulIncomingCall(Call call);
         void onFailedIncomingCall(Call call);
+        void onSuccessfulUnknownCall(Call call, int callState);
+        void onFailedUnknownCall(Call call);
         void onRingbackRequested(Call call, boolean ringbackRequested);
         void onPostDialWait(Call call, String remaining);
         void onCallCapabilitiesChanged(Call call);
@@ -98,6 +100,10 @@ final class Call implements CreateConnectionResponse {
         public void onSuccessfulIncomingCall(Call call) {}
         @Override
         public void onFailedIncomingCall(Call call) {}
+        @Override
+        public void onSuccessfulUnknownCall(Call call, int callState) {}
+        @Override
+        public void onFailedUnknownCall(Call call) {}
         @Override
         public void onRingbackRequested(Call call, boolean ringbackRequested) {}
         @Override
@@ -166,6 +172,11 @@ final class Call implements CreateConnectionResponse {
 
     /** True if this is an incoming call. */
     private final boolean mIsIncoming;
+
+    /** True if this is a currently unknown call that was not previously tracked by CallsManager,
+     *  and did not originate via the regular incoming/outgoing call code paths.
+     */
+    private boolean mIsUnknown;
 
     /**
      * The time this call was created. Beyond logging and such, may also be used for bookkeeping
@@ -660,7 +671,11 @@ final class Call implements CreateConnectionResponse {
             mConferenceableCalls.add(idMapper.getCall(id));
         }
 
-        if (mIsIncoming) {
+        if (mIsUnknown) {
+            for (Listener l : mListeners) {
+                l.onSuccessfulUnknownCall(this, getStateFromConnectionState(connection.getState()));
+            }
+        } else if (mIsIncoming) {
             // We do not handle incoming calls immediately when they are verified by the connection
             // service. We allow the caller-info-query code to execute first so that we can read the
             // direct-to-voicemail property before deciding if we want to show the incoming call to
@@ -686,7 +701,11 @@ final class Call implements CreateConnectionResponse {
         setDisconnectCause(disconnectCause);
         CallsManager.getInstance().markCallAsDisconnected(this, disconnectCause);
 
-        if (mIsIncoming) {
+        if (mIsUnknown) {
+            for (Listener listener : mListeners) {
+                listener.onFailedUnknownCall(this);
+            }
+        } else if (mIsIncoming) {
             for (Listener listener : mListeners) {
                 listener.onFailedIncomingCall(this);
             }
@@ -1253,6 +1272,14 @@ final class Call implements CreateConnectionResponse {
         for (Listener l : mListeners) {
             l.onStatusHintsChanged(this);
         }
+    }
+
+    public boolean isUnknown() {
+        return mIsUnknown;
+    }
+
+    public void setIsUnknown(boolean isUnknown) {
+        mIsUnknown = isUnknown;
     }
 
     static int getStateFromConnectionState(int state) {

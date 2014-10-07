@@ -267,6 +267,7 @@ public class TestConnectionService extends ConnectionService {
                 originalHandle + "]");
 
         final TestConnection connection = new TestConnection(false /* isIncoming */);
+        connection.setAddress(handle, TelecomManager.PRESENTATION_ALLOWED);
 
         // If the number starts with 555, then we handle it ourselves. If not, then we
         // use a remote connection service.
@@ -334,6 +335,31 @@ public class TestConnectionService extends ConnectionService {
                     request.getExtras(),
                     videoState);
             connection.setVideoState(videoState);
+            return connection;
+        } else {
+            return Connection.createFailedConnection(new DisconnectCause(DisconnectCause.ERROR,
+                    "Invalid inputs: " + accountHandle + " " + componentName));
+        }
+    }
+
+    @Override
+    public Connection onCreateUnknownConnection(PhoneAccountHandle connectionManagerPhoneAccount,
+            final ConnectionRequest request) {
+        PhoneAccountHandle accountHandle = request.getAccountHandle();
+        ComponentName componentName = new ComponentName(this, TestConnectionService.class);
+        if (accountHandle != null && componentName.equals(accountHandle.getComponentName())) {
+            final TestConnection connection = new TestConnection(false);
+            final Bundle extras = request.getExtras();
+            final Uri providedHandle = extras.getParcelable(EXTRA_HANDLE);
+
+            Uri handle = providedHandle == null ?
+                    Uri.fromParts(PhoneAccount.SCHEME_TEL, getDummyNumber(false), null)
+                    : providedHandle;
+
+            connection.setAddress(handle,  TelecomManager.PRESENTATION_ALLOWED);
+            connection.setDialing();
+
+            addCall(connection);
             return connection;
         } else {
             return Connection.createFailedConnection(new DisconnectCause(DisconnectCause.ERROR,
