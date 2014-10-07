@@ -297,6 +297,8 @@ final class Call implements CreateConnectionResponse {
     // switches every time the user hits "swap".
     private Call mConferenceLevelActiveCall = null;
 
+    private boolean mIsLocallyDisconnecting = false;
+
     /**
      * Persists the specified parameters and initializes the new instance.
      *
@@ -744,6 +746,9 @@ final class Call implements CreateConnectionResponse {
      * Attempts to disconnect the call through the connection service.
      */
     void disconnect() {
+        // Track that the call is now locally disconnecting.
+        setLocallyDisconnecting(true);
+
         if (mState == CallState.NEW || mState == CallState.PRE_DIAL_WAIT ||
                 mState == CallState.CONNECTING) {
             Log.v(this, "Aborting call %s", this);
@@ -1280,6 +1285,24 @@ final class Call implements CreateConnectionResponse {
 
     public void setIsUnknown(boolean isUnknown) {
         mIsUnknown = isUnknown;
+    }
+
+    /**
+     * Determines if this call is in a disconnecting state.
+     *
+     * @return {@code true} if this call is locally disconnecting.
+     */
+    public boolean isLocallyDisconnecting() {
+        return mIsLocallyDisconnecting;
+    }
+
+    /**
+     * Sets whether this call is in a disconnecting state.
+     *
+     * @param isLocallyDisconnecting {@code true} if this call is locally disconnecting.
+     */
+    private void setLocallyDisconnecting(boolean isLocallyDisconnecting) {
+        mIsLocallyDisconnecting = isLocallyDisconnecting;
     }
 
     static int getStateFromConnectionState(int state) {
