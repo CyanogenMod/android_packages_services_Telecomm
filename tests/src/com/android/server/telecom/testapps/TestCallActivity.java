@@ -36,21 +36,25 @@ public class TestCallActivity extends Activity {
     public static final String ACTION_NEW_INCOMING_CALL =
             "android.telecom.testapps.ACTION_START_INCOMING_CALL";
 
+    /*
+     * Action to exercise TelecomManager.addNewUnknownCall().
+     */
+    public static final String ACTION_NEW_UNKNOWN_CALL =
+            "android.telecom.testapps.ACTION_NEW_UNKNOWN_CALL";
+
     @Override
     protected void onCreate(Bundle icicle) {
         super.onCreate(icicle);
         final Intent intent = getIntent();
-        if (intent != null && intent.getData() != null) {
-            startIncomingCallBroadcast(intent.getData());
+        final String action = intent != null ? intent.getAction() : null;
+        final Uri data = intent != null ? intent.getData() : null;
+        if (ACTION_NEW_INCOMING_CALL.equals(action) && data != null) {
+            CallNotificationReceiver.sendIncomingCallIntent(this, data, false);
+        } if (ACTION_NEW_UNKNOWN_CALL.equals(action) && data != null) {
+            CallNotificationReceiver.addNewUnknownCall(this, data, intent.getExtras());
+        } else {
+            CallServiceNotifier.getInstance().updateNotification(this);
         }
-        CallServiceNotifier.getInstance().updateNotification(this);
         finish();
-    }
-
-    /**
-     * Bypass the notification and start the test incoming call directly.
-     */
-    private void startIncomingCallBroadcast(Uri handle) {
-        CallNotificationReceiver.sendIncomingCallIntent(this, handle, false);
     }
 }

@@ -31,7 +31,7 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * This class creates connections to place new outgoing calls to attached to an existing incoming
+ * This class creates connections to place new outgoing calls or to attach to an existing incoming
  * call. In either case, this class cycles through a set of connection services until:
  *   - a connection service returns a newly created connection in which case the call is displayed
  *     to the user

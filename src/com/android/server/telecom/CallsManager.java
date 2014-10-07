@@ -32,6 +32,7 @@ import android.telecom.TelecomManager;
 import android.telephony.TelephonyManager;
 
 import com.android.internal.util.IndentingPrintWriter;
+
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 
@@ -226,6 +227,20 @@ public final class CallsManager extends Call.ListenerBase {
     }
 
     @Override
+    public void onSuccessfulUnknownCall(Call call, int callState) {
+        setCallState(call, callState);
+        Log.i(this, "onSuccessfulUnknownCall for call %s", call);
+        addCall(call);
+    }
+
+    @Override
+    public void onFailedUnknownCall(Call call) {
+        Log.i(this, "onFailedUnknownCall for call %s", call);
+        setCallState(call, CallState.DISCONNECTED);
+        call.removeListener(this);
+    }
+
+    @Override
     public void onRingbackRequested(Call call, boolean ringback) {
         for (CallsManagerListener listener : mListeners) {
             listener.onRingbackRequested(call, ringback);
@@ -332,6 +347,27 @@ public final class CallsManager extends Call.ListenerBase {
 
         call.setExtras(extras);
         // TODO: Move this to be a part of addCall()
+        call.addListener(this);
+        call.startCreateConnection(mPhoneAccountRegistrar);
+    }
+
+    void addNewUnknownCall(PhoneAccountHandle phoneAccountHandle, Bundle extras) {
+        Uri handle = extras.getParcelable(TelecomManager.EXTRA_UNKNOWN_CALL_HANDLE);
+        Log.i(this, "addNewUnknownCall with handle: %s", Log.pii(handle));
+        Call call = new Call(
+                mContext,
+                mConnectionServiceRepository,
+                handle,
+                null /* gatewayInfo */,
+                null /* connectionManagerPhoneAccount */,
+                phoneAccountHandle,
+                // Use onCreateIncomingConnection in TelephonyConnectionService, so that we attach
+                // to the existing connection instead of trying to create a new one.
+                true /* isIncoming */,
+                false /* isConference */);
+        call.setConnectTimeMillis(System.currentTimeMillis());
+        call.setIsUnknown(true);
+        call.setExtras(extras);
         call.addListener(this);
         call.startCreateConnection(mPhoneAccountRegistrar);
     }
