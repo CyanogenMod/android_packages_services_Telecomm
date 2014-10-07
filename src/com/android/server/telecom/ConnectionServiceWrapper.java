@@ -254,6 +254,10 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                         for (String callId : parcelableConference.getConnectionIds()) {
                             Call childCall = mCallIdMapper.getCall(callId);
                             Log.d(this, "found child: %s", callId);
+                            if (conferenceCall.getTargetPhoneAccount() == null) {
+                                PhoneAccountHandle ph = childCall.getTargetPhoneAccount();
+                                conferenceCall.setTargetPhoneAccount(ph);
+                            }
                             if (childCall != null) {
                                 childCall.setParentCall(conferenceCall);
                             }
