@@ -78,6 +78,7 @@ public class CallActivity extends Activity {
             return;
         }
 
+        verifyCallAction(intent);
         String action = intent.getAction();
 
         if (Intent.ACTION_CALL.equals(action) ||
@@ -86,6 +87,17 @@ public class CallActivity extends Activity {
             processOutgoingCallIntent(intent);
         } else if (TelecomManager.ACTION_INCOMING_CALL.equals(action)) {
             processIncomingCallIntent(intent);
+        }
+    }
+
+    private void verifyCallAction(Intent intent) {
+        if (CallActivity.class.getName().equals(intent.getComponent().getClassName())) {
+            // If we were launched directly from the CallActivity, not one of its more privileged
+            // aliases, then make sure that only the non-privileged actions are allowed.
+            if (!Intent.ACTION_CALL.equals(intent.getAction())) {
+                Log.w(this, "Attempt to deliver non-CALL action; forcing to CALL");
+                intent.setAction(Intent.ACTION_CALL);
+            }
         }
     }
 
