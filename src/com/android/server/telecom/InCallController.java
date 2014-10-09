@@ -443,7 +443,9 @@ public final class InCallController extends CallsManagerListenerBase {
         int state = call.getState();
         if (state == CallState.ABORTED) {
             state = CallState.DISCONNECTED;
-        } else if (call.isLocallyDisconnecting()) {
+        }
+
+        if (call.isLocallyDisconnecting() && state != CallState.DISCONNECTED) {
             state = CallState.DISCONNECTING;
         }
 
