@@ -361,7 +361,7 @@ class NewOutgoingCallIntentBroadcaster {
         systemDialerIntent.setData(handle);
         systemDialerIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         Log.v(this, "calling startActivity for default dialer: %s", systemDialerIntent);
-        mContext.startActivity(systemDialerIntent);
+        mContext.startActivityAsUser(systemDialerIntent, UserHandle.CURRENT);
     }
 
     /**
@@ -393,15 +393,6 @@ class NewOutgoingCallIntentBroadcaster {
      * number.
      */
     private void rewriteCallIntentAction(Intent intent, boolean isPotentialEmergencyNumber) {
-        if (CallActivity.class.getName().equals(intent.getComponent().getClassName())) {
-            // If we were launched directly from the CallActivity, not one of its more privileged
-            // aliases, then make sure that only the non-privileged actions are allowed.
-            if (!Intent.ACTION_CALL.equals(intent.getAction())) {
-                Log.w(this, "Attempt to deliver non-CALL action; forcing to CALL");
-                intent.setAction(Intent.ACTION_CALL);
-            }
-        }
-
         String action = intent.getAction();
 
         /* Change CALL_PRIVILEGED into CALL or CALL_EMERGENCY as needed. */
