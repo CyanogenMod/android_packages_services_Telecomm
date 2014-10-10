@@ -374,6 +374,7 @@ final class Call implements CreateConnectionResponse {
             maybeLoadCannedSmsResponses();
 
             if (mState == CallState.DISCONNECTED) {
+                setLocallyDisconnecting(false);
                 fixParentAfterDisconnect();
             }
         }
