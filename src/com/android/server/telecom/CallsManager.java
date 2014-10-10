@@ -89,10 +89,10 @@ public final class CallsManager extends Call.ListenerBase {
     private static final int MAXIMUM_DSDA_HOLD_CALLS = 2;
 
     private static final int[] LIVE_CALL_STATES =
-            {CallState.CONNECTING, CallState.PRE_DIAL_WAIT, CallState.DIALING, CallState.ACTIVE};
+            {CallState.CONNECTING, CallState.DIALING, CallState.ACTIVE};
 
     private static final int[] OUTGOING_CALL_STATES =
-            {CallState.CONNECTING, CallState.PRE_DIAL_WAIT, CallState.DIALING};
+            {CallState.CONNECTING, CallState.DIALING};
 
     /**
      * The main call repository. Keeps an instance of all live calls. New incoming and outgoing
