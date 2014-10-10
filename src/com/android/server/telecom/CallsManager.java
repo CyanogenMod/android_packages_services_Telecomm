@@ -254,6 +254,8 @@ public final class CallsManager extends Call.ListenerBase {
 
     @Override
     public void onParentChanged(Call call) {
+        // parent-child relationship affects which call should be foreground, so do an update.
+        updateForegroundCall();
         for (CallsManagerListener listener : mListeners) {
             listener.onIsConferencedChanged(call);
         }
@@ -261,6 +263,8 @@ public final class CallsManager extends Call.ListenerBase {
 
     @Override
     public void onChildrenChanged(Call call) {
+        // parent-child relationship affects which call should be foreground, so do an update.
+        updateForegroundCall();
         for (CallsManagerListener listener : mListeners) {
             listener.onIsConferencedChanged(call);
         }
