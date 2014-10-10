@@ -299,7 +299,7 @@ public final class BluetoothPhoneService extends Service {
 
                 case MSG_QUERY_PHONE_STATE:
                     try {
-                        updateHeadsetWithCallState();
+                        updateHeadsetWithCallState(true /* force */);
                     } finally {
                         if (request != null) {
                             request.setResult(true);
@@ -317,28 +317,28 @@ public final class BluetoothPhoneService extends Service {
     private CallsManagerListener mCallsManagerListener = new CallsManagerListenerBase() {
         @Override
         public void onCallAdded(Call call) {
-            updateHeadsetWithCallState();
+            updateHeadsetWithCallState(false /* force */);
         }
 
         @Override
         public void onCallRemoved(Call call) {
             mClccIndexMap.remove(call);
-            updateHeadsetWithCallState();
+            updateHeadsetWithCallState(false /* force */);
         }
 
         @Override
         public void onCallStateChanged(Call call, int oldState, int newState) {
-            updateHeadsetWithCallState();
+            updateHeadsetWithCallState(false /* force */);
         }
 
         @Override
         public void onForegroundCallChanged(Call oldForegroundCall, Call newForegroundCall) {
-            updateHeadsetWithCallState();
+            updateHeadsetWithCallState(false /* force */);
         }
 
         @Override
         public void onIsConferencedChanged(Call call) {
-            updateHeadsetWithCallState();
+            updateHeadsetWithCallState(false /* force */);
         }
     };
 
@@ -412,7 +412,7 @@ public final class BluetoothPhoneService extends Service {
         registerReceiver(mBluetoothAdapterReceiver, intentFilter);
 
         CallsManager.getInstance().addListener(mCallsManagerListener);
-        updateHeadsetWithCallState();
+        updateHeadsetWithCallState(false /* force */);
     }
 
     @Override
@@ -609,7 +609,14 @@ public final class BluetoothPhoneService extends Service {
         return i;
     }
 
-    private void updateHeadsetWithCallState() {
+    /**
+     * Sends an update of the current call state to the current Headset.
+     *
+     * @param force {@code true} if the headset state should be sent regardless if no changes to the
+     *      state have occurred, {@code false} if the state should only be sent if the state has
+     *      changed.
+     */
+    private void updateHeadsetWithCallState(boolean force) {
         CallsManager callsManager = getCallsManager();
         Call activeCall = callsManager.getActiveCall();
         Call ringingCall = callsManager.getRingingCall();
@@ -650,7 +657,8 @@ public final class BluetoothPhoneService extends Service {
                  numHeldCalls != mNumHeldCalls ||
                  bluetoothCallState != mBluetoothCallState ||
                  !TextUtils.equals(ringingAddress, mRingingAddress) ||
-                 ringingAddressType != mRingingAddressType)) {
+                 ringingAddressType != mRingingAddressType ||
+                 force)) {
 
             // If the call is transitioning into the alerting state, send DIALING first.
             // Some devices expect to see a DIALING state prior to seeing an ALERTING state
