@@ -581,13 +581,18 @@ public final class BluetoothPhoneService extends Service {
                     index, direction, state, isPartOfConference, Log.piiHandle(address),
                     addressType);
         }
-        mBluetoothHeadset.clccResponse(
-                index, direction, state, 0, isPartOfConference, address, addressType);
+
+        if (mBluetoothHeadset != null) {
+            mBluetoothHeadset.clccResponse(
+                    index, direction, state, 0, isPartOfConference, address, addressType);
+        }
     }
 
     private void sendClccEndMarker() {
         // End marker is recognized with an index value of 0. All other parameters are ignored.
-        mBluetoothHeadset.clccResponse(0 /* index */, 0, 0, 0, false, null, 0);
+        if (mBluetoothHeadset != null) {
+            mBluetoothHeadset.clccResponse(0 /* index */, 0, 0, 0, false, null, 0);
+        }
     }
 
     /**
