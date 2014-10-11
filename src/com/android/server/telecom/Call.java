@@ -353,8 +353,15 @@ final class Call implements CreateConnectionResponse {
             component = mConnectionService.getComponentName().flattenToShortString();
         }
 
-        return String.format(Locale.US, "[%s, %s, %s, %s, %d]", System.identityHashCode(this),
-                mState, component, Log.piiHandle(mHandle), getVideoState());
+        return String.format(Locale.US, "[%s, %s, %s, %s, %d, childs(%d), has_parent(%b), [%s]",
+                System.identityHashCode(this),
+                CallState.toString(mState),
+                component,
+                Log.piiHandle(mHandle),
+                getVideoState(),
+                getChildCalls().size(),
+                getParentCall() != null,
+                PhoneCapabilities.toString(getCallCapabilities()));
     }
 
     int getState() {
