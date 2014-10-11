@@ -428,7 +428,8 @@ public final class BluetoothPhoneService extends Service {
         Call ringingCall = callsManager.getRingingCall();
         Call heldCall = callsManager.getHeldCall();
 
-        Log.v(TAG, "Active: %s\nRinging: %s\nHeld: %s", activeCall, ringingCall, heldCall);
+        // TODO: Keeping as Log.i for now.  Move to Log.d after L release if BT proves stable.
+        Log.i(TAG, "Active: %s\nRinging: %s\nHeld: %s", activeCall, ringingCall, heldCall);
 
         if (chld == CHLD_TYPE_RELEASEHELD) {
             if (ringingCall != null) {
@@ -466,7 +467,7 @@ public final class BluetoothPhoneService extends Service {
             }
         } else if (chld == CHLD_TYPE_ADDHELDTOCONF) {
             if (activeCall != null) {
-                if (activeCall != null && activeCall.can(PhoneCapabilities.MERGE_CONFERENCE)) {
+                if (activeCall.can(PhoneCapabilities.MERGE_CONFERENCE)) {
                     activeCall.mergeConference();
                     return true;
                 } else {
