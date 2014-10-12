@@ -91,7 +91,6 @@ public final class PhoneAccountRegistrar {
     private final Context mContext;
     private State mState;
 
-    @VisibleForTesting
     public PhoneAccountRegistrar(Context context) {
         this(context, FILE_NAME);
     }
@@ -774,7 +773,6 @@ public final class PhoneAccountRegistrar {
         private static final String SUBSCRIPTION_ADDRESS = "subscription_number";
         private static final String CAPABILITIES = "capabilities";
         private static final String ICON_RES_ID = "icon_res_id";
-        private static final String COLOR = "color";
         private static final String LABEL = "label";
         private static final String SHORT_DESCRIPTION = "short_description";
         private static final String SUPPORTED_URI_SCHEMES = "supported_uri_schemes";
@@ -797,7 +795,6 @@ public final class PhoneAccountRegistrar {
                 writeTextSafely(SUBSCRIPTION_ADDRESS, o.getSubscriptionAddress(), serializer);
                 writeTextSafely(CAPABILITIES, Integer.toString(o.getCapabilities()), serializer);
                 writeTextSafely(ICON_RES_ID, Integer.toString(o.getIconResId()), serializer);
-                writeTextSafely(COLOR, Integer.toString(o.getColor()), serializer);
                 writeTextSafely(LABEL, o.getLabel(), serializer);
                 writeTextSafely(SHORT_DESCRIPTION, o.getShortDescription(), serializer);
                 writeStringList(SUPPORTED_URI_SCHEMES, o.getSupportedUriSchemes(), serializer);
@@ -815,7 +812,6 @@ public final class PhoneAccountRegistrar {
                 Uri subscriptionAddress = null;
                 int capabilities = 0;
                 int iconResId = 0;
-                int color = 0;
                 String label = null;
                 String shortDescription = null;
                 List<String> supportedUriSchemes = null;
@@ -838,9 +834,6 @@ public final class PhoneAccountRegistrar {
                     } else if (parser.getName().equals(ICON_RES_ID)) {
                         parser.next();
                         iconResId = Integer.parseInt(parser.getText());
-                    } else if (parser.getName().equals(COLOR)) {
-                        parser.next();
-                        color = Integer.parseInt(parser.getText());
                     } else if (parser.getName().equals(LABEL)) {
                         parser.next();
                         label = parser.getText();
@@ -878,7 +871,6 @@ public final class PhoneAccountRegistrar {
                         .setSubscriptionAddress(subscriptionAddress)
                         .setCapabilities(capabilities)
                         .setIconResId(iconResId)
-                        .setColor(color)
                         .setShortDescription(shortDescription)
                         .setSupportedUriSchemes(supportedUriSchemes)
                         .build();
