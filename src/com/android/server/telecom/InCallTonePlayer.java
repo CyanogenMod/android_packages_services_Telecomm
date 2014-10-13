@@ -121,7 +121,7 @@ public final class InCallTonePlayer extends Thread {
                 case TONE_CALL_ENDED:
                     toneType = ToneGenerator.TONE_PROP_PROMPT;
                     toneVolume = RELATIVE_VOLUME_HIPRI;
-                    toneLengthMillis = 4000;
+                    toneLengthMillis = 200;
                     break;
                 case TONE_OTA_CALL_ENDED:
                     // TODO: fill in
@@ -159,7 +159,7 @@ public final class InCallTonePlayer extends Thread {
                 case TONE_REORDER:
                     toneType = ToneGenerator.TONE_CDMA_REORDER;
                     toneVolume = RELATIVE_VOLUME_HIPRI;
-                    toneLengthMillis = 5000;
+                    toneLengthMillis = 4000;
                     break;
                 case TONE_RING_BACK:
                     toneType = ToneGenerator.TONE_SUP_RINGTONE;
