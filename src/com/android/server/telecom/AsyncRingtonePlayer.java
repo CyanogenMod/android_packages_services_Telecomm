@@ -25,6 +25,7 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Message;
 import android.provider.Settings;
+import android.telephony.TelephonyManager;
 
 import com.android.internal.util.Preconditions;
 
@@ -46,6 +47,12 @@ class AsyncRingtonePlayer {
 
     /** The current ringtone. Only used by the ringtone thread. */
     private Ringtone mRingtone;
+
+    private int mPhoneId = 0;
+
+    void setPhoneId(int phoneId) {
+        mPhoneId = phoneId;
+    }
 
     /**
      * The context.
@@ -192,7 +199,14 @@ class AsyncRingtonePlayer {
 
     private Ringtone getRingtone(Uri ringtoneUri) {
         if (ringtoneUri == null) {
-            ringtoneUri = Settings.System.DEFAULT_RINGTONE_URI;
+            if (TelephonyManager.getDefault().isMultiSimEnabled()) {
+                ringtoneUri = RingtoneManager.getActualRingtoneUriBySubId(mContext, mPhoneId);
+                if (ringtoneUri == null) {
+                    return null;
+                }
+            } else {
+                ringtoneUri = Settings.System.DEFAULT_RINGTONE_URI;
+            }
         }
 
         Ringtone ringtone = RingtoneManager.getRingtone(mContext, ringtoneUri);
