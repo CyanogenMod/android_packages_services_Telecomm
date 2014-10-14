@@ -203,7 +203,11 @@ final class Ringer extends CallsManagerListenerBase {
                         VIBRATION_ATTRIBUTES);
                 mIsVibrating = true;
             }
-        } else {
+        } else if (foregroundCall != null) {
+            // The first incoming call added to Telecom is not a foreground call at this point
+            // in time. If the current foreground call is null at point, don't play call-waiting
+            // as the call will eventually be promoted to the foreground call and play the
+            // ring tone.
             Log.v(this, "Playing call-waiting tone.");
 
             // All incoming calls are in background so play call waiting.
