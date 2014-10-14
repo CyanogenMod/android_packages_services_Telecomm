@@ -69,7 +69,7 @@ public class CallReceiver extends BroadcastReceiver {
 
         boolean isConferenceUri = intent.getBooleanExtra(
                 TelephonyProperties.EXTRA_DIAL_CONFERENCE_URI, false);
-        Log.d(this, "isConferenceUri = "+isConferenceUri);
+        Log.d(TAG, "isConferenceUri = "+isConferenceUri);
         if (isConferenceUri) {
             if (clientExtras == null) clientExtras = new Bundle();
             clientExtras.putBoolean(TelephonyProperties.EXTRA_DIAL_CONFERENCE_URI, isConferenceUri);
@@ -77,14 +77,14 @@ public class CallReceiver extends BroadcastReceiver {
 
         boolean isAddParticipant = intent.getBooleanExtra(
                 TelephonyProperties.ADD_PARTICIPANT_KEY, false);
-        Log.d(this, "isAddparticipant = "+isAddParticipant);
+        Log.d(TAG, "isAddparticipant = "+isAddParticipant);
         if (isAddParticipant) {
             if (clientExtras == null) clientExtras = new Bundle();
             clientExtras.putBoolean(TelephonyProperties.ADD_PARTICIPANT_KEY, isAddParticipant);
         }
         boolean isSkipSchemaParsing = intent.getBooleanExtra(
                 TelephonyProperties.EXTRA_SKIP_SCHEMA_PARSING, false);
-        Log.d(this, "isSkipSchemaParsing = "+isSkipSchemaParsing);
+        Log.d(TAG, "isSkipSchemaParsing = "+isSkipSchemaParsing);
         if (isSkipSchemaParsing) {
             if (clientExtras == null) clientExtras = new Bundle();
             clientExtras.putBoolean(TelephonyProperties.EXTRA_SKIP_SCHEMA_PARSING,
