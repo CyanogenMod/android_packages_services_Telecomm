@@ -190,7 +190,7 @@ final class Call implements CreateConnectionResponse {
      * The time this call was created. Beyond logging and such, may also be used for bookkeeping
      * and specifically for marking certain call attempts as failed attempts.
      */
-    private final long mCreationTimeMillis = System.currentTimeMillis();
+    private long mCreationTimeMillis = System.currentTimeMillis();
 
     /** The gateway information associated with this call. This stores the original call handle
      * that the user is attempting to connect to via the gateway, the actual handle to dial in
@@ -585,6 +585,10 @@ final class Call implements CreateConnectionResponse {
      */
     long getCreationTimeMillis() {
         return mCreationTimeMillis;
+    }
+
+    void setCreationTimeMillis(long time) {
+        mCreationTimeMillis = time;
     }
 
     long getConnectTimeMillis() {
