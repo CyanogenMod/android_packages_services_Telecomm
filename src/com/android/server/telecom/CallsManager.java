@@ -1714,7 +1714,6 @@ public final class CallsManager extends Call.ListenerBase {
      */
     public void dump(IndentingPrintWriter pw) {
         mContext.enforceCallingOrSelfPermission(android.Manifest.permission.DUMP, TAG);
-        pw.increaseIndent();
         if (mCalls != null) {
             pw.println("mCalls: ");
             pw.increaseIndent();
@@ -1723,7 +1722,35 @@ public final class CallsManager extends Call.ListenerBase {
             }
             pw.decreaseIndent();
         }
-        pw.decreaseIndent();
+        pw.println("mForegroundCall: " + (mForegroundCall == null ? "none" : mForegroundCall));
+
+        if (mCallAudioManager != null) {
+            pw.println("mCallAudioManager:");
+            pw.increaseIndent();
+            mCallAudioManager.dump(pw);
+            pw.decreaseIndent();
+        }
+
+        if (mTtyManager != null) {
+            pw.println("mTtyManager:");
+            pw.increaseIndent();
+            mTtyManager.dump(pw);
+            pw.decreaseIndent();
+        }
+
+        if (mInCallController != null) {
+            pw.println("mInCallController:");
+            pw.increaseIndent();
+            mInCallController.dump(pw);
+            pw.decreaseIndent();
+        }
+
+        if (mConnectionServiceRepository != null) {
+            pw.println("mConnectionServiceRepository:");
+            pw.increaseIndent();
+            mConnectionServiceRepository.dump(pw);
+            pw.decreaseIndent();
+        }
     }
 
     private final Handler mHandler = new LchHandler();

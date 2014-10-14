@@ -42,6 +42,7 @@ import android.util.Xml;
 // TODO: Needed for move to system service: import com.android.internal.R;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.util.FastXmlSerializer;
+import com.android.internal.util.IndentingPrintWriter;
 import com.android.internal.util.XmlUtils;
 
 import org.xmlpull.v1.XmlPullParser;
@@ -641,6 +642,27 @@ public final class PhoneAccountRegistrar {
          * The version number of the State data.
          */
         public int versionNumber;
+    }
+
+    /**
+     * Dumps the state of the {@link CallsManager}.
+     *
+     * @param pw The {@code IndentingPrintWriter} to write the state to.
+     */
+    public void dump(IndentingPrintWriter pw) {
+        if (mState != null) {
+            pw.println("xmlVersion: " + mState.versionNumber);
+            pw.println("defaultOutgoing: " + (mState.defaultOutgoing == null ? "none" :
+                    mState.defaultOutgoing));
+            pw.println("simCallManager: " + (mState.simCallManager == null ? "none" :
+                    mState.simCallManager));
+            pw.println("phoneAccounts:");
+            pw.increaseIndent();
+            for (PhoneAccount phoneAccount : mState.accounts) {
+                pw.println(phoneAccount);
+            }
+            pw.decreaseIndent();
+        }
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
