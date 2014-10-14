@@ -110,8 +110,6 @@ public class CallActivity extends Activity {
         } else {
             processOutgoingCallIntent(intent);
         }
-        } else if (TelecomManager.ACTION_INCOMING_CALL.equals(action)) {
-            processIncomingCallIntent(intent);
         }
     }
 

@@ -31,14 +31,10 @@ public class CallReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
         final boolean isUnknownCall = intent.getBooleanExtra(KEY_IS_UNKNOWN_CALL, false);
-        final boolean isIncomingCall = intent.getBooleanExtra(KEY_IS_INCOMING_CALL, false);
-        Log.i(this, "onReceive - isIncomingCall: %s isUnknownCall: %s", isIncomingCall,
-                isUnknownCall);
+        Log.i(this, "onReceive - isUnknownCall: %s", isUnknownCall);
 
         if (isUnknownCall) {
             processUnknownCallIntent(intent);
-        } else if (isIncomingCall) {
-            processIncomingCallIntent(intent);
         } else {
             processOutgoingCallIntent(context, intent);
         }

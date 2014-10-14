@@ -185,14 +185,6 @@
             </intent-filter>
         </activity-alias>
 
-        <activity-alias android:name="IncomingCallActivity"
-                android:targetActivity="CallActivity"
-                android:exported="true">
-            <intent-filter>
-                <action android:name="android.telecom.action.INCOMING_CALL" />
-                <category android:name="android.intent.category.DEFAULT" />
-            </intent-filter>
-        </activity-alias>
 
         <receiver android:name="TelecomBroadcastReceiver" android:exported="false">
             <intent-filter>
