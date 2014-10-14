@@ -21,6 +21,7 @@ import android.media.AudioManager;
 import android.telecom.AudioState;
 import android.telecom.CallState;
 
+import com.android.internal.util.IndentingPrintWriter;
 import com.android.internal.util.Preconditions;
 
 import java.util.Objects;
@@ -492,5 +493,31 @@ final class CallAudioManager extends CallsManagerListenerBase
 
     private boolean hasFocus() {
         return mAudioFocusStreamType != STREAM_NONE;
+    }
+
+    /**
+     * Dumps the state of the {@link CallAudioManager}.
+     *
+     * @param pw The {@code IndentingPrintWriter} to write the state to.
+     */
+    public void dump(IndentingPrintWriter pw) {
+        pw.println("mAudioState: " + mAudioState);
+        pw.println("mBluetoothManager:");
+        pw.increaseIndent();
+        mBluetoothManager.dump(pw);
+        pw.decreaseIndent();
+        if (mWiredHeadsetManager != null) {
+            pw.println("mWiredHeadsetManager:");
+            pw.increaseIndent();
+            mWiredHeadsetManager.dump(pw);
+            pw.decreaseIndent();
+        } else {
+            pw.println("mWiredHeadsetManager: null");
+        }
+        pw.println("mAudioFocusStreamType: " + mAudioFocusStreamType);
+        pw.println("mIsRinging: " + mIsRinging);
+        pw.println("mIsTonePlaying: " + mIsTonePlaying);
+        pw.println("mWasSpeakerOn: " + mWasSpeakerOn);
+        pw.println("mMostRecentlyUsedMode: " + mMostRecentlyUsedMode);
     }
 }

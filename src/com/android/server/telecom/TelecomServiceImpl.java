@@ -643,6 +643,13 @@ public class TelecomServiceImpl extends ITelecomService.Stub {
         }
     }
 
+    /**
+     * Dumps the current state of the TelecomService.  Used when generating problem reports.
+     *
+     * @param fd The file descriptor.
+     * @param writer The print writer to dump the state to.
+     * @param args Optional dump arguments.
+     */
     @Override
     protected void dump(FileDescriptor fd, final PrintWriter writer, String[] args) {
         mContext.enforceCallingOrSelfPermission(android.Manifest.permission.DUMP, TAG);
@@ -651,6 +658,11 @@ public class TelecomServiceImpl extends ITelecomService.Stub {
             pw.println("mCallsManager: ");
             pw.increaseIndent();
             mCallsManager.dump(pw);
+            pw.decreaseIndent();
+
+            pw.println("mPhoneAccountRegistrar: ");
+            pw.increaseIndent();
+            mPhoneAccountRegistrar.dump(pw);
             pw.decreaseIndent();
         }
     }
