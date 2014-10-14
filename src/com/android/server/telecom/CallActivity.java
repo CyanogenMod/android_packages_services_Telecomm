@@ -85,8 +85,6 @@ public class CallActivity extends Activity {
                 Intent.ACTION_CALL_PRIVILEGED.equals(action) ||
                 Intent.ACTION_CALL_EMERGENCY.equals(action)) {
             processOutgoingCallIntent(intent);
-        } else if (TelecomManager.ACTION_INCOMING_CALL.equals(action)) {
-            processIncomingCallIntent(intent);
         }
     }
 
@@ -129,14 +127,6 @@ public class CallActivity extends Activity {
             CallReceiver.processOutgoingCallIntent(getApplicationContext(), intent);
         } else {
             sendBroadcastToReceiver(intent, false /* isIncoming */);
-        }
-    }
-
-    private void processIncomingCallIntent(Intent intent) {
-        if (UserHandle.myUserId() == UserHandle.USER_OWNER) {
-            CallReceiver.processIncomingCallIntent(intent);
-        } else {
-            sendBroadcastToReceiver(intent, true /* isIncoming */);
         }
     }
 
