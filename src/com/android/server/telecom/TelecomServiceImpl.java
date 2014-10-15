@@ -69,6 +69,8 @@ public class TelecomServiceImpl extends ITelecomService.Stub {
     private static final class MainThreadRequest {
         /** The result of the request that is run on the main thread */
         public Object result;
+        /** Object that can be used to store non-integer arguments */
+        public Object arg;
     }
 
     /**
@@ -104,6 +106,13 @@ public class TelecomServiceImpl extends ITelecomService.Stub {
                     case MSG_GET_CURRENT_TTY_MODE:
                         result = mCallsManager.getCurrentTtyMode();
                         break;
+                    case MSG_NEW_INCOMING_CALL:
+                        if (request.arg == null || !(request.arg instanceof Intent)) {
+                            Log.w(this, "Invalid new incoming call request");
+                            break;
+                        }
+                        CallReceiver.processIncomingCallIntent((Intent) request.arg);
+                        break;
                 }
 
                 if (result != null) {
@@ -128,6 +137,7 @@ public class TelecomServiceImpl extends ITelecomService.Stub {
     private static final int MSG_CANCEL_MISSED_CALLS_NOTIFICATION = 5;
     private static final int MSG_IS_TTY_SUPPORTED = 6;
     private static final int MSG_GET_CURRENT_TTY_MODE = 7;
+    private static final int MSG_NEW_INCOMING_CALL = 8;
 
     /** The singleton instance. */
     private static TelecomServiceImpl sInstance;
@@ -455,21 +465,20 @@ public class TelecomServiceImpl extends ITelecomService.Stub {
      */
     @Override
     public void addNewIncomingCall(PhoneAccountHandle phoneAccountHandle, Bundle extras) {
+        Log.i(this, "Adding new incoming call with phoneAccountHandle %s", phoneAccountHandle);
         if (phoneAccountHandle != null && phoneAccountHandle.getComponentName() != null) {
             mAppOpsManager.checkPackage(
                     Binder.getCallingUid(), phoneAccountHandle.getComponentName().getPackageName());
 
             Intent intent = new Intent(TelecomManager.ACTION_INCOMING_CALL);
-            intent.setPackage(mContext.getPackageName());
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
             intent.putExtra(TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE, phoneAccountHandle);
+            intent.putExtra(CallReceiver.KEY_IS_INCOMING_CALL, true);
             if (extras != null) {
                 intent.putExtra(TelecomManager.EXTRA_INCOMING_CALL_EXTRAS, extras);
             }
-
-            long token = Binder.clearCallingIdentity();
-            mContext.startActivityAsUser(intent, UserHandle.CURRENT);
-            Binder.restoreCallingIdentity(token);
+            sendRequestAsync(MSG_NEW_INCOMING_CALL, 0, intent);
+        } else {
+            Log.w(this, "Null phoneAccountHandle. Ignoring request to add new incoming call");
         }
     }
 
@@ -612,7 +621,12 @@ public class TelecomServiceImpl extends ITelecomService.Stub {
     }
 
     private MainThreadRequest sendRequestAsync(int command, int arg1) {
+        return sendRequestAsync(command, arg1, null);
+    }
+
+    private MainThreadRequest sendRequestAsync(int command, int arg1, Object arg) {
         MainThreadRequest request = new MainThreadRequest();
+        request.arg = arg;
         mMainThreadHandler.obtainMessage(command, arg1, 0, request).sendToTarget();
         return request;
     }
