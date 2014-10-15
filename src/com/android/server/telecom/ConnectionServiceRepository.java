@@ -19,6 +19,8 @@ package com.android.server.telecom;
 import android.content.ComponentName;
 import android.content.Context;
 
+import com.android.internal.util.IndentingPrintWriter;
+
 import java.util.HashMap;
 
 /**
@@ -58,5 +60,19 @@ final class ConnectionServiceRepository
     @Override
     public void onUnbind(ConnectionServiceWrapper service) {
         mServiceCache.remove(service.getComponentName());
+    }
+
+    /**
+     * Dumps the state of the {@link ConnectionServiceRepository}.
+     *
+     * @param pw The {@code IndentingPrintWriter} to write the state to.
+     */
+    public void dump(IndentingPrintWriter pw) {
+        pw.println("mServiceCache:");
+        pw.increaseIndent();
+        for (ComponentName componentName : mServiceCache.keySet()) {
+            pw.println(componentName);
+        }
+        pw.decreaseIndent();
     }
 }
