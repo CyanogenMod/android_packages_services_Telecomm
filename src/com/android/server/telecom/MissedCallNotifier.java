@@ -29,6 +29,7 @@ import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
+import android.os.UserHandle;
 import android.provider.CallLog;
 import android.provider.CallLog.Calls;
 import android.telecom.CallState;
@@ -166,7 +167,8 @@ class MissedCallNotifier extends CallsManagerListenerBase {
         configureLedOnNotification(notification);
 
         Log.i(this, "Adding missed call notification for %s.", call);
-        mNotificationManager.notify(MISSED_CALL_NOTIFICATION_ID, notification);
+        mNotificationManager.notifyAsUser(
+                null /* tag */ , MISSED_CALL_NOTIFICATION_ID, notification, UserHandle.CURRENT);
     }
 
     /** Cancels the "missed call" notification. */
