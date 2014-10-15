@@ -450,10 +450,7 @@ public class TelecomService extends Service {
         /**
          * @see android.telecom.TelecomManager#isVoiceMailNumber
          */
-        /* FIXME_L-MR1_INTERNAL, uncomment below code, when relevant change
-         * is merged
-         */
-        /* @Override
+        @Override
         public boolean isVoiceMailNumber(PhoneAccountHandle accountHandle, String number) {
             enforceReadPermissionOrDefaultDialer();
             try {
@@ -466,7 +463,7 @@ public class TelecomService extends Service {
                 Log.e(this, e, "getSubscriptionIdForPhoneAccount");
                 throw e;
             }
-        }*/
+        }
 
         /**
          * @see android.telecom.TelecomManager#hasVoiceMailNumber
