@@ -17,6 +17,9 @@
 package com.android.server.telecom;
 
 import android.content.Context;
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.CallLog.Calls;
@@ -443,7 +446,13 @@ public final class CallsManager extends Call.ListenerBase {
 
         call.setExtras(extras);
 
-        if (isPotentialMMICode(handle) || isPotentialInCallMMICode) {
+        // Do not add the call if it is a potential MMI code.
+        // We also want to skip adding the call if there is a broadcast receiver which could
+        // intercept the outgoing call and cancel it.  We do this to ensure that we do not show the
+        // InCall UI for the cancelled call.  If the call is not intercepted, it will be added in
+        // {@link CallsManager#onSuccessfulOutgoingCall}.
+        if (isPotentialMMICode(handle) || isPotentialInCallMMICode ||
+                (!isEmergencyCall && canOutgoingCallBroadcastsBeIntercepted())) {
             call.addListener(this);
         } else {
             addCall(call);
@@ -1191,6 +1200,28 @@ public final class CallsManager extends Call.ListenerBase {
             return false;
         }
         return true;
+    }
+
+    /**
+     * Determines if the {@link Intent#ACTION_NEW_OUTGOING_CALL} intent can be received by another
+     * package with priority 0, potentially providing the ability to cancel the intent before it
+     * is received.
+     *
+     * @return {@code true} if the intent can be intercepted by another
+     */
+    private boolean canOutgoingCallBroadcastsBeIntercepted() {
+        PackageManager packageManager = mContext.getPackageManager();
+        Intent intent = new Intent(Intent.ACTION_NEW_OUTGOING_CALL);
+        List<ResolveInfo> receivers = packageManager.queryBroadcastReceivers(intent, 0);
+
+        for (ResolveInfo info : receivers) {
+            // Check for an interceptor with priority 0; this would potentially receive the
+            // broadcast before Telecom and cancel it.
+            if (info.priority == 0) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
