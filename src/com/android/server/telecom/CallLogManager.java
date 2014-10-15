@@ -17,6 +17,8 @@
 package com.android.server.telecom;
 
 import android.content.Context;
+import android.content.Intent;
+import android.Manifest.permission;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.provider.CallLog.Calls;
@@ -83,6 +85,12 @@ final class CallLogManager extends CallsManagerListenerBase {
     private static final String TAG = CallLogManager.class.getSimpleName();
 
     private final Context mContext;
+    private static final String ACTION_CALLS_TABLE_ADD_ENTRY =
+                "com.android.server.telecom.intent.action.CALLS_ADD_ENTRY";
+    private static final String PERMISSION_PROCESS_CALLLOG_INFO =
+                "android.permission.PROCESS_CALLLOG_INFO";
+    private static final String CALL_TYPE = "callType";
+    private static final String CALL_DURATION = "duration";
 
     public CallLogManager(Context context) {
         mContext = context;
@@ -173,6 +181,8 @@ final class CallLogManager extends CallsManagerListenerBase {
 
         // Don't log emergency numbers if the device doesn't allow it.
         final boolean isOkToLogThisCall = !isEmergencyNumber || okToLogEmergencyNumber;
+
+        sendAddCallBroadcast(callType, duration);
 
         if (isOkToLogThisCall) {
             Log.d(TAG, "Logging Calllog entry: " + callerInfo + ", "
@@ -292,5 +302,12 @@ final class CallLogManager extends CallsManagerListenerBase {
                 }
             }
         }
+    }
+
+    private void sendAddCallBroadcast(int callType, long duration) {
+        Intent callAddIntent = new Intent(ACTION_CALLS_TABLE_ADD_ENTRY);
+        callAddIntent.putExtra(CALL_TYPE, callType);
+        callAddIntent.putExtra(CALL_DURATION, duration);
+        mContext.sendBroadcast(callAddIntent, PERMISSION_PROCESS_CALLLOG_INFO);
     }
 }
