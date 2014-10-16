@@ -113,38 +113,6 @@ public final class PhoneAccountRegistrar {
     }
 
     /**
-     * Retrieves the phone account id for a given subscription id if it exists. Subscription ids
-     * apply only to PSTN/SIM card phone accounts so all other accounts should not have a
-     * subscription id.
-     * @param subscriptionId The subscription id for which to construct the phone account id
-     * @return The string representing the phone account id for the subscription id.
-     */
-
-    public String getPhoneAccountIdForSubscriptionId(long subscriptionId) {
-        return String.valueOf(subscriptionId);
-    }
-
-    /**
-     * Retrieves the subscription id for a given phone account if it exists. Subscription ids
-     * apply only to PSTN/SIM card phone accounts so all other accounts should not have a
-     * subscription id.
-     * @param accountHandle The handle for the phone account for which to retrieve the
-     * subscription id.
-     * @return The value of the subscription id (long) or -1 if it does not exist or is not valid.
-     */
-
-    public long getSubscriptionIdForPhoneAccount(PhoneAccountHandle accountHandle) {
-        PhoneAccount account = getPhoneAccount(accountHandle);
-        if (account == null || !account.hasCapabilities(PhoneAccount.CAPABILITY_SIM_SUBSCRIPTION) ||
-                !TextUtils.isDigitsOnly(accountHandle.getId())) {
-            // Since no decimals or negative numbers can be valid subscription ids, only a string of
-            // numbers can be subscription id
-            return -1;
-        }
-        return Long.parseLong(accountHandle.getId());
-    }
-
-    /**
      * Retrieves the default outgoing phone account supporting the specified uriScheme.
      * @param uriScheme The URI scheme for the outgoing call.
      * @return The {@link PhoneAccountHandle} to use.
