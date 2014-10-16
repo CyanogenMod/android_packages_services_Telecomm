@@ -19,6 +19,8 @@ package com.android.server.telecom;
 import android.content.ComponentName;
 import android.content.Context;
 import android.net.Uri;
+import android.telecom.PhoneAccount;
+import android.telecom.PhoneAccountHandle;
 import android.telephony.PhoneNumberUtils;
 
 /**
@@ -33,7 +35,24 @@ public final class TelephonyUtil {
     private static final String PSTN_CALL_SERVICE_CLASS_NAME =
             "com.android.services.telephony.TelephonyConnectionService";
 
+    private static final PhoneAccountHandle DEFAULT_EMERGENCY_PHONE_ACCOUNT_HANDLE =
+            new PhoneAccountHandle(
+                    new ComponentName(TELEPHONY_PACKAGE_NAME, PSTN_CALL_SERVICE_CLASS_NAME), "E");
+
     private TelephonyUtil() {}
+
+    /**
+     * @return fallback {@link PhoneAccount} to be used by Telecom for emergency calls in the
+     * rare case that Telephony has not registered any phone accounts yet. Details about this
+     * account are not expected to be displayed in the UI, so the description, etc are not
+     * populated.
+     */
+    static PhoneAccount getDefaultEmergencyPhoneAccount() {
+        return PhoneAccount.builder(DEFAULT_EMERGENCY_PHONE_ACCOUNT_HANDLE, "E")
+                .setCapabilities(PhoneAccount.CAPABILITY_SIM_SUBSCRIPTION |
+                        PhoneAccount.CAPABILITY_CALL_PROVIDER |
+                        PhoneAccount.CAPABILITY_PLACE_EMERGENCY_CALLS).build();
+    }
 
     static boolean isPstnComponentName(ComponentName componentName) {
         final ComponentName pstnComponentName = new ComponentName(
