@@ -238,6 +238,18 @@ final class CreateConnectionProcessor {
             Log.i(this, "Emergency number detected");
             mAttemptRecords.clear();
             List<PhoneAccount> allAccounts = mPhoneAccountRegistrar.getAllPhoneAccounts();
+
+            if (allAccounts.isEmpty()) {
+                // If the list of phone accounts is empty at this point, it means Telephony hasn't
+                // registered any phone accounts yet. Add a fallback emergency phone account so
+                // that emergency calls can still go through. We create a new ArrayLists here just
+                // in case the implementation of PhoneAccountRegistrar ever returns an unmodifiable
+                // list.
+                allAccounts = new ArrayList<PhoneAccount>();
+                allAccounts.add(TelephonyUtil.getDefaultEmergencyPhoneAccount());
+            }
+
+
             // First, add SIM phone accounts which can place emergency calls.
             for (PhoneAccount phoneAccount : allAccounts) {
                 if (phoneAccount.hasCapabilities(PhoneAccount.CAPABILITY_PLACE_EMERGENCY_CALLS) &&
