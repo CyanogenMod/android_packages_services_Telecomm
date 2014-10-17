@@ -598,10 +598,7 @@ public class TelecomService extends Service {
         /**
          * @see android.telecom.TelecomManager#handleMmi
          */
-        /* FIXME_L-MR1_INTERNAL, uncomment below code, when relevant change
-         * is merged
-         */
-        /* @Override
+        @Override
         public boolean handlePinMmiForPhoneAccount(PhoneAccountHandle accountHandle,
                 String dialString) {
             enforceModifyPermissionOrDefaultDialer();
@@ -622,7 +619,7 @@ public class TelecomService extends Service {
             }
 
             return retval;
-        }*/
+        }
 
         /**
          * @see android.telecom.TelecomManager#getAdnUriForPhoneAccount
