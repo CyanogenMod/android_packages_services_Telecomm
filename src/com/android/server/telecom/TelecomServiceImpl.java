@@ -35,8 +35,8 @@ import android.telecom.CallState;
 import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
 import android.telecom.TelecomManager;
+import android.telephony.PhoneNumberUtils;
 import android.telephony.TelephonyManager;
-
 
 // TODO: Needed for move to system service: import com.android.internal.R;
 import com.android.internal.telecom.ITelecomService;
@@ -332,6 +332,19 @@ public class TelecomServiceImpl extends ITelecomService.Stub {
             mPhoneAccountRegistrar.clearAccounts(packageName);
         } catch (Exception e) {
             Log.e(this, e, "clearAccounts %s", packageName);
+            throw e;
+        }
+    }
+
+    /**
+     * @see android.telecom.TelecomManager#isVoiceMailNumber
+     */
+    @Override
+    public boolean isVoiceMailNumber(PhoneAccountHandle accountHandle, String number) {
+        try {
+            return mPhoneAccountRegistrar.isVoiceMailNumber(accountHandle, number);
+        } catch (Exception e) {
+            Log.e(this, e, "getSubscriptionIdForPhoneAccount");
             throw e;
         }
     }
