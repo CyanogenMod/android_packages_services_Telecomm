@@ -462,6 +462,27 @@ public class TelecomServiceImpl extends ITelecomService.Stub {
     }
 
     /**
+     * @see android.telecom.TelecomManager#handleMmi
+     */
+    @Override
+    public boolean handlePinMmiForPhoneAccount(PhoneAccountHandle accountHandle,
+            String dialString) {
+        enforceModifyPermissionOrDefaultDialer();
+
+        // Switch identity so that TelephonyManager checks Telecom's permissions instead.
+        long token = Binder.clearCallingIdentity();
+        boolean retval = false;
+        try {
+            int subId = mPhoneAccountRegistrar.getSubscriptionIdForPhoneAccount(accountHandle);
+            retval = getTelephonyManager().handlePinMmiForSubscriber(subId, dialString);
+        } finally {
+            Binder.restoreCallingIdentity(token);
+        }
+
+        return retval;
+    }
+
+    /**
      * @see android.telecom.TelecomManager#isTtySupported
      */
     @Override
