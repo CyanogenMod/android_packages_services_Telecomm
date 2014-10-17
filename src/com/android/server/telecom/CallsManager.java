@@ -1041,6 +1041,14 @@ public final class CallsManager extends Call.ListenerBase {
                     continue;
                 }
 
+                if ((call.getTargetPhoneAccount() == null) && (call.getChildCalls().size() > 1)) {
+                    Call child = call.getChildCalls().get(0);
+                    PhoneAccountHandle childph = child.getTargetPhoneAccount();
+                    if (childph.getId().equals(subId)) {
+                        return call;
+                    }
+                }
+
                 if (currentState == call.getState() && call.getTargetPhoneAccount() != null
                         && call.getTargetPhoneAccount().equals(subId)) {
                     return call;
