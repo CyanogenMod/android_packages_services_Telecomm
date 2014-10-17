@@ -163,26 +163,6 @@ public class TelecomServiceImpl extends ITelecomService.Stub {
     //
 
     @Override
-    public String getPhoneAccountIdForSubscriptionId(long subscriptionId) {
-        try {
-            return mPhoneAccountRegistrar.getPhoneAccountIdForSubscriptionId(subscriptionId);
-        } catch (Exception e) {
-            Log.e(this, e, "getPhoneAccountIdForSubscriptionId");
-            throw e;
-        }
-    }
-
-    @Override
-    public long getSubscriptionIdForPhoneAccount(PhoneAccountHandle accountHandle) {
-        try {
-            return mPhoneAccountRegistrar.getSubscriptionIdForPhoneAccount(accountHandle);
-        } catch (Exception e) {
-            Log.e(this, e, "getSubscriptionIdForPhoneAccount");
-            throw e;
-        }
-    }
-
-    @Override
     public PhoneAccountHandle getDefaultOutgoingPhoneAccount(String uriScheme) {
         try {
             return mPhoneAccountRegistrar.getDefaultOutgoingPhoneAccount(uriScheme);
