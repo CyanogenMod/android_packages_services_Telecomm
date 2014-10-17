@@ -331,7 +331,7 @@ final class CallAudioManager extends CallsManagerListenerBase
     }
 
     private void updateAudioStreamAndMode() {
-        Log.v(this, "updateAudioStreamAndMode, mIsRinging: %b, mIsTonePlaying: %b", mIsRinging,
+        Log.i(this, "updateAudioStreamAndMode, mIsRinging: %b, mIsTonePlaying: %b", mIsRinging,
                 mIsTonePlaying);
         if (mIsRinging) {
             requestAudioFocusAndSetMode(AudioManager.STREAM_RING, AudioManager.MODE_RINGTONE);
@@ -360,7 +360,7 @@ final class CallAudioManager extends CallsManagerListenerBase
     }
 
     private void requestAudioFocusAndSetMode(int stream, int mode) {
-        Log.v(this, "requestAudioFocusAndSetMode, stream: %d -> %d", mAudioFocusStreamType, stream);
+        Log.i(this, "requestAudioFocusAndSetMode, stream: %d -> %d", mAudioFocusStreamType, stream);
         Preconditions.checkState(stream != STREAM_NONE);
 
         // Even if we already have focus, if the stream is different we update audio manager to give
