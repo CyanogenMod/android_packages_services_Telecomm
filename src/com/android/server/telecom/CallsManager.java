@@ -1025,6 +1025,10 @@ public final class CallsManager extends Call.ListenerBase {
                 return false;
             }
         }
+
+        if ((call.getState() != CallState.ACTIVE) && (call.getState() != CallState.ON_HOLD)) {
+            return false;
+        }
         return true;
     }
 
