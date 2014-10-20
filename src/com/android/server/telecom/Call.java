@@ -561,8 +561,12 @@ final class Call implements CreateConnectionResponse {
     }
 
     void setCallCapabilities(int callCapabilities) {
+        setCallCapabilities(callCapabilities, false /* forceUpdate */);
+    }
+
+    void setCallCapabilities(int callCapabilities, boolean forceUpdate) {
         Log.v(this, "setCallCapabilities: %s", PhoneCapabilities.toString(callCapabilities));
-        if (mCallCapabilities != callCapabilities) {
+        if (forceUpdate || mCallCapabilities != callCapabilities) {
            mCallCapabilities = callCapabilities;
             for (Listener l : mListeners) {
                 l.onCallCapabilitiesChanged(this);
