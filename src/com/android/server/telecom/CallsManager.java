@@ -996,6 +996,14 @@ public final class CallsManager extends Call.ListenerBase {
             }
             updateForegroundCall();
         }
+
+        // Now that a call has been removed, other calls may gain new call capabilities (for
+        // example, if only one call is left, it is now add-call capable again). Trigger the
+        // recalculation of the call's current capabilities by forcing an update. (See
+        // InCallController.toParcelableCall()).
+        for (Call otherCall : mCalls) {
+            otherCall.setCallCapabilities(call.getCallCapabilities(), true /* forceUpdate */);
+        }
     }
 
     /**
