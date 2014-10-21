@@ -140,12 +140,8 @@ final class Ringer extends CallsManagerListenerBase {
     private void onRespondedToIncomingCall(Call call) {
         // Only stop the ringer if this call is the top-most incoming call.
         if (getTopMostUnansweredCall() == call) {
-            stopRinging();
-            stopCallWaiting();
+            removeFromUnansweredCall(call);
         }
-
-        // We do not remove the call from mRingingCalls until the call state changes from
-        // STATE_RINGING or the call is removed. see onCallStateChanged or onCallRemoved.
     }
 
     private Call getTopMostUnansweredCall() {
