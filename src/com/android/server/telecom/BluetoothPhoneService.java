@@ -103,6 +103,7 @@ public final class BluetoothPhoneService extends Service {
     private int mBluetoothCallState = CALL_STATE_IDLE;
     private String mRingingAddress = null;
     private int mRingingAddressType = 0;
+    private Call mOldHeldCall = null;
 
     /**
      * Binder implementation of IBluetoothHeadsetPhone. Implements the command interface that the
@@ -643,7 +644,7 @@ public final class BluetoothPhoneService extends Service {
         }
 
         int numActiveCalls = activeCall == null ? 0 : 1;
-        int numHeldCalls = heldCall == null ? 0 : 1;
+        int numHeldCalls = callsManager.getNumHeldCalls();
 
         // For conference calls which support swapping the active call within the conference
         // (namely CDMA calls) we need to expose that as a held call in order for the BT device
@@ -664,6 +665,7 @@ public final class BluetoothPhoneService extends Service {
                  bluetoothCallState != mBluetoothCallState ||
                  !TextUtils.equals(ringingAddress, mRingingAddress) ||
                  ringingAddressType != mRingingAddressType ||
+                 heldCall != mOldHeldCall ||
                  force)) {
 
             // If the call is transitioning into the alerting state, send DIALING first.
@@ -672,6 +674,7 @@ public final class BluetoothPhoneService extends Service {
             boolean sendDialingFirst = mBluetoothCallState != bluetoothCallState &&
                     bluetoothCallState == CALL_STATE_ALERTING;
 
+            mOldHeldCall = heldCall;
             mNumActiveCalls = numActiveCalls;
             mNumHeldCalls = numHeldCalls;
             mBluetoothCallState = bluetoothCallState;
