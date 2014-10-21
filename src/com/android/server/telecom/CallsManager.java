@@ -826,23 +826,15 @@ public final class CallsManager extends Call.ListenerBase {
     }
 
     /**
-     * Checks to see if the specified call is the only high-level call and if so, enable the
-     * "Add-call" button. We allow you to add a second call but not a third or beyond.
+     * Checks to see if the specified call is the only top level call. If it is not, we should
+     * remove the ADD_CALL capability. We allow you to add a second call but not a third or beyond.
      *
-     * @param call The call to test for add-call.
-     * @return Whether the add-call feature should be enabled for the call.
+     * @param call The call to check to see if it is the only top level call.
+     * @return Whether the call is the only top level call.
      */
-    protected boolean isAddCallCapable(Call call) {
+    protected boolean isOnlyTopLevelCall(Call call) {
         if (call.getParentCall() != null) {
             // Never true for child calls.
-            return false;
-        }
-
-        // Use canManageConference as a mechanism to check if the call is CDMA.
-        // Disable "Add Call" for CDMA calls which are conference calls.
-        boolean canManageConference = PhoneCapabilities.MANAGE_CONFERENCE
-                == (call.getCallCapabilities() & PhoneCapabilities.MANAGE_CONFERENCE);
-        if (call.isConference() && !canManageConference) {
             return false;
         }
 
