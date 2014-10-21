@@ -575,7 +575,10 @@ public final class CallsManager extends Call.ListenerBase {
             return null;
         }
 
-        if (phoneAccountHandle == null && accounts.size() > 1 && !isEmergencyCall) {
+        boolean needsAccountSelection = phoneAccountHandle == null && accounts.size() > 1 &&
+                !isEmergencyCall;
+
+        if (needsAccountSelection) {
             // This is the state where the user is expected to select an account
             call.setState(CallState.PRE_DIAL_WAIT);
             extras.putParcelableList(android.telecom.Call.AVAILABLE_PHONE_ACCOUNTS, accounts);
@@ -586,7 +589,7 @@ public final class CallsManager extends Call.ListenerBase {
         call.setExtras(extras);
 
         // Do not add the call if it is a potential MMI code.
-        if (isPotentialMMICode(handle) || isPotentialInCallMMICode) {
+        if ((isPotentialMMICode(handle) || isPotentialInCallMMICode) && !needsAccountSelection) {
             call.addListener(this);
         } else {
             addCall(call);
