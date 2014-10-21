@@ -408,7 +408,6 @@ public final class InCallController extends CallsManagerListenerBase {
                 IInCallService inCallService = entry.getValue();
                 ParcelableCall parcelableCall = toParcelableCall(call,
                         componentName.equals(mInCallComponentName) /* includeVideoProvider */);
-
                 Log.v(this, "updateCall %s ==> %s", call, parcelableCall);
                 try {
                     inCallService.updateCall(parcelableCall);
@@ -429,20 +428,29 @@ public final class InCallController extends CallsManagerListenerBase {
     private ParcelableCall toParcelableCall(Call call, boolean includeVideoProvider) {
         String callId = mCallIdMapper.getCallId(call);
 
+        int state = call.getState();
         int capabilities = call.getCallCapabilities();
-        if (CallsManager.getInstance().isAddCallCapable(call)) {
+
+        if (CallsManager.getInstance().isAddCallCapable(call) && state != CallState.DIALING) {
             capabilities |= PhoneCapabilities.ADD_CALL;
         }
 
-        // Disable mute and add call for emergency calls.
-        if (call.isEmergencyCall()) {
-            capabilities &= ~PhoneCapabilities.MUTE;
-            capabilities &= ~PhoneCapabilities.ADD_CALL;
+        if (call.isRespondViaSmsCapable()) {
+            capabilities |= PhoneCapabilities.RESPOND_VIA_TEXT;
         }
 
-        int properties = call.isConference() ? CallProperties.CONFERENCE : 0;
+        if (call.isEmergencyCall()) {
+            capabilities = PhoneCapabilities.remove(capabilities, PhoneCapabilities.MUTE);
+            capabilities = PhoneCapabilities.remove(capabilities, PhoneCapabilities.ADD_CALL);
+        }
 
-        int state = call.getState();
+        if (state == CallState.DIALING) {
+            capabilities =
+                    PhoneCapabilities.remove(capabilities, PhoneCapabilities.SUPPORTS_VT_LOCAL);
+            capabilities =
+                    PhoneCapabilities.remove(capabilities, PhoneCapabilities.SUPPORTS_VT_REMOTE);
+        }
+
         if (state == CallState.ABORTED) {
             state = CallState.DISCONNECTED;
         }
@@ -470,10 +478,6 @@ public final class InCallController extends CallsManagerListenerBase {
             }
         }
 
-        if (call.isRespondViaSmsCapable()) {
-            capabilities |= PhoneCapabilities.RESPOND_VIA_TEXT;
-        }
-
         Uri handle = call.getHandlePresentation() == TelecomManager.PRESENTATION_ALLOWED ?
                 call.getHandle() : null;
         String callerDisplayName = call.getCallerDisplayNamePresentation() ==
@@ -488,6 +492,7 @@ public final class InCallController extends CallsManagerListenerBase {
             }
         }
 
+        int properties = call.isConference() ? CallProperties.CONFERENCE : 0;
         return new ParcelableCall(
                 callId,
                 state,
