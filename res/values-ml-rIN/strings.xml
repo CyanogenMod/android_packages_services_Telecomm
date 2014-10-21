@@ -39,6 +39,6 @@
     <string name="outgoing_call_not_allowed" msgid="1434784869685645427">"അത്യാവശ്യമല്ലാത്ത ഫോൺ കോളുകൾ ചെയ്യാൻ ഈ ഉപയോക്താവിനെ അനുവദിക്കുന്നില്ല"</string>
     <string name="outgoing_call_error_no_phone_number_supplied" msgid="4987143284589568716">"കോൾ ചെയ്യാനായില്ല, സാധുവായ നമ്പറൊന്നും നൽകിയിട്ടില്ല."</string>
     <string name="no_vm_number" msgid="4164780423805688336">"വോയ്‌സ്മെയിൽ നമ്പർ കാണുന്നില്ല"</string>
-    <string name="no_vm_number_msg" msgid="1300729501030053828">"SIM കാർഡിൽ വോയ്‌സ്‌മെയിൽ നമ്പറൊന്നും സംഭരിച്ചിട്ടില്ല."</string>
+    <string name="no_vm_number_msg" msgid="1300729501030053828">"സിം കാർഡിൽ വോയ്‌സ്‌മെയിൽ നമ്പറൊന്നും സംഭരിച്ചിട്ടില്ല."</string>
     <string name="add_vm_number_str" msgid="4676479471644687453">"നമ്പർ ചേർക്കുക"</string>
 </resources>
