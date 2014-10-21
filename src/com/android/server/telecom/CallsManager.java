@@ -1005,7 +1005,7 @@ public final class CallsManager extends Call.ListenerBase {
         // recalculation of the call's current capabilities by forcing an update. (See
         // InCallController.toParcelableCall()).
         for (Call otherCall : mCalls) {
-            otherCall.setCallCapabilities(call.getCallCapabilities(), true /* forceUpdate */);
+            otherCall.setCallCapabilities(otherCall.getCallCapabilities(), true /* forceUpdate */);
         }
     }
 
