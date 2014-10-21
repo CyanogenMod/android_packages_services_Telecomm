@@ -872,6 +872,16 @@ public final class CallsManager extends Call.ListenerBase {
         return getFirstCallWithState(CallState.ON_HOLD);
     }
 
+    int getNumHeldCalls() {
+        int count = 0;
+        for (Call call : mCalls) {
+            if (call.getParentCall() == null && call.getState() == CallState.ON_HOLD) {
+                count++;
+            }
+        }
+        return count;
+    }
+
     Call getFirstCallWithState(int... states) {
         return getFirstCallWithState(null, states);
     }
