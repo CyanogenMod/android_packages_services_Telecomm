@@ -331,6 +331,7 @@ public class TelecomServiceImpl extends ITelecomService.Stub {
      */
     @Override
     public boolean isVoiceMailNumber(PhoneAccountHandle accountHandle, String number) {
+        enforceReadPermissionOrDefaultDialer();
         try {
             return mPhoneAccountRegistrar.isVoiceMailNumber(accountHandle, number);
         } catch (Exception e) {
