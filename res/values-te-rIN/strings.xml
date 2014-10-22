@@ -39,6 +39,6 @@
     <string name="outgoing_call_not_allowed" msgid="1434784869685645427">"ఈ వినియోగదారుకి అత్యవసరం కాని ఫోన్ కాల్‌లు చేయడానికి అనుమతి లేదు"</string>
     <string name="outgoing_call_error_no_phone_number_supplied" msgid="4987143284589568716">"కాల్ చేయలేరు, చెల్లుబాటు అయ్యే నంబర్ నమోదు చేయలేదు."</string>
     <string name="no_vm_number" msgid="4164780423805688336">"వాయిస్ మెయిల్ నంబర్ లేదు"</string>
-    <string name="no_vm_number_msg" msgid="1300729501030053828">"SIM కార్డులో వాయిస్ మెయిల్ నంబర్ ఏదీ నిల్వ చేయబడలేదు."</string>
+    <string name="no_vm_number_msg" msgid="1300729501030053828">"సిమ్ కార్డులో వాయిస్ మెయిల్ నంబర్ ఏదీ నిల్వ చేయబడలేదు."</string>
     <string name="add_vm_number_str" msgid="4676479471644687453">"నంబర్‌ను జోడించు"</string>
 </resources>
