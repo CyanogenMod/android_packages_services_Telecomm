@@ -290,9 +290,10 @@ class MissedCallNotifier extends CallsManagerListenerBase {
                     try {
                         while (cursor.moveToNext()) {
                             // Get data about the missed call from the cursor
-                            Uri handle = Uri.parse(cursor.getString(CALL_LOG_COLUMN_NUMBER));
+                            final String handleString = cursor.getString(
+                                    cursor.getColumnIndexOrThrow(Calls.NUMBER));
                             long date = cursor.getLong(CALL_LOG_COLUMN_DATE);
-                            int presentation = cursor.getInt(cursor.getColumnIndexOrThrow(
+                            final int presentation = cursor.getInt(cursor.getColumnIndexOrThrow(
                                     Calls.NUMBER_PRESENTATION));
 
                             final Uri handle;
