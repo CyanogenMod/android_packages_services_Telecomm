@@ -38,6 +38,7 @@ import android.telecom.PhoneCapabilities;
 import android.telecom.TelecomManager;
 import android.telephony.TelephonyManager;
 
+import com.android.internal.telephony.TelephonyProperties;
 import com.android.internal.util.IndentingPrintWriter;
 
 import com.google.common.collect.ImmutableCollection;
@@ -424,8 +425,15 @@ public final class CallsManager extends Call.ListenerBase {
                 false /* isIncoming */,
                 false /* isConference */);
 
+        boolean isSkipSchemaOrConfUri = ((extras != null) && (extras.getBoolean(
+                TelephonyProperties.EXTRA_SKIP_SCHEMA_PARSING, false) ||
+                extras.getBoolean(TelephonyProperties.EXTRA_DIAL_CONFERENCE_URI, false)));
+
+        // Force tel scheme for ims conf uri/skip schema calls to avoid selection of sip accounts
+        String scheme = (isSkipSchemaOrConfUri? PhoneAccount.SCHEME_TEL: handle.getScheme());
+
         List<PhoneAccountHandle> accounts =
-                mPhoneAccountRegistrar.getCallCapablePhoneAccounts(handle.getScheme());
+                mPhoneAccountRegistrar.getCallCapablePhoneAccounts(scheme);
 
         // Only dial with the requested phoneAccount if it is still valid. Otherwise treat this call
         // as if a phoneAccount was not specified (does the default behavior instead).
@@ -441,7 +449,7 @@ public final class CallsManager extends Call.ListenerBase {
             // handle.
             PhoneAccountHandle defaultAccountHandle =
                     mPhoneAccountRegistrar.getDefaultOutgoingPhoneAccount(
-                            handle.getScheme());
+                            scheme);
             if (defaultAccountHandle != null) {
                 phoneAccountHandle = defaultAccountHandle;
             }
