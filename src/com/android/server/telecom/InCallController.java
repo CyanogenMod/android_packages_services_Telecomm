@@ -431,8 +431,8 @@ public final class InCallController extends CallsManagerListenerBase {
         int state = call.getState();
         int capabilities = call.getCallCapabilities();
 
-        if (CallsManager.getInstance().isAddCallCapable(call) && state != CallState.DIALING) {
-            capabilities |= PhoneCapabilities.ADD_CALL;
+        if (!CallsManager.getInstance().isOnlyTopLevelCall(call) || state == CallState.DIALING) {
+            capabilities = PhoneCapabilities.remove(capabilities, PhoneCapabilities.ADD_CALL);
         }
 
         if (call.isRespondViaSmsCapable()) {
