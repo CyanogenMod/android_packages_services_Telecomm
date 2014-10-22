@@ -393,7 +393,12 @@ final class CallAudioManager extends CallsManagerListenerBase
         Preconditions.checkState(hasFocus());
         int oldMode = mAudioManager.getMode();
         Log.v(this, "Request to change audio mode from %d to %d", oldMode, newMode);
+
         if (oldMode != newMode) {
+            if (oldMode == AudioManager.MODE_IN_CALL && newMode == AudioManager.MODE_RINGTONE) {
+                Log.i(this, "Transition from IN_CALL -> RINGTONE. Resetting to NORMAL first.");
+                mAudioManager.setMode(AudioManager.MODE_NORMAL);
+            }
             mAudioManager.setMode(newMode);
             mMostRecentlyUsedMode = newMode;
         }
