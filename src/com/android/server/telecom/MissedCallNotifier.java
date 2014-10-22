@@ -34,6 +34,8 @@ import android.provider.CallLog;
 import android.provider.CallLog.Calls;
 import android.telecom.CallState;
 import android.telecom.DisconnectCause;
+import android.telecom.PhoneAccount;
+import android.telephony.PhoneNumberUtils;
 import android.text.BidiFormatter;
 import android.text.TextDirectionHeuristics;
 import android.text.TextUtils;
@@ -286,13 +288,19 @@ class MissedCallNotifier extends CallsManagerListenerBase {
                     try {
                         while (cursor.moveToNext()) {
                             // Get data about the missed call from the cursor
-                            Uri handle = Uri.parse(cursor.getString(CALL_LOG_COLUMN_NUMBER));
-                            long date = cursor.getLong(CALL_LOG_COLUMN_DATE);
-                            int presentation = cursor.getInt(cursor.getColumnIndexOrThrow(
-                                    Calls.NUMBER_PRESENTATION));
+                            final String handleString = cursor.getString(CALL_LOG_COLUMN_NUMBER);
+                            final int presentation =
+                                    cursor.getInt(CALL_LOG_COLUMN_NUMBER_PRESENTATION);
+                            final long date = cursor.getLong(CALL_LOG_COLUMN_DATE);
 
-                            if (presentation != Calls.PRESENTATION_ALLOWED) {
+                            final Uri handle;
+                            if (presentation != Calls.PRESENTATION_ALLOWED
+                                    || TextUtils.isEmpty(handleString)) {
                                 handle = null;
+                            } else {
+                                handle = Uri.fromParts(PhoneNumberUtils.isUriNumber(handleString) ?
+                                        PhoneAccount.SCHEME_SIP : PhoneAccount.SCHEME_TEL,
+                                                handleString, null);
                             }
 
                             // Convert the data to a call object
