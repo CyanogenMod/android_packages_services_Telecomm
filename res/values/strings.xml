@@ -83,6 +83,9 @@
     <!-- Call failure message displayed in an error dialog used to indicate that a phone number was not provided -->
     <string name="outgoing_call_error_no_phone_number_supplied">Call not sent, no valid number entered.</string>
 
+    <!-- Message shown when the user tries to make a video call when already in a video call. -->
+    <string name ="duplicate_video_call_not_allowed">Call cannot be added at this time.</string>
+
     <!-- missing voicemail number -->
     <!-- Title of the "Missing voicemail number" dialog -->
     <string name="no_vm_number">Missing voicemail number</string>
