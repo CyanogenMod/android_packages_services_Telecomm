@@ -699,7 +699,7 @@ public final class CallsManager extends Call.ListenerBase {
         mProximitySensorManager.turnOff(screenOnImmediately);
     }
 
-    void phoneAccountSelected(Call call, PhoneAccountHandle account) {
+    void phoneAccountSelected(Call call, PhoneAccountHandle account, boolean setDefault) {
         if (!mCalls.contains(call)) {
             Log.i(this, "Attempted to add account to unknown call %s", call);
         } else {
@@ -717,6 +717,10 @@ public final class CallsManager extends Call.ListenerBase {
                 call.startCreateConnection(mPhoneAccountRegistrar);
             } else {
                 call.disconnect();
+            }
+
+            if (setDefault) {
+                mPhoneAccountRegistrar.setUserSelectedOutgoingPhoneAccount(account);
             }
         }
     }
