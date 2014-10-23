@@ -139,7 +139,8 @@ class InCallAdapter extends IInCallAdapter.Stub {
                     try {
                         call = mCallIdMapper.getCall(args.arg1);
                         if (call != null) {
-                            mCallsManager.phoneAccountSelected(call, (PhoneAccountHandle) args.arg2);
+                            mCallsManager.phoneAccountSelected(call,
+                                    (PhoneAccountHandle) args.arg2, args.argi1 == 1);
                         } else {
                             Log.w(this, "phoneAccountSelected, unknown call id: %s", args.arg1);
                         }
@@ -284,11 +285,13 @@ class InCallAdapter extends IInCallAdapter.Stub {
     }
 
     @Override
-    public void phoneAccountSelected(String callId, PhoneAccountHandle accountHandle) {
+    public void phoneAccountSelected(String callId, PhoneAccountHandle accountHandle,
+            boolean setDefault) {
         if (mCallIdMapper.isValidCallId(callId)) {
             SomeArgs args = SomeArgs.obtain();
             args.arg1 = callId;
             args.arg2 = accountHandle;
+            args.argi1 = setDefault? 1 : 0;
             mHandler.obtainMessage(MSG_PHONE_ACCOUNT_SELECTED, args).sendToTarget();
         }
     }
