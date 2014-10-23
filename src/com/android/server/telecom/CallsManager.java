@@ -32,6 +32,7 @@ import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
 import android.telecom.PhoneCapabilities;
 import android.telecom.TelecomManager;
+import android.telecom.VideoProfile;
 import android.telephony.TelephonyManager;
 
 import com.android.internal.util.IndentingPrintWriter;
@@ -306,6 +307,15 @@ public final class CallsManager extends Call.ListenerBase {
     boolean hasEmergencyCall() {
         for (Call call : mCalls) {
             if (call.isEmergencyCall()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    boolean hasVideoCall() {
+        for (Call call : mCalls) {
+            if (call.getVideoState() != VideoProfile.VideoState.AUDIO_ONLY) {
                 return true;
             }
         }
