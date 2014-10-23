@@ -118,25 +118,14 @@ public final class PhoneAccountRegistrar {
     }
 
     /**
-     * Retrieves the phone account id for a given subscription id if it exists. Subscription ids
-     * apply only to PSTN/SIM card phone accounts so all other accounts should not have a
-     * subscription id.
-     * @param subscriptionId The subscription id for which to construct the phone account id
-     * @return The string representing the phone account id for the subscription id.
-     */
-    public String getPhoneAccountIdForSubscriptionId(long subscriptionId) {
-        return String.valueOf(subscriptionId);
-    }
-
-    /**
      * Retrieves the subscription id for a given phone account if it exists. Subscription ids
      * apply only to PSTN/SIM card phone accounts so all other accounts should not have a
      * subscription id.
      * @param accountHandle The handle for the phone account for which to retrieve the
      * subscription id.
-     * @return The value of the subscription id (long) or -1 if it does not exist or is not valid.
+     * @return The value of the subscription id or -1 if it does not exist or is not valid.
      */
-    public long getSubscriptionIdForPhoneAccount(PhoneAccountHandle accountHandle) {
+    public int getSubscriptionIdForPhoneAccount(PhoneAccountHandle accountHandle) {
         PhoneAccount account = getPhoneAccount(accountHandle);
         if (account == null || !account.hasCapabilities(PhoneAccount.CAPABILITY_SIM_SUBSCRIPTION) ||
                 !TextUtils.isDigitsOnly(accountHandle.getId())) {
@@ -144,7 +133,7 @@ public final class PhoneAccountRegistrar {
             // numbers can be subscription id
             return SubscriptionManager.INVALID_SUB_ID;
         }
-        return Long.parseLong(accountHandle.getId());
+        return Integer.parseInt(accountHandle.getId());
     }
 
     /**
@@ -524,7 +513,7 @@ public final class PhoneAccountRegistrar {
     }
 
     public boolean isVoiceMailNumber(PhoneAccountHandle accountHandle, String number) {
-        long subId = getSubscriptionIdForPhoneAccount(accountHandle);
+        int subId = getSubscriptionIdForPhoneAccount(accountHandle);
         return PhoneNumberUtils.isVoiceMailNumber(subId, number);
     }
 
