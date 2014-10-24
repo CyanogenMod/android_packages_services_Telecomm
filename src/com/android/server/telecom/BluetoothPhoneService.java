@@ -329,16 +329,63 @@ public final class BluetoothPhoneService extends Service {
 
         @Override
         public void onCallStateChanged(Call call, int oldState, int newState) {
+            // If a call is being put on hold because of a new connecting call, ignore the
+            // CONNECTING since the BT state update needs to send out the numHeld = 1 + dialing
+            // state atomically.
+            // When the call later transitions to DIALING/DISCONNECTED we will then send out the
+            // aggregated update.
+            if (oldState == CallState.ACTIVE && newState == CallState.ON_HOLD) {
+                for (Call otherCall : CallsManager.getInstance().getCalls()) {
+                    if (otherCall.getState() == CallState.CONNECTING) {
+                        return;
+                    }
+                }
+            }
+
+            // To have an active call and another dialing at the same time is an invalid BT
+            // state. We can assume that the active call will be automatically held which will
+            // send another update at which point we will be in the right state.
+            if (CallsManager.getInstance().getActiveCall() != null
+                    && oldState == CallState.CONNECTING && newState == CallState.DIALING) {
+                return;
+            }
             updateHeadsetWithCallState(false /* force */);
         }
 
         @Override
         public void onForegroundCallChanged(Call oldForegroundCall, Call newForegroundCall) {
-            updateHeadsetWithCallState(false /* force */);
+            // The BluetoothPhoneService does not need to respond to changes in foreground calls,
+            // which are always accompanied by call state changes anyway.
         }
 
         @Override
         public void onIsConferencedChanged(Call call) {
+            /*
+             * Filter certain onIsConferencedChanged callbacks. Unfortunately this needs to be done
+             * because conference change events are not atomic and multiple callbacks get fired
+             * when two calls are conferenced together. This confuses updateHeadsetWithCallState
+             * if it runs in the middle of two calls being conferenced and can cause spurious and
+             * incorrect headset state updates. One of the scenarios is described below for CDMA
+             * conference calls.
+             *
+             * 1) Call 1 and Call 2 are being merged into conference Call 3.
+             * 2) Call 1 has its parent set to Call 3, but Call 2 does not have a parent yet.
+             * 3) updateHeadsetWithCallState now thinks that there are two active calls (Call 2 and
+             * Call 3) when there is actually only one active call (Call 3).
+             */
+            if (call.getParentCall() != null) {
+                // If this call is newly conferenced, ignore the callback. We only care about the
+                // one sent for the parent conference call.
+                Log.d(this, "Ignoring onIsConferenceChanged from child call with new parent");
+                return;
+            }
+            if (call.getChildCalls().size() == 1) {
+                // If this is a parent call with only one child, ignore the callback as well since
+                // the minimum number of child calls to start a conference call is 2. We expect
+                // this to be called again when the parent call has another child call added.
+                Log.d(this, "Ignoring onIsConferenceChanged from parent with only one child call");
+                return;
+            }
             updateHeadsetWithCallState(false /* force */);
         }
     };
@@ -649,6 +696,7 @@ public final class BluetoothPhoneService extends Service {
         // For conference calls which support swapping the active call within the conference
         // (namely CDMA calls) we need to expose that as a held call in order for the BT device
         // to show "swap" and "merge" functionality.
+        boolean ignoreHeldCallChange = false;
         if (activeCall != null && activeCall.isConference()) {
             if (activeCall.can(PhoneCapabilities.SWAP_CONFERENCE)) {
                 // Indicate that BT device should show SWAP command by indicating that there is a
@@ -656,6 +704,16 @@ public final class BluetoothPhoneService extends Service {
                 numHeldCalls = activeCall.wasConferencePreviouslyMerged() ? 0 : 1;
             } else if (activeCall.can(PhoneCapabilities.MERGE_CONFERENCE)) {
                 numHeldCalls = 1;  // Merge is available, so expose via numHeldCalls.
+            }
+
+            for (Call childCall : activeCall.getChildCalls()) {
+                // Held call has changed due to it being combined into a CDMA conference. Keep
+                // track of this and ignore any future update since it doesn't really count as
+                // a call change.
+                if (mOldHeldCall == childCall) {
+                    ignoreHeldCallChange = true;
+                    break;
+                }
             }
         }
 
@@ -665,7 +723,7 @@ public final class BluetoothPhoneService extends Service {
                  bluetoothCallState != mBluetoothCallState ||
                  !TextUtils.equals(ringingAddress, mRingingAddress) ||
                  ringingAddressType != mRingingAddressType ||
-                 heldCall != mOldHeldCall ||
+                 (heldCall != mOldHeldCall && !ignoreHeldCallChange) ||
                  force)) {
 
             // If the call is transitioning into the alerting state, send DIALING first.
@@ -682,7 +740,18 @@ public final class BluetoothPhoneService extends Service {
             mRingingAddressType = ringingAddressType;
 
             if (sendDialingFirst) {
-                Log.i(TAG, "Sending dialing state");
+                // Log in full to make logs easier to debug.
+                Log.i(TAG, "updateHeadsetWithCallState " +
+                        "numActive %s, " +
+                        "numHeld %s, " +
+                        "callState %s, " +
+                        "ringing number %s, " +
+                        "ringing type %s",
+                        mNumActiveCalls,
+                        mNumHeldCalls,
+                        CALL_STATE_DIALING,
+                        Log.pii(mRingingAddress),
+                        mRingingAddressType);
                 mBluetoothHeadset.phoneStateChanged(
                         mNumActiveCalls,
                         mNumHeldCalls,
