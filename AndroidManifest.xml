@@ -46,6 +46,11 @@
             android:protectionLevel="signature"/>
 
     <permission
+            android:name="com.android.server.telecom.permission.REGISTER_CONNECTION_MANAGER"
+            android:label="Register CONNECTION_MANAGER PhoneAccount"
+            android:protectionLevel="signature"/>
+
+    <permission
             android:name="android.permission.BROADCAST_CALLLOG_INFO"
             android:label="Broadcast the call type/duration information"
             android:protectionLevel="signature|system"/>
