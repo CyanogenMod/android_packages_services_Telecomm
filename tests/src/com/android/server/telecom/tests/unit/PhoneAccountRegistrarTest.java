@@ -19,12 +19,15 @@ package com.android.server.telecom.tests.unit;
 import com.android.internal.util.FastXmlSerializer;
 import com.android.server.telecom.Log;
 import com.android.server.telecom.PhoneAccountRegistrar;
+import com.android.server.telecom.tests.R;
 
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlSerializer;
 
 import android.content.ComponentName;
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
@@ -187,15 +190,13 @@ public class PhoneAccountRegistrarTest extends AndroidTestCase {
                         "com.android.server.telecom.tests",
                         "com.android.server.telecom.tests.MockConnectionService"
                 ),
-                id
-        );
+                id);
     }
 
     private PhoneAccount.Builder makeQuickAccountBuilder(String id, int idx) {
         return new PhoneAccount.Builder(
                 makeQuickAccountHandle(id),
-                "label" + idx
-        );
+                "label" + idx);
     }
 
     private PhoneAccount makeQuickAccount(String id, int idx) {
@@ -203,7 +204,12 @@ public class PhoneAccountRegistrarTest extends AndroidTestCase {
                 .setAddress(Uri.parse("http://foo.com/" + idx))
                 .setSubscriptionAddress(Uri.parse("tel:555-000" + idx))
                 .setCapabilities(idx)
-                .setIconResId(idx)
+                .setIconResId(R.drawable.stat_sys_phone_call)
+                .setIconPackageName("com.android.server.telecom.tests")
+                .setIconBitmap(
+                        BitmapFactory.decodeResource(
+                                getContext().getResources(),
+                                R.drawable.stat_sys_phone_call))
                 .setShortDescription("desc" + idx)
                 .build();
     }
@@ -260,10 +266,22 @@ public class PhoneAccountRegistrarTest extends AndroidTestCase {
             assertEquals(a.getSubscriptionAddress(), b.getSubscriptionAddress());
             assertEquals(a.getCapabilities(), b.getCapabilities());
             assertEquals(a.getIconResId(), b.getIconResId());
+            assertEquals(a.getIconPackageName(), b.getIconPackageName());
+            assertBitmapEquals(a.getIconBitmap(), b.getIconBitmap());
             assertEquals(a.getColor(), b.getColor());
             assertEquals(a.getLabel(), b.getLabel());
             assertEquals(a.getShortDescription(), b.getShortDescription());
             assertEquals(a.getSupportedUriSchemes(), b.getSupportedUriSchemes());
+        }
+    }
+
+    private static void assertBitmapEquals(Bitmap a, Bitmap b) {
+        assertEquals(a.getWidth(), b.getWidth());
+        assertEquals(a.getHeight(), b.getHeight());
+        for (int x = 0; x < a.getWidth(); x++) {
+            for (int y = 0; y < a.getHeight(); y++) {
+                assertEquals(a.getPixel(x, y), b.getPixel(x, y));
+            }
         }
     }
 
