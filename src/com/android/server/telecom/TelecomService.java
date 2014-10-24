@@ -63,8 +63,7 @@ public class TelecomService extends Service {
     public static final String SERVICE_INTERFACE = "android.telecom.ITelecomService";
 
     private static final String REGISTER_PROVIDER_OR_SUBSCRIPTION =
-            "com.android.server.telecom.permission.REGISTER_PROVIDER_OR_SUBSCRIPTION";
-
+            android.Manifest.permission.REGISTER_PROVIDER_OR_SUBSCRIPTION;
     /** The context. */
     private Context mContext;
 
