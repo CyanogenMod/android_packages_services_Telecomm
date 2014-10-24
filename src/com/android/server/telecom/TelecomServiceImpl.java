@@ -51,9 +51,9 @@ import java.util.List;
  */
 public class TelecomServiceImpl extends ITelecomService.Stub {
     private static final String REGISTER_PROVIDER_OR_SUBSCRIPTION =
-            "com.android.server.telecom.permission.REGISTER_PROVIDER_OR_SUBSCRIPTION";
+            android.Manifest.permission.REGISTER_PROVIDER_OR_SUBSCRIPTION;
     private static final String REGISTER_CONNECTION_MANAGER =
-            "com.android.server.telecom.permission.REGISTER_CONNECTION_MANAGER";
+            android.Manifest.permission.REGISTER_CONNECTION_MANAGER;
 
     /** The context. */
     private Context mContext;
