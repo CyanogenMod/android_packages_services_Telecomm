@@ -29,6 +29,7 @@ import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
 import android.telecom.TelecomManager;
 import android.telephony.PhoneNumberUtils;
+import android.telephony.SubscriptionManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.net.Uri;
@@ -215,6 +216,14 @@ public final class PhoneAccountRegistrar {
                 Log.w(this, "Trying to set non-call-provider default outgoing %s",
                         accountHandle);
                 return;
+            }
+
+            if (getPhoneAccount(accountHandle).hasCapabilities(
+                    PhoneAccount.CAPABILITY_SIM_SUBSCRIPTION)) {
+                // If the account selected is a SIM account, propagate down to the subscription
+                // record.
+                long subId = getSubscriptionIdForPhoneAccount(accountHandle);
+                SubscriptionManager.setDefaultVoiceSubId(subId);
             }
 
             mState.defaultOutgoing = accountHandle;
