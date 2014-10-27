@@ -38,6 +38,7 @@
     <string name="respond_via_sms_confirmation_format" msgid="7229149977515784269">"Το μήνυμα εστάλη στο <xliff:g id="PHONE_NUMBER">%s</xliff:g>."</string>
     <string name="outgoing_call_not_allowed" msgid="1434784869685645427">"Δεν επιτρέπεται σε αυτόν το χρήστη να πραγματοποιεί τηλεφωνικές κλήσεις οι οποίες δεν είναι εκτάκτου ανάγκης"</string>
     <string name="outgoing_call_error_no_phone_number_supplied" msgid="4987143284589568716">"Η κλήση δεν πραγματοποιήθηκε, δεν έγινε εισαγωγή έγκυρου αριθμού."</string>
+    <string name="duplicate_video_call_not_allowed" msgid="3749211605014548386">"Δεν είναι δυνατή η προσθήκη κλήσης αυτήν τη στιγμή."</string>
     <string name="no_vm_number" msgid="4164780423805688336">"Λείπει ο αριθμός αυτόματου τηλεφωνητή"</string>
     <string name="no_vm_number_msg" msgid="1300729501030053828">"Δεν έχει αποθηκευτεί αριθμός για τον αυτόματο τηλεφωνητή στην κάρτα SIM."</string>
     <string name="add_vm_number_str" msgid="4676479471644687453">"Προσθήκη αριθμού"</string>
