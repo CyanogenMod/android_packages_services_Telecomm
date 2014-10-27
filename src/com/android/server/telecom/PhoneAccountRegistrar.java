@@ -211,7 +211,7 @@ public final class PhoneAccountRegistrar {
                     PhoneAccount.CAPABILITY_SIM_SUBSCRIPTION)) {
                 // If the account selected is a SIM account, propagate down to the subscription
                 // record.
-                long subId = getSubscriptionIdForPhoneAccount(accountHandle);
+                int subId = getSubscriptionIdForPhoneAccount(accountHandle);
                 SubscriptionManager.setDefaultVoiceSubId(subId);
             }
 
