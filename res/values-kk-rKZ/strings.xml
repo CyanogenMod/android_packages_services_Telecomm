@@ -36,10 +36,10 @@
     <string name="respond_via_sms_edittext_dialog_title" msgid="20379890418289778">"Жылдам жауап"</string>
     <string name="respond_via_sms_menu_reset_default_activity" msgid="1461742052902053466">"Бастапқы қолдб-ға қайта реттеу"</string>
     <string name="respond_via_sms_confirmation_format" msgid="7229149977515784269">"Хабар <xliff:g id="PHONE_NUMBER">%s</xliff:g> нөміріне жіберілді."</string>
-    <string name="phone_account_preferences_title" msgid="5042332049625236956">"Телефон есептік жазбасының параметрлері"</string>
-    <string name="default_outgoing_account_title" msgid="8261079649574578970">"Әдепкі шығыс есептік жазба"</string>
-    <string name="sim_call_manager_account" msgid="2559930293628077755">"Wi-Fi қоңыраулар есептік жазбасы"</string>
-    <string name="account_ask_every_time" msgid="944077828070287407">"Әр қоңырау үшін сұрау"</string>
-    <string name="do_not_use_sim_call_manager" msgid="5519252524007323694">"Wi-Fi қоңырауларын пайдаланбау"</string>
     <string name="outgoing_call_not_allowed" msgid="1434784869685645427">"Бұл пайдаланушыға жедел емес қоңырауларды шалуға рұқсат етілмеген"</string>
+    <string name="outgoing_call_error_no_phone_number_supplied" msgid="4987143284589568716">"Қоңырау жіберілмеді, енгізілген нөмір жарамсыз."</string>
+    <string name="duplicate_video_call_not_allowed" msgid="3749211605014548386">"Қоңырауды қазіргі уақытта қосу мүмкін емес."</string>
+    <string name="no_vm_number" msgid="4164780423805688336">"Дауыс хабарының нөмірі жоқ"</string>
+    <string name="no_vm_number_msg" msgid="1300729501030053828">"SIM картасында ешқандай дауыс хабарының нөмірі сақталмаған."</string>
+    <string name="add_vm_number_str" msgid="4676479471644687453">"Нөмір қосу"</string>
 </resources>

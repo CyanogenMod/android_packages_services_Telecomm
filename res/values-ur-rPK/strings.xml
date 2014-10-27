@@ -36,10 +36,10 @@
     <string name="respond_via_sms_edittext_dialog_title" msgid="20379890418289778">"فوری جواب"</string>
     <string name="respond_via_sms_menu_reset_default_activity" msgid="1461742052902053466">"ڈیفالٹ ایپ دوبارہ ترتیب دیں"</string>
     <string name="respond_via_sms_confirmation_format" msgid="7229149977515784269">"پیغام <xliff:g id="PHONE_NUMBER">%s</xliff:g> کو بھیج دیا گیا۔"</string>
-    <string name="phone_account_preferences_title" msgid="5042332049625236956">"فون اکاؤنٹ کی ترتیبات"</string>
-    <string name="default_outgoing_account_title" msgid="8261079649574578970">"ڈیفالٹ آؤٹ گوئنگ اکاؤنٹ"</string>
-    <string name="sim_call_manager_account" msgid="2559930293628077755">"‏Wi-Fi کالنگ اکاؤنٹ"</string>
-    <string name="account_ask_every_time" msgid="944077828070287407">"ہر بار پوچھیں"</string>
-    <string name="do_not_use_sim_call_manager" msgid="5519252524007323694">"‏Wi-Fi کالنگ کا استعمال نہ کریں"</string>
     <string name="outgoing_call_not_allowed" msgid="1434784869685645427">"اس صارف کو غیر ہنگامی فون کالیں کرنے کی اجازت نہیں ہے"</string>
+    <string name="outgoing_call_error_no_phone_number_supplied" msgid="4987143284589568716">"کال نہیں بھیجی گئی، کوئی درست نمبر درج نہیں کیا گیا۔"</string>
+    <string name="duplicate_video_call_not_allowed" msgid="3749211605014548386">"اس وقت کال شامل نہیں کی جا سکتی ہے۔"</string>
+    <string name="no_vm_number" msgid="4164780423805688336">"صوتی میل نمبر درج نہیں ہے"</string>
+    <string name="no_vm_number_msg" msgid="1300729501030053828">"‏SIM کارڈ پر کوئی بھی صوتی میل نمبر اسٹور نہیں ہے۔"</string>
+    <string name="add_vm_number_str" msgid="4676479471644687453">"نمبر شامل کریں"</string>
 </resources>

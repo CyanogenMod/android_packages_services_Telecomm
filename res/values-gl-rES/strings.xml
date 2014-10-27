@@ -36,10 +36,10 @@
     <string name="respond_via_sms_edittext_dialog_title" msgid="20379890418289778">"Resposta rápida"</string>
     <string name="respond_via_sms_menu_reset_default_activity" msgid="1461742052902053466">"Restablecer aplicación predet."</string>
     <string name="respond_via_sms_confirmation_format" msgid="7229149977515784269">"Mensaxe enviada ao <xliff:g id="PHONE_NUMBER">%s</xliff:g>."</string>
-    <string name="phone_account_preferences_title" msgid="5042332049625236956">"Configuración da conta do teléfono"</string>
-    <string name="default_outgoing_account_title" msgid="8261079649574578970">"Conta saínte predeterminada"</string>
-    <string name="sim_call_manager_account" msgid="2559930293628077755">"Conta de chamadas wifi"</string>
-    <string name="account_ask_every_time" msgid="944077828070287407">"Preguntar sempre"</string>
-    <string name="do_not_use_sim_call_manager" msgid="5519252524007323694">"Non utilizar as chamadas wifi"</string>
     <string name="outgoing_call_not_allowed" msgid="1434784869685645427">"Este usuario non ten permiso para facer chamadas telefónicas que non sexan de emerxencia"</string>
+    <string name="outgoing_call_error_no_phone_number_supplied" msgid="4987143284589568716">"Chamada non enviada; o número introducido non é válido."</string>
+    <string name="duplicate_video_call_not_allowed" msgid="3749211605014548386">"Neste momento non se pode engadir a chamada."</string>
+    <string name="no_vm_number" msgid="4164780423805688336">"Falta o número de correo de voz"</string>
+    <string name="no_vm_number_msg" msgid="1300729501030053828">"Non hai ningún número de correo de voz almacenado na tarxeta SIM."</string>
+    <string name="add_vm_number_str" msgid="4676479471644687453">"Engadir número"</string>
 </resources>

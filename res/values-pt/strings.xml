@@ -38,6 +38,7 @@
     <string name="respond_via_sms_confirmation_format" msgid="7229149977515784269">"Mensagem enviada para <xliff:g id="PHONE_NUMBER">%s</xliff:g>."</string>
     <string name="outgoing_call_not_allowed" msgid="1434784869685645427">"Este usuário não tem permissão para fazer chamadas não emergenciais pelo smartphone"</string>
     <string name="outgoing_call_error_no_phone_number_supplied" msgid="4987143284589568716">"Chamada não enviada: nenhum número válido foi inserido."</string>
+    <string name="duplicate_video_call_not_allowed" msgid="3749211605014548386">"No momento, não é possível adicionar a chamada."</string>
     <string name="no_vm_number" msgid="4164780423805688336">"Número correio de voz ausente"</string>
     <string name="no_vm_number_msg" msgid="1300729501030053828">"Não há um número correio de voz armazenado no cartão SIM."</string>
     <string name="add_vm_number_str" msgid="4676479471644687453">"Adicionar número"</string>
