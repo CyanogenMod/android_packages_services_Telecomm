@@ -38,6 +38,8 @@
     <string name="respond_via_sms_confirmation_format" msgid="7229149977515784269">"Mesajul a fost trimis la <xliff:g id="PHONE_NUMBER">%s</xliff:g>."</string>
     <string name="outgoing_call_not_allowed" msgid="1434784869685645427">"Acest utilizator nu are permisiunea de a efectua apeluri telefonice către alte numere în afară de cele de urgență"</string>
     <string name="outgoing_call_error_no_phone_number_supplied" msgid="4987143284589568716">"Apelul nu s-a trimis; niciun număr valid introdus."</string>
+    <!-- no translation found for duplicate_video_call_not_allowed (3749211605014548386) -->
+    <skip />
     <string name="no_vm_number" msgid="4164780423805688336">"Lipseşte numărul mesageriei vocale"</string>
     <string name="no_vm_number_msg" msgid="1300729501030053828">"Niciun număr de mesagerie vocală nu este stocat pe cardul SIM."</string>
     <string name="add_vm_number_str" msgid="4676479471644687453">"Adăugaţi numărul"</string>

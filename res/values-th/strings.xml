@@ -38,6 +38,7 @@
     <string name="respond_via_sms_confirmation_format" msgid="7229149977515784269">"ส่งข้อความไปยัง <xliff:g id="PHONE_NUMBER">%s</xliff:g> แล้ว"</string>
     <string name="outgoing_call_not_allowed" msgid="1434784869685645427">"ไม่อนุญาตให้ผู้ใช้รายนี้ดำเนินการโทรที่ไม่ฉุกเฉิน"</string>
     <string name="outgoing_call_error_no_phone_number_supplied" msgid="4987143284589568716">"ไม่ได้โทรออก ไม่ได้ป้อนหมายเลขที่ถูกต้อง"</string>
+    <string name="duplicate_video_call_not_allowed" msgid="3749211605014548386">"ไม่สามารถเพิ่มสายได้ในขณะนี้"</string>
     <string name="no_vm_number" msgid="4164780423805688336">"ไม่มีหมายเลขข้อความเสียง"</string>
     <string name="no_vm_number_msg" msgid="1300729501030053828">"ไม่มีหมายเลขข้อความเสียงจัดเก็บอยู่ในซิมการ์ด"</string>
     <string name="add_vm_number_str" msgid="4676479471644687453">"เพิ่มหมายเลข"</string>

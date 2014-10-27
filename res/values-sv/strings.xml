@@ -38,6 +38,7 @@
     <string name="respond_via_sms_confirmation_format" msgid="7229149977515784269">"Meddelandet har skickats till <xliff:g id="PHONE_NUMBER">%s</xliff:g>."</string>
     <string name="outgoing_call_not_allowed" msgid="1434784869685645427">"Denna användare har inte tillåtelse att ringa icke-akuta samtal"</string>
     <string name="outgoing_call_error_no_phone_number_supplied" msgid="4987143284589568716">"Samtalet har inte skickats. Du måste ange ett giltigt nummer."</string>
+    <string name="duplicate_video_call_not_allowed" msgid="3749211605014548386">"Det går inte att lägga till samtalet just nu."</string>
     <string name="no_vm_number" msgid="4164780423805688336">"Nummer till röstbrevlåda saknas"</string>
     <string name="no_vm_number_msg" msgid="1300729501030053828">"Det finns inget nummer till röstbrevlådan sparat på SIM-kortet."</string>
     <string name="add_vm_number_str" msgid="4676479471644687453">"Lägg till nummer"</string>
