@@ -38,6 +38,7 @@
     <string name="respond_via_sms_confirmation_format" msgid="7229149977515784269">"Wiadomość wysłano na numer <xliff:g id="PHONE_NUMBER">%s</xliff:g>."</string>
     <string name="outgoing_call_not_allowed" msgid="1434784869685645427">"Ten użytkownik nie ma uprawnień do połączeń innych niż alarmowe"</string>
     <string name="outgoing_call_error_no_phone_number_supplied" msgid="4987143284589568716">"Połączenie niezrealizowane. Nie podano poprawnego numeru."</string>
+    <string name="duplicate_video_call_not_allowed" msgid="3749211605014548386">"Nie można w tej chwili dodać połączenia."</string>
     <string name="no_vm_number" msgid="4164780423805688336">"Brakuje numeru poczty głosowej"</string>
     <string name="no_vm_number_msg" msgid="1300729501030053828">"Na karcie SIM nie ma zapisanego numeru poczty głosowej."</string>
     <string name="add_vm_number_str" msgid="4676479471644687453">"Dodaj numer"</string>

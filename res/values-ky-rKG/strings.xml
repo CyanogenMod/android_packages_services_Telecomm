@@ -47,6 +47,7 @@
     <string name="respond_via_sms_confirmation_format" msgid="7229149977515784269">"<xliff:g id="PHONE_NUMBER">%s</xliff:g> номуруна билдирүү жөнөтүлдү."</string>
     <string name="outgoing_call_not_allowed" msgid="1434784869685645427">"Бул колдонуучу шашылыш эмес чалууларды аткара албайт"</string>
     <string name="outgoing_call_error_no_phone_number_supplied" msgid="4987143284589568716">"Чалуу жөнөтүлгөн жок, жарактуу номер киргизилген жок."</string>
+    <string name="duplicate_video_call_not_allowed" msgid="3749211605014548386">"Бул жолу чалууну кошуу мүмкүн эмес."</string>
     <!-- no translation found for no_vm_number (4164780423805688336) -->
     <skip />
     <!-- no translation found for no_vm_number_msg (1300729501030053828) -->

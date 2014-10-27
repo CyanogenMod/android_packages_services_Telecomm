@@ -38,6 +38,7 @@
     <string name="respond_via_sms_confirmation_format" msgid="7229149977515784269">"Mensaje enviado a <xliff:g id="PHONE_NUMBER">%s</xliff:g>"</string>
     <string name="outgoing_call_not_allowed" msgid="1434784869685645427">"Este usuario solo puede realizar llamadas de emergencia"</string>
     <string name="outgoing_call_error_no_phone_number_supplied" msgid="4987143284589568716">"No se ha enviado la llamada; el número introducido no es válido."</string>
+    <string name="duplicate_video_call_not_allowed" msgid="3749211605014548386">"No se puede añadir la llamada en este momento."</string>
     <string name="no_vm_number" msgid="4164780423805688336">"Falta el número del buzón de voz."</string>
     <string name="no_vm_number_msg" msgid="1300729501030053828">"No se ha almacenado ningún número de buzón de voz en la tarjeta SIM."</string>
     <string name="add_vm_number_str" msgid="4676479471644687453">"Añadir número"</string>

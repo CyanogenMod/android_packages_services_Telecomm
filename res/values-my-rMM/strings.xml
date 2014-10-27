@@ -38,6 +38,7 @@
     <string name="respond_via_sms_confirmation_format" msgid="7229149977515784269">"<xliff:g id="PHONE_NUMBER">%s</xliff:g> ထံ စာတိုပို့လိုက်ပါပြီ"</string>
     <string name="outgoing_call_not_allowed" msgid="1434784869685645427">"ဒီအသုံးပြုသူအား အရေးပေါ် မဟုတ်သည့် ဖုန်း ခေါ်ဆိုမှုများ လုပ်ခွင့် မပြုပါ"</string>
     <string name="outgoing_call_error_no_phone_number_supplied" msgid="4987143284589568716">"ခေါ်ဆို မရခဲ့ပါ၊ ထည့်သွင်းခဲ့သည့် နံပါတ် မမှန်ပါ"</string>
+    <string name="duplicate_video_call_not_allowed" msgid="3749211605014548386">"ဗွီဒီယိုခေါ်နေစဉ် ထပ်ခေါ်မရပါ။"</string>
     <string name="no_vm_number" msgid="4164780423805688336">"အသံစာပို့စနစ် နံပါတ် ပျောက်နေပါသည်"</string>
     <string name="no_vm_number_msg" msgid="1300729501030053828">"ဆင်းမ်ကဒ်ပေါ်တွင် အသံစာပို့စနစ် နံပါတ် သိမ်းဆည်ထားခြင်း မရှိပါ"</string>
     <string name="add_vm_number_str" msgid="4676479471644687453">"နံပါတ်ထပ်ထည့်ရန်"</string>
