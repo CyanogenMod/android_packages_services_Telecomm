@@ -744,9 +744,23 @@ public final class CallsManager extends Call.ListenerBase {
             Log.w(this, "Unknown call (%s) asked to be removed from hold", call);
         } else {
             Log.d(this, "unholding call: (%s)", call);
+            PhoneAccountHandle ph = call.getTargetPhoneAccount();
+            if ((ph == null) && (call.getChildCalls().size() > 1)) {
+                Call child = call.getChildCalls().get(0);
+                ph = child.getTargetPhoneAccount();
+            }
             for (Call c : mCalls) {
-                PhoneAccountHandle ph = call.getTargetPhoneAccount();
+                // Only operate on top-level calls
+                if (c.getParentCall() != null) {
+                    continue;
+                }
+
                 PhoneAccountHandle ph1 = c.getTargetPhoneAccount();
+                if ((ph1 == null) && (c.getChildCalls().size() > 1)) {
+                    Call child = c.getChildCalls().get(0);
+                    ph1 = child.getTargetPhoneAccount();
+                }
+
                 // if 'c' is not for same subscription as call, then don't disturb 'c'
                 if (c != null && c.isAlive() && c != call && (ph != null
                         && ph1 != null && ph.getId().equals(ph1.getId()))) {
