@@ -80,8 +80,11 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
     private static final int MSG_SET_CALLER_DISPLAY_NAME = 18;
     private static final int MSG_SET_VIDEO_STATE = 19;
     private static final int MSG_SET_CONFERENCEABLE_CONNECTIONS = 20;
-    private static final int MSG_SET_PHONE_ACCOUNT = 21;
-    private static final int MSG_SET_CALL_PROPERTIES = 22;
+    private static final int MSG_SET_DISCONNECTED_WITH_SUPP_NOTIFICATION = 22;
+    private static final int MSG_SET_PHONE_ACCOUNT = 23;
+    private static final int MSG_SET_CALL_SUBSTATE = 24;
+
+    private static final int MSG_SET_CALL_PROPERTIES = 30;
 
     private final Handler mHandler = new Handler() {
         @Override
@@ -377,6 +380,13 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                     }
                     break;
                 }
+                case MSG_SET_CALL_SUBSTATE: {
+                    call = mCallIdMapper.getCall(msg.obj);
+                    if (call != null) {
+                        call.setCallSubstate(msg.arg1);
+                    }
+                    break;
+                }
             }
         }
     };
@@ -605,6 +615,15 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                 args.arg1 = callId;
                 args.arg2 = pHandle;
                 mHandler.obtainMessage(MSG_SET_PHONE_ACCOUNT, args).sendToTarget();
+            }
+        }
+
+        @Override
+        public void setCallSubstate(String callId, int callSubstate) {
+            logIncoming("setCallSubstate %s %d", callId, callSubstate);
+            if (mCallIdMapper.isValidCallId(callId)) {
+                mHandler.obtainMessage(
+                    MSG_SET_CALL_SUBSTATE, callSubstate, 0, callId).sendToTarget();
             }
         }
     }
