@@ -24,6 +24,8 @@ import android.app.PendingIntent;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
@@ -97,6 +99,10 @@ public class CallServiceNotifier {
         TelecomManager telecomManager =
                 (TelecomManager) context.getSystemService(Context.TELECOM_SERVICE);
 
+        Bitmap icon = BitmapFactory.decodeResource(
+                context.getResources(),
+                R.drawable.stat_sys_phone_call);
+
         telecomManager.clearAccounts();
 
         telecomManager.registerPhoneAccount(PhoneAccount.builder(
@@ -107,7 +113,7 @@ public class CallServiceNotifier {
                 .setAddress(Uri.parse("tel:555-TEST"))
                 .setSubscriptionAddress(Uri.parse("tel:555-TEST"))
                 .setCapabilities(PhoneAccount.CAPABILITY_CALL_PROVIDER)
-                .setIconResId(R.drawable.stat_sys_phone_call)
+                .setIconBitmap(icon)
                 .setShortDescription("a short description for the call provider")
                 .setSupportedUriSchemes(Arrays.asList("tel"))
                 .build());
@@ -121,7 +127,7 @@ public class CallServiceNotifier {
                 .setSubscriptionAddress(Uri.parse("tel:555-TSIM"))
                 .setCapabilities(PhoneAccount.CAPABILITY_CALL_PROVIDER |
                     PhoneAccount.CAPABILITY_SIM_SUBSCRIPTION)
-                .setIconResId(R.drawable.stat_sys_phone_call)
+                .setIconBitmap(icon)
                 .setShortDescription("a short description for the sim subscription")
                 .build());
 
@@ -133,7 +139,7 @@ public class CallServiceNotifier {
                 .setAddress(Uri.parse("tel:555-CMGR"))
                 .setSubscriptionAddress(Uri.parse("tel:555-CMGR"))
                 .setCapabilities(PhoneAccount.CAPABILITY_CONNECTION_MANAGER)
-                .setIconResId(R.drawable.stat_sys_phone_call)
+                .setIconBitmap(icon)
                 .setShortDescription("a short description for the connection manager")
                 .build());
     }
