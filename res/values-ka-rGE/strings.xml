@@ -38,8 +38,7 @@
     <string name="respond_via_sms_confirmation_format" msgid="7229149977515784269">"შეტყობინება გაიგზავნა <xliff:g id="PHONE_NUMBER">%s</xliff:g>-თან."</string>
     <string name="outgoing_call_not_allowed" msgid="1434784869685645427">"ამ მომხმარებელს არ აქვს უფლება, განახორციელოს არასაგანგებო სატელეფონო ზარები."</string>
     <string name="outgoing_call_error_no_phone_number_supplied" msgid="4987143284589568716">"ვერ გაიგზავნა, ტელეფონის ნომერი სწორად არ იქნა შეყვანილი."</string>
-    <!-- no translation found for duplicate_video_call_not_allowed (3749211605014548386) -->
-    <skip />
+    <string name="duplicate_video_call_not_allowed" msgid="3749211605014548386">"ამ ეტაპზე ზარის დამატება ვერ ხერხდება."</string>
     <string name="no_vm_number" msgid="4164780423805688336">"ხმოვანი ფოსტის ნომერი არ არის"</string>
     <string name="no_vm_number_msg" msgid="1300729501030053828">"SIM ბარათზე ხმოვანი ფოსტის ნომერი შენახული არ არის."</string>
     <string name="add_vm_number_str" msgid="4676479471644687453">"ნომრის დამატება"</string>
