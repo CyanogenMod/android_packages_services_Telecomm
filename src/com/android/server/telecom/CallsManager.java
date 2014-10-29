@@ -77,6 +77,7 @@ public final class CallsManager extends Call.ListenerBase {
         void onIsConferencedChanged(Call call);
         void onIsVoipAudioModeChanged(Call call);
         void onVideoStateChanged(Call call);
+        void onCallSubstateChanged(Call call);
     }
 
     /**
@@ -309,6 +310,13 @@ public final class CallsManager extends Call.ListenerBase {
     public void onVideoStateChanged(Call call) {
         for (CallsManagerListener listener : mListeners) {
             listener.onVideoStateChanged(call);
+        }
+    }
+
+    @Override
+    public void onCallSubstateChanged(Call call) {
+        for (CallsManagerListener listener : mListeners) {
+            listener.onCallSubstateChanged(call);
         }
     }
 

@@ -118,6 +118,11 @@ public class TestConnectionManager extends ConnectionService {
                 }
                 setConferenceableConnections(c);
             }
+
+            @Override
+            public void onCallSubstateChanged(RemoteConnection connection, int callSubstate) {
+                setCallSubstate(callSubstate);
+            }
         };
 
         private final RemoteConnection mRemote;
