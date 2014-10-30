@@ -223,6 +223,19 @@ public final class InCallController extends CallsManagerListenerBase {
         }
     }
 
+    @Override
+    public void onCanAddCallChanged(boolean canAddCall) {
+        if (!mInCallServices.isEmpty()) {
+            Log.i(this, "onCanAddCallChanged : %b", canAddCall);
+            for (IInCallService inCallService : mInCallServices.values()) {
+                try {
+                    inCallService.onCanAddCallChanged(canAddCall);
+                } catch (RemoteException ignored) {
+                }
+            }
+        }
+    }
+
     void onPostDialWait(Call call, String remaining) {
         if (!mInCallServices.isEmpty()) {
             Log.i(this, "Calling onPostDialWait, remaining = %s", remaining);
@@ -443,14 +456,10 @@ public final class InCallController extends CallsManagerListenerBase {
         String callId = mCallIdMapper.getCallId(call);
 
         int capabilities = call.getCallCapabilities();
-        if (CallsManager.getInstance().isAddCallCapable(call)) {
-            capabilities |= PhoneCapabilities.ADD_CALL;
-        }
 
         // Disable mute and add call for emergency calls.
         if (call.isEmergencyCall()) {
             capabilities &= ~PhoneCapabilities.MUTE;
-            capabilities &= ~PhoneCapabilities.ADD_CALL;
         }
 
         int properties = call.getCallProperties();
