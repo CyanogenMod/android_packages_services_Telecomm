@@ -449,7 +449,7 @@ final class CallAudioManager extends CallsManagerListenerBase
         //     *will* be routed to a bluetooth headset once the call is answered. In this case, just
         //     check if the headset is available. Note this only applies when we are dealing with
         //     the first call.
-        if (call != null && mBluetoothManager.isBluetoothAvailable()) {
+        if (call != null && mBluetoothManager.isBluetoothAvailable() && isBluetoothAudioOn()) {
             switch(call.getState()) {
                 case CallState.ACTIVE:
                 case CallState.ON_HOLD:
