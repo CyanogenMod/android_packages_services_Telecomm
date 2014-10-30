@@ -624,7 +624,7 @@ public class TelecomService extends Service {
         /**
          * @see android.telecom.TelecomManager#getAdnUriForPhoneAccount
          */
-        /* @Override
+         @Override
         public Uri getAdnUriForPhoneAccount(PhoneAccountHandle accountHandle) {
             enforceModifyPermissionOrDefaultDialer();
 
@@ -644,7 +644,7 @@ public class TelecomService extends Service {
             }
 
             return Uri.parse(retval);
-        }*/
+        }
 
         /**
          * @see android.telecom.TelecomManager#isTtySupported
