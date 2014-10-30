@@ -23,6 +23,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
+import android.net.Uri;
 import android.os.Binder;
 import android.os.Bundle;
 import android.os.Handler;
@@ -480,6 +481,26 @@ public class TelecomServiceImpl extends ITelecomService.Stub {
         }
 
         return retval;
+    }
+
+    /**
+     * @see android.telecom.TelecomManager#getAdnUriForPhoneAccount
+     */
+    @Override
+    public Uri getAdnUriForPhoneAccount(PhoneAccountHandle accountHandle) {
+        enforceModifyPermissionOrDefaultDialer();
+
+        // Switch identity so that TelephonyManager checks Telecom's permissions instead.
+        long token = Binder.clearCallingIdentity();
+        String retval = "content://icc/adn/";
+        try {
+            long subId = mPhoneAccountRegistrar.getSubscriptionIdForPhoneAccount(accountHandle);
+            retval = retval + "subId/" + subId;
+        } finally {
+            Binder.restoreCallingIdentity(token);
+        }
+
+        return Uri.parse(retval);
     }
 
     /**
