@@ -21,13 +21,12 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.content.pm.ServiceInfo;
-import android.os.Environment;
-import android.os.UserHandle;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.provider.Settings;
 import android.telecom.ConnectionService;
 import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
-import android.telecom.TelecomManager;
 import android.telephony.PhoneNumberUtils;
 import android.telephony.SubscriptionManager;
 import android.content.ComponentName;
@@ -35,6 +34,7 @@ import android.content.Context;
 import android.net.Uri;
 import android.text.TextUtils;
 import android.util.AtomicFile;
+import android.util.Base64;
 import android.util.Xml;
 
 // TODO: Needed for move to system service: import com.android.internal.R;
@@ -49,6 +49,7 @@ import org.xmlpull.v1.XmlSerializer;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -58,7 +59,6 @@ import java.lang.Integer;
 import java.lang.SecurityException;
 import java.lang.String;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
@@ -84,7 +84,7 @@ public final class PhoneAccountRegistrar {
 
     private static final String FILE_NAME = "phone-account-registrar-state.xml";
     @VisibleForTesting
-    public static final int EXPECTED_STATE_VERSION = 3;
+    public static final int EXPECTED_STATE_VERSION = 4;
 
     /** Keep in sync with the same in SipSettings.java */
     private static final String SIP_SHARED_PREFERENCES = "SIP_PREFERENCES";
@@ -675,7 +675,7 @@ public final class PhoneAccountRegistrar {
         public abstract T readFromXml(XmlPullParser parser, int version, Context context)
                 throws IOException, XmlPullParserException;
 
-        protected void writeTextSafely(String tagName, Object value, XmlSerializer serializer)
+        protected void writeTextIfNonNull(String tagName, Object value, XmlSerializer serializer)
                 throws IOException {
             if (value != null) {
                 serializer.startTag(null, tagName);
@@ -710,7 +710,20 @@ public final class PhoneAccountRegistrar {
                 serializer.attribute(null, LENGTH_ATTRIBUTE, "0");
             }
             serializer.endTag(null, tagName);
+        }
 
+        protected void writeBitmapIfNonNull(String tagName, Bitmap value, XmlSerializer serializer)
+                throws IOException {
+            if (value != null && value.getByteCount() > 0) {
+                ByteArrayOutputStream stream = new ByteArrayOutputStream();
+                value.compress(Bitmap.CompressFormat.PNG, 100, stream);
+                byte[] imageByteArray = stream.toByteArray();
+                String text = Base64.encodeToString(imageByteArray, 0, imageByteArray.length, 0);
+
+                serializer.startTag(null, tagName);
+                serializer.text(text);
+                serializer.endTag(null, tagName);
+            }
         }
 
         /**
@@ -742,6 +755,12 @@ public final class PhoneAccountRegistrar {
             }
 
             return arrayEntries;
+        }
+
+        protected Bitmap readBitmap(XmlPullParser parser)
+                throws IOException, XmlPullParserException {
+            byte[] imageByteArray = Base64.decode(parser.getText(), 0);
+            return BitmapFactory.decodeByteArray(imageByteArray, 0, imageByteArray.length);
         }
     }
 
@@ -830,12 +849,12 @@ public final class PhoneAccountRegistrar {
         private static final String SUBSCRIPTION_ADDRESS = "subscription_number";
         private static final String CAPABILITIES = "capabilities";
         private static final String ICON_RES_ID = "icon_res_id";
+        private static final String ICON_PACKAGE_NAME = "icon_package_name";
+        private static final String ICON_BITMAP = "icon_bitmap";
         private static final String COLOR = "color";
         private static final String LABEL = "label";
         private static final String SHORT_DESCRIPTION = "short_description";
         private static final String SUPPORTED_URI_SCHEMES = "supported_uri_schemes";
-        private static final String TRUE = "true";
-        private static final String FALSE = "false";
 
         @Override
         public void writeToXml(PhoneAccount o, XmlSerializer serializer)
@@ -849,13 +868,15 @@ public final class PhoneAccountRegistrar {
                     serializer.endTag(null, ACCOUNT_HANDLE);
                 }
 
-                writeTextSafely(ADDRESS, o.getAddress(), serializer);
-                writeTextSafely(SUBSCRIPTION_ADDRESS, o.getSubscriptionAddress(), serializer);
-                writeTextSafely(CAPABILITIES, Integer.toString(o.getCapabilities()), serializer);
-                writeTextSafely(ICON_RES_ID, Integer.toString(o.getIconResId()), serializer);
-                writeTextSafely(COLOR, Integer.toString(o.getColor()), serializer);
-                writeTextSafely(LABEL, o.getLabel(), serializer);
-                writeTextSafely(SHORT_DESCRIPTION, o.getShortDescription(), serializer);
+                writeTextIfNonNull(ADDRESS, o.getAddress(), serializer);
+                writeTextIfNonNull(SUBSCRIPTION_ADDRESS, o.getSubscriptionAddress(), serializer);
+                writeTextIfNonNull(CAPABILITIES, Integer.toString(o.getCapabilities()), serializer);
+                writeTextIfNonNull(ICON_RES_ID, Integer.toString(o.getIconResId()), serializer);
+                writeTextIfNonNull(ICON_PACKAGE_NAME, o.getIconPackageName(), serializer);
+                writeBitmapIfNonNull(ICON_BITMAP, o.getIconBitmap(), serializer);
+                writeTextIfNonNull(COLOR, Integer.toString(o.getColor()), serializer);
+                writeTextIfNonNull(LABEL, o.getLabel(), serializer);
+                writeTextIfNonNull(SHORT_DESCRIPTION, o.getShortDescription(), serializer);
                 writeStringList(SUPPORTED_URI_SCHEMES, o.getSupportedUriSchemes(), serializer);
 
                 serializer.endTag(null, CLASS_PHONE_ACCOUNT);
@@ -871,6 +892,8 @@ public final class PhoneAccountRegistrar {
                 Uri subscriptionAddress = null;
                 int capabilities = 0;
                 int iconResId = 0;
+                String iconPackageName = null;
+                Bitmap icon = null;
                 int color = 0;
                 String label = null;
                 String shortDescription = null;
@@ -894,6 +917,12 @@ public final class PhoneAccountRegistrar {
                     } else if (parser.getName().equals(ICON_RES_ID)) {
                         parser.next();
                         iconResId = Integer.parseInt(parser.getText());
+                    } else if (parser.getName().equals(ICON_PACKAGE_NAME)) {
+                        parser.next();
+                        iconPackageName = parser.getText();
+                    } else if (parser.getName().equals(ICON_BITMAP)) {
+                        parser.next();
+                        icon = readBitmap(parser);
                     } else if (parser.getName().equals(COLOR)) {
                         parser.next();
                         color = Integer.parseInt(parser.getText());
@@ -934,6 +963,8 @@ public final class PhoneAccountRegistrar {
                         .setSubscriptionAddress(subscriptionAddress)
                         .setCapabilities(capabilities)
                         .setIconResId(iconResId)
+                        .setIconPackageName(iconPackageName)
+                        .setIconBitmap(icon)
                         .setColor(color)
                         .setShortDescription(shortDescription)
                         .setSupportedUriSchemes(supportedUriSchemes)
@@ -970,11 +1001,11 @@ public final class PhoneAccountRegistrar {
                 serializer.startTag(null, CLASS_PHONE_ACCOUNT_HANDLE);
 
                 if (o.getComponentName() != null) {
-                    writeTextSafely(
+                    writeTextIfNonNull(
                             COMPONENT_NAME, o.getComponentName().flattenToString(), serializer);
                 }
 
-                writeTextSafely(ID, o.getId(), serializer);
+                writeTextIfNonNull(ID, o.getId(), serializer);
 
                 serializer.endTag(null, CLASS_PHONE_ACCOUNT_HANDLE);
             }
