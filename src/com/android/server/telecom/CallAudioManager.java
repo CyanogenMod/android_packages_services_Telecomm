@@ -129,17 +129,21 @@ final class CallAudioManager extends CallsManagerListenerBase
             return;
         }
 
-        int newRoute = AudioState.ROUTE_EARPIECE;
-        if (newIsPluggedIn) {
-            newRoute = AudioState.ROUTE_WIRED_HEADSET;
-        } else if (mWasSpeakerOn) {
-            Call call = getForegroundCall();
-            if (call != null && call.isAlive()) {
-                // Restore the speaker state.
-                newRoute = AudioState.ROUTE_SPEAKER;
+        Log.d(this,"isBluetoothAudioOn(): "+isBluetoothAudioOn());
+
+        if (!isBluetoothAudioOn()) {
+            int newRoute = AudioState.ROUTE_EARPIECE;
+            if (newIsPluggedIn) {
+                newRoute = AudioState.ROUTE_WIRED_HEADSET;
+            } else if (mWasSpeakerOn) {
+                Call call = getForegroundCall();
+                if (call != null && call.isAlive()) {
+                    // Restore the speaker state.
+                    newRoute = AudioState.ROUTE_SPEAKER;
+                }
             }
+            setSystemAudioState(mAudioState.isMuted, newRoute, calculateSupportedRoutes());
         }
-        setSystemAudioState(mAudioState.isMuted, newRoute, calculateSupportedRoutes());
     }
 
     void toggleMute() {
