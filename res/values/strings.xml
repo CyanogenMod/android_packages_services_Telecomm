@@ -83,6 +83,9 @@
     <!-- Call failure message displayed in an error dialog used to indicate that a phone number was not provided -->
     <string name="outgoing_call_error_no_phone_number_supplied">Call not sent, no valid number entered.</string>
 
+    <!-- Message indicating video calls not allowed if user enabled TTY Mode -->
+    <string name="video_call_not_allowed_if_tty_enabled">Please disable TTY Mode to make video calls.</string>
+
     <!-- missing voicemail number -->
     <!-- Title of the "Missing voicemail number" dialog -->
     <string name="no_vm_number">Missing voicemail number</string>
