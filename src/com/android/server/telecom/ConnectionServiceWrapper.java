@@ -80,6 +80,7 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
     private static final int MSG_SET_CALLER_DISPLAY_NAME = 18;
     private static final int MSG_SET_VIDEO_STATE = 19;
     private static final int MSG_SET_CONFERENCEABLE_CONNECTIONS = 20;
+    private static final int MSG_ADD_EXISTING_CONNECTION = 21;
 
     private final Handler mHandler = new Handler() {
         @Override
@@ -350,6 +351,19 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                     }
                     break;
                 }
+                case MSG_ADD_EXISTING_CONNECTION: {
+                    SomeArgs args = (SomeArgs) msg.obj;
+                    try {
+                        String callId = (String)args.arg1;
+                        ParcelableConnection connection = (ParcelableConnection)args.arg2;
+                        Call existingCall = mCallsManager.createCallForExistingConnection(callId,
+                                connection);
+                        mCallIdMapper.addCall(existingCall, callId);
+                        existingCall.setConnectionService(ConnectionServiceWrapper.this);
+                    } finally {
+                        args.recycle();
+                    }
+                }
             }
         }
     };
@@ -458,12 +472,10 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
         @Override
         public void setIsConferenced(String callId, String conferenceCallId) {
             logIncoming("setIsConferenced %s %s", callId, conferenceCallId);
-            if (mCallIdMapper.isValidCallId(callId)) {
-                SomeArgs args = SomeArgs.obtain();
-                args.arg1 = callId;
-                args.arg2 = conferenceCallId;
-                mHandler.obtainMessage(MSG_SET_IS_CONFERENCED, args).sendToTarget();
-            }
+            SomeArgs args = SomeArgs.obtain();
+            args.arg1 = callId;
+            args.arg2 = conferenceCallId;
+            mHandler.obtainMessage(MSG_SET_IS_CONFERENCED, args).sendToTarget();
         }
 
         @Override
@@ -557,6 +569,15 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                 args.arg2 = conferenceableCallIds;
                 mHandler.obtainMessage(MSG_SET_CONFERENCEABLE_CONNECTIONS, args).sendToTarget();
             }
+        }
+
+        @Override
+        public void addExistingConnection(String callId, ParcelableConnection connection) {
+            logIncoming("addExistingConnection  %s %s", callId, connection);
+            SomeArgs args = SomeArgs.obtain();
+            args.arg1 = callId;
+            args.arg2 = connection;
+            mHandler.obtainMessage(MSG_ADD_EXISTING_CONNECTION, args).sendToTarget();
         }
     }
 
