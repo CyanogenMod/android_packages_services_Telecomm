@@ -27,9 +27,11 @@ import android.os.Bundle;
 import android.os.RemoteException;
 import android.os.UserHandle;
 import android.os.UserManager;
+import android.provider.Settings;
 import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
 import android.telecom.TelecomManager;
+import android.telecom.VideoProfile;
 import android.telephony.DisconnectCause;
 import android.telephony.PhoneNumberUtils;
 import android.text.TextUtils;
@@ -127,6 +129,18 @@ public class CallActivity extends Activity {
             return;
         }
 
+        int videoState = intent.getIntExtra(
+                TelecomManager.EXTRA_START_CALL_WITH_VIDEO_STATE,
+                VideoProfile.VideoState.AUDIO_ONLY);
+        Log.d(this, "processOutgoingCallIntent videoState = " + videoState);
+
+        if (VideoProfile.VideoState.isVideo(videoState) && isTtyModeEnabled()) {
+            Toast.makeText(this, getResources().getString(R.string.
+                    video_call_not_allowed_if_tty_enabled), Toast.LENGTH_SHORT).show();
+            Log.d(this, "Rejecting video calls as tty is enabled");
+            return;
+        }
+
         AppOpsManager appOps = (AppOpsManager) getSystemService(Context.APP_OPS_SERVICE);
         int launchedFromUid;
         String launchedFromPackage;
@@ -153,6 +167,13 @@ public class CallActivity extends Activity {
         } else {
             sendBroadcastToReceiver(intent, false /* isIncoming */);
         }
+    }
+
+    private boolean isTtyModeEnabled() {
+        return (android.provider.Settings.Secure.getInt(
+                getContentResolver(),
+                android.provider.Settings.Secure.PREFERRED_TTY_MODE,
+                TelecomManager.TTY_MODE_OFF) != TelecomManager.TTY_MODE_OFF);
     }
 
     private void processIncomingCallIntent(Intent intent) {
