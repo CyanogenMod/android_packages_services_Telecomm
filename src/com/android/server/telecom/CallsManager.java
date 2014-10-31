@@ -28,6 +28,7 @@ import android.telecom.CallState;
 import android.telecom.DisconnectCause;
 import android.telecom.GatewayInfo;
 import android.telecom.ParcelableConference;
+import android.telecom.ParcelableConnection;
 import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
 import android.telecom.PhoneCapabilities;
@@ -1222,6 +1223,36 @@ public final class CallsManager extends Call.ListenerBase {
             return false;
         }
         return true;
+    }
+
+    /**
+     * Creates a new call for an existing connection.
+     *
+     * @param callId The id of the new call.
+     * @param connection The connection information.
+     * @return The new call.
+     */
+    Call createCallForExistingConnection(String callId, ParcelableConnection connection) {
+        Call call = new Call(
+                mContext,
+                mConnectionServiceRepository,
+                connection.getHandle() /* handle */,
+                null /* gatewayInfo */,
+                null /* connectionManagerPhoneAccount */,
+                connection.getPhoneAccount(), /* targetPhoneAccountHandle */
+                false /* isIncoming */,
+                false /* isConference */);
+
+        setCallState(call, Call.getStateFromConnectionState(connection.getState()));
+        call.setConnectTimeMillis(System.currentTimeMillis());
+        call.setCallCapabilities(connection.getCapabilities());
+        call.setCallerDisplayName(connection.getCallerDisplayName(),
+                connection.getCallerDisplayNamePresentation());
+
+        call.addListener(this);
+        addCall(call);
+
+        return call;
     }
 
     /**
