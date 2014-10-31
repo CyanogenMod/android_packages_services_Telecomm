@@ -50,11 +50,6 @@ import java.util.List;
  * Implementation of the ITelecom interface.
  */
 public class TelecomServiceImpl extends ITelecomService.Stub {
-    private static final String REGISTER_PROVIDER_OR_SUBSCRIPTION =
-            android.Manifest.permission.REGISTER_PROVIDER_OR_SUBSCRIPTION;
-    private static final String REGISTER_CONNECTION_MANAGER =
-            android.Manifest.permission.REGISTER_CONNECTION_MANAGER;
-
     /** The context. */
     private Context mContext;
 
@@ -303,9 +298,11 @@ public class TelecomServiceImpl extends ITelecomService.Stub {
         try {
             enforcePhoneAccountModificationForPackage(
                     account.getAccountHandle().getComponentName().getPackageName());
-            if (account.hasCapabilities(PhoneAccount.CAPABILITY_CALL_PROVIDER) ||
-                account.hasCapabilities(PhoneAccount.CAPABILITY_SIM_SUBSCRIPTION)) {
-                enforceRegisterProviderOrSubscriptionPermission();
+            if (account.hasCapabilities(PhoneAccount.CAPABILITY_CALL_PROVIDER)) {
+                enforceRegisterCallProviderPermission();
+            }
+            if (account.hasCapabilities(PhoneAccount.CAPABILITY_SIM_SUBSCRIPTION)) {
+                enforceRegisterSimSubscriptionPermission();
             }
             if (account.hasCapabilities(PhoneAccount.CAPABILITY_CONNECTION_MANAGER)) {
                 enforceRegisterConnectionManagerPermission();
@@ -597,12 +594,16 @@ public class TelecomServiceImpl extends ITelecomService.Stub {
         enforceFeature(PackageManager.FEATURE_CONNECTION_SERVICE);
     }
 
-    private void enforceRegisterProviderOrSubscriptionPermission() {
-        enforcePermission(REGISTER_PROVIDER_OR_SUBSCRIPTION);
+    private void enforceRegisterCallProviderPermission() {
+        enforcePermission(android.Manifest.permission.REGISTER_CALL_PROVIDER);
+    }
+
+    private void enforceRegisterSimSubscriptionPermission() {
+        enforcePermission(android.Manifest.permission.REGISTER_SIM_SUBSCRIPTION);
     }
 
     private void enforceRegisterConnectionManagerPermission() {
-        enforcePermission(REGISTER_CONNECTION_MANAGER);
+        enforcePermission(android.Manifest.permission.REGISTER_CONNECTION_MANAGER);
     }
 
     private void enforceReadPermission() {
