@@ -27,6 +27,10 @@ LOCAL_SRC_FILES := \
         $(call all-java-files-under, src) \
         $(call all-java-files-under, ../src)
 
+LOCAL_SRC_FILES += \
+        src/org/codeaurora/btmultisim/IBluetoothDsdaService.aidl
+
+
 LOCAL_RESOURCE_DIR := \
     $(LOCAL_PATH)/res \
     $(LOCAL_PATH)/../res
