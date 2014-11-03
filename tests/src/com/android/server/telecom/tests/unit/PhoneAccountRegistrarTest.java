@@ -204,12 +204,7 @@ public class PhoneAccountRegistrarTest extends AndroidTestCase {
                 .setAddress(Uri.parse("http://foo.com/" + idx))
                 .setSubscriptionAddress(Uri.parse("tel:555-000" + idx))
                 .setCapabilities(idx)
-                .setIconResId(R.drawable.stat_sys_phone_call)
-                .setIconPackageName("com.android.server.telecom.tests")
-                .setIconBitmap(
-                        BitmapFactory.decodeResource(
-                                getContext().getResources(),
-                                R.drawable.stat_sys_phone_call))
+                .setIcon("com.android.server.telecom.tests", R.drawable.stat_sys_phone_call)
                 .setShortDescription("desc" + idx)
                 .build();
     }
@@ -268,7 +263,8 @@ public class PhoneAccountRegistrarTest extends AndroidTestCase {
             assertEquals(a.getIconResId(), b.getIconResId());
             assertEquals(a.getIconPackageName(), b.getIconPackageName());
             assertBitmapEquals(a.getIconBitmap(), b.getIconBitmap());
-            assertEquals(a.getColor(), b.getColor());
+            assertEquals(a.getIconTint(), b.getIconTint());
+            assertEquals(a.getHighlightColor(), b.getHighlightColor());
             assertEquals(a.getLabel(), b.getLabel());
             assertEquals(a.getShortDescription(), b.getShortDescription());
             assertEquals(a.getSupportedUriSchemes(), b.getSupportedUriSchemes());
@@ -276,11 +272,16 @@ public class PhoneAccountRegistrarTest extends AndroidTestCase {
     }
 
     private static void assertBitmapEquals(Bitmap a, Bitmap b) {
-        assertEquals(a.getWidth(), b.getWidth());
-        assertEquals(a.getHeight(), b.getHeight());
-        for (int x = 0; x < a.getWidth(); x++) {
-            for (int y = 0; y < a.getHeight(); y++) {
-                assertEquals(a.getPixel(x, y), b.getPixel(x, y));
+        if (a == null || b == null) {
+            assertEquals(null, a);
+            assertEquals(null, b);
+        } else {
+            assertEquals(a.getWidth(), b.getWidth());
+            assertEquals(a.getHeight(), b.getHeight());
+            for (int x = 0; x < a.getWidth(); x++) {
+                for (int y = 0; y < a.getHeight(); y++) {
+                    assertEquals(a.getPixel(x, y), b.getPixel(x, y));
+                }
             }
         }
     }
