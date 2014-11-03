@@ -21,9 +21,9 @@
 
     <!-- Test connection service outgoing video preview. -->
     <uses-permission android:name="android.permission.CAMERA" />
-    <uses-permission
-            android:name="com.android.server.telecom.permission.REGISTER_PROVIDER_OR_SUBSCRIPTION" />
     <uses-permission android:name="android.permission.CONTROL_INCALL_EXPERIENCE" />
+    <uses-permission android:name="android.permission.REGISTER_CALL_PROVIDER" />
+    <uses-permission android:name="android.permission.REGISTER_SIM_SUBSCRIPTION" />
 
     <application android:label="@string/app_name"
                  android:debuggable="true">
