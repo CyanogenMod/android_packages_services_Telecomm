@@ -85,7 +85,7 @@ public final class PhoneAccountRegistrar {
 
     private static final String FILE_NAME = "phone-account-registrar-state.xml";
     @VisibleForTesting
-    public static final int EXPECTED_STATE_VERSION = 3;
+    public static final int EXPECTED_STATE_VERSION = 5;
 
     /** Keep in sync with the same in SipSettings.java */
     private static final String SIP_SHARED_PREFERENCES = "SIP_PREFERENCES";
@@ -460,6 +460,9 @@ public final class PhoneAccountRegistrar {
      * @param account The {@code PhoneAccount} to add or replace.
      */
     private void addOrReplacePhoneAccount(PhoneAccount account) {
+        Log.d(this, "addOrReplacePhoneAccount(%s -> %s)",
+                account.getAccountHandle(), account);
+
         mState.accounts.add(account);
         // Search for duplicates and remove any that are found.
         for (int i = 0; i < mState.accounts.size() - 1; i++) {
@@ -881,7 +884,10 @@ public final class PhoneAccountRegistrar {
         private static final String SUBSCRIPTION_ADDRESS = "subscription_number";
         private static final String CAPABILITIES = "capabilities";
         private static final String ICON_RES_ID = "icon_res_id";
-        private static final String COLOR = "color";
+        private static final String ICON_PACKAGE_NAME = "icon_package_name";
+        private static final String ICON_BITMAP = "icon_bitmap";
+        private static final String ICON_TINT = "icon_tint";
+        private static final String HIGHLIGHT_COLOR = "highlight_color";
         private static final String LABEL = "label";
         private static final String SHORT_DESCRIPTION = "short_description";
         private static final String SUPPORTED_URI_SCHEMES = "supported_uri_schemes";
@@ -900,13 +906,17 @@ public final class PhoneAccountRegistrar {
                     serializer.endTag(null, ACCOUNT_HANDLE);
                 }
 
-                writeTextSafely(ADDRESS, o.getAddress(), serializer);
-                writeTextSafely(SUBSCRIPTION_ADDRESS, o.getSubscriptionAddress(), serializer);
-                writeTextSafely(CAPABILITIES, Integer.toString(o.getCapabilities()), serializer);
-                writeTextSafely(ICON_RES_ID, Integer.toString(o.getIconResId()), serializer);
-                writeTextSafely(COLOR, Integer.toString(o.getColor()), serializer);
-                writeTextSafely(LABEL, o.getLabel(), serializer);
-                writeTextSafely(SHORT_DESCRIPTION, o.getShortDescription(), serializer);
+                writeTextIfNonNull(ADDRESS, o.getAddress(), serializer);
+                writeTextIfNonNull(SUBSCRIPTION_ADDRESS, o.getSubscriptionAddress(), serializer);
+                writeTextIfNonNull(CAPABILITIES, Integer.toString(o.getCapabilities()), serializer);
+                writeTextIfNonNull(ICON_RES_ID, Integer.toString(o.getIconResId()), serializer);
+                writeTextIfNonNull(ICON_PACKAGE_NAME, o.getIconPackageName(), serializer);
+                writeBitmapIfNonNull(ICON_BITMAP, o.getIconBitmap(), serializer);
+                writeTextIfNonNull(ICON_TINT, Integer.toString(o.getIconTint()), serializer);
+                writeTextIfNonNull(HIGHLIGHT_COLOR,
+                        Integer.toString(o.getHighlightColor()), serializer);
+                writeTextIfNonNull(LABEL, o.getLabel(), serializer);
+                writeTextIfNonNull(SHORT_DESCRIPTION, o.getShortDescription(), serializer);
                 writeStringList(SUPPORTED_URI_SCHEMES, o.getSupportedUriSchemes(), serializer);
 
                 serializer.endTag(null, CLASS_PHONE_ACCOUNT);
@@ -921,8 +931,11 @@ public final class PhoneAccountRegistrar {
                 Uri address = null;
                 Uri subscriptionAddress = null;
                 int capabilities = 0;
-                int iconResId = 0;
-                int color = 0;
+                int iconResId = PhoneAccount.NO_RESOURCE_ID;
+                String iconPackageName = null;
+                Bitmap iconBitmap = null;
+                int iconTint = PhoneAccount.NO_COLOR;
+                int highlightColor = PhoneAccount.NO_COLOR;
                 String label = null;
                 String shortDescription = null;
                 List<String> supportedUriSchemes = null;
@@ -945,9 +958,18 @@ public final class PhoneAccountRegistrar {
                     } else if (parser.getName().equals(ICON_RES_ID)) {
                         parser.next();
                         iconResId = Integer.parseInt(parser.getText());
-                    } else if (parser.getName().equals(COLOR)) {
+                    } else if (parser.getName().equals(ICON_PACKAGE_NAME)) {
                         parser.next();
-                        color = Integer.parseInt(parser.getText());
+                        iconPackageName = parser.getText();
+                    } else if (parser.getName().equals(ICON_BITMAP)) {
+                        parser.next();
+                        iconBitmap = readBitmap(parser);
+                    } else if (parser.getName().equals(ICON_TINT)) {
+                        parser.next();
+                        iconTint = Integer.parseInt(parser.getText());
+                    } else if (parser.getName().equals(HIGHLIGHT_COLOR)) {
+                        parser.next();
+                        highlightColor = Integer.parseInt(parser.getText());
                     } else if (parser.getName().equals(LABEL)) {
                         parser.next();
                         label = parser.getText();
@@ -980,15 +1002,28 @@ public final class PhoneAccountRegistrar {
                     }
                 }
 
-                return PhoneAccount.builder(accountHandle, label)
+                // Upgrade older phone accounts with explicit package name
+                if (version < 5) {
+                    if (iconBitmap == null) {
+                        iconPackageName = accountHandle.getComponentName().getPackageName();
+                    }
+                }
+
+                PhoneAccount.Builder builder = PhoneAccount.builder(accountHandle, label)
                         .setAddress(address)
                         .setSubscriptionAddress(subscriptionAddress)
                         .setCapabilities(capabilities)
-                        .setIconResId(iconResId)
-                        .setColor(color)
                         .setShortDescription(shortDescription)
                         .setSupportedUriSchemes(supportedUriSchemes)
-                        .build();
+                        .setHighlightColor(highlightColor);
+
+                if (iconBitmap == null) {
+                    builder.setIcon(iconPackageName, iconResId, iconTint);
+                } else {
+                    builder.setIcon(iconBitmap);
+                }
+
+                return builder.build();
             }
             return null;
         }
