@@ -432,8 +432,18 @@ final class Call implements CreateConnectionResponse {
 
     void setHandle(Uri handle, int presentation) {
         if (!Objects.equals(handle, mHandle) || presentation != mHandlePresentation) {
-            mHandle = handle;
             mHandlePresentation = presentation;
+            if (mHandlePresentation == TelecomManager.PRESENTATION_RESTRICTED ||
+                    mHandlePresentation == TelecomManager.PRESENTATION_UNKNOWN) {
+                mHandle = null;
+            } else {
+                mHandle = handle;
+                if (mHandle != null && TextUtils.isEmpty(mHandle.getSchemeSpecificPart())) {
+                    // If the number is actually empty, set it to null.
+                    mHandle = null;
+                }
+            }
+
             mIsEmergencyCall = mHandle != null && PhoneNumberUtils.isLocalEmergencyNumber(mContext,
                     mHandle.getSchemeSpecificPart());
             startCallerInfoLookup();

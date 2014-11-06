@@ -151,7 +151,9 @@ public class RespondViaSmsManager extends CallsManagerListenerBase {
                     Log.e(RespondViaSmsManager.this, e , "Exception e ");
                 }
             }
+        }
 
+        if (rejectWithMessage && call.getHandle() != null) {
             rejectCallWithMessage(call.getContext(), call.getHandle().getSchemeSpecificPart(),
                     textMessage, subId);
         }

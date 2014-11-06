@@ -710,7 +710,7 @@ public final class BluetoothPhoneService extends Service {
 
         String ringingAddress = null;
         int ringingAddressType = 128;
-        if (ringingCall != null) {
+        if (ringingCall != null && ringingCall.getHandle() != null) {
             ringingAddress = ringingCall.getHandle().getSchemeSpecificPart();
             if (ringingAddress != null) {
                 ringingAddressType = PhoneNumberUtils.toaFromString(ringingAddress);
