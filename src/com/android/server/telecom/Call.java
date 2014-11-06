@@ -382,12 +382,21 @@ final class Call implements CreateConnectionResponse {
     void setState(int newState) {
         if (mState != newState) {
             Log.v(this, "setState %s -> %s", mState, newState);
+            int oldState = mState;
             mState = newState;
             maybeLoadCannedSmsResponses();
 
             if (mState == CallState.DISCONNECTED) {
                 setLocallyDisconnecting(false);
                 fixParentAfterDisconnect();
+                if ((oldState == CallState.DIALING || oldState == CallState.CONNECTING)
+                        && mCreateConnectionProcessor != null
+                        && mCreateConnectionProcessor.isProcessingComplete()
+                        && mCreateConnectionProcessor.hasMorePhoneAccounts()
+                        && mDisconnectCause != null
+                        && mDisconnectCause.getCode() == DisconnectCause.ERROR) {
+                    mCreateConnectionProcessor.continueProcessingIfPossible(this, mDisconnectCause);
+                }
             }
         }
     }
@@ -689,7 +698,6 @@ final class Call implements CreateConnectionResponse {
             CallIdMapper idMapper,
             ParcelableConnection connection) {
         Log.v(this, "handleCreateConnectionSuccessful %s", connection);
-        mCreateConnectionProcessor = null;
         setTargetPhoneAccount(connection.getPhoneAccount());
         setHandle(connection.getHandle(), connection.getHandlePresentation());
         setCallerDisplayName(
@@ -731,7 +739,6 @@ final class Call implements CreateConnectionResponse {
 
     @Override
     public void handleCreateConnectionFailure(DisconnectCause disconnectCause) {
-        mCreateConnectionProcessor = null;
         clearConnectionService();
         setDisconnectCause(disconnectCause);
         CallsManager.getInstance().markCallAsDisconnected(this, disconnectCause);
@@ -806,7 +813,8 @@ final class Call implements CreateConnectionResponse {
     }
 
     void abort(boolean wasViaNewOutgoingCallBroadcaster) {
-        if (mCreateConnectionProcessor != null) {
+        if (mCreateConnectionProcessor != null &&
+                !mCreateConnectionProcessor.isProcessingComplete()) {
             mCreateConnectionProcessor.abort();
         } else if (mState == CallState.NEW || mState == CallState.PRE_DIAL_WAIT
                 || mState == CallState.CONNECTING) {
