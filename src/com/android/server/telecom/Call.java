@@ -89,6 +89,7 @@ final class Call implements CreateConnectionResponse {
         void onConnectionManagerPhoneAccountChanged(Call call);
         void onPhoneAccountChanged(Call call);
         void onConferenceableCallsChanged(Call call);
+        boolean onCanceledViaNewOutgoingCallBroadcast(Call call);
     }
 
     abstract static class ListenerBase implements Listener {
@@ -138,6 +139,10 @@ final class Call implements CreateConnectionResponse {
         public void onPhoneAccountChanged(Call call) {}
         @Override
         public void onConferenceableCallsChanged(Call call) {}
+        @Override
+        public boolean onCanceledViaNewOutgoingCallBroadcast(Call call) {
+            return false;
+        }
     }
 
     private static final OnQueryCompleteListener sCallerInfoQueryListener =
@@ -758,17 +763,21 @@ final class Call implements CreateConnectionResponse {
         }
     }
 
+    void disconnect() {
+        disconnect(false);
+    }
+
     /**
      * Attempts to disconnect the call through the connection service.
      */
-    void disconnect() {
+    void disconnect(boolean wasViaNewOutgoingCallBroadcaster) {
         // Track that the call is now locally disconnecting.
         setLocallyDisconnecting(true);
 
         if (mState == CallState.NEW || mState == CallState.PRE_DIAL_WAIT ||
                 mState == CallState.CONNECTING) {
             Log.v(this, "Aborting call %s", this);
-            abort();
+            abort(wasViaNewOutgoingCallBroadcaster);
         } else if (mState != CallState.ABORTED && mState != CallState.DISCONNECTED) {
             if (mConnectionService == null) {
                 Log.e(this, new Exception(), "disconnect() request on a call without a"
@@ -784,11 +793,30 @@ final class Call implements CreateConnectionResponse {
         }
     }
 
-    void abort() {
+    void abort(boolean wasViaNewOutgoingCallBroadcaster) {
         if (mCreateConnectionProcessor != null) {
             mCreateConnectionProcessor.abort();
         } else if (mState == CallState.NEW || mState == CallState.PRE_DIAL_WAIT
                 || mState == CallState.CONNECTING) {
+            if (wasViaNewOutgoingCallBroadcaster) {
+                // If the cancelation was from NEW_OUTGOING_CALL, then we do not automatically
+                // destroy the call.  Instead, we announce the cancelation and CallsManager handles
+                // it through a timer. Since apps often cancel calls through NEW_OUTGOING_CALL and
+                // then re-dial them quickly using a gateway, allowing the first call to end
+                // causes jank. This timeout allows CallsManager to transition the first call into
+                // the second call so that in-call only ever sees a single call...eliminating the
+                // jank altogether.
+                for (Listener listener : mListeners) {
+                    if (listener.onCanceledViaNewOutgoingCallBroadcast(this)) {
+                        // The first listener to handle this wins. A return value of true means that
+                        // the listener will handle the disconnection process later and so we
+                        // should not continue it here.
+                        setLocallyDisconnecting(false);
+                        return;
+                    }
+                }
+            }
+
             handleCreateConnectionFailure(new DisconnectCause(DisconnectCause.CANCELED));
         } else {
             Log.v(this, "Cannot abort a call which isn't either PRE_DIAL_WAIT or CONNECTING");

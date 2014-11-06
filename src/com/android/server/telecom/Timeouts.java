@@ -52,4 +52,14 @@ public final class Timeouts {
     public static long getDirectToVoicemailMillis(ContentResolver contentResolver) {
         return get(contentResolver, "direct_to_voicemail_ms", 500L);
     }
+
+    /**
+     * Returns the amount of time to wait before disconnecting a call that was canceled via
+     * NEW_OUTGOING_CALL broadcast. This timeout allows apps which repost the call using a gateway
+     * to reuse the existing call, preventing the call from causing a start->end->start jank in the
+     * in-call UI.
+     */
+    public static long getNewOutgoingCallCancelMillis(ContentResolver contentResolver) {
+        return get(contentResolver, "new_outgoing_call_cancel_ms", 200L);
+    }
 }
