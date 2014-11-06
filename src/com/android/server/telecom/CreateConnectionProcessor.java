@@ -228,8 +228,7 @@ final class CreateConnectionProcessor {
             CallAttemptRecord record = new CallAttemptRecord(
                     mPhoneAccountRegistrar.getSimCallManager(),
                     mAttemptRecords.get(0).targetPhoneAccount);
-            Log.v(this, "setConnectionManager, changing %s -> %s",
-                    mAttemptRecords.get(0).targetPhoneAccount, record);
+            Log.v(this, "setConnectionManager, changing %s -> %s", mAttemptRecords.get(0), record);
             mAttemptRecords.set(0, record);
         } else {
             Log.v(this, "setConnectionManager, not changing");
