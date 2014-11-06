@@ -438,8 +438,10 @@ final class Call implements CreateConnectionResponse {
                 mHandle = null;
             } else {
                 mHandle = handle;
-                if (mHandle != null && TextUtils.isEmpty(mHandle.getSchemeSpecificPart())) {
-                    // If the number is actually empty, set it to null.
+                if (mHandle != null && !PhoneAccount.SCHEME_VOICEMAIL.equals(mHandle.getScheme())
+                        && TextUtils.isEmpty(mHandle.getSchemeSpecificPart())) {
+                    // If the number is actually empty, set it to null, unless this is a
+                    // SCHEME_VOICEMAIL uri which always has an empty number.
                     mHandle = null;
                 }
             }
