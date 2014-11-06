@@ -139,8 +139,7 @@ public class RespondViaSmsManager extends CallsManagerListenerBase {
 
     @Override
     public void onIncomingCallRejected(Call call, boolean rejectWithMessage, String textMessage) {
-        if (rejectWithMessage) {
-
+        if (rejectWithMessage && call.getHandle() != null) {
             rejectCallWithMessage(call.getContext(), call.getHandle().getSchemeSpecificPart(),
                     textMessage);
         }
