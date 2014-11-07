@@ -130,7 +130,7 @@ public final class PhoneAccountRegistrar {
                 !TextUtils.isDigitsOnly(accountHandle.getId())) {
             // Since no decimals or negative numbers can be valid subscription ids, only a string of
             // numbers can be subscription id
-            return -1;
+            return SubscriptionManager.INVALID_SUB_ID;
         }
         return Integer.parseInt(accountHandle.getId());
     }
