@@ -114,7 +114,7 @@ class NewOutgoingCallIntentBroadcaster {
 
             if (endEarly) {
                 if (mCall != null) {
-                    mCall.disconnect();
+                    mCall.disconnect(true /* wasViaNewOutgoingCall */);
                 }
                 return;
             }

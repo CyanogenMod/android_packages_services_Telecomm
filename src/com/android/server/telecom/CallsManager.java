@@ -22,6 +22,7 @@ import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
 import android.provider.CallLog.Calls;
 import android.telecom.AudioState;
 import android.telecom.CallState;
@@ -37,7 +38,6 @@ import android.telecom.VideoProfile;
 import android.telephony.TelephonyManager;
 
 import com.android.internal.util.IndentingPrintWriter;
-
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 
@@ -97,7 +97,7 @@ public final class CallsManager extends Call.ListenerBase {
     /**
      * The main call repository. Keeps an instance of all live calls. New incoming and outgoing
      * calls are added to the map and removed when the calls move to the disconnected state.
-    *
+     *
      * ConcurrentHashMap constructor params: 8 is initial table size, 0.9f is
      * load factor before resizing, 1 means we only expect a single thread to
      * access the map so make only a single shard
@@ -124,6 +124,9 @@ public final class CallsManager extends Call.ListenerBase {
     private final PhoneAccountRegistrar mPhoneAccountRegistrar;
     private final MissedCallNotifier mMissedCallNotifier;
     private final Set<Call> mLocallyDisconnectingCalls = new HashSet<>();
+    private final Set<Call> mPendingCallsToDisconnect = new HashSet<>();
+    /* Handler tied to thread in which CallManager was initialized. */
+    private final Handler mHandler = new Handler();
 
     /**
      * The call the user is currently interacting with. This is the call that should have audio
@@ -289,6 +292,22 @@ public final class CallsManager extends Call.ListenerBase {
         }
     }
 
+    @Override
+    public boolean onCanceledViaNewOutgoingCallBroadcast(final Call call) {
+        mPendingCallsToDisconnect.add(call);
+        mHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                if (mPendingCallsToDisconnect.remove(call)) {
+                    Log.i(this, "Delayed disconnection of call: %s", call);
+                    call.disconnect();
+                }
+            }
+        }, Timeouts.getNewOutgoingCallCancelMillis(mContext.getContentResolver()));
+
+        return true;
+    }
+
     ImmutableCollection<Call> getCalls() {
         return ImmutableList.copyOf(mCalls);
     }
@@ -390,6 +409,30 @@ public final class CallsManager extends Call.ListenerBase {
         call.startCreateConnection(mPhoneAccountRegistrar);
     }
 
+    private Call getNewOutgoingCall(Uri handle) {
+        // First check to see if we can reuse any of the calls that are waiting to disconnect.
+        // See {@link Call#abort} and {@link #onCanceledViaNewOutgoingCall} for more information.
+        for (Call pendingCall : mPendingCallsToDisconnect) {
+            if (Objects.equals(pendingCall.getHandle(), handle)) {
+                mPendingCallsToDisconnect.remove(pendingCall);
+                Log.i(this, "Reusing disconnected call %s", pendingCall);
+                return pendingCall;
+            }
+        }
+
+        // Create a call with original handle. The handle may be changed when the call is attached
+        // to a connection service, but in most cases will remain the same.
+        return new Call(
+                mContext,
+                mConnectionServiceRepository,
+                handle,
+                null /* gatewayInfo */,
+                null /* connectionManagerPhoneAccount */,
+                null /* phoneAccountHandle */,
+                false /* isIncoming */,
+                false /* isConference */);
+    }
+
     /**
      * Kicks off the first steps to creating an outgoing call so that InCallUI can launch.
      *
@@ -399,17 +442,7 @@ public final class CallsManager extends Call.ListenerBase {
      * @param extras The optional extras Bundle passed with the intent used for the incoming call.
      */
     Call startOutgoingCall(Uri handle, PhoneAccountHandle phoneAccountHandle, Bundle extras) {
-        // Create a call with original handle. The handle may be changed when the call is attached
-        // to a connection service, but in most cases will remain the same.
-        Call call = new Call(
-                mContext,
-                mConnectionServiceRepository,
-                handle,
-                null /* gatewayInfo */,
-                null /* connectionManagerPhoneAccount */,
-                null /* phoneAccountHandle */,
-                false /* isIncoming */,
-                false /* isConference */);
+        Call call = getNewOutgoingCall(handle);
 
         List<PhoneAccountHandle> accounts =
                 mPhoneAccountRegistrar.getCallCapablePhoneAccounts(handle.getScheme());
@@ -444,6 +477,11 @@ public final class CallsManager extends Call.ListenerBase {
         // a call, or cancel this call altogether.
         if (!isPotentialInCallMMICode && !makeRoomForOutgoingCall(call, isEmergencyCall)) {
             // just cancel at this point.
+            if (mCalls.contains(call)) {
+                // This call can already exist if it is a reused call,
+                // See {@link #getNewOutgoingCall}.
+                call.disconnect();
+            }
             return null;
         }
 
@@ -463,7 +501,9 @@ public final class CallsManager extends Call.ListenerBase {
         // Do not add the call if it is a potential MMI code.
         if ((isPotentialMMICode(handle) || isPotentialInCallMMICode) && !needsAccountSelection) {
             call.addListener(this);
-        } else {
+        } else if (!mCalls.contains(call)) {
+            // We check if mCalls already contains the call because we could potentially be reusing
+            // a call which was previously added (See {@link #getNewOutgoingCall}).
             addCall(call);
         }
 
