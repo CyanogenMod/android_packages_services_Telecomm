@@ -57,7 +57,8 @@
             android:label="@string/telecommAppLabel"
             android:icon="@mipmap/ic_launcher_phone"
             android:allowBackup="false"
-            android:supportsRtl="true">
+            android:supportsRtl="true"
+            android:process="com.android.phone">
 
         <!-- CALL vs CALL_PRIVILEGED vs CALL_EMERGENCY
              We have three different intents through which a call can be initiated each with its
