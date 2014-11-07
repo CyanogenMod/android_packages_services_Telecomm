@@ -72,6 +72,7 @@
                 <action android:name="android.telecom.testapps.ACTION_NEW_UNKNOWN_CALL" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:scheme="tel" />
+                <data android:scheme="sip" />
             </intent-filter>
         </activity>
 
