@@ -593,6 +593,16 @@ public final class CallsManager extends Call.ListenerBase {
         } else {
             Call activeCall = getFirstCallWithStateUsingSubId(call.getTargetPhoneAccount()
                     .getId(), CallState.ACTIVE, CallState.DIALING);
+            //Check for existence of active call & held
+            if ((activeCall != null) && (getFirstCallWithStateUsingSubId(call
+                    .getTargetPhoneAccount().getId(), CallState.ON_HOLD) != null)) {
+                Log.i(this, "Disconnect active call");
+                // Both active call & Held call are present, hence disconnect active call
+                // before sending answer request on waiting call.
+                activeCall.disconnect();
+                activeCall = null;
+            }
+
             // If the foreground call is not the ringing call and it is currently isActive() or
             // STATE_DIALING, put it on hold before answering the call.
             if (activeCall != null && activeCall != call &&
