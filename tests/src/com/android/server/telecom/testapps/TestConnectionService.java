@@ -135,7 +135,6 @@ public class TestConnectionService extends ConnectionService {
             // Assume all calls are video capable.
             int capabilities = getCallCapabilities();
             capabilities |= PhoneCapabilities.SUPPORTS_VT_LOCAL;
-            capabilities |= PhoneCapabilities.ADD_CALL;
             capabilities |= PhoneCapabilities.MUTE;
             capabilities |= PhoneCapabilities.SUPPORT_HOLD;
             capabilities |= PhoneCapabilities.HOLD;

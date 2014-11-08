@@ -74,6 +74,7 @@ public final class CallsManager extends Call.ListenerBase {
         void onIsConferencedChanged(Call call);
         void onIsVoipAudioModeChanged(Call call);
         void onVideoStateChanged(Call call);
+        void onCanAddCallChanged(boolean canAddCall);
     }
 
     /**
@@ -87,12 +88,13 @@ public final class CallsManager extends Call.ListenerBase {
     private static final int MAXIMUM_HOLD_CALLS = 1;
     private static final int MAXIMUM_RINGING_CALLS = 1;
     private static final int MAXIMUM_OUTGOING_CALLS = 1;
-
-    private static final int[] LIVE_CALL_STATES =
-            {CallState.CONNECTING, CallState.PRE_DIAL_WAIT, CallState.DIALING, CallState.ACTIVE};
+    private static final int MAXIMUM_TOP_LEVEL_CALLS = 2;
 
     private static final int[] OUTGOING_CALL_STATES =
             {CallState.CONNECTING, CallState.PRE_DIAL_WAIT, CallState.DIALING};
+
+    private static final int[] LIVE_CALL_STATES =
+            {CallState.CONNECTING, CallState.PRE_DIAL_WAIT, CallState.DIALING, CallState.ACTIVE};
 
     /**
      * The main call repository. Keeps an instance of all live calls. New incoming and outgoing
@@ -127,6 +129,8 @@ public final class CallsManager extends Call.ListenerBase {
     private final Set<Call> mPendingCallsToDisconnect = new HashSet<>();
     /* Handler tied to thread in which CallManager was initialized. */
     private final Handler mHandler = new Handler();
+
+    private boolean mCanAddCall = true;
 
     /**
      * The call the user is currently interacting with. This is the call that should have audio
@@ -263,7 +267,7 @@ public final class CallsManager extends Call.ListenerBase {
     @Override
     public void onParentChanged(Call call) {
         // parent-child relationship affects which call should be foreground, so do an update.
-        updateForegroundCall();
+        updateCallsManagerState();
         for (CallsManagerListener listener : mListeners) {
             listener.onIsConferencedChanged(call);
         }
@@ -272,7 +276,7 @@ public final class CallsManager extends Call.ListenerBase {
     @Override
     public void onChildrenChanged(Call call) {
         // parent-child relationship affects which call should be foreground, so do an update.
-        updateForegroundCall();
+        updateCallsManagerState();
         for (CallsManagerListener listener : mListeners) {
             listener.onIsConferencedChanged(call);
         }
@@ -884,22 +888,24 @@ public final class CallsManager extends Call.ListenerBase {
     }
 
     /**
-     * Checks to see if the specified call is the only top level call. If it is not, we should
-     * remove the ADD_CALL capability. We allow you to add a second call but not a third or beyond.
-     *
-     * @param call The call to check to see if it is the only top level call.
-     * @return Whether the call is the only top level call.
+     * Returns true if telecom supports adding another top-level call.
      */
-    protected boolean isOnlyTopLevelCall(Call call) {
-        if (call.getParentCall() != null) {
-            // Never true for child calls.
-            return false;
-        }
+    boolean canAddCall() {
+        int count = 0;
+        for (Call call : mCalls) {
+            if (call.isEmergencyCall()) {
+                // We never support add call if one of the calls is an emergency call.
+                return false;
+            } else if (call.getParentCall() == null) {
+                count++;
+            }
 
-        // Loop through all the other calls and there exists a top level (has no parent) call
-        // that is not the specified call, return false.
-        for (Call otherCall : mCalls) {
-            if (call != otherCall && otherCall.getParentCall() == null) {
+            // We do not check states for canAddCall. We treat disconnected calls the same
+            // and wait until they are removed instead. If we didn't count disconnected calls,
+            // we could put InCallServices into a state where they are showing two calls but
+            // also support add-call. Technically it's right, but overall looks better (UI-wise)
+            // and acts better if we wait until the call is removed.
+            if (count >= MAXIMUM_TOP_LEVEL_CALLS) {
                 return false;
             }
         }
@@ -1033,7 +1039,7 @@ public final class CallsManager extends Call.ListenerBase {
         for (CallsManagerListener listener : mListeners) {
             listener.onCallAdded(call);
         }
-        updateForegroundCall();
+        updateCallsManagerState();
     }
 
     private void removeCall(Call call) {
@@ -1054,15 +1060,7 @@ public final class CallsManager extends Call.ListenerBase {
             for (CallsManagerListener listener : mListeners) {
                 listener.onCallRemoved(call);
             }
-            updateForegroundCall();
-        }
-
-        // Now that a call has been removed, other calls may gain new call capabilities (for
-        // example, if only one call is left, it is now add-call capable again). Trigger the
-        // recalculation of the call's current capabilities by forcing an update. (See
-        // InCallController.toParcelableCall()).
-        for (Call otherCall : mCalls) {
-            otherCall.setCallCapabilities(otherCall.getCallCapabilities(), true /* forceUpdate */);
+            updateCallsManagerState();
         }
     }
 
@@ -1094,7 +1092,7 @@ public final class CallsManager extends Call.ListenerBase {
                 for (CallsManagerListener listener : mListeners) {
                     listener.onCallStateChanged(call, oldState, newState);
                 }
-                updateForegroundCall();
+                updateCallsManagerState();
             }
         }
     }
@@ -1138,6 +1136,21 @@ public final class CallsManager extends Call.ListenerBase {
         }
     }
 
+    private void updateCanAddCall() {
+        boolean newCanAddCall = canAddCall();
+        if (newCanAddCall != mCanAddCall) {
+            mCanAddCall = newCanAddCall;
+            for (CallsManagerListener listener : mListeners) {
+                listener.onCanAddCallChanged(mCanAddCall);
+            }
+        }
+    }
+
+    private void updateCallsManagerState() {
+        updateForegroundCall();
+        updateCanAddCall();
+    }
+
     private boolean isPotentialMMICode(Uri handle) {
         return (handle != null && handle.getSchemeSpecificPart() != null
                 && handle.getSchemeSpecificPart().contains("#"));
@@ -1174,7 +1187,7 @@ public final class CallsManager extends Call.ListenerBase {
         int count = 0;
         for (int state : states) {
             for (Call call : mCalls) {
-                if (call.getState() == state) {
+                if (call.getParentCall() == null && call.getState() == state) {
                     count++;
                 }
             }
