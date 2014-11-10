@@ -210,6 +210,19 @@ public final class InCallController extends CallsManagerListenerBase {
         }
     }
 
+    @Override
+    public void onCanAddCallChanged(boolean canAddCall) {
+        if (!mInCallServices.isEmpty()) {
+            Log.i(this, "onCanAddCallChanged : %b", canAddCall);
+            for (IInCallService inCallService : mInCallServices.values()) {
+                try {
+                    inCallService.onCanAddCallChanged(canAddCall);
+                } catch (RemoteException ignored) {
+                }
+            }
+        }
+    }
+
     void onPostDialWait(Call call, String remaining) {
         if (!mInCallServices.isEmpty()) {
             Log.i(this, "Calling onPostDialWait, remaining = %s", remaining);
@@ -352,6 +365,7 @@ public final class InCallController extends CallsManagerListenerBase {
                 }
             }
             onAudioStateChanged(null, CallsManager.getInstance().getAudioState());
+            onCanAddCallChanged(CallsManager.getInstance().canAddCall());
         } else {
             unbind();
         }
@@ -431,17 +445,12 @@ public final class InCallController extends CallsManagerListenerBase {
         int state = call.getState();
         int capabilities = call.getCallCapabilities();
 
-        if (!CallsManager.getInstance().isOnlyTopLevelCall(call) || state == CallState.DIALING) {
-            capabilities = PhoneCapabilities.remove(capabilities, PhoneCapabilities.ADD_CALL);
-        }
-
         if (call.isRespondViaSmsCapable()) {
             capabilities |= PhoneCapabilities.RESPOND_VIA_TEXT;
         }
 
         if (call.isEmergencyCall()) {
             capabilities = PhoneCapabilities.remove(capabilities, PhoneCapabilities.MUTE);
-            capabilities = PhoneCapabilities.remove(capabilities, PhoneCapabilities.ADD_CALL);
         }
 
         if (state == CallState.DIALING) {
