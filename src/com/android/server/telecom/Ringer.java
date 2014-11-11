@@ -18,6 +18,7 @@ package com.android.server.telecom;
 
 import android.app.Notification;
 import android.app.NotificationManager;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.media.AudioAttributes;
 import android.media.AudioManager;
@@ -183,13 +184,25 @@ final class Ringer extends CallsManagerListenerBase {
                     (AudioManager) mContext.getSystemService(Context.AUDIO_SERVICE);
             if (audioManager.getStreamVolume(AudioManager.STREAM_RING) >= 0) {
                 Log.v(this, "startRingingOrCallWaiting");
+
+                float startVolume = 0;
+                int rampUpTime = 0;
+
+                final ContentResolver cr = mContext.getContentResolver();
+                if (Settings.System.getInt(cr, Settings.System.INCREASING_RING, 0) != 0) {
+                    startVolume = Settings.System.getFloat(cr,
+                            Settings.System.INCREASING_RING_START_VOLUME, 0.1f);
+                    rampUpTime = Settings.System.getInt(cr,
+                            Settings.System.INCREASING_RING_RAMP_UP_TIME, 20);
+                }
+
                 mCallAudioManager.setIsRinging(true);
 
                 // Because we wait until a contact info query to complete before processing a
                 // call (for the purposes of direct-to-voicemail), the information about custom
                 // ringtones should be available by the time this code executes. We can safely
                 // request the custom ringtone from the call and expect it to be current.
-                mRingtonePlayer.play(foregroundCall.getRingtone());
+                mRingtonePlayer.play(foregroundCall.getRingtone(), startVolume, rampUpTime);
             } else {
                 Log.v(this, "startRingingOrCallWaiting, skipping because volume is 0");
             }
