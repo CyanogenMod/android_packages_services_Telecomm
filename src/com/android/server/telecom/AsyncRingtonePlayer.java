@@ -33,6 +33,10 @@ import com.android.internal.util.Preconditions;
  * used from the main thread.
  */
 class AsyncRingtonePlayer {
+    public interface OnRepeatCallback {
+        void onRepeatRingtone();
+    }
+
     // Message codes used with the ringtone thread.
     private static final int EVENT_PLAY = 1;
     private static final int EVENT_STOP = 2;
@@ -47,18 +51,22 @@ class AsyncRingtonePlayer {
     /** The current ringtone. Only used by the ringtone thread. */
     private Ringtone mRingtone;
 
+    private OnRepeatCallback mRepeatCallback;
+
     /**
      * The context.
      */
     private final Context mContext;
 
-    AsyncRingtonePlayer(Context context) {
+    AsyncRingtonePlayer(Context context, OnRepeatCallback repeatCallback) {
         mContext = context;
+        mRepeatCallback = repeatCallback;
     }
 
     /** Plays the ringtone. */
     void play(Uri ringtone) {
         Log.d(this, "Posting play.");
+
         postMessage(EVENT_PLAY, true /* shouldCreateHandler */, ringtone);
     }
 
@@ -107,6 +115,9 @@ class AsyncRingtonePlayer {
                         break;
                     case EVENT_REPEAT:
                         handleRepeat();
+                        if (mRepeatCallback != null) {
+                            mRepeatCallback.onRepeatRingtone();
+                        }
                         break;
                     case EVENT_STOP:
                         handleStop();

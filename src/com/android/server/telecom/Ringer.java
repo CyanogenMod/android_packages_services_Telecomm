@@ -18,11 +18,13 @@ package com.android.server.telecom;
 
 import android.app.Notification;
 import android.app.NotificationManager;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.media.AudioAttributes;
 import android.media.AudioManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.SystemVibrator;
 import android.os.Vibrator;
 import android.provider.Settings;
@@ -34,7 +36,8 @@ import java.util.List;
 /**
  * Controls the ringtone player.
  */
-final class Ringer extends CallsManagerListenerBase {
+final class Ringer extends CallsManagerListenerBase implements
+        AsyncRingtonePlayer.OnRepeatCallback {
     private static final long[] VIBRATION_PATTERN = new long[] {
         0, // No delay before starting
         1000, // How long to vibrate
@@ -62,8 +65,25 @@ final class Ringer extends CallsManagerListenerBase {
     private final InCallTonePlayer.Factory mPlayerFactory;
     private final Context mContext;
     private final Vibrator mVibrator;
+    private final AudioManager mAudioManager;
 
     private InCallTonePlayer mCallWaitingPlayer;
+    private final Handler mHandler = new Handler();
+    private int mCurrentRingerVolume;
+    private int mRingerVolumeSetting = -1;
+
+    private final Runnable mIncreaseRingVolumeRunnable = new Runnable() {
+        @Override
+        public void run() {
+            if (mRingerVolumeSetting > 0 && mCurrentRingerVolume < mRingerVolumeSetting) {
+                mCurrentRingerVolume++;
+                Log.d(Ringer.this, "Increasing ring volume to " +
+                        mCurrentRingerVolume + "/" + mRingerVolumeSetting);
+
+                mAudioManager.setStreamVolume(AudioManager.STREAM_RING, mCurrentRingerVolume, 0);
+            }
+        }
+    };
 
     /**
      * Used to track the status of {@link #mVibrator} in the case of simultaneous incoming calls.
@@ -77,6 +97,7 @@ final class Ringer extends CallsManagerListenerBase {
             InCallTonePlayer.Factory playerFactory,
             Context context) {
 
+        mAudioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
         mCallAudioManager = callAudioManager;
         mCallsManager = callsManager;
         mPlayerFactory = playerFactory;
@@ -84,7 +105,7 @@ final class Ringer extends CallsManagerListenerBase {
         // We don't rely on getSystemService(Context.VIBRATOR_SERVICE) to make sure this
         // vibrator object will be isolated from others.
         mVibrator = new SystemVibrator(context);
-        mRingtonePlayer = new AsyncRingtonePlayer(context);
+        mRingtonePlayer = new AsyncRingtonePlayer(context, this);
     }
 
     @Override
@@ -126,6 +147,11 @@ final class Ringer extends CallsManagerListenerBase {
                 mRingingCalls.contains(newForegroundCall)) {
             updateRinging();
         }
+    }
+
+    @Override
+    public void onRepeatRingtone() {
+        mHandler.post(mIncreaseRingVolumeRunnable);
     }
 
     /**
@@ -179,10 +205,24 @@ final class Ringer extends CallsManagerListenerBase {
                 return;
             }
 
-            AudioManager audioManager =
-                    (AudioManager) mContext.getSystemService(Context.AUDIO_SERVICE);
-            if (audioManager.getStreamVolume(AudioManager.STREAM_RING) >= 0) {
+            mCurrentRingerVolume = mAudioManager.getStreamVolume(AudioManager.STREAM_RING);
+            if (mCurrentRingerVolume >= 0) {
                 Log.v(this, "startRingingOrCallWaiting");
+
+                final ContentResolver cr = mContext.getContentResolver();
+                if (Settings.System.getInt(cr, Settings.System.INCREASING_RING, 0) != 0) {
+                    int minVolume = Settings.System.getInt(cr,
+                            Settings.System.INCREASING_RING_MIN_VOLUME, 1);
+
+                    if (minVolume < mCurrentRingerVolume) {
+                        mRingerVolumeSetting = mCurrentRingerVolume;
+                        Log.d(this, "Increasing ring is enabled, starting at " +
+                                minVolume + "/" + mCurrentRingerVolume);
+                        mAudioManager.setStreamVolume(AudioManager.STREAM_RING, minVolume, 0);
+                        mCurrentRingerVolume = minVolume;
+                    }
+                }
+
                 mCallAudioManager.setIsRinging(true);
 
                 // Because we wait until a contact info query to complete before processing a
@@ -230,11 +270,18 @@ final class Ringer extends CallsManagerListenerBase {
     private void stopRinging() {
         Log.v(this, "stopRinging");
 
+        mHandler.removeCallbacks(mIncreaseRingVolumeRunnable);
         mRingtonePlayer.stop();
 
         if (mIsVibrating) {
             mVibrator.cancel();
             mIsVibrating = false;
+        }
+
+        if (mRingerVolumeSetting > 0) {
+            Log.d(this, "Resetting ring volume to " + mRingerVolumeSetting);
+            mAudioManager.setStreamVolume(AudioManager.STREAM_RING, mRingerVolumeSetting, 0);
+            mRingerVolumeSetting = -1;
         }
 
         // Even though stop is asynchronous it's ok to update the audio manager. Things like audio
@@ -251,8 +298,7 @@ final class Ringer extends CallsManagerListenerBase {
     }
 
     private boolean shouldVibrate(Context context) {
-        AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
-        int ringerMode = audioManager.getRingerMode();
+        int ringerMode = mAudioManager.getRingerMode();
         if (getVibrateWhenRinging(context)) {
             return ringerMode != AudioManager.RINGER_MODE_SILENT;
         } else {
