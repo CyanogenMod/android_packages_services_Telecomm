@@ -77,7 +77,11 @@ public class TestConnectionService extends ConnectionService {
 
         public TestConference(Connection a, Connection b) {
             super(null);
-
+            setCapabilities(
+                    PhoneCapabilities.SUPPORT_HOLD |
+                    PhoneCapabilities.HOLD |
+                    PhoneCapabilities.MUTE |
+                    PhoneCapabilities.MANAGE_CONFERENCE);
             addConnection(a);
             addConnection(b);
 
