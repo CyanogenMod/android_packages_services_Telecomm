@@ -16,6 +16,7 @@
 
 package com.android.server.telecom;
 
+import android.content.ContentResolver;
 import android.content.Context;
 import android.media.AudioManager;
 import android.media.Ringtone;
@@ -47,13 +48,18 @@ class AsyncRingtonePlayer {
     /** The current ringtone. Only used by the ringtone thread. */
     private Ringtone mRingtone;
 
+    private int mRingerVolumeSetting = -1;
+
     /**
      * The context.
      */
     private final Context mContext;
 
+    private final AudioManager mAudioManager;
+
     AsyncRingtonePlayer(Context context) {
         mContext = context;
+        mAudioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
     }
 
     /** Plays the ringtone. */
@@ -139,6 +145,21 @@ class AsyncRingtonePlayer {
         }
 
         handleRepeat();
+
+        final ContentResolver cr = mContext.getContentResolver();
+
+        if (Settings.System.getInt(cr, Settings.System.INCREASING_RING, 0) != 0) {
+            int minVolume = Settings.System.getInt(cr,
+                    Settings.System.INCREASING_RING_MIN_VOLUME, 1);
+            int ringerVolume = mAudioManager.getStreamVolume(AudioManager.STREAM_RING);
+
+            if (minVolume < ringerVolume) {
+                mRingerVolumeSetting = ringerVolume;
+                mAudioManager.setStreamVolume(AudioManager.STREAM_RING, minVolume, 0);
+                Log.d(this, "Increasing ring is enabled, starting at " +
+                        minVolume + "/" + ringerVolume);
+            }
+        }
     }
 
     private void handleRepeat() {
@@ -159,6 +180,17 @@ class AsyncRingtonePlayer {
                 mHandler.sendEmptyMessageDelayed(EVENT_REPEAT, RESTART_RINGER_MILLIS);
             }
         }
+
+        if (mRingerVolumeSetting > 0) {
+            int ringerVolume = mAudioManager.getStreamVolume(AudioManager.STREAM_RING);
+            if (ringerVolume < mRingerVolumeSetting) {
+                ringerVolume++;
+                Log.d(this, "Increasing ring volume to " +
+                        ringerVolume + "/" + mRingerVolumeSetting);
+
+                mAudioManager.setStreamVolume(AudioManager.STREAM_RING, ringerVolume, 0);
+            }
+        }
     }
 
     /**
@@ -172,6 +204,12 @@ class AsyncRingtonePlayer {
             Log.d(this, "Ringtone.stop() invoked.");
             mRingtone.stop();
             mRingtone = null;
+        }
+
+        if (mRingerVolumeSetting > 0) {
+            Log.d(this, "Resetting ring volume to " + mRingerVolumeSetting);
+            mAudioManager.setStreamVolume(AudioManager.STREAM_RING, mRingerVolumeSetting, 0);
+            mRingerVolumeSetting = -1;
         }
 
         synchronized(this) {
