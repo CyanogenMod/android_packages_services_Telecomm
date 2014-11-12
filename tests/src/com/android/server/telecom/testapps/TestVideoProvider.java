@@ -171,7 +171,7 @@ public class TestVideoProvider extends Connection.VideoProvider {
     @Override
     public void onRequestConnectionDataUsage() {
         log("Requested connection data usage");
-        long dataUsageKb = (10 *1024) + random.nextInt(50 * 1024);
+        int dataUsageKb = (10 *1024) + random.nextInt(50 * 1024);
         changeCallDataUsage(dataUsageKb);
     }
 
