@@ -965,8 +965,8 @@ public final class PhoneAccountRegistrar {
                 int iconResId = PhoneAccount.NO_RESOURCE_ID;
                 String iconPackageName = null;
                 Bitmap iconBitmap = null;
-                int iconTint = PhoneAccount.NO_COLOR;
-                int highlightColor = PhoneAccount.NO_COLOR;
+                int iconTint = PhoneAccount.NO_ICON_TINT;
+                int highlightColor = PhoneAccount.NO_HIGHLIGHT_COLOR;
                 String label = null;
                 String shortDescription = null;
                 List<String> supportedUriSchemes = null;

@@ -67,7 +67,7 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
     private static final int MSG_SET_DISCONNECTED = 5;
     private static final int MSG_SET_ON_HOLD = 6;
     private static final int MSG_SET_RINGBACK_REQUESTED = 7;
-    private static final int MSG_SET_CALL_CAPABILITIES = 8;
+    private static final int MSG_SET_CONNECTION_CAPABILITIES = 8;
     private static final int MSG_SET_IS_CONFERENCED = 9;
     private static final int MSG_ADD_CONFERENCE_CALL = 10;
     private static final int MSG_REMOVE_CALL = 11;
@@ -196,13 +196,13 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                     }
                     break;
                 }
-                case MSG_SET_CALL_CAPABILITIES: {
+                case MSG_SET_CONNECTION_CAPABILITIES: {
                     call = mCallIdMapper.getCall(msg.obj);
                     if (call != null) {
-                        call.setCallCapabilities(msg.arg1);
+                        call.setConnectionCapabilities(msg.arg1);
                     } else {
                         //Log.w(ConnectionServiceWrapper.this,
-                        //      "setCallCapabilities, unknown call id: %s", msg.obj);
+                        //      "setConnectionCapabilities, unknown call id: %s", msg.obj);
                     }
                     break;
                 }
@@ -540,10 +540,10 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
         }
 
         @Override
-        public void setCallCapabilities(String callId, int callCapabilities) {
-            logIncoming("setCallCapabilities %s %d", callId, callCapabilities);
+        public void setConnectionCapabilities(String callId, int connectionCapabilities) {
+            logIncoming("setConnectionCapabilities %s %d", callId, connectionCapabilities);
             if (mCallIdMapper.isValidCallId(callId) || mCallIdMapper.isValidConferenceId(callId)) {
-                mHandler.obtainMessage(MSG_SET_CALL_CAPABILITIES, callCapabilities, 0, callId)
+                mHandler.obtainMessage(MSG_SET_CONNECTION_CAPABILITIES, connectionCapabilities, 0, callId)
                         .sendToTarget();
             } else {
                 Log.w(this, "ID not valid for setCallCapabilities");
