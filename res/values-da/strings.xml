@@ -36,8 +36,10 @@
     <string name="respond_via_sms_edittext_dialog_title" msgid="20379890418289778">"Hurtigt svar"</string>
     <string name="respond_via_sms_menu_reset_default_activity" msgid="1461742052902053466">"Nulstil standardapp"</string>
     <string name="respond_via_sms_confirmation_format" msgid="7229149977515784269">"Meddelelsen er sendt til <xliff:g id="PHONE_NUMBER">%s</xliff:g>."</string>
-    <string name="outgoing_call_not_allowed" msgid="1434784869685645427">"Denne bruger har kun tilladelse til at foretage nødopkald"</string>
-    <string name="outgoing_call_error_no_phone_number_supplied" msgid="4987143284589568716">"Opkaldet kunne ikke sendes. Der blev ikke indtastet et gyldigt nummer."</string>
+    <!-- no translation found for outgoing_call_not_allowed (1435394568102165287) -->
+    <skip />
+    <!-- no translation found for outgoing_call_error_no_phone_number_supplied (1940125199802007505) -->
+    <skip />
     <string name="duplicate_video_call_not_allowed" msgid="3749211605014548386">"Opkaldet kan ikke tilføjes på nuværende tidspunkt."</string>
     <string name="no_vm_number" msgid="4164780423805688336">"Telefonsvarernummer mangler"</string>
     <string name="no_vm_number_msg" msgid="1300729501030053828">"Der er ikke gemt noget telefonsvarernummer på SIM-kortet."</string>
