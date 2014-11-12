@@ -17,9 +17,6 @@
 package com.android.server.telecom;
 
 import android.content.Context;
-import android.content.Intent;
-import android.content.pm.PackageManager;
-import android.content.pm.ResolveInfo;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -29,6 +26,7 @@ import android.os.SystemProperties;
 import android.provider.CallLog.Calls;
 import android.telecom.AudioState;
 import android.telecom.CallState;
+import android.telecom.Connection;
 import android.telecom.DisconnectCause;
 import android.telecom.GatewayInfo;
 import android.telecom.Conference;
@@ -36,7 +34,6 @@ import android.telecom.ParcelableConference;
 import android.telecom.ParcelableConnection;
 import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
-import android.telecom.PhoneCapabilities;
 import android.telecom.TelecomManager;
 import android.telephony.TelephonyManager;
 
@@ -661,8 +658,8 @@ public final class CallsManager extends Call.ListenerBase {
             // STATE_DIALING, put it on hold before answering the call.
             if (activeCall != null && activeCall != call &&
                     (activeCall.isActive() ||
-                     activeCall.getState() == CallState.DIALING)) {
-                if (0 == (activeCall.getCallCapabilities() & PhoneCapabilities.HOLD)) {
+                    activeCall.getState() == CallState.DIALING)) {
+                if (0 == (activeCall.getConnectionCapabilities() & Connection.HOLD)) {
                     // This call does not support hold.  If it is from a different connection
                     // service, then disconnect it, otherwise allow the connection service to
                     // figure out the right states.
@@ -1284,7 +1281,7 @@ public final class CallsManager extends Call.ListenerBase {
         if (oldConnectTime == 0 && call.getState() == CallState.ACTIVE) {
             call.setConnectTimeMillis(System.currentTimeMillis());
         }
-        call.setCallCapabilities(parcelableConference.getCapabilities());
+        call.setConnectionCapabilities(parcelableConference.getConnectionCapabilities());
         call.setVideoState(parcelableConference.getVideoState());
         call.setVideoProvider(parcelableConference.getVideoProvider());
 
@@ -1659,7 +1656,7 @@ public final class CallsManager extends Call.ListenerBase {
             }
 
             // Try to hold the live call before attempting the new outgoing call.
-            if (liveCall.can(PhoneCapabilities.HOLD)) {
+            if (liveCall.can(Connection.CAPABILITY_HOLD)) {
                 liveCall.hold();
                 return true;
             }
@@ -1740,7 +1737,7 @@ public final class CallsManager extends Call.ListenerBase {
         } else {
             call.setConnectTimeMillis(System.currentTimeMillis());
         }
-        call.setCallCapabilities(connection.getCapabilities());
+        call.setConnectionCapabilities(connection.getConnectionCapabilities());
         call.setCallerDisplayName(connection.getCallerDisplayName(),
                 connection.getCallerDisplayNamePresentation());
 
