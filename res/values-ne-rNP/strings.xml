@@ -36,8 +36,10 @@
     <string name="respond_via_sms_edittext_dialog_title" msgid="20379890418289778">"द्रुत प्रतिक्रिया"</string>
     <string name="respond_via_sms_menu_reset_default_activity" msgid="1461742052902053466">"पूर्वनिर्धारित अनुप्रयोग पुनःसेट गर्नुहोस्"</string>
     <string name="respond_via_sms_confirmation_format" msgid="7229149977515784269">"<xliff:g id="PHONE_NUMBER">%s</xliff:g> लाई सन्देश पठाइयो।"</string>
-    <string name="outgoing_call_not_allowed" msgid="1434784869685645427">"यो प्रयोगकर्तालाई गैर-आकस्मिक फोन कल गर्न अनुमति छैन"</string>
-    <string name="outgoing_call_error_no_phone_number_supplied" msgid="4987143284589568716">"कल पठाइएन, सही नम्बर प्रविष्टि गरिएको छैन।"</string>
+    <!-- no translation found for outgoing_call_not_allowed (1435394568102165287) -->
+    <skip />
+    <!-- no translation found for outgoing_call_error_no_phone_number_supplied (1940125199802007505) -->
+    <skip />
     <string name="duplicate_video_call_not_allowed" msgid="3749211605014548386">"यस समयमा कल थप गर्न सकिँदैन।"</string>
     <string name="no_vm_number" msgid="4164780423805688336">"भ्वाइसमेल नम्बर हराइरहेको छ"</string>
     <string name="no_vm_number_msg" msgid="1300729501030053828">"SIM कार्डमा कुनै पनि भ्वाइसमेल नम्बर भण्डारण भएको छैन।"</string>
