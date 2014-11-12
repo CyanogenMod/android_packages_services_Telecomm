@@ -19,7 +19,6 @@
           package="com.android.server.telecom.tests"
           android:debuggable="true">
 
-    <!-- Test connection service outgoing video preview. -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.CONTROL_INCALL_EXPERIENCE" />
     <uses-permission android:name="android.permission.REGISTER_CALL_PROVIDER" />
