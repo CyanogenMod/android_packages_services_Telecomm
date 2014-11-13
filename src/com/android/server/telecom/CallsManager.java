@@ -1645,7 +1645,8 @@ public final class CallsManager extends Call.ListenerBase {
                     && !phAcc.isSet(PhoneAccount.ACTIVE)) {
                 changed = true;
                 phAcc.setBit(PhoneAccount.ACTIVE);
-            } else if (phAcc.isSet(PhoneAccount.ACTIVE)) {
+            } else if (subId != null && !subId.equals(ph.getId())
+                        && phAcc.isSet(PhoneAccount.ACTIVE)) {
                 changed = true;
                 phAcc.unSetBit(PhoneAccount.ACTIVE);
             }
