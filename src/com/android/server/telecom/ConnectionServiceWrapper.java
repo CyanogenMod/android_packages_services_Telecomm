@@ -291,6 +291,28 @@ final class ConnectionServiceWrapper extends ServiceBinder {
         }
 
         @Override
+        public void setConnectionProperties(String callId, int connectionProperties) {
+            long token = Binder.clearCallingIdentity();
+            try {
+                synchronized (mLock) {
+                    logIncoming("setConnectionProperties %s %d", callId, connectionProperties);
+                    if (mCallIdMapper.isValidCallId(callId) || mCallIdMapper
+                            .isValidConferenceId(callId)) {
+                        Call call = mCallIdMapper.getCall(callId);
+                        if (call != null) {
+                            call.setConnectionProperties(connectionProperties);
+                        } else {
+                            // Log.w(ConnectionServiceWrapper.this,
+                            // "setConnectionProperties, unknown call id: %s", msg.obj);
+                        }
+                    }
+                }
+            } finally {
+                Binder.restoreCallingIdentity(token);
+            }
+        }
+
+        @Override
         public void setIsConferenced(String callId, String conferenceCallId) {
             long token = Binder.clearCallingIdentity();
             try {
