@@ -79,6 +79,7 @@ public class Call implements CreateConnectionResponse {
         void onPostDialWait(Call call, String remaining);
         void onPostDialChar(Call call, char nextChar);
         void onConnectionCapabilitiesChanged(Call call);
+        void onConnectionPropertiesChanged(Call call);
         void onParentChanged(Call call);
         void onChildrenChanged(Call call);
         void onCannedSmsResponsesLoaded(Call call);
@@ -118,6 +119,8 @@ public class Call implements CreateConnectionResponse {
         public void onPostDialChar(Call call, char nextChar) {}
         @Override
         public void onConnectionCapabilitiesChanged(Call call) {}
+        @Override
+        public void onConnectionPropertiesChanged(Call call) {}
         @Override
         public void onParentChanged(Call call) {}
         @Override
@@ -295,6 +298,7 @@ public class Call implements CreateConnectionResponse {
     private boolean mDirectToVoicemailQueryPending;
 
     private int mConnectionCapabilities;
+    private int mConnectionProperties;
 
     private boolean mIsConference = false;
 
@@ -439,7 +443,7 @@ public class Call implements CreateConnectionResponse {
         }
 
         return String.format(Locale.US,
-                "[%s, %s, %s, %s, %s, childs(%d), has_parent(%b), [%s], %b, %s]",
+                "[%s, %s, %s, %s, %s, childs(%d), has_parent(%b), [%s], [%s], %b, %s]",
                 System.identityHashCode(this),
                 CallState.toString(mState),
                 component,
@@ -448,6 +452,7 @@ public class Call implements CreateConnectionResponse {
                 getChildCalls().size(),
                 getParentCall() != null,
                 Connection.capabilitiesToString(getConnectionCapabilities()),
+                Connection.propertiesToString(getConnectionProperties()),
                 mIsActiveSub, mTargetPhoneAccountHandle);
     }
 
@@ -818,6 +823,21 @@ public class Call implements CreateConnectionResponse {
         }
     }
 
+    int getConnectionProperties() {
+        return mConnectionProperties;
+    }
+
+    void setConnectionProperties(int connectionProperties) {
+        Log.v(this, "setConnectionProperties: %s",
+                Connection.propertiesToString(connectionProperties));
+        if (mConnectionProperties != connectionProperties) {
+            mConnectionProperties = connectionProperties;
+            for (Listener l : mListeners) {
+                l.onConnectionPropertiesChanged(this);
+            }
+        }
+    }
+
     Call getParentCall() {
         return mParentCall;
     }
@@ -921,6 +941,7 @@ public class Call implements CreateConnectionResponse {
         setCallerDisplayName(
                 connection.getCallerDisplayName(), connection.getCallerDisplayNamePresentation());
         setConnectionCapabilities(connection.getConnectionCapabilities());
+        setConnectionProperties(connection.getConnectionProperties());
         setVideoProvider(connection.getVideoProvider());
         setVideoState(connection.getVideoState());
         setRingbackRequested(connection.isRingbackRequested());
