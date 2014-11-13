@@ -75,6 +75,7 @@ final class Call implements CreateConnectionResponse {
         void onRingbackRequested(Call call, boolean ringbackRequested);
         void onPostDialWait(Call call, String remaining);
         void onCallCapabilitiesChanged(Call call);
+        void onCallPropertiesChanged(Call call);
         void onParentChanged(Call call);
         void onChildrenChanged(Call call);
         void onCannedSmsResponsesLoaded(Call call);
@@ -110,6 +111,8 @@ final class Call implements CreateConnectionResponse {
         public void onPostDialWait(Call call, String remaining) {}
         @Override
         public void onCallCapabilitiesChanged(Call call) {}
+        @Override
+        public void onCallPropertiesChanged(Call call) {}
         @Override
         public void onParentChanged(Call call) {}
         @Override
@@ -269,6 +272,7 @@ final class Call implements CreateConnectionResponse {
     private boolean mDirectToVoicemailQueryPending;
 
     private int mCallCapabilities;
+    private int mCallProperties;
 
     private boolean mIsConference = false;
 
@@ -288,8 +292,6 @@ final class Call implements CreateConnectionResponse {
     private StatusHints mStatusHints;
     private final ConnectionServiceRepository mRepository;
     private final Context mContext;
-    private int mNotificationType;
-    private int mCode;
     boolean mIsActiveSub = false;
 
     private boolean mWasConferencePreviouslyMerged = false;
@@ -463,22 +465,6 @@ final class Call implements CreateConnectionResponse {
         return mCallerInfo == null ? null : mCallerInfo.cachedPhoto;
     }
 
-    public void setNotificationType(int notification) {
-        mNotificationType = notification;
-    }
-
-    public void setNotificationCode(int code) {
-        mCode = code;
-    }
-
-    public int getNotificationType() {
-        return mNotificationType;
-    }
-
-    public int getNotificationCode() {
-        return mCode;
-    }
-
     /**
      * @param disconnectCause The reason for the disconnection, represented by
      *         {@link android.telecom.DisconnectCause}.
@@ -602,6 +588,20 @@ final class Call implements CreateConnectionResponse {
         }
     }
 
+    int getCallProperties() {
+        return mCallProperties;
+    }
+
+    void setCallProperties(int callProperties) {
+        Log.v(this, "setCallProperties: 0x%x", callProperties);
+        if (mCallProperties != callProperties) {
+            mCallProperties = callProperties;
+            for (Listener l : mListeners) {
+                l.onCallPropertiesChanged(this);
+            }
+        }
+    }
+
     Call getParentCall() {
         return mParentCall;
     }
@@ -706,6 +706,7 @@ final class Call implements CreateConnectionResponse {
         setCallerDisplayName(
                 connection.getCallerDisplayName(), connection.getCallerDisplayNamePresentation());
         setCallCapabilities(connection.getCapabilities());
+        setCallProperties(connection.getProperties());
         setVideoProvider(connection.getVideoProvider());
         setVideoState(connection.getVideoState());
         setRingbackRequested(connection.isRingbackRequested());
