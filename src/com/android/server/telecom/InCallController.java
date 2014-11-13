@@ -81,6 +81,11 @@ public final class InCallController extends CallsManagerListenerBase {
         }
 
         @Override
+        public void onCallPropertiesChanged(Call call) {
+            updateCall(call);
+        }
+
+        @Override
         public void onCannedSmsResponsesLoaded(Call call) {
             updateCall(call);
         }
@@ -494,7 +499,10 @@ public final class InCallController extends CallsManagerListenerBase {
                     capabilities, android.telecom.Call.Details.CAPABILITY_SUPPORTS_VT_REMOTE);
         }
 
-        int properties = call.isConference() ? CallProperties.CONFERENCE : 0;
+        int properties = call.getCallProperties();
+        if (call.isConference()) {
+            properties |= CallProperties.CONFERENCE;
+        }
 
         if (state == CallState.ABORTED) {
             state = CallState.DISCONNECTED;
