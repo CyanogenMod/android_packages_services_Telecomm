@@ -450,6 +450,13 @@ public final class CallsManager extends Call.ListenerBase {
             PhoneAccountHandle defaultAccountHandle =
                     mPhoneAccountRegistrar.getDefaultOutgoingPhoneAccount(
                             scheme);
+            TelephonyManager.MultiSimVariants msimConfig =
+                    TelephonyManager.getDefault().getMultiSimConfiguration();
+            if (((msimConfig == TelephonyManager.MultiSimVariants.DSDS) ||
+                    (msimConfig == TelephonyManager.MultiSimVariants.TSTS)) &&
+                    (mForegroundCall != null) && (mForegroundCall.isAlive())) {
+                defaultAccountHandle = mForegroundCall.getTargetPhoneAccount();
+            }
             if (defaultAccountHandle != null) {
                 phoneAccountHandle = defaultAccountHandle;
             }
