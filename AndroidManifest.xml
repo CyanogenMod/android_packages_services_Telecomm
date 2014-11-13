@@ -191,7 +191,8 @@
 
         <activity android:name=".RespondViaSmsSettings$Settings"
                   android:label="@string/respond_via_sms_setting_title"
-                  android:configChanges="orientation|screenSize|keyboardHidden">
+                  android:configChanges="orientation|screenSize|keyboardHidden"
+                  android:theme="@style/Theme.Telecom.DialerSettings">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
             </intent-filter>
