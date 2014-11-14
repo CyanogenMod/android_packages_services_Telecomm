@@ -280,6 +280,7 @@ final class CallAudioManager extends CallsManagerListenerBase
         boolean wasNotVoiceCall = mAudioFocusStreamType != AudioManager.STREAM_VOICE_CALL;
         updateAudioStreamAndMode();
         if ((call != null) && (call.getState() == CallState.ACTIVE) &&
+                (call.getTargetPhoneAccount() != null) &&
                 call.getTargetPhoneAccount().getId().equals(mSubId) && mSpeedUpAudioForMtCall) {
             Log.d(this,"Reset mSpeedUpAudioForMtCall");
             mSpeedUpAudioForMtCall = false;
