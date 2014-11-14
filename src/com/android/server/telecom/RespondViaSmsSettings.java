@@ -24,8 +24,10 @@ import android.os.Bundle;
 import android.preference.EditTextPreference;
 import android.preference.Preference;
 import android.preference.PreferenceActivity;
+import android.text.TextUtils;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.Toast;
 
 // TODO: Needed for move to system service: import com.android.internal.R;
 
@@ -106,6 +108,13 @@ public class RespondViaSmsSettings {
             Log.d(this, "onPreferenceChange: key = %s", preference.getKey());
             Log.d(this, "  preference = '%s'", preference);
             Log.d(this, "  newValue = '%s'", newValue);
+
+            if (TextUtils.isEmpty((String) newValue)) {
+                // If the newValue is empty, we prompt a toast and do not save the newValue.
+                Toast.makeText(getApplicationContext(),
+                    R.string.respond_via_sms_cannot_be_empty, Toast.LENGTH_SHORT).show();
+                return false;
+            }
 
             EditTextPreference pref = (EditTextPreference) preference;
 
