@@ -22,6 +22,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Trace;
 import android.os.UserHandle;
 import android.os.UserManager;
 import android.telecom.PhoneAccount;
@@ -124,7 +125,9 @@ public class CallActivity extends Activity {
         intent.putExtra(CallReceiver.KEY_IS_DEFAULT_DIALER, isDefaultDialer());
 
         if (UserHandle.myUserId() == UserHandle.USER_OWNER) {
+            Trace.beginSection("processOutgoingCallIntent");
             CallReceiver.processOutgoingCallIntent(getApplicationContext(), intent);
+            Trace.endSection();
         } else {
             sendBroadcastToReceiver(intent, false /* isIncoming */);
         }
