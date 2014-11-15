@@ -322,8 +322,11 @@ public final class InCallController extends CallsManagerListenerBase {
                         Intent intent = new Intent(InCallService.SERVICE_INTERFACE);
                         intent.setComponent(componentName);
 
-                        if (mContext.bindServiceAsUser(intent, inCallServiceConnection,
-                                Context.BIND_AUTO_CREATE, UserHandle.CURRENT)) {
+                        final int bindFlags = mInCallComponentName.equals(componentName)
+                                ? Context.BIND_AUTO_CREATE | Context.BIND_IMPORTANT
+                                : Context.BIND_AUTO_CREATE;
+                        if (mContext.bindServiceAsUser(intent, inCallServiceConnection, bindFlags,
+                                UserHandle.CURRENT)) {
                             mServiceConnections.put(componentName, inCallServiceConnection);
                         }
                     }
