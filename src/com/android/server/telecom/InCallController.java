@@ -28,6 +28,7 @@ import android.content.res.Resources;
 import android.net.Uri;
 import android.os.IBinder;
 import android.os.RemoteException;
+import android.os.Trace;
 import android.os.UserHandle;
 import android.telecom.AudioState;
 import android.telecom.CallProperties;
@@ -37,6 +38,7 @@ import android.telecom.ParcelableCall;
 import android.telecom.PhoneCapabilities;
 import android.telecom.TelecomManager;
 import android.util.ArrayMap;
+
 
 // TODO: Needed for move to system service: import com.android.internal.R;
 import com.android.internal.telecom.IInCallService;
@@ -334,7 +336,7 @@ public final class InCallController extends CallsManagerListenerBase {
      */
     private void onConnected(ComponentName componentName, IBinder service) {
         ThreadUtil.checkOnMainThread();
-
+        Trace.beginSection("onConnected: " + componentName);
         Log.i(this, "onConnected to %s", componentName);
 
         IInCallService inCallService = IInCallService.Stub.asInterface(service);
@@ -345,6 +347,7 @@ public final class InCallController extends CallsManagerListenerBase {
             mInCallServices.put(componentName, inCallService);
         } catch (RemoteException e) {
             Log.e(this, e, "Failed to set the in-call adapter.");
+            Trace.endSection();
             return;
         }
 
@@ -369,6 +372,7 @@ public final class InCallController extends CallsManagerListenerBase {
         } else {
             unbind();
         }
+        Trace.endSection();
     }
 
     /**

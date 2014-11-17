@@ -23,6 +23,7 @@ import android.content.pm.ResolveInfo;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Trace;
 import android.provider.CallLog.Calls;
 import android.telecom.AudioState;
 import android.telecom.CallState;
@@ -38,6 +39,7 @@ import android.telecom.VideoProfile;
 import android.telephony.TelephonyManager;
 
 import com.android.internal.util.IndentingPrintWriter;
+
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableList;
 
@@ -1034,20 +1036,28 @@ public final class CallsManager extends Call.ListenerBase {
      * @param call The call to add.
      */
     private void addCall(Call call) {
+        Trace.beginSection("addCall");
         Log.v(this, "addCall(%s)", call);
-
         call.addListener(this);
         mCalls.add(call);
 
         // TODO: Update mForegroundCall prior to invoking
         // onCallAdded for calls which immediately take the foreground (like the first call).
         for (CallsManagerListener listener : mListeners) {
+            if (Log.SYSTRACE_DEBUG) {
+                Trace.beginSection(listener.getClass().toString() + " addCall");
+            }
             listener.onCallAdded(call);
+            if (Log.SYSTRACE_DEBUG) {
+                Trace.endSection();
+            }
         }
         updateCallsManagerState();
+        Trace.endSection();
     }
 
     private void removeCall(Call call) {
+        Trace.beginSection("removeCall");
         Log.v(this, "removeCall(%s)", call);
 
         call.setParentCall(null);  // need to clean up parent relationship before destroying.
@@ -1063,10 +1073,17 @@ public final class CallsManager extends Call.ListenerBase {
         // Only broadcast changes for calls that are being tracked.
         if (shouldNotify) {
             for (CallsManagerListener listener : mListeners) {
+                if (Log.SYSTRACE_DEBUG) {
+                    Trace.beginSection(listener.getClass().toString() + " onCallRemoved");
+                }
                 listener.onCallRemoved(call);
+                if (Log.SYSTRACE_DEBUG) {
+                    Trace.endSection();
+                }
             }
             updateCallsManagerState();
         }
+        Trace.endSection();
     }
 
     /**
@@ -1092,13 +1109,21 @@ public final class CallsManager extends Call.ListenerBase {
             // unexpected transition occurs.
             call.setState(newState);
 
+            Trace.beginSection("onCallStateChanged");
             // Only broadcast state change for calls that are being tracked.
             if (mCalls.contains(call)) {
                 for (CallsManagerListener listener : mListeners) {
+                    if (Log.SYSTRACE_DEBUG) {
+                        Trace.beginSection(listener.getClass().toString() + " onCallStateChanged");
+                    }
                     listener.onCallStateChanged(call, oldState, newState);
+                    if (Log.SYSTRACE_DEBUG) {
+                        Trace.endSection();
+                    }
                 }
                 updateCallsManagerState();
             }
+            Trace.endSection();
         }
     }
 
@@ -1106,6 +1131,7 @@ public final class CallsManager extends Call.ListenerBase {
      * Checks which call should be visible to the user and have audio focus.
      */
     private void updateForegroundCall() {
+        Trace.beginSection("updateForegroundCall");
         Call newForegroundCall = null;
         for (Call call : mCalls) {
             // TODO: Foreground-ness needs to be explicitly set. No call, regardless
@@ -1136,9 +1162,16 @@ public final class CallsManager extends Call.ListenerBase {
             mForegroundCall = newForegroundCall;
 
             for (CallsManagerListener listener : mListeners) {
+                if (Log.SYSTRACE_DEBUG) {
+                    Trace.beginSection(listener.getClass().toString() + " updateForegroundCall");
+                }
                 listener.onForegroundCallChanged(oldForegroundCall, mForegroundCall);
+                if (Log.SYSTRACE_DEBUG) {
+                    Trace.endSection();
+                }
             }
         }
+        Trace.endSection();
     }
 
     private void updateCanAddCall() {
@@ -1146,7 +1179,13 @@ public final class CallsManager extends Call.ListenerBase {
         if (newCanAddCall != mCanAddCall) {
             mCanAddCall = newCanAddCall;
             for (CallsManagerListener listener : mListeners) {
+                if (Log.SYSTRACE_DEBUG) {
+                    Trace.beginSection(listener.getClass().toString() + " updateCanAddCall");
+                }
                 listener.onCanAddCallChanged(mCanAddCall);
+                if (Log.SYSTRACE_DEBUG) {
+                    Trace.endSection();
+                }
             }
         }
     }
