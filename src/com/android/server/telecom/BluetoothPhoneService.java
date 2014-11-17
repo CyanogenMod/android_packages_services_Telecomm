@@ -205,6 +205,12 @@ public final class BluetoothPhoneService extends Service {
             CallsManager callsManager = getCallsManager();
             Call call = null;
 
+            if (request == null)
+            {
+                Log.i(TAG, "handleMessage: request is null");
+                return;
+            }
+
             Log.d(TAG, "handleMessage(%d) w/ param %s",
                     msg.what, request == null ? null : request.param);
 
