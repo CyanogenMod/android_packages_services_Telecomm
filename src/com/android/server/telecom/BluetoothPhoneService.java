@@ -268,6 +268,12 @@ public final class BluetoothPhoneService extends Service {
                         if (TextUtils.isEmpty(address)) {
                             address = TelephonyManager.from(BluetoothPhoneService.this)
                                     .getLine1Number();
+                            /* if address is still null then while loop in
+                             * sendSynchronousRequest will never be terminated and all
+                             * subsequent requests will keep on waiting */
+                            if (TextUtils.isEmpty(address)) {
+                                address = "";
+                            }
                         }
                     } finally {
                         request.setResult(address);
