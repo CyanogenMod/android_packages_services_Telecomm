@@ -41,6 +41,4 @@
     <string name="no_vm_number" msgid="4164780423805688336">"未填留言信箱號碼"</string>
     <string name="no_vm_number_msg" msgid="1300729501030053828">"SIM 卡中沒有儲存任何留言信箱號碼。"</string>
     <string name="add_vm_number_str" msgid="4676479471644687453">"新增電話號碼"</string>
-    <string name="headset_plugin_view_text">耳機已插入到手機</string>
-    <string name="headset_plugin_view_title">耳機插入</string>
 </resources>
