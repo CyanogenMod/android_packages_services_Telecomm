@@ -22,6 +22,7 @@ import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Trace;
 import android.provider.ContactsContract.Contacts;
 import android.telecom.CallState;
 import android.telecom.DisconnectCause;
@@ -44,7 +45,6 @@ import com.android.internal.telephony.CallerInfoAsyncQuery;
 import com.android.internal.telephony.CallerInfoAsyncQuery.OnQueryCompleteListener;
 import com.android.internal.telephony.SmsApplication;
 import com.android.server.telecom.ContactsAsyncHelper.OnImageLoadCompleteListener;
-
 import com.android.internal.util.Preconditions;
 
 import java.util.ArrayList;
@@ -1175,6 +1175,7 @@ final class Call implements CreateConnectionResponse {
      * @param token The token used with this query.
      */
     private void setCallerInfo(CallerInfo callerInfo, int token) {
+        Trace.beginSection("setCallerInfo");
         Preconditions.checkNotNull(callerInfo);
 
         if (mQueryToken == token) {
@@ -1199,6 +1200,7 @@ final class Call implements CreateConnectionResponse {
 
             processDirectToVoicemail();
         }
+        Trace.endSection();
     }
 
     CallerInfo getCallerInfo() {
