@@ -41,6 +41,4 @@
     <string name="no_vm_number" msgid="4164780423805688336">"缺少语音信箱号码"</string>
     <string name="no_vm_number_msg" msgid="1300729501030053828">"SIM卡上未存储语音信箱号码。"</string>
     <string name="add_vm_number_str" msgid="4676479471644687453">"添加号码"</string>
-    <string name="headset_plugin_view_text">耳机已插入到手机。</string>
-    <string name="headset_plugin_view_title">耳机插入</string>
 </resources>

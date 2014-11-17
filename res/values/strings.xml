@@ -112,7 +112,5 @@
     <!-- DO NOT TRANSLATE. Hardcoded number used for restricted incoming phone numbers. -->
     <string name="handle_restricted">RESTRICTED</string>
 
-    <string name="headset_plugin_view_text">Headset is plugged in.</string>
-    <string name="headset_plugin_view_title">Headset</string>
     <string name="select_account_dialog_title">Select Account</string>
 </resources>
