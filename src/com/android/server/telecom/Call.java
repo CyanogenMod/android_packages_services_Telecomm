@@ -189,6 +189,12 @@ final class Call implements CreateConnectionResponse {
      */
     private long mCreationTimeMillis = System.currentTimeMillis();
 
+    /** The time this call was made active. */
+    private long mConnectTimeMillis = 0;
+
+    /** The time this call was disconnected. */
+    private long mDisconnectTimeMillis = 0;
+
     /** The gateway information associated with this call. This stores the original call handle
      * that the user is attempting to connect to via the gateway, the actual handle to dial in
      * order to connect the call via the gateway, as well as the package name of the gateway
@@ -202,8 +208,6 @@ final class Call implements CreateConnectionResponse {
     private final Handler mHandler = new Handler();
 
     private final List<Call> mConferenceableCalls = new ArrayList<>();
-
-    private long mConnectTimeMillis = 0;
 
     /** The state of the call. */
     private int mState;
@@ -386,7 +390,18 @@ final class Call implements CreateConnectionResponse {
             mState = newState;
             maybeLoadCannedSmsResponses();
 
-            if (mState == CallState.DISCONNECTED) {
+            if (mState == CallState.ACTIVE || mState == CallState.ON_HOLD) {
+                if (mConnectTimeMillis == 0) {
+                    // We check to see if mConnectTime is already set to prevent the
+                    // call from resetting active time when it goes in and out of
+                    // ACTIVE/ON_HOLD
+                    mConnectTimeMillis = System.currentTimeMillis();
+                }
+
+                // We're clearly not disconnected, so reset the disconnected time.
+                mDisconnectTimeMillis = 0;
+            } else if (mState == CallState.DISCONNECTED) {
+                mDisconnectTimeMillis = System.currentTimeMillis();
                 setLocallyDisconnecting(false);
                 fixParentAfterDisconnect();
                 if ((oldState == CallState.DIALING || oldState == CallState.CONNECTING)
@@ -559,7 +574,21 @@ final class Call implements CreateConnectionResponse {
      *     mCreationTimeMillis.
      */
     long getAgeMillis() {
-        return System.currentTimeMillis() - mCreationTimeMillis;
+        if (mState == CallState.DISCONNECTED &&
+                (mDisconnectCause.getCode() == DisconnectCause.REJECTED ||
+                 mDisconnectCause.getCode() == DisconnectCause.MISSED)) {
+            // Rejected and missed calls have no age. They're immortal!!
+            return 0;
+        } else if (mConnectTimeMillis == 0) {
+            // Age is measured in the amount of time the call was active. A zero connect time
+            // indicates that we never went active, so return 0 for the age.
+            return 0;
+        } else if (mDisconnectTimeMillis == 0) {
+            // We connected, but have not yet disconnected
+            return System.currentTimeMillis() - mConnectTimeMillis;
+        }
+
+        return mDisconnectTimeMillis - mConnectTimeMillis;
     }
 
     /**
@@ -576,10 +605,6 @@ final class Call implements CreateConnectionResponse {
 
     long getConnectTimeMillis() {
         return mConnectTimeMillis;
-    }
-
-    void setConnectTimeMillis(long connectTimeMillis) {
-        mConnectTimeMillis = connectTimeMillis;
     }
 
     int getCallCapabilities() {
