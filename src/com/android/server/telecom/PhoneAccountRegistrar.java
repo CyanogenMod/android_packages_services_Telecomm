@@ -94,6 +94,7 @@ public final class PhoneAccountRegistrar {
     private final List<Listener> mListeners = new CopyOnWriteArrayList<>();
     private final AtomicFile mAtomicFile;
     private final Context mContext;
+    private final SubscriptionManager mSubscriptionManager;
     private State mState;
 
     @VisibleForTesting
@@ -115,6 +116,7 @@ public final class PhoneAccountRegistrar {
 
         mState = new State();
         mContext = context;
+        mSubscriptionManager = SubscriptionManager.from(mContext);
         read();
     }
 
@@ -132,7 +134,7 @@ public final class PhoneAccountRegistrar {
                 !TextUtils.isDigitsOnly(accountHandle.getId())) {
             // Since no decimals or negative numbers can be valid subscription ids, only a string of
             // numbers can be subscription id
-            return SubscriptionManager.INVALID_SUB_ID;
+            return SubscriptionManager.INVALID_SUBSCRIPTION_ID;
         }
         return Integer.parseInt(accountHandle.getId());
     }
@@ -252,7 +254,7 @@ public final class PhoneAccountRegistrar {
                 // If the account selected is a SIM account, propagate down to the subscription
                 // record.
                 int subId = getSubscriptionIdForPhoneAccount(accountHandle);
-                SubscriptionManager.setDefaultVoiceSubId(subId);
+                mSubscriptionManager.setDefaultVoiceSubId(subId);
             }
 
             mState.defaultOutgoing = accountHandle;
