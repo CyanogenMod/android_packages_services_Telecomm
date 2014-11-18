@@ -41,8 +41,11 @@ import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.internal.telephony.CallStateException;
+import com.android.internal.telephony.CallerInfo;
 import com.android.internal.telephony.PhoneConstants;
 import com.android.internal.telephony.TelephonyProperties;
+import com.android.internal.telephony.util.BlacklistUtils;
 import com.android.internal.util.IndentingPrintWriter;
 
 import java.util.Collection;
@@ -138,6 +141,7 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
     private final CallerInfoAsyncQueryFactory mCallerInfoAsyncQueryFactory;
     private final PhoneAccountRegistrar mPhoneAccountRegistrar;
     private final MissedCallNotifier mMissedCallNotifier;
+    private final BlacklistCallNotifier mBlacklistCallNotifier;
     private final Set<Call> mLocallyDisconnectingCalls = new HashSet<>();
     private final Set<Call> mPendingCallsToDisconnect = new HashSet<>();
     /* Handler tied to thread in which CallManager was initialized. */
@@ -180,13 +184,15 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
             PhoneAccountRegistrar phoneAccountRegistrar,
             HeadsetMediaButtonFactory headsetMediaButtonFactory,
             ProximitySensorManagerFactory proximitySensorManagerFactory,
-            InCallWakeLockControllerFactory inCallWakeLockControllerFactory) {
+            InCallWakeLockControllerFactory inCallWakeLockControllerFactory,
+            BlacklistCallNotifier blacklistCallNotifier) {
         mContext = context;
         mLock = lock;
         mContactsAsyncHelper = contactsAsyncHelper;
         mCallerInfoAsyncQueryFactory = callerInfoAsyncQueryFactory;
         mPhoneAccountRegistrar = phoneAccountRegistrar;
         mMissedCallNotifier = missedCallNotifier;
+        mBlacklistCallNotifier = blacklistCallNotifier;
         StatusBarNotifier statusBarNotifier = new StatusBarNotifier(context, this);
         mWiredHeadsetManager = new WiredHeadsetManager(context);
         mDockManager = new DockManager(context);
@@ -264,21 +270,27 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
     @Override
     public void onSuccessfulIncomingCall(Call incomingCall) {
         Log.d(this, "onSuccessfulIncomingCall");
-        setCallState(incomingCall, CallState.RINGING, "successful incoming call");
 
-        if (hasMaximumRingingCalls(incomingCall.getTargetPhoneAccount().getId())) {
-            incomingCall.reject(false, null);
-            // since the call was not added to the list of calls, we have to call the missed
-            // call notifier and the call logger manually.
-            mMissedCallNotifier.showMissedCallNotification(incomingCall);
-            mCallLogManager.logCall(incomingCall, Calls.MISSED_TYPE);
+        if (isCallBlacklisted(incomingCall)) {
+            mCallLogManager.logCall(incomingCall, Calls.BLACKLIST_TYPE);
+            incomingCall.setDisconnectCause(
+                    new DisconnectCause(android.telephony.DisconnectCause.CALL_BLACKLISTED));
         } else {
-            if (TelephonyManager.getDefault().getMultiSimConfiguration()
-                == TelephonyManager.MultiSimVariants.DSDA) {
-                incomingCall.mIsActiveSub = true;
+            setCallState(incomingCall, CallState.RINGING, "ringing set explicitly");
+            if (hasMaximumRingingCalls(incomingCall.getTargetPhoneAccount().getId())) {
+                incomingCall.reject(false, null);
+                // since the call was not added to the list of calls, we have to call the missed
+                // call notifier and the call logger manually.
+                mMissedCallNotifier.showMissedCallNotification(incomingCall);
+                mCallLogManager.logCall(incomingCall, Calls.MISSED_TYPE);
+            } else {
+                if (TelephonyManager.getDefault().getMultiSimConfiguration()
+                    == TelephonyManager.MultiSimVariants.DSDA) {
+                    incomingCall.mIsActiveSub = true;
+                }
+                addCall(incomingCall);
+                setActiveSubscription(incomingCall.getTargetPhoneAccount().getId());
             }
-            addCall(incomingCall);
-            setActiveSubscription(incomingCall.getTargetPhoneAccount().getId());
         }
     }
 
@@ -1448,6 +1460,14 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
     }
 
     /**
+     * Retrieves the {@link MissedCallNotifier}
+     * @return The {@link MissedCallNotifier}.
+     */
+    BlacklistCallNotifier getBlacklistCallNotifier() {
+        return mBlacklistCallNotifier;
+    }
+
+    /**
      * Adds the specified call to the main list of live calls.
      *
      * @param call The call to add.
@@ -2304,5 +2324,20 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
                 listener.onMergeFailed(call);
             }
         }
+    }
+
+    protected boolean isCallBlacklisted(Call c) {
+        final String number = c.getCallerInfo().phoneNumber;
+        // See if the number is in the blacklist
+        // Result is one of: MATCH_NONE, MATCH_LIST or MATCH_REGEX
+        int listType = BlacklistUtils.isListed(mContext, number, BlacklistUtils.BLOCK_CALLS);
+        if (listType != BlacklistUtils.MATCH_NONE) {
+            // We have a match, set the user and hang up the call and notify
+            Log.d(this, "Incoming call from " + number + " blocked.");
+            mBlacklistCallNotifier.notifyBlacklistedCall(number,
+                    c.getCreationTimeMillis(), listType);
+            return true;
+        }
+        return false;
     }
 }
