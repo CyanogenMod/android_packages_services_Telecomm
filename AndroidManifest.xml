@@ -182,6 +182,10 @@
                 <action android:name="com.android.server.telecom.ACTION_CALL_BACK_FROM_NOTIFICATION" />
                 <action android:name="com.android.server.telecom.ACTION_CALL_BACK_FROM_NOTIFICATION" />
                 <action android:name="com.android.server.telecom.ACTION_SEND_SMS_FROM_NOTIFICATION" />
+                <action android:name="com.android.phone.intent.CLEAR_BLACKLISTED_CALLS" />
+                <action android:name="com.android.phone.intent.CLEAR_BLACKLISTED_MESSAGES" />
+                <action android:name="com.android.phone.REMOVE_BLACKLIST" />
+                <action android:name="android.provider.Telephony.SMS_REJECTED" />
             </intent-filter>
         </receiver>
 
