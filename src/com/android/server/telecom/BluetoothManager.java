@@ -55,21 +55,23 @@ public class BluetoothManager {
         @Override
         public void onReceive(Context context, Intent intent) {
             String action = intent.getAction();
-
+            int bluetoothState = 0;
             if (action.equals(BluetoothHeadset.ACTION_CONNECTION_STATE_CHANGED)) {
-                int bluetoothHeadsetState = intent.getIntExtra(BluetoothHeadset.EXTRA_STATE,
-                                                          BluetoothHeadset.STATE_DISCONNECTED);
+                bluetoothState = intent.getIntExtra(BluetoothHeadset.EXTRA_STATE,
+                                         BluetoothHeadset.STATE_DISCONNECTED);
                 Log.d(this, "mReceiver: HEADSET_STATE_CHANGED_ACTION");
-                Log.d(this, "==> new state: %s ", bluetoothHeadsetState);
-                updateBluetoothState();
+                Log.d(this, "==> new state: %s ", bluetoothState);
             } else if (action.equals(BluetoothHeadset.ACTION_AUDIO_STATE_CHANGED)) {
-                int bluetoothHeadsetAudioState =
-                        intent.getIntExtra(BluetoothHeadset.EXTRA_STATE,
-                                           BluetoothHeadset.STATE_AUDIO_DISCONNECTED);
+                bluetoothState = intent.getIntExtra(BluetoothHeadset.EXTRA_STATE,
+                                       BluetoothHeadset.STATE_AUDIO_DISCONNECTED);
                 Log.d(this, "mReceiver: HEADSET_AUDIO_STATE_CHANGED_ACTION");
-                Log.d(this, "==> new state: %s", bluetoothHeadsetAudioState);
-                updateBluetoothState();
+                Log.d(this, "==> new state: %s", bluetoothState);
             }
+            if (bluetoothState == BluetoothHeadset.STATE_DISCONNECTED ||
+                    bluetoothState == BluetoothHeadset.STATE_AUDIO_DISCONNECTED) {
+                mBluetoothConnectionPending = false;
+            }
+            updateBluetoothState();
         }
     };
 
