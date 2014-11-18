@@ -117,6 +117,11 @@ public final class InCallController extends CallsManagerListenerBase {
         public void onConferenceableCallsChanged(Call call) {
             updateCall(call);
         }
+
+        @Override
+        public void onCallSubstateChanged(Call call) {
+            updateCall(call);
+        }
     };
 
     /**
@@ -509,7 +514,8 @@ public final class InCallController extends CallsManagerListenerBase {
                 call.getExtras(),
                 call.getNotificationType(),
                 call.getNotificationCode(),
-                call.mIsActiveSub);
+                call.mIsActiveSub,
+                call.getCallSubstate());
     }
 
     /**
