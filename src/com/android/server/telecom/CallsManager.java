@@ -53,6 +53,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import android.telecom.VideoProfile;
 
 /**
  * Singleton.
@@ -658,6 +659,9 @@ public final class CallsManager extends Call.ListenerBase {
             // We do not update the UI until we get confirmation of the answer() through
             // {@link #markCallAsActive}.
             call.answer(videoState);
+            if (VideoProfile.VideoState.isVideo(videoState)) {
+                call.setStartWithSpeakerphoneOn(true);
+            }
         }
     }
 
