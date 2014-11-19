@@ -444,13 +444,20 @@ public final class InCallController extends CallsManagerListenerBase {
      *
      * @param call The {@link Call} to parcel.
      * @param includeVideoProvider When {@code true}, the {@link IVideoProvider} is included in the
-     *      parcelled call.  When {@code false}, the {@link IVideoProvider} is not included.
+     *      parceled call.  When {@code false}, the {@link IVideoProvider} is not included.
      * @return The {@link ParcelableCall} containing all call information from the {@link Call}.
      */
     private ParcelableCall toParcelableCall(Call call, boolean includeVideoProvider) {
         String callId = mCallIdMapper.getCallId(call);
 
         int capabilities = call.getCallCapabilities();
+
+        boolean isDefaultSmsAccount =
+                CallsManager.getInstance().getPhoneAccountRegistrar().isUserSelectedSmsPhoneAccount(
+                        call.getTargetPhoneAccount());
+        if (call.isRespondViaSmsCapable() && isDefaultSmsAccount) {
+            capabilities |= PhoneCapabilities.RESPOND_VIA_TEXT;
+        }
 
         // Disable mute and add call for emergency calls.
         if (call.isEmergencyCall()) {

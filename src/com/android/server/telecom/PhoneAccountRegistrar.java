@@ -264,6 +264,11 @@ public final class PhoneAccountRegistrar {
         fireDefaultOutgoingChanged();
     }
 
+    boolean isUserSelectedSmsPhoneAccount(PhoneAccountHandle accountHandle) {
+        return getSubscriptionIdForPhoneAccount(accountHandle) ==
+                SubscriptionManager.getDefaultSmsSubId();
+    }
+
     private void setDefaultVoicePhoneAccount(PhoneAccountHandle accountHandle) {
         boolean voicePrompt = SubscriptionManager.isVoicePromptEnabled();
         Log.d(this, "set voice default, prompt =  " + voicePrompt);
