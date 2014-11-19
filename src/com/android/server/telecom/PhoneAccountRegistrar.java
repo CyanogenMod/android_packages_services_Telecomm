@@ -222,6 +222,11 @@ public final class PhoneAccountRegistrar {
         fireDefaultOutgoingChanged();
     }
 
+    boolean isUserSelectedSmsPhoneAccount(PhoneAccountHandle accountHandle) {
+        return getSubscriptionIdForPhoneAccount(accountHandle) ==
+                SubscriptionManager.getDefaultSmsSubId();
+    }
+
     public void setSimCallManager(PhoneAccountHandle callManager) {
         if (callManager != null) {
             PhoneAccount callManagerAccount = getPhoneAccount(callManager);

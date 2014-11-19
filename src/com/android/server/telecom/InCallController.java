@@ -436,7 +436,7 @@ public final class InCallController extends CallsManagerListenerBase {
      *
      * @param call The {@link Call} to parcel.
      * @param includeVideoProvider When {@code true}, the {@link IVideoProvider} is included in the
-     *      parcelled call.  When {@code false}, the {@link IVideoProvider} is not included.
+     *      parceled call.  When {@code false}, the {@link IVideoProvider} is not included.
      * @return The {@link ParcelableCall} containing all call information from the {@link Call}.
      */
     private ParcelableCall toParcelableCall(Call call, boolean includeVideoProvider) {
@@ -445,7 +445,10 @@ public final class InCallController extends CallsManagerListenerBase {
         int state = call.getState();
         int capabilities = call.getCallCapabilities();
 
-        if (call.isRespondViaSmsCapable()) {
+        boolean isDefaultSmsAccount =
+                CallsManager.getInstance().getPhoneAccountRegistrar().isUserSelectedSmsPhoneAccount(
+                        call.getTargetPhoneAccount());
+        if (call.isRespondViaSmsCapable() && isDefaultSmsAccount) {
             capabilities |= PhoneCapabilities.RESPOND_VIA_TEXT;
         }
 
