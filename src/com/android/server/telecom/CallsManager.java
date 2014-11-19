@@ -40,9 +40,7 @@ import android.telephony.TelephonyManager;
 
 import com.android.internal.util.IndentingPrintWriter;
 
-import com.google.common.collect.ImmutableCollection;
-import com.google.common.collect.ImmutableList;
-
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -314,8 +312,8 @@ public final class CallsManager extends Call.ListenerBase {
         return true;
     }
 
-    ImmutableCollection<Call> getCalls() {
-        return ImmutableList.copyOf(mCalls);
+    Collection<Call> getCalls() {
+        return Collections.unmodifiableCollection(mCalls);
     }
 
     Call getForegroundCall() {
