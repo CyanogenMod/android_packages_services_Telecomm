@@ -190,9 +190,13 @@ final class Ringer extends CallsManagerListenerBase {
                 // call (for the purposes of direct-to-voicemail), the information about custom
                 // ringtones should be available by the time this code executes. We can safely
                 // request the custom ringtone from the call and expect it to be current.
-                int phoneId = SubscriptionManager.getPhoneId(Long.valueOf(
-                        foregroundCall.getTargetPhoneAccount().getId()));
-                mRingtonePlayer.setPhoneId(phoneId);
+                try {
+                    int phoneId = SubscriptionManager.getPhoneId(Long.valueOf(
+                            foregroundCall.getTargetPhoneAccount().getId()));
+                    mRingtonePlayer.setPhoneId(phoneId);
+                } catch (NumberFormatException e) {
+                    Log.w(this,"Subid is not a number " + e);
+                }
                 mRingtonePlayer.play(foregroundCall.getRingtone());
             } else {
                 Log.v(this, "startRingingOrCallWaiting, skipping because volume is 0");
