@@ -169,7 +169,8 @@ class NewOutgoingCallIntentBroadcaster {
 
         boolean isVoicemailNumber = PhoneAccount.SCHEME_VOICEMAIL.equals(handle.getScheme());
         if (isVoicemailNumber) {
-            if (Intent.ACTION_CALL.equals(action)) {
+            if (Intent.ACTION_CALL.equals(action)
+                    || Intent.ACTION_CALL_PRIVILEGED.equals(action)) {
                 // Voicemail calls will be handled directly by the telephony connection manager
                 Log.i(this, "Placing call immediately instead of waiting for "
                         + " OutgoingCallBroadcastReceiver: %s", intent);
