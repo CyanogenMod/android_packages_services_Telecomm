@@ -408,7 +408,6 @@ public final class CallsManager extends Call.ListenerBase {
                 // to the existing connection instead of trying to create a new one.
                 true /* isIncoming */,
                 false /* isConference */);
-        call.setConnectTimeMillis(System.currentTimeMillis());
         call.setIsUnknown(true);
         call.setExtras(extras);
         call.addListener(this);
@@ -801,9 +800,6 @@ public final class CallsManager extends Call.ListenerBase {
     }
 
     void markCallAsActive(Call call) {
-        if (call.getConnectTimeMillis() == 0) {
-            call.setConnectTimeMillis(System.currentTimeMillis());
-        }
         setCallState(call, CallState.ACTIVE);
 
         if (call.getStartWithSpeakerphoneOn()) {
@@ -995,9 +991,6 @@ public final class CallsManager extends Call.ListenerBase {
                 true /* isConference */);
 
         setCallState(call, Call.getStateFromConnectionState(parcelableConference.getState()));
-        if (call.getState() == CallState.ACTIVE) {
-            call.setConnectTimeMillis(System.currentTimeMillis());
-        }
         call.setCallCapabilities(parcelableConference.getCapabilities());
 
         // TODO: Move this to be a part of addCall()
@@ -1341,7 +1334,6 @@ public final class CallsManager extends Call.ListenerBase {
                 false /* isConference */);
 
         setCallState(call, Call.getStateFromConnectionState(connection.getState()));
-        call.setConnectTimeMillis(System.currentTimeMillis());
         call.setCallCapabilities(connection.getCapabilities());
         call.setCallerDisplayName(connection.getCallerDisplayName(),
                 connection.getCallerDisplayNamePresentation());
