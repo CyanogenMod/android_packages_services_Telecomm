@@ -50,4 +50,7 @@
     <!-- Flag indicating if the speed up audio on mt call code should be executed -->
     <bool name="config_speed_up_audio_on_mt_calls">false</bool>
 
+    <!-- Take reject call as missed call -->
+    <bool name="reject_call_as_missed_call">false</bool>
+
 </resources>
