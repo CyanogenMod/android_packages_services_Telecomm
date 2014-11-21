@@ -1584,7 +1584,9 @@ public final class CallsManager extends Call.ListenerBase {
                 // There is no more room for any more calls, unless it's an emergency.
                 return false;  // No more room!
             }
-
+            if (Objects.equals(liveCall.getTargetPhoneAccount(), call.getTargetPhoneAccount())) {
+                return true;
+            }
             // Try to hold the live call before attempting the new outgoing call.
             if (liveCall.can(PhoneCapabilities.HOLD)) {
                 liveCall.hold();
