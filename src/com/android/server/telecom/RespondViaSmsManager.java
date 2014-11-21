@@ -191,7 +191,7 @@ public class RespondViaSmsManager extends CallsManagerListenerBase {
                 final Uri uri = Uri.fromParts(Constants.SCHEME_SMSTO, phoneNumber, null);
                 final Intent intent = new Intent(TelephonyManager.ACTION_RESPOND_VIA_MESSAGE, uri);
                 intent.putExtra(Intent.EXTRA_TEXT, textMessage);
-                if (subId != SubscriptionManager.INVALID_SUB_ID) {
+                if (subId != SubscriptionManager.INVALID_SUBSCRIPTION_ID) {
                     intent.putExtra(PhoneConstants.SUBSCRIPTION_KEY, subId);
                 }
 
