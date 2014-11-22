@@ -140,13 +140,12 @@ final class CallLogManager extends CallsManagerListenerBase {
 
         Log.d(TAG, "logNumber set to: %s", Log.pii(logNumber));
 
-        final int presentation = getPresentation(call);
         final PhoneAccountHandle accountHandle = call.getTargetPhoneAccount();
 
         // TODO(vt): Once data usage is available, wire it up here.
         int callFeatures = getCallFeatures(call.getVideoStateHistory());
-        logCall(call.getCallerInfo(), logNumber, presentation, callLogType, callFeatures,
-                accountHandle, creationTime, age, null);
+        logCall(call.getCallerInfo(), logNumber, call.getHandlePresentation(),
+                callLogType, callFeatures, accountHandle, creationTime, age, null);
     }
 
     /**
@@ -229,21 +228,6 @@ final class CallLogManager extends CallsManagerListenerBase {
             handleString = PhoneNumberUtils.stripSeparators(handleString);
         }
         return handleString;
-    }
-
-    /**
-     * Gets the presentation from the {@link Call}.
-     *
-     * TODO: There needs to be a way to pass information from
-     * Connection.getNumberPresentation() into a {@link Call} object. Until then, always return
-     * PhoneConstants.PRESENTATION_ALLOWED. On top of that, we might need to introduce
-     * getNumberPresentation to the ContactInfo object as well.
-     *
-     * @param call The call object to retrieve caller details from.
-     * @return The number presentation constant to insert into the call logs.
-     */
-    private int getPresentation(Call call) {
-        return PhoneConstants.PRESENTATION_ALLOWED;
     }
 
     /**
