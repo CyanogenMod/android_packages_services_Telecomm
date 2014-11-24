@@ -102,8 +102,6 @@ class InCallAdapter extends IInCallAdapter.Stub {
                     break;
                 case MSG_POST_DIAL_CONTINUE:
                     call = mCallIdMapper.getCall(msg.obj);
-                    mCallsManager.postDialContinue(call, msg.arg1 == 1);
-                    call = mCallIdMapper.getCall(msg.obj);
                     if (call != null) {
                         mCallsManager.postDialContinue(call, msg.arg1 == 1);
                     } else {
