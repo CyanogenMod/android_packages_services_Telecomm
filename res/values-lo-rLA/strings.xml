@@ -36,10 +36,8 @@
     <string name="respond_via_sms_edittext_dialog_title" msgid="20379890418289778">"ຕອບກັບດ່ວນ"</string>
     <string name="respond_via_sms_menu_reset_default_activity" msgid="1461742052902053466">"ຄືນຄ່າແອັບຯເລີ່ມຕົ້ນ"</string>
     <string name="respond_via_sms_confirmation_format" msgid="7229149977515784269">"ສົ່ງຂໍ້ຄວາມຫາ <xliff:g id="PHONE_NUMBER">%s</xliff:g> ແລ້ວ."</string>
-    <!-- no translation found for outgoing_call_not_allowed (1435394568102165287) -->
-    <skip />
-    <!-- no translation found for outgoing_call_error_no_phone_number_supplied (1940125199802007505) -->
-    <skip />
+    <string name="outgoing_call_not_allowed" msgid="1435394568102165287">"ພຽງ​ແຕ່​ການ​ໂທ​ສຸກ​ເສີນ​ທີ່​ໄດ້​ຮັບ​ອະ​ນຸ​ຍາດ​ຈາກ​ເຈົ້າ​ຂອງ​ອຸ​ປະ​ກອນ​ເທົ່າ​ນັ້ນ"</string>
+    <string name="outgoing_call_error_no_phone_number_supplied" msgid="1940125199802007505">"ເພື່ອ​ທີ່​ຈະ​ໂທ, ປ້ອນ​ເບີ​ໂທ​ທີ່​ໃຊ້​ໄດ້​ເຂົ້າ​ໄປ."</string>
     <string name="duplicate_video_call_not_allowed" msgid="3749211605014548386">"​ບໍ່​ສາ​ມາດ​ເພີ່ມ​ການ​ໂທ​ໄດ້​ໃນ​ເວ​ລາ​ນີ້."</string>
     <string name="no_vm_number" msgid="4164780423805688336">"ບໍ່ມີເບີຂໍ້ຄວາມສຽງ"</string>
     <string name="no_vm_number_msg" msgid="1300729501030053828">"ບໍ່ມີເບີຂໍ້ຄວາມສຽງຖືກບັນທຶກໃນ SIM card."</string>
