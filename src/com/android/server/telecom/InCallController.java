@@ -40,13 +40,13 @@ import android.telecom.TelecomManager;
 import android.util.ArrayMap;
 
 
+
 // TODO: Needed for move to system service: import com.android.internal.R;
 import com.android.internal.telecom.IInCallService;
 import com.android.internal.util.IndentingPrintWriter;
 
-import com.google.common.collect.ImmutableCollection;
-
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -355,7 +355,7 @@ public final class InCallController extends CallsManagerListenerBase {
         }
 
         // Upon successful connection, send the state of the world to the service.
-        ImmutableCollection<Call> calls = CallsManager.getInstance().getCalls();
+        Collection<Call> calls = CallsManager.getInstance().getCalls();
         if (!calls.isEmpty()) {
             Log.i(this, "Adding %s calls to InCallService after onConnected: %s", calls.size(),
                     componentName);
