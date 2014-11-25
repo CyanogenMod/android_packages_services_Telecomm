@@ -21,6 +21,7 @@ import android.app.AppOpsManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.os.Binder;
@@ -29,8 +30,8 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
-import android.os.ServiceManager;
 import android.os.UserHandle;
+import android.os.UserManager;
 import android.telecom.CallState;
 import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
@@ -45,6 +46,7 @@ import com.android.internal.util.IndentingPrintWriter;
 
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -140,6 +142,8 @@ public class TelecomServiceImpl extends ITelecomService.Stub {
     private final MissedCallNotifier mMissedCallNotifier;
     private final PhoneAccountRegistrar mPhoneAccountRegistrar;
     private final AppOpsManager mAppOpsManager;
+    private final UserManager mUserManager;
+    private final PackageManager mPackageManager;
 
     public TelecomServiceImpl(
             MissedCallNotifier missedCallNotifier, PhoneAccountRegistrar phoneAccountRegistrar,
@@ -149,6 +153,8 @@ public class TelecomServiceImpl extends ITelecomService.Stub {
         mCallsManager = callsManager;
         mContext = context;
         mAppOpsManager = (AppOpsManager) mContext.getSystemService(Context.APP_OPS_SERVICE);
+        mUserManager = (UserManager) mContext.getSystemService(Context.USER_SERVICE);
+        mPackageManager = mContext.getPackageManager();
     }
 
     //
@@ -158,7 +164,15 @@ public class TelecomServiceImpl extends ITelecomService.Stub {
     @Override
     public PhoneAccountHandle getDefaultOutgoingPhoneAccount(String uriScheme) {
         try {
-            return mPhoneAccountRegistrar.getDefaultOutgoingPhoneAccount(uriScheme);
+            PhoneAccountHandle defaultOutgoingPhoneAccount =
+                    mPhoneAccountRegistrar.getDefaultOutgoingPhoneAccount(uriScheme);
+            // Make sure that the calling user can see this phone account.
+            if (defaultOutgoingPhoneAccount != null
+                    && !isVisibleToCaller(defaultOutgoingPhoneAccount)) {
+                Log.w(this, "No account found for the calling user");
+                return null;
+            }
+            return defaultOutgoingPhoneAccount;
         } catch (Exception e) {
             Log.e(this, e, "getDefaultOutgoingPhoneAccount");
             throw e;
@@ -168,7 +182,14 @@ public class TelecomServiceImpl extends ITelecomService.Stub {
     @Override
     public PhoneAccountHandle getUserSelectedOutgoingPhoneAccount() {
         try {
-            return mPhoneAccountRegistrar.getUserSelectedOutgoingPhoneAccount();
+            PhoneAccountHandle userSelectedOutgoingPhoneAccount =
+                    mPhoneAccountRegistrar.getUserSelectedOutgoingPhoneAccount();
+            // Make sure that the calling user can see this phone account.
+            if (!isVisibleToCaller(userSelectedOutgoingPhoneAccount)) {
+                Log.w(this, "No account found for the calling user");
+                return null;
+            }
+            return userSelectedOutgoingPhoneAccount;
         } catch (Exception e) {
             Log.e(this, e, "getUserSelectedOutgoingPhoneAccount");
             throw e;
@@ -190,7 +211,8 @@ public class TelecomServiceImpl extends ITelecomService.Stub {
     @Override
     public List<PhoneAccountHandle> getCallCapablePhoneAccounts() {
         try {
-            return mPhoneAccountRegistrar.getCallCapablePhoneAccounts();
+            return filterForAccountsVisibleToCaller(
+                    mPhoneAccountRegistrar.getCallCapablePhoneAccounts());
         } catch (Exception e) {
             Log.e(this, e, "getCallCapablePhoneAccounts");
             throw e;
@@ -200,9 +222,10 @@ public class TelecomServiceImpl extends ITelecomService.Stub {
     @Override
     public List<PhoneAccountHandle> getPhoneAccountsSupportingScheme(String uriScheme) {
         try {
-            return mPhoneAccountRegistrar.getCallCapablePhoneAccounts(uriScheme);
+            return filterForAccountsVisibleToCaller(
+                    mPhoneAccountRegistrar.getCallCapablePhoneAccounts(uriScheme));
         } catch (Exception e) {
-            Log.e(this, e, "getPhoneAccountsSupportingScheme");
+            Log.e(this, e, "getPhoneAccountsSupportingScheme %s", uriScheme);
             throw e;
         }
     }
@@ -210,9 +233,10 @@ public class TelecomServiceImpl extends ITelecomService.Stub {
     @Override
     public List<PhoneAccountHandle> getPhoneAccountsForPackage(String packageName) {
         try {
-            return mPhoneAccountRegistrar.getPhoneAccountsForPackage(packageName);
+            return filterForAccountsVisibleToCaller(
+                    mPhoneAccountRegistrar.getPhoneAccountsForPackage(packageName));
         } catch (Exception e) {
-            Log.e(this, e, "getPhoneAccountsForPackage");
+            Log.e(this, e, "getPhoneAccountsForPackage %s", packageName);
             throw e;
         }
     }
@@ -220,7 +244,11 @@ public class TelecomServiceImpl extends ITelecomService.Stub {
     @Override
     public PhoneAccount getPhoneAccount(PhoneAccountHandle accountHandle) {
         try {
-            return mPhoneAccountRegistrar.getPhoneAccount(accountHandle);
+            if (!isVisibleToCaller(accountHandle)) {
+                Log.w(this, "%s is not visible for the calling user", accountHandle);
+                return null;
+            }
+            return mPhoneAccountRegistrar.getPhoneAccountInternal(accountHandle);
         } catch (Exception e) {
             Log.e(this, e, "getPhoneAccount %s", accountHandle);
             throw e;
@@ -230,7 +258,8 @@ public class TelecomServiceImpl extends ITelecomService.Stub {
     @Override
     public int getAllPhoneAccountsCount() {
         try {
-            return mPhoneAccountRegistrar.getAllPhoneAccountsCount();
+            // This list is pre-filtered for the calling user.
+            return getAllPhoneAccounts().size();
         } catch (Exception e) {
             Log.e(this, e, "getAllPhoneAccountsCount");
             throw e;
@@ -240,7 +269,14 @@ public class TelecomServiceImpl extends ITelecomService.Stub {
     @Override
     public List<PhoneAccount> getAllPhoneAccounts() {
         try {
-            return mPhoneAccountRegistrar.getAllPhoneAccounts();
+            List<PhoneAccount> allPhoneAccounts = mPhoneAccountRegistrar.getAllPhoneAccounts();
+            List<PhoneAccount> profilePhoneAccounts = new ArrayList<>(allPhoneAccounts.size());
+            for (PhoneAccount phoneAccount : profilePhoneAccounts) {
+                if (isVisibleToCaller(phoneAccount)) {
+                    profilePhoneAccounts.add(phoneAccount);
+                }
+            }
+            return profilePhoneAccounts;
         } catch (Exception e) {
             Log.e(this, e, "getAllPhoneAccounts");
             throw e;
@@ -250,7 +286,8 @@ public class TelecomServiceImpl extends ITelecomService.Stub {
     @Override
     public List<PhoneAccountHandle> getAllPhoneAccountHandles() {
         try {
-            return mPhoneAccountRegistrar.getAllPhoneAccountHandles();
+            return filterForAccountsVisibleToCaller(
+                    mPhoneAccountRegistrar.getAllPhoneAccountHandles());
         } catch (Exception e) {
             Log.e(this, e, "getAllPhoneAccounts");
             throw e;
@@ -260,7 +297,12 @@ public class TelecomServiceImpl extends ITelecomService.Stub {
     @Override
     public PhoneAccountHandle getSimCallManager() {
         try {
-            return mPhoneAccountRegistrar.getSimCallManager();
+            PhoneAccountHandle accountHandle = mPhoneAccountRegistrar.getSimCallManager();
+            if (!isVisibleToCaller(accountHandle)) {
+                Log.w(this, "%s is not visible for the calling user", accountHandle);
+                return null;
+            }
+            return accountHandle;
         } catch (Exception e) {
             Log.e(this, e, "getSimCallManager");
             throw e;
@@ -282,7 +324,8 @@ public class TelecomServiceImpl extends ITelecomService.Stub {
     @Override
     public List<PhoneAccountHandle> getSimCallManagers() {
         try {
-            return mPhoneAccountRegistrar.getConnectionManagerPhoneAccounts();
+            return filterForAccountsVisibleToCaller(
+                    mPhoneAccountRegistrar.getConnectionManagerPhoneAccounts());
         } catch (Exception e) {
             Log.e(this, e, "getSimCallManagers");
             throw e;
@@ -301,6 +344,10 @@ public class TelecomServiceImpl extends ITelecomService.Stub {
             if (account.hasCapabilities(PhoneAccount.CAPABILITY_CONNECTION_MANAGER)) {
                 enforceRegisterConnectionManagerPermission();
             }
+            if (account.hasCapabilities(PhoneAccount.CAPABILITY_MULTI_USER)) {
+                enforceRegisterMultiUser();
+            }
+            enforceUserHandleMatchesCaller(account.getAccountHandle());
 
             mPhoneAccountRegistrar.registerPhoneAccount(account);
         } catch (Exception e) {
@@ -314,6 +361,7 @@ public class TelecomServiceImpl extends ITelecomService.Stub {
         try {
             enforcePhoneAccountModificationForPackage(
                     accountHandle.getComponentName().getPackageName());
+            enforceUserHandleMatchesCaller(accountHandle);
             mPhoneAccountRegistrar.unregisterPhoneAccount(accountHandle);
         } catch (Exception e) {
             Log.e(this, e, "unregisterPhoneAccount %s", accountHandle);
@@ -325,9 +373,50 @@ public class TelecomServiceImpl extends ITelecomService.Stub {
     public void clearAccounts(String packageName) {
         try {
             enforcePhoneAccountModificationForPackage(packageName);
-            mPhoneAccountRegistrar.clearAccounts(packageName);
+            mPhoneAccountRegistrar.clearAccounts(packageName, Binder.getCallingUserHandle());
         } catch (Exception e) {
             Log.e(this, e, "clearAccounts %s", packageName);
+            throw e;
+        }
+    }
+
+    /**
+     * @see android.telecom.TelecomManager#isVoiceMailNumber
+     */
+    @Override
+    public boolean isVoiceMailNumber(PhoneAccountHandle accountHandle, String number) {
+        enforceReadPermissionOrDefaultDialer();
+        try {
+            if (!isVisibleToCaller(accountHandle)) {
+                Log.w(this, "%s is not visible for the calling user", accountHandle);
+                return false;
+            }
+            return mPhoneAccountRegistrar.isVoiceMailNumber(accountHandle, number);
+        } catch (Exception e) {
+            Log.e(this, e, "getSubscriptionIdForPhoneAccount");
+            throw e;
+        }
+    }
+
+    /**
+     * @see android.telecom.TelecomManager#hasVoiceMailNumber
+     */
+    @Override
+    public boolean hasVoiceMailNumber(PhoneAccountHandle accountHandle) {
+        enforceReadPermissionOrDefaultDialer();
+        try {
+            if (!isVisibleToCaller(accountHandle)) {
+                Log.w(this, "%s is not visible for the calling user", accountHandle);
+                return false;
+            }
+
+            int subId = SubscriptionManager.getDefaultVoiceSubId();
+            if (accountHandle != null) {
+                subId = mPhoneAccountRegistrar.getSubscriptionIdForPhoneAccount(accountHandle);
+            }
+            return !TextUtils.isEmpty(getTelephonyManager().getVoiceMailNumber(subId));
+        } catch (Exception e) {
+            Log.e(this, e, "getSubscriptionIdForPhoneAccount");
             throw e;
         }
     }
@@ -458,6 +547,57 @@ public class TelecomServiceImpl extends ITelecomService.Stub {
     }
 
     /**
+     * @see android.telecom.TelecomManager#handleMmi
+     */
+    @Override
+    public boolean handlePinMmiForPhoneAccount(PhoneAccountHandle accountHandle,
+            String dialString) {
+        enforceModifyPermissionOrDefaultDialer();
+
+        if (!isVisibleToCaller(accountHandle)) {
+            Log.w(this, "%s is not visible for the calling user", accountHandle);
+            return false;
+        }
+
+        // Switch identity so that TelephonyManager checks Telecom's permissions instead.
+        long token = Binder.clearCallingIdentity();
+        boolean retval = false;
+        try {
+            int subId = mPhoneAccountRegistrar.getSubscriptionIdForPhoneAccount(accountHandle);
+            retval = getTelephonyManager().handlePinMmiForSubscriber(subId, dialString);
+        } finally {
+            Binder.restoreCallingIdentity(token);
+        }
+
+        return retval;
+    }
+
+    /**
+     * @see android.telecom.TelecomManager#getAdnUriForPhoneAccount
+     */
+    @Override
+    public Uri getAdnUriForPhoneAccount(PhoneAccountHandle accountHandle) {
+        enforceModifyPermissionOrDefaultDialer();
+
+        if (!isVisibleToCaller(accountHandle)) {
+            Log.w(this, "%s is not visible for the calling user", accountHandle);
+            return null;
+        }
+
+        // Switch identity so that TelephonyManager checks Telecom's permissions instead.
+        long token = Binder.clearCallingIdentity();
+        String retval = "content://icc/adn/";
+        try {
+            long subId = mPhoneAccountRegistrar.getSubscriptionIdForPhoneAccount(accountHandle);
+            retval = retval + "subId/" + subId;
+        } finally {
+            Binder.restoreCallingIdentity(token);
+        }
+
+        return Uri.parse(retval);
+    }
+
+    /**
      * @see android.telecom.TelecomManager#isTtySupported
      */
     @Override
@@ -484,6 +624,9 @@ public class TelecomServiceImpl extends ITelecomService.Stub {
             mAppOpsManager.checkPackage(
                     Binder.getCallingUid(), phoneAccountHandle.getComponentName().getPackageName());
 
+            // Make sure it doesn't cross the UserHandle boundary
+            enforceUserHandleMatchesCaller(phoneAccountHandle);
+
             Intent intent = new Intent(TelecomManager.ACTION_INCOMING_CALL);
             intent.setPackage(mContext.getPackageName());
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -508,13 +651,16 @@ public class TelecomServiceImpl extends ITelecomService.Stub {
             mAppOpsManager.checkPackage(
                     Binder.getCallingUid(), phoneAccountHandle.getComponentName().getPackageName());
 
+            // Make sure it doesn't cross the UserHandle boundary
+            enforceUserHandleMatchesCaller(phoneAccountHandle);
+
             Intent intent = new Intent(TelecomManager.ACTION_NEW_UNKNOWN_CALL);
             intent.setClass(mContext, CallReceiver.class);
             intent.setFlags(Intent.FLAG_RECEIVER_FOREGROUND);
             intent.putExtras(extras);
             intent.putExtra(CallReceiver.KEY_IS_UNKNOWN_CALL, true);
             intent.putExtra(TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE, phoneAccountHandle);
-            mContext.sendBroadcastAsUser(intent, UserHandle.OWNER);
+            mContext.sendBroadcastAsUser(intent, phoneAccountHandle.getUserHandle());
         } else {
             Log.i(this, "Null phoneAccountHandle or not initiated by Telephony. Ignoring request"
                     + " to add new unknown call.");
@@ -524,6 +670,87 @@ public class TelecomServiceImpl extends ITelecomService.Stub {
     //
     // Supporting methods for the ITelecomService interface implementation.
     //
+
+    private boolean isVisibleToCaller(PhoneAccountHandle accountHandle) {
+        if (accountHandle == null) {
+            return false;
+        }
+
+        return isVisibleToCaller(mPhoneAccountRegistrar.getPhoneAccountInternal(accountHandle));
+    }
+
+    private boolean isVisibleToCaller(PhoneAccount account) {
+        if (account == null) {
+            return false;
+        }
+
+        // If this PhoneAccount has CAPABILITY_MULTI_USER, it should be visible to all users and
+        // all profiles. Only Telephony and SIP accounts should have this capability.
+        if (account.hasCapabilities(PhoneAccount.CAPABILITY_MULTI_USER)) {
+            return true;
+        }
+
+        UserHandle phoneAccountUserHandle = account.getAccountHandle().getUserHandle();
+        if (phoneAccountUserHandle == null) {
+            return false;
+        }
+
+        List<UserHandle> profileUserHandles;
+        if (isCallerSystemApp()) {
+            // If the caller lives in /system/priv-app, it can see PhoneAccounts for all of the
+            // *profiles* that the calling user owns, but not for any other *users*.
+            profileUserHandles = mUserManager.getUserProfiles();
+        } else {
+            // Otherwise, it has to be owned by the current caller's profile.
+            profileUserHandles = new ArrayList<>(1);
+            profileUserHandles.add(Binder.getCallingUserHandle());
+        }
+
+        return profileUserHandles.contains(phoneAccountUserHandle);
+    }
+
+    /**
+     * Given a list of {@link PhoneAccountHandle}s, filter them to the ones that the calling
+     * user can see.
+     *
+     * @param phoneAccountHandles Unfiltered list of account handles.
+     *
+     * @return {@link PhoneAccountHandle}s visible to the calling user and its profiles.
+     */
+    private List<PhoneAccountHandle> filterForAccountsVisibleToCaller(
+            List<PhoneAccountHandle> phoneAccountHandles) {
+        List<PhoneAccountHandle> profilePhoneAccountHandles =
+                new ArrayList<>(phoneAccountHandles.size());
+        for (PhoneAccountHandle phoneAccountHandle : phoneAccountHandles) {
+            if (isVisibleToCaller(phoneAccountHandle)) {
+                profilePhoneAccountHandles.add(phoneAccountHandle);
+            }
+        }
+        return profilePhoneAccountHandles;
+    }
+
+    private boolean isCallerSystemApp() {
+        int uid = Binder.getCallingUid();
+        String[] packages = mPackageManager.getPackagesForUid(uid);
+        for (String packageName : packages) {
+            if (isPackageSystemApp(packageName)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean isPackageSystemApp(String packageName) {
+        try {
+            ApplicationInfo applicationInfo = mPackageManager.getApplicationInfo(packageName,
+                    PackageManager.GET_META_DATA);
+            if ((applicationInfo.flags & ApplicationInfo.FLAG_SYSTEM) != 0) {
+                return true;
+            }
+        } catch (PackageManager.NameNotFoundException e) {
+        }
+        return false;
+    }
 
     private void acceptRingingCallInternal() {
         Call call = mCallsManager.getFirstCallWithState(CallState.RINGING);
@@ -612,6 +839,18 @@ public class TelecomServiceImpl extends ITelecomService.Stub {
 
     private void enforcePermission(String permission) {
         mContext.enforceCallingOrSelfPermission(permission, null);
+    }
+
+    private void enforceRegisterMultiUser() {
+        if (!isCallerSystemApp()) {
+            throw new SecurityException("CAPABILITY_MULTI_USER is only available to system apps.");
+        }
+    }
+
+    private void enforceUserHandleMatchesCaller(PhoneAccountHandle accountHandle) {
+        if (!Binder.getCallingUserHandle().equals(accountHandle.getUserHandle())) {
+            throw new SecurityException("Calling UserHandle does not match PhoneAccountHandle's");
+        }
     }
 
     private void enforceFeature(String feature) {

@@ -16,6 +16,7 @@
 
 package com.android.server.telecom.tests.unit;
 
+import android.os.UserHandle;
 import com.android.internal.util.FastXmlSerializer;
 import com.android.server.telecom.Log;
 import com.android.server.telecom.PhoneAccountRegistrar;
@@ -190,7 +191,8 @@ public class PhoneAccountRegistrarTest extends AndroidTestCase {
                         "com.android.server.telecom.tests",
                         "com.android.server.telecom.tests.MockConnectionService"
                 ),
-                id);
+                id,
+                new UserHandle(5));
     }
 
     private PhoneAccount.Builder makeQuickAccountBuilder(String id, int idx) {
@@ -222,7 +224,7 @@ public class PhoneAccountRegistrarTest extends AndroidTestCase {
             XmlSerializer serializer = new FastXmlSerializer();
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             serializer.setOutput(new BufferedOutputStream(baos), "utf-8");
-            xml.writeToXml(input, serializer);
+            xml.writeToXml(input, serializer, context);
             serializer.flush();
             data = baos.toByteArray();
         }

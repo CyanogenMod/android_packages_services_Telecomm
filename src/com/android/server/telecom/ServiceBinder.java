@@ -22,6 +22,8 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.IBinder;
 import android.os.IInterface;
+import android.os.Process;
+import android.os.UserHandle;
 
 import com.android.internal.util.Preconditions;
 import com.google.common.base.Strings;
@@ -83,7 +85,15 @@ abstract class ServiceBinder<ServiceInterface extends IInterface> {
                 ServiceConnection connection = new ServiceBinderConnection();
 
                 Log.d(ServiceBinder.this, "Binding to service with intent: %s", serviceIntent);
-                if (!mContext.bindService(serviceIntent, connection, Context.BIND_AUTO_CREATE)) {
+                final boolean binding;
+                if (mUserHandle != null) {
+                    binding = mContext.bindServiceAsUser(serviceIntent, connection,
+                        Context.BIND_AUTO_CREATE, mUserHandle);
+                } else {
+                    binding = mContext.bindService(serviceIntent, connection,
+                        Context.BIND_AUTO_CREATE);
+                }
+                if (!binding) {
                     handleFailedConnection();
                     return;
                 }
@@ -141,6 +151,9 @@ abstract class ServiceBinder<ServiceInterface extends IInterface> {
     /** Used to bind and unbind from the service. */
     private ServiceConnection mServiceConnection;
 
+    /** {@link UserHandle} to use for binding, to support work profiles and multi-user. */
+    private UserHandle mUserHandle;
+
     /** The binder provided by {@link ServiceConnection#onServiceConnected} */
     private IBinder mBinder;
 
@@ -167,14 +180,17 @@ abstract class ServiceBinder<ServiceInterface extends IInterface> {
      * @param serviceAction The intent-action used with {@link Context#bindService}.
      * @param componentName The component name of the service with which to bind.
      * @param context The context.
+     * @param userHandle The {@link UserHandle} to use for binding.
      */
-    protected ServiceBinder(String serviceAction, ComponentName componentName, Context context) {
+    protected ServiceBinder(String serviceAction, ComponentName componentName, Context context,
+            UserHandle userHandle) {
         Preconditions.checkState(!Strings.isNullOrEmpty(serviceAction));
         Preconditions.checkNotNull(componentName);
 
         mContext = context;
         mServiceAction = serviceAction;
         mComponentName = componentName;
+        mUserHandle = userHandle;
     }
 
     final void incrementAssociatedCallCount() {

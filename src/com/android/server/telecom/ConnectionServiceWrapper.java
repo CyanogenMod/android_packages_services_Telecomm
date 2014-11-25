@@ -24,6 +24,7 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.RemoteException;
+import android.os.UserHandle;
 import android.telecom.AudioState;
 import android.telecom.Connection;
 import android.telecom.ConnectionRequest;
@@ -706,13 +707,15 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
      * @param connectionServiceRepository Connection service repository.
      * @param phoneAccountRegistrar Phone account registrar
      * @param context The context.
+     * @param userHandle The {@link UserHandle} to use when binding.
      */
     ConnectionServiceWrapper(
             ComponentName componentName,
             ConnectionServiceRepository connectionServiceRepository,
             PhoneAccountRegistrar phoneAccountRegistrar,
-            Context context) {
-        super(ConnectionService.SERVICE_INTERFACE, componentName, context);
+            Context context,
+            UserHandle userHandle) {
+        super(ConnectionService.SERVICE_INTERFACE, componentName, context, userHandle);
         mConnectionServiceRepository = connectionServiceRepository;
         phoneAccountRegistrar.addListener(new PhoneAccountRegistrar.Listener() {
             // TODO -- Upon changes to PhoneAccountRegistrar, need to re-wire connections
@@ -1117,7 +1120,8 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
             PhoneAccount account = mPhoneAccountRegistrar.getPhoneAccount(handle);
             if ((account.getCapabilities() & PhoneAccount.CAPABILITY_SIM_SUBSCRIPTION) != 0) {
                 ConnectionServiceWrapper service =
-                        mConnectionServiceRepository.getService(handle.getComponentName());
+                        mConnectionServiceRepository.getService(handle.getComponentName(),
+                                handle.getUserHandle());
                 if (service != null) {
                     simServices.add(service);
                 }
