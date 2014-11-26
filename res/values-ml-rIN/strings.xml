@@ -36,10 +36,8 @@
     <string name="respond_via_sms_edittext_dialog_title" msgid="20379890418289778">"ദ്രുത പ്രതികരണം"</string>
     <string name="respond_via_sms_menu_reset_default_activity" msgid="1461742052902053466">"സ്ഥിര അപ്ലിക്കേഷൻ പുനഃസജ്ജമാക്കുക"</string>
     <string name="respond_via_sms_confirmation_format" msgid="7229149977515784269">"<xliff:g id="PHONE_NUMBER">%s</xliff:g> എന്നതിലേക്ക് സന്ദേശമയച്ചു."</string>
-    <!-- no translation found for outgoing_call_not_allowed (1435394568102165287) -->
-    <skip />
-    <!-- no translation found for outgoing_call_error_no_phone_number_supplied (1940125199802007505) -->
-    <skip />
+    <string name="outgoing_call_not_allowed" msgid="1435394568102165287">"ഉപകരണ ഉടമ അടിയന്തിര കോളുകൾ മാത്രമേ അനുവദിച്ചിട്ടുള്ളൂ"</string>
+    <string name="outgoing_call_error_no_phone_number_supplied" msgid="1940125199802007505">"ഒരു കോൾ ചെയ്യുന്നതിന്, സാധുതയുള്ള നമ്പർ നൽകുക."</string>
     <string name="duplicate_video_call_not_allowed" msgid="3749211605014548386">"കോൾ ഇപ്പോൾ ചേർക്കാനാകില്ല."</string>
     <string name="no_vm_number" msgid="4164780423805688336">"വോയ്‌സ്മെയിൽ നമ്പർ കാണുന്നില്ല"</string>
     <string name="no_vm_number_msg" msgid="1300729501030053828">"സിം കാർഡിൽ വോയ്‌സ്‌മെയിൽ നമ്പറൊന്നും സംഭരിച്ചിട്ടില്ല."</string>
