@@ -124,13 +124,7 @@ public class CallActivity extends Activity {
 
         intent.putExtra(CallReceiver.KEY_IS_DEFAULT_DIALER, isDefaultDialer());
 
-        if (UserHandle.myUserId() == UserHandle.USER_OWNER) {
-            Trace.beginSection("processOutgoingCallIntent");
-            CallReceiver.processOutgoingCallIntent(getApplicationContext(), intent);
-            Trace.endSection();
-        } else {
-            sendBroadcastToReceiver(intent, false /* isIncoming */);
-        }
+        sendBroadcastToReceiver(intent);
     }
 
     private boolean isDefaultDialer() {
@@ -159,11 +153,11 @@ public class CallActivity extends Activity {
     /**
      * Trampolines the intent to the broadcast receiver that runs only as the primary user.
      */
-    private boolean sendBroadcastToReceiver(Intent intent, boolean incoming) {
-        intent.putExtra(CallReceiver.KEY_IS_INCOMING_CALL, incoming);
+    private boolean sendBroadcastToReceiver(Intent intent) {
+        intent.putExtra(CallReceiver.KEY_IS_INCOMING_CALL, false);
         intent.setFlags(Intent.FLAG_RECEIVER_FOREGROUND);
         intent.setClass(this, CallReceiver.class);
-        Log.d(this, "Sending broadcast as user to CallReceiver- isIncoming: %s", incoming);
+        Log.d(this, "Sending broadcast as user to CallReceiver");
         sendBroadcastAsUser(intent, UserHandle.OWNER);
         return true;
     }

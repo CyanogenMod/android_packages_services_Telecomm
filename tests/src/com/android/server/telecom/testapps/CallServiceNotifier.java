@@ -111,6 +111,7 @@ public class CallServiceNotifier {
                 .setSubscriptionAddress(Uri.parse("tel:555-TEST"))
                 .setCapabilities(PhoneAccount.CAPABILITY_CALL_PROVIDER)
                 .setIcon(context, R.drawable.stat_sys_phone_call, Color.RED)
+                .setHighlightColor(Color.RED)
                 .setShortDescription("a short description for the call provider")
                 .setSupportedUriSchemes(Arrays.asList("tel"))
                 .build());
@@ -125,6 +126,7 @@ public class CallServiceNotifier {
                 .setCapabilities(PhoneAccount.CAPABILITY_CALL_PROVIDER |
                         PhoneAccount.CAPABILITY_SIM_SUBSCRIPTION)
                 .setIcon(context, R.drawable.stat_sys_phone_call, Color.GREEN)
+                .setHighlightColor(Color.GREEN)
                 .setShortDescription("a short description for the sim subscription")
                 .build());
 

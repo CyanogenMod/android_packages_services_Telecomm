@@ -60,6 +60,6 @@ public final class Timeouts {
      * in-call UI.
      */
     public static long getNewOutgoingCallCancelMillis(ContentResolver contentResolver) {
-        return get(contentResolver, "new_outgoing_call_cancel_ms", 200L);
+        return get(contentResolver, "new_outgoing_call_cancel_ms", 300L);
     }
 }
