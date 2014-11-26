@@ -912,6 +912,17 @@ public final class CallsManager extends Call.ListenerBase {
             Log.d(this,"Set active sub to conversation sub");
             setActiveSubscription(getConversationSub());
         }
+
+        if ((call.getTargetPhoneAccount() != null) && (phAcc.isSet(PhoneAccount.LCH))) {
+            Call activecall = getFirstCallWithStateUsingSubId(call.getTargetPhoneAccount().getId(),
+                    CallState.RINGING, CallState.DIALING, CallState.ACTIVE, CallState.ON_HOLD);
+            Log.d(this,"activecall: " + activecall);
+            if (activecall == null) {
+                phAcc.unSetBit(PhoneAccount.LCH);
+                manageMSimInCallTones(false);
+            }
+        }
+
         removeCall(call);
         if (!hasAnyCalls()) {
             updateLchStatus(null);
