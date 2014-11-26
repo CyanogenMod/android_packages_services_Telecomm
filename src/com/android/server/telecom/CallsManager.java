@@ -452,6 +452,11 @@ public final class CallsManager extends Call.ListenerBase {
 
         Log.v(this, "startOutgoingCall found accounts = " + accounts);
 
+        if (mForegroundCall != null && mForegroundCall.getTargetPhoneAccount() != null) {
+            // If there is an ongoing call, use the same phone account to place this new call.
+            phoneAccountHandle = mForegroundCall.getTargetPhoneAccount();
+        }
+
         // Only dial with the requested phoneAccount if it is still valid. Otherwise treat this call
         // as if a phoneAccount was not specified (does the default behavior instead).
         // Note: We will not attempt to dial with a requested phoneAccount if it is disabled.
