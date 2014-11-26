@@ -225,7 +225,9 @@ class AsyncRingtonePlayer {
         }
 
         Ringtone ringtone = RingtoneManager.getRingtone(mContext, ringtoneUri);
-        ringtone.setStreamType(AudioManager.STREAM_RING);
+        if (ringtone != null) {
+            ringtone.setStreamType(AudioManager.STREAM_RING);
+        }
         return ringtone;
     }
 }
