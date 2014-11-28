@@ -673,6 +673,13 @@ public class Call implements CreateConnectionResponse {
         return mCallerInfo == null ? null : mCallerInfo.name;
     }
 
+    public String getNumber() {
+        if (mCallerInfo != null) {
+            return mCallerInfo.phoneNumber;
+        }
+        return mHandle == null ? null : mHandle.getSchemeSpecificPart();
+    }
+
     public Bitmap getPhotoIcon() {
         return mCallerInfo == null ? null : mCallerInfo.cachedPhotoIcon;
     }
