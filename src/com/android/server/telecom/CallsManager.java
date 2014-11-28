@@ -39,7 +39,6 @@ import android.telecom.TelecomManager;
 import android.telephony.TelephonyManager;
 
 import com.android.internal.telephony.CallStateException;
-import com.android.internal.telephony.CallerInfo;
 import com.android.internal.telephony.Connection;
 import com.android.internal.telephony.TelephonyProperties;
 import com.android.internal.telephony.util.BlacklistUtils;
@@ -1829,7 +1828,11 @@ public final class CallsManager extends Call.ListenerBase {
     }
 
     protected boolean isCallBlacklisted(Call c) {
-        final String number = c.getCallerInfo().phoneNumber;
+        final String number = c.getNumber();
+        if (number == null) {
+            return false;
+        }
+
         // See if the number is in the blacklist
         // Result is one of: MATCH_NONE, MATCH_LIST or MATCH_REGEX
         int listType = BlacklistUtils.isListed(mContext, number, BlacklistUtils.BLOCK_CALLS);

@@ -1217,6 +1217,10 @@ final class Call implements CreateConnectionResponse {
         return mCallerInfo;
     }
 
+    String getNumber() {
+        return mHandle == null ? null : mHandle.getSchemeSpecificPart();
+    }
+
     /**
      * Saves the specified photo information if the specified token matches that of the last query.
      *
