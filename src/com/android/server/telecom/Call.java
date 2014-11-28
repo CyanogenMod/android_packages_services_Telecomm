@@ -457,6 +457,13 @@ final class Call implements CreateConnectionResponse {
         return mCallerInfo == null ? null : mCallerInfo.name;
     }
 
+    String getNumber() {
+        if (mCallerInfo != null) {
+            return mCallerInfo.phoneNumber;
+        }
+        return mHandle == null ? null : mHandle.getSchemeSpecificPart();
+    }
+
     Bitmap getPhotoIcon() {
         return mCallerInfo == null ? null : mCallerInfo.cachedPhotoIcon;
     }
