@@ -31,8 +31,8 @@ import android.os.IBinder;
 import android.os.Message;
 import android.os.RemoteException;
 import android.telecom.CallState;
+import android.telecom.Connection;
 import android.telecom.PhoneAccount;
-import android.telecom.PhoneCapabilities;
 import android.telephony.PhoneNumberUtils;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
@@ -498,7 +498,7 @@ public final class BluetoothPhoneService extends Service {
                 return true;
             }
         } else if (chld == CHLD_TYPE_HOLDACTIVE_ACCEPTHELD) {
-            if (activeCall != null && activeCall.can(PhoneCapabilities.SWAP_CONFERENCE)) {
+            if (activeCall != null && activeCall.can(Connection.CAPABILITY_SWAP_CONFERENCE)) {
                 activeCall.swapConference();
                 return true;
             } else if (ringingCall != null) {
@@ -509,13 +509,13 @@ public final class BluetoothPhoneService extends Service {
                 // currently-held call.
                 callsManager.unholdCall(heldCall);
                 return true;
-            } else if (activeCall != null && activeCall.can(PhoneCapabilities.HOLD)) {
+            } else if (activeCall != null && activeCall.can(Connection.CAPABILITY_HOLD)) {
                 callsManager.holdCall(activeCall);
                 return true;
             }
         } else if (chld == CHLD_TYPE_ADDHELDTOCONF) {
             if (activeCall != null) {
-                if (activeCall.can(PhoneCapabilities.MERGE_CONFERENCE)) {
+                if (activeCall.can(Connection.CAPABILITY_MERGE_CONFERENCE)) {
                     activeCall.mergeConference();
                     return true;
                 } else {
@@ -587,8 +587,8 @@ public final class BluetoothPhoneService extends Service {
 
             // Run some alternative states for Conference-level merge/swap support.
             // Basically, if call supports swapping or merging at the conference-level, then we need
-            // to expose the calls as having distinct states (ACTIVE vs HOLD) or the functionality
-            // won't show up on the bluetooth device.
+            // to expose the calls as having distinct states (ACTIVE vs CAPABILITY_HOLD) or the
+            // functionality won't show up on the bluetooth device.
 
             // Before doing any special logic, ensure that we are dealing with an ACTIVE call and
             // that the conference itself has a notion of the current "active" child call.
@@ -597,8 +597,8 @@ public final class BluetoothPhoneService extends Service {
                 // Reevaluate state if we can MERGE or if we can SWAP without previously having
                 // MERGED.
                 boolean shouldReevaluateState =
-                        conferenceCall.can(PhoneCapabilities.MERGE_CONFERENCE) ||
-                        (conferenceCall.can(PhoneCapabilities.SWAP_CONFERENCE) &&
+                        conferenceCall.can(Connection.CAPABILITY_MERGE_CONFERENCE) ||
+                        (conferenceCall.can(Connection.CAPABILITY_SWAP_CONFERENCE) &&
                          !conferenceCall.wasConferencePreviouslyMerged());
 
                 if (shouldReevaluateState) {
@@ -698,11 +698,11 @@ public final class BluetoothPhoneService extends Service {
         // to show "swap" and "merge" functionality.
         boolean ignoreHeldCallChange = false;
         if (activeCall != null && activeCall.isConference()) {
-            if (activeCall.can(PhoneCapabilities.SWAP_CONFERENCE)) {
+            if (activeCall.can(Connection.CAPABILITY_SWAP_CONFERENCE)) {
                 // Indicate that BT device should show SWAP command by indicating that there is a
                 // call on hold, but only if the conference wasn't previously merged.
                 numHeldCalls = activeCall.wasConferencePreviouslyMerged() ? 0 : 1;
-            } else if (activeCall.can(PhoneCapabilities.MERGE_CONFERENCE)) {
+            } else if (activeCall.can(Connection.CAPABILITY_MERGE_CONFERENCE)) {
                 numHeldCalls = 1;  // Merge is available, so expose via numHeldCalls.
             }
 
