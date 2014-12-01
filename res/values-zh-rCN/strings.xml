@@ -44,4 +44,5 @@
     <string name="add_vm_number_str" msgid="4676479471644687453">"添加号码"</string>
     <string name="headset_plugin_view_text">耳机已插入到手机。</string>
     <string name="headset_plugin_view_title">耳机插入</string>
+    <string name="select_account_dialog_title">选择账户</string>
 </resources>
