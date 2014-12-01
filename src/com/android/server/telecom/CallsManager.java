@@ -17,9 +17,6 @@
 package com.android.server.telecom;
 
 import android.content.Context;
-import android.content.Intent;
-import android.content.pm.PackageManager;
-import android.content.pm.ResolveInfo;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -27,13 +24,13 @@ import android.os.Trace;
 import android.provider.CallLog.Calls;
 import android.telecom.AudioState;
 import android.telecom.CallState;
+import android.telecom.Connection;
 import android.telecom.DisconnectCause;
 import android.telecom.GatewayInfo;
 import android.telecom.ParcelableConference;
 import android.telecom.ParcelableConnection;
 import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
-import android.telecom.PhoneCapabilities;
 import android.telecom.TelecomManager;
 import android.telecom.VideoProfile;
 import android.telephony.TelephonyManager;
@@ -592,7 +589,8 @@ public final class CallsManager extends Call.ListenerBase {
             if (mForegroundCall != null && mForegroundCall != call &&
                     (mForegroundCall.isActive() ||
                      mForegroundCall.getState() == CallState.DIALING)) {
-                if (0 == (mForegroundCall.getCallCapabilities() & PhoneCapabilities.HOLD)) {
+                if (0 == (mForegroundCall.getConnectionCapabilities()
+                        & Connection.CAPABILITY_HOLD)) {
                     // This call does not support hold.  If it is from a different connection
                     // service, then disconnect it, otherwise allow the connection service to
                     // figure out the right states.
@@ -994,7 +992,7 @@ public final class CallsManager extends Call.ListenerBase {
                 true /* isConference */);
 
         setCallState(call, Call.getStateFromConnectionState(parcelableConference.getState()));
-        call.setCallCapabilities(parcelableConference.getCapabilities());
+        call.setConnectionCapabilities(parcelableConference.getConnectionCapabilities());
 
         // TODO: Move this to be a part of addCall()
         call.addListener(this);
@@ -1307,7 +1305,7 @@ public final class CallsManager extends Call.ListenerBase {
             }
 
             // Try to hold the live call before attempting the new outgoing call.
-            if (liveCall.can(PhoneCapabilities.HOLD)) {
+            if (liveCall.can(Connection.CAPABILITY_HOLD)) {
                 liveCall.hold();
                 return true;
             }
@@ -1337,7 +1335,7 @@ public final class CallsManager extends Call.ListenerBase {
                 false /* isConference */);
 
         setCallState(call, Call.getStateFromConnectionState(connection.getState()));
-        call.setCallCapabilities(connection.getCapabilities());
+        call.setConnectionCapabilities(connection.getConnectionCapabilities());
         call.setCallerDisplayName(connection.getCallerDisplayName(),
                 connection.getCallerDisplayNamePresentation());
 
