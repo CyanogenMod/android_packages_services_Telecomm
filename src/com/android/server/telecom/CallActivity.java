@@ -205,7 +205,7 @@ public class CallActivity extends Activity {
         if (UserHandle.myUserId() == UserHandle.USER_OWNER) {
             CallReceiver.processIncomingCallIntent(intent);
         } else {
-            sendBroadcastToReceiver(intent, true /* isIncoming */);
+            sendBroadcastToReceiver(intent);
         }
     }
 

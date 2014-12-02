@@ -87,6 +87,7 @@ public final class TelecomGlobals {
 
         mCallsManager = new CallsManager(mContext, mMissedCallNotifier, mPhoneAccountRegistrar);
         CallsManager.initialize(mCallsManager);
+        Log.i(this, "CallsManager initialized");
 
         // Start the BluetoothPhoneService
         BluetoothPhoneService.start(mContext);
