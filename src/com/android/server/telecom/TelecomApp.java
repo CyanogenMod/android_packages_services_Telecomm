@@ -17,19 +17,67 @@
 package com.android.server.telecom;
 
 import android.app.Application;
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.Intent;
+import android.content.ServiceConnection;
+import android.os.IBinder;
+import android.os.ServiceManager;
 import android.os.UserHandle;
 
 /**
  * Top-level Application class for Telecom.
  */
 public final class TelecomApp extends Application {
+
+    /**
+     * Used to bind to the telecom service. Once created, the telecom service will start the telecom
+     * global state.
+     */
+    private class TelecomServiceConnection implements ServiceConnection {
+        /** {@inheritDoc} */
+        @Override public void onServiceConnected(ComponentName name, IBinder service) {
+            Log.i(this, "onServiceConnected: %s", name);
+            ServiceManager.addService(Context.TELECOM_SERVICE, service);
+        }
+
+        /** {@inheritDoc} */
+        @Override public void onServiceDisconnected(ComponentName name) {
+            Log.i(this, "onDisconnected: %s", name);
+            bindToService();
+        }
+    }
+
+    private ServiceConnection mServiceConnection;
+
     /** {@inheritDoc} */
     @Override
     public void onCreate() {
         super.onCreate();
 
         if (UserHandle.myUserId() == UserHandle.USER_OWNER) {
-            TelecomGlobals.getInstance().initialize(this);
+            bindToService();
+        }
+    }
+
+    private void bindToService() {
+        if (mServiceConnection != null) {
+            unbindService(mServiceConnection);
+            mServiceConnection = null;
+        }
+
+        ComponentName componentName = new ComponentName(this, TelecomService.class);
+        Intent intent = new Intent(TelecomService.SERVICE_INTERFACE);
+        intent.setComponent(componentName);
+        int bindFlags = Context.BIND_AUTO_CREATE | Context.BIND_IMPORTANT;
+
+        Log.i(this, "binding to TelecomService.");
+        ServiceConnection serviceConnection = new TelecomServiceConnection();
+        if (bindServiceAsUser(intent, serviceConnection, bindFlags, UserHandle.OWNER)) {
+            mServiceConnection = serviceConnection;
+            Log.i(this, "TelecomService binding successful");
+        } else {
+            Log.e(this, null, "Failed to bind to TelecomService.");
         }
     }
 
