@@ -45,7 +45,6 @@ import android.text.TextUtils;
 /**
  * Creates a notification for calls that the user missed (neither answered nor rejected).
  * TODO: Make TelephonyManager.clearMissedCalls call into this class.
- * STOPSHIP: Resolve b/13769374 about moving this class to InCall.
  */
 class MissedCallNotifier extends CallsManagerListenerBase {
 
