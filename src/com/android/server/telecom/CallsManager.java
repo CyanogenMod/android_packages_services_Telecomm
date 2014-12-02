@@ -92,7 +92,7 @@ public final class CallsManager extends Call.ListenerBase {
     /**
      * Singleton instance of the {@link CallsManager}, initialized from {@link TelecomService}.
      */
-    private static CallsManager INSTANCE = null;
+    private static CallsManager sInstance = null;
 
     private static final String TAG = "CallsManager";
 
@@ -168,7 +168,7 @@ public final class CallsManager extends Call.ListenerBase {
 
     /** Singleton accessor. */
     static CallsManager getInstance() {
-        return INSTANCE;
+        return sInstance;
     }
 
     /**
@@ -177,7 +177,7 @@ public final class CallsManager extends Call.ListenerBase {
      * @param instance The instance to set.
      */
     static void initialize(CallsManager instance) {
-        INSTANCE = instance;
+        sInstance = instance;
     }
 
     /**
