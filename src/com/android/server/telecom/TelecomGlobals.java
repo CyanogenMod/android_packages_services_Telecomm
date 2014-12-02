@@ -65,7 +65,10 @@ public final class TelecomGlobals {
         public void onReceive(Context context, Intent intent) {
             int userHandleId = intent.getIntExtra(Intent.EXTRA_USER_HANDLE, 0);
             UserHandle currentUserHandle = new UserHandle(userHandleId);
-            mPhoneAccountRegistrar.setCurrentUserHandle(currentUserHandle);
+              /* FIXME_L-MR1_INTERNAL, uncomment below line, when relevant change
+               * is merged
+               */
+              // mPhoneAccountRegistrar.setCurrentUserHandle(currentUserHandle);
         }
     };
 
@@ -87,6 +90,7 @@ public final class TelecomGlobals {
 
         mCallsManager = new CallsManager(mContext, mMissedCallNotifier, mPhoneAccountRegistrar);
         CallsManager.initialize(mCallsManager);
+        Log.i(this, "CallsManager initialized");
 
         // Start the BluetoothPhoneService
         BluetoothPhoneService.start(mContext);
