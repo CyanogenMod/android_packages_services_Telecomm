@@ -332,6 +332,13 @@ final class Call implements CreateConnectionResponse {
             boolean isIncoming,
             boolean isConference) {
         mState = isConference ? CallState.ACTIVE : CallState.NEW;
+
+        // Conference calls are considered connected upon adding to Telecom, so set the connect
+        // time now.
+        if (isConference) {
+            mConnectTimeMillis = System.currentTimeMillis();
+        }
+
         mContext = context;
         mRepository = repository;
         setHandle(handle);
