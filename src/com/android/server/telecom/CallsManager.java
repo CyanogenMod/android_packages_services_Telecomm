@@ -412,12 +412,18 @@ public final class CallsManager extends Call.ListenerBase {
     private Call getNewOutgoingCall(Uri handle) {
         // First check to see if we can reuse any of the calls that are waiting to disconnect.
         // See {@link Call#abort} and {@link #onCanceledViaNewOutgoingCall} for more information.
+        Call reusedCall = null;
         for (Call pendingCall : mPendingCallsToDisconnect) {
-            if (Objects.equals(pendingCall.getHandle(), handle)) {
+            if (reusedCall == null && Objects.equals(pendingCall.getHandle(), handle)) {
                 mPendingCallsToDisconnect.remove(pendingCall);
                 Log.i(this, "Reusing disconnected call %s", pendingCall);
-                return pendingCall;
+                reusedCall = pendingCall;
+            } else {
+                pendingCall.disconnect();
             }
+        }
+        if (reusedCall != null) {
+            return reusedCall;
         }
 
         // Create a call with original handle. The handle may be changed when the call is attached
@@ -484,6 +490,7 @@ public final class CallsManager extends Call.ListenerBase {
         // a call, or cancel this call altogether.
         if (!isPotentialInCallMMICode && !makeRoomForOutgoingCall(call, isEmergencyCall)) {
             // just cancel at this point.
+            Log.i(this, "No remaining room for outgoing call: %s", call);
             if (mCalls.contains(call)) {
                 // This call can already exist if it is a reused call,
                 // See {@link #getNewOutgoingCall}.
