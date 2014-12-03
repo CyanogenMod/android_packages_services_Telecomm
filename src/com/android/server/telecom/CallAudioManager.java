@@ -339,9 +339,17 @@ final class CallAudioManager extends CallsManagerListenerBase
         if (mIsRinging) {
             requestAudioFocusAndSetMode(AudioManager.STREAM_RING, AudioManager.MODE_RINGTONE);
         } else {
-            Call call = getForegroundCall();
-            if (call != null) {
-                int mode = call.getIsVoipAudioMode() ?
+            Call foregroundCall = getForegroundCall();
+            Call waitingForAccountSelectionCall =
+                    CallsManager.getInstance().getFirstCallWithState(CallState.PRE_DIAL_WAIT);
+            if (foregroundCall != null && waitingForAccountSelectionCall == null) {
+                // In the case where there is a call that is waiting for account selection,
+                // this will fall back to abandonAudioFocus() below, which temporarily exits
+                // the in-call audio mode. This is to allow TalkBack to speak the "Call with"
+                // dialog information at media volume as opposed to through the earpiece.
+                // Once exiting the "Call with" dialog, the audio focus will return to an in-call
+                // audio mode when this method (updateAudioStreamAndMode) is called again.
+                int mode = foregroundCall.getIsVoipAudioMode() ?
                         AudioManager.MODE_IN_COMMUNICATION : AudioManager.MODE_IN_CALL;
                 requestAudioFocusAndSetMode(AudioManager.STREAM_VOICE_CALL, mode);
             } else if (mIsTonePlaying) {
@@ -363,7 +371,8 @@ final class CallAudioManager extends CallsManagerListenerBase
     }
 
     private void requestAudioFocusAndSetMode(int stream, int mode) {
-        Log.i(this, "requestAudioFocusAndSetMode, stream: %d -> %d", mAudioFocusStreamType, stream);
+        Log.i(this, "requestAudioFocusAndSetMode, stream: %d -> %d, mode: %d",
+                mAudioFocusStreamType, stream, mode);
         Preconditions.checkState(stream != STREAM_NONE);
 
         // Even if we already have focus, if the stream is different we update audio manager to give
@@ -490,8 +499,9 @@ final class CallAudioManager extends CallsManagerListenerBase
         // We ignore any foreground call that is in the ringing state because we deal with ringing
         // calls exclusively through the mIsRinging variable set by {@link Ringer}.
         if (call != null && call.getState() == CallState.RINGING) {
-            call = null;
+            return null;
         }
+
         return call;
     }
 
