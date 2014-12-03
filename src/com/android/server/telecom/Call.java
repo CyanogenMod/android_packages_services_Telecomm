@@ -385,7 +385,18 @@ final class Call implements CreateConnectionResponse {
     void setState(int newState) {
         if (mState != newState) {
             Log.v(this, "setState %s -> %s", mState, newState);
-            int oldState = mState;
+
+            if (newState == CallState.DISCONNECTED
+                    && (mState == CallState.DIALING || mState == CallState.CONNECTING)
+                    && mCreateConnectionProcessor != null
+                    && mCreateConnectionProcessor.isProcessingComplete()
+                    && mCreateConnectionProcessor.hasMorePhoneAccounts()
+                    && mDisconnectCause != null
+                    && mDisconnectCause.getCode() == DisconnectCause.ERROR) {
+                mCreateConnectionProcessor.continueProcessingIfPossible(this, mDisconnectCause);
+                return;
+            }
+
             mState = newState;
             maybeLoadCannedSmsResponses();
 
@@ -403,14 +414,6 @@ final class Call implements CreateConnectionResponse {
                 mDisconnectTimeMillis = System.currentTimeMillis();
                 setLocallyDisconnecting(false);
                 fixParentAfterDisconnect();
-                if ((oldState == CallState.DIALING || oldState == CallState.CONNECTING)
-                        && mCreateConnectionProcessor != null
-                        && mCreateConnectionProcessor.isProcessingComplete()
-                        && mCreateConnectionProcessor.hasMorePhoneAccounts()
-                        && mDisconnectCause != null
-                        && mDisconnectCause.getCode() == DisconnectCause.ERROR) {
-                    mCreateConnectionProcessor.continueProcessingIfPossible(this, mDisconnectCause);
-                }
             }
         }
     }
