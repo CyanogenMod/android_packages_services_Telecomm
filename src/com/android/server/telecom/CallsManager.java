@@ -109,6 +109,7 @@ public final class CallsManager extends Call.ListenerBase {
     private final InCallController mInCallController;
     private final CallAudioManager mCallAudioManager;
     private final Ringer mRinger;
+    private final InCallWakeLockController mInCallWakeLockController;
     // For this set initial table size to 16 because we add 13 listeners in
     // the CallsManager constructor.
     private final Set<CallsManagerListener> mListeners = Collections.newSetFromMap(
@@ -171,6 +172,7 @@ public final class CallsManager extends Call.ListenerBase {
         mDtmfLocalTonePlayer = new DtmfLocalTonePlayer(context);
         mConnectionServiceRepository = new ConnectionServiceRepository(mPhoneAccountRegistrar,
                 context);
+        mInCallWakeLockController = new InCallWakeLockController(context, this);
 
         mListeners.add(statusBarNotifier);
         mListeners.add(mCallLogManager);
