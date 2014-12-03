@@ -895,13 +895,15 @@ public final class CallsManager extends Call.ListenerBase {
                  getPhoneAccountRegistrar().getPhoneAccount(call.getTargetPhoneAccount());
         if ((call.getTargetPhoneAccount() != null &&
                     call.getTargetPhoneAccount().getId().equals(getActiveSubscription())) &&
-                    (phAcc.isSet(PhoneAccount.LCH)) && (getConversationSub() != null) &&
+                    (phAcc != null) && (phAcc.isSet(PhoneAccount.LCH)) &&
+                    (getConversationSub() != null) &&
                     (!getConversationSub().equals(getActiveSubscription()))) {
             Log.d(this,"Set active sub to conversation sub");
             setActiveSubscription(getConversationSub());
         }
 
-        if ((call.getTargetPhoneAccount() != null) && (phAcc.isSet(PhoneAccount.LCH))) {
+        if ((call.getTargetPhoneAccount() != null) && (phAcc != null) &&
+                (phAcc.isSet(PhoneAccount.LCH))) {
             Call activecall = getFirstCallWithStateUsingSubId(call.getTargetPhoneAccount().getId(),
                     CallState.RINGING, CallState.DIALING, CallState.ACTIVE, CallState.ON_HOLD);
             Log.d(this,"activecall: " + activecall);
@@ -1650,7 +1652,7 @@ public final class CallsManager extends Call.ListenerBase {
 
     private String getConversationSub() {
         for (PhoneAccountHandle ph : getPhoneAccountRegistrar().getCallCapablePhoneAccounts()) {
-            if (!getPhoneAccountRegistrar().getPhoneAccount(ph).isSet(PhoneAccount.ACTIVE) &&
+            if (!getPhoneAccountRegistrar().getPhoneAccount(ph).isSet(PhoneAccount.LCH) &&
                     (getFirstCallWithStateUsingSubId(ph.getId(), CallState.ACTIVE, CallState.DIALING,
                         CallState.ON_HOLD) != null)) {
                 Log.d(this, "getConversationSub: " + ph.getId());
