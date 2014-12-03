@@ -37,7 +37,10 @@ import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
 import android.telecom.TelecomManager;
 import android.telephony.PhoneNumberUtils;
+import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
+import android.text.TextUtils;
+
 
 // TODO: Needed for move to system service: import com.android.internal.R;
 import com.android.internal.telecom.ITelecomService;
@@ -347,6 +350,24 @@ public class TelecomServiceImpl extends ITelecomService.Stub {
         enforceReadPermissionOrDefaultDialer();
         try {
             return mPhoneAccountRegistrar.isVoiceMailNumber(accountHandle, number);
+        } catch (Exception e) {
+            Log.e(this, e, "getSubscriptionIdForPhoneAccount");
+            throw e;
+        }
+    }
+
+    /**
+     * @see android.telecom.TelecomManager#hasVoiceMailNumber
+     */
+    @Override
+    public boolean hasVoiceMailNumber(PhoneAccountHandle accountHandle) {
+        enforceReadPermissionOrDefaultDialer();
+        try {
+            int subId = SubscriptionManager.getDefaultVoiceSubId();
+            if (accountHandle != null) {
+                subId = mPhoneAccountRegistrar.getSubscriptionIdForPhoneAccount(accountHandle);
+            }
+            return !TextUtils.isEmpty(getTelephonyManager().getVoiceMailNumber(subId));
         } catch (Exception e) {
             Log.e(this, e, "getSubscriptionIdForPhoneAccount");
             throw e;
