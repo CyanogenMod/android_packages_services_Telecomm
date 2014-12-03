@@ -983,6 +983,16 @@ public final class CallsManager extends Call.ListenerBase {
         }
     }
 
+    void resetCdmaConnectionTime(Call call) {
+        call.setConnectTimeMillis(System.currentTimeMillis());
+        if (mCalls.contains(call)) {
+            for (CallsManagerListener listener : mListeners) {
+                listener.onCallStateChanged(call, CallState.ACTIVE, CallState.ACTIVE);
+            }
+            updateForegroundCall();
+        }
+    }
+
     /**
      * Cleans up any calls currently associated with the specified connection service when the
      * service binder disconnects unexpectedly.
