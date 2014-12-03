@@ -469,7 +469,7 @@ public class TelecomService extends Service {
         /**
          * @see android.telecom.TelecomManager#hasVoiceMailNumber
          */
-        /* @Override
+        @Override
         public boolean hasVoiceMailNumber(PhoneAccountHandle accountHandle) {
             enforceReadPermissionOrDefaultDialer();
             try {
@@ -487,7 +487,7 @@ public class TelecomService extends Service {
                 Log.e(this, e, "getSubscriptionIdForPhoneAccount");
                 throw e;
             }
-        }*/
+        }
 
         /**
          * @see android.telecom.TelecomManager#silenceRinger
