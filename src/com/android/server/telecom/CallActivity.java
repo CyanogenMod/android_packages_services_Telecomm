@@ -134,6 +134,14 @@ public class CallActivity extends Activity {
                 VideoProfile.VideoState.AUDIO_ONLY);
         Log.d(this, "processOutgoingCallIntent videoState = " + videoState);
 
+        if (VideoProfile.VideoState.isVideo(videoState)
+                && TelephonyUtil.shouldProcessAsEmergency(this, handle)) {
+            Log.d(this, "Emergency call...Converting video call to voice...");
+            videoState = VideoProfile.VideoState.AUDIO_ONLY;
+            intent.putExtra(TelecomManager.EXTRA_START_CALL_WITH_VIDEO_STATE,
+                    videoState);
+        }
+
         if (VideoProfile.VideoState.isVideo(videoState) && isTtyModeEnabled()) {
             Toast.makeText(this, getResources().getString(R.string.
                     video_call_not_allowed_if_tty_enabled), Toast.LENGTH_SHORT).show();
