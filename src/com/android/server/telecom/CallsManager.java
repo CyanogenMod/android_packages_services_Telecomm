@@ -902,6 +902,10 @@ public final class CallsManager extends Call.ListenerBase {
      * Returns true if telecom supports adding another top-level call.
      */
     boolean canAddCall() {
+        if (getFirstCallWithState(OUTGOING_CALL_STATES) != null) {
+            return false;
+        }
+
         int count = 0;
         for (Call call : mCalls) {
             if (call.isEmergencyCall()) {
