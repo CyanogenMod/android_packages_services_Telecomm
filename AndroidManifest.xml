@@ -90,6 +90,8 @@
         <activity android:name="CallActivity"
                 android:theme="@style/Theme.Telecomm.Transparent"
                 android:permission="android.permission.CALL_PHONE"
+                android:configChanges="orientation|screenSize|keyboardHidden"
+                android:screenOrientation="nosensor"
                 android:excludeFromRecents="true">
             <!-- CALL action intent filters for the various ways of initiating an outgoing call. -->
             <intent-filter>
