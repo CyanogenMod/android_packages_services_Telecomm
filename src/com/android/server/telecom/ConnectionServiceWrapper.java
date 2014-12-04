@@ -466,7 +466,7 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
         @Override
         public void setVideoProvider(String callId, IVideoProvider videoProvider) {
             logIncoming("setVideoProvider %s", callId);
-            if (mCallIdMapper.isValidCallId(callId)) {
+            if (mCallIdMapper.isValidCallId(callId) || mCallIdMapper.isValidConferenceId(callId)) {
                 SomeArgs args = SomeArgs.obtain();
                 args.arg1 = callId;
                 args.arg2 = videoProvider;
@@ -586,7 +586,7 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
         @Override
         public void setVideoState(String callId, int videoState) {
             logIncoming("setVideoState %s %d", callId, videoState);
-            if (mCallIdMapper.isValidCallId(callId)) {
+            if (mCallIdMapper.isValidCallId(callId) || mCallIdMapper.isValidConferenceId(callId)) {
                 mHandler.obtainMessage(MSG_SET_VIDEO_STATE, videoState, 0, callId).sendToTarget();
             }
         }
