@@ -26,6 +26,8 @@ import android.telecom.CallState;
 import android.telecom.DisconnectCause;
 import android.telecom.PhoneAccountHandle;
 import android.telecom.VideoProfile;
+import android.telecom.PhoneCapabilities;
+import android.telecom.Connection;
 import android.telephony.PhoneNumberUtils;
 
 // TODO: Needed for move to system service: import com.android.internal.R;
@@ -143,6 +145,26 @@ final class CallLogManager extends CallsManagerListenerBase {
 
         final PhoneAccountHandle accountHandle = call.getTargetPhoneAccount();
 
+        int volteCapabilities = call.getConnectionCapabilities() &
+                Connection.CAPABILITY_HIGH_DEF_AUDIO;
+        Log.d(TAG, "callCapabilities: " + call.getConnectionCapabilities()
+                + "volteCapability: " + volteCapabilities);
+        if (volteCapabilities != 0){
+            switch (callLogType) {
+                case Calls.INCOMING_TYPE :
+                    callLogType = Calls.INCOMING_IMS_TYPE;
+                    break;
+                case Calls.OUTGOING_TYPE :
+                    callLogType = Calls.OUTGOING_IMS_TYPE;
+                    break;
+                case Calls.MISSED_TYPE :
+                    callLogType = Calls.MISSED_IMS_TYPE;
+                    break;
+                default:
+                    //Normal cs call, no change
+            }
+        }
+
         // TODO(vt): Once data usage is available, wire it up here.
         int callFeatures = getCallFeatures(call.getVideoStateHistory());
         logCall(call.getCallerInfo(), logNumber, call.getHandlePresentation(),
@@ -187,7 +209,7 @@ final class CallLogManager extends CallsManagerListenerBase {
         if (isOkToLogThisCall) {
             Log.d(TAG, "Logging Calllog entry: " + callerInfo + ", "
                     + Log.pii(number) + "," + presentation + ", " + callType
-                    + ", " + start + ", " + duration);
+                    + ", " + start + ", " + duration + ", " + features);
             AddCallArgs args = new AddCallArgs(mContext, callerInfo, number, presentation,
                     callType, features, accountHandle, start, duration, dataUsage);
             logCallAsync(args);
