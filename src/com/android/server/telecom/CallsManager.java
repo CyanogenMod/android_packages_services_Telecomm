@@ -649,7 +649,9 @@ public final class CallsManager extends Call.ListenerBase {
             // We do not update the UI until we get confirmation of the answer() through
             // {@link #markCallAsActive}.
             call.answer(videoState);
-            if (VideoProfile.VideoState.isVideo(videoState)) {
+            if (VideoProfile.VideoState.isVideo(videoState) &&
+                !mWiredHeadsetManager.isPluggedIn() &&
+                !mCallAudioManager.isBluetoothDeviceAvailable()) {
                 call.setStartWithSpeakerphoneOn(true);
             }
         }
