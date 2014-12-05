@@ -795,12 +795,22 @@ public final class CallsManager extends Call.ListenerBase {
 
                 // if 'c' is not for same subscription as call, then don't disturb 'c'
                 if (c != null && c.isAlive() && c != call && (ph != null
-                        && ph1 != null && ph.getId().equals(ph1.getId()))) {
+                        && ph1 != null && isSameIdOrSipId(ph.getId(), ph1.getId()))) {
                     c.hold();
                 }
             }
             call.unhold();
         }
+    }
+
+    /**
+     *  Returns true if the ids are same or one of the ids is sip id.
+     */
+    private boolean isSameIdOrSipId(String id1, String id2) {
+        boolean ret = ((id1 != null && id2 != null) &&
+                (id1.equals(id2) || id1.contains("sip") || id2.contains("sip")));
+        Log.d(this, "isSameIdOrSipId: id1 = " + id1 + " id2 = " + id2 + " ret = " + ret);
+        return ret;
     }
 
     /** Called by the in-call UI to change the mute state. */
@@ -1032,7 +1042,7 @@ public final class CallsManager extends Call.ListenerBase {
             PhoneAccountHandle otherCallPh = otherCall.getTargetPhoneAccount();
             // if 'otherCall' is not for same subscription as 'call', then don't consider it
             if (call != otherCall && otherCall.getParentCall() == null && ph != null
-                    && otherCallPh != null && ph.getId().equals(otherCallPh.getId())) {
+                    && otherCallPh != null && isSameIdOrSipId(ph.getId(), otherCallPh.getId())) {
                 return false;
             }
         }
@@ -1130,7 +1140,7 @@ public final class CallsManager extends Call.ListenerBase {
             // check the foreground first
             if (mForegroundCall != null && mForegroundCall.getState() == currentState
                     && mForegroundCall.getTargetPhoneAccount() != null
-                    && mForegroundCall.getTargetPhoneAccount().getId().equals(subId)) {
+                    && isSameIdOrSipId(mForegroundCall.getTargetPhoneAccount().getId(), subId)) {
                 return mForegroundCall;
             }
 
@@ -1147,13 +1157,13 @@ public final class CallsManager extends Call.ListenerBase {
                 if ((call.getTargetPhoneAccount() == null) && (call.getChildCalls().size() > 1)) {
                     Call child = call.getChildCalls().get(0);
                     PhoneAccountHandle childph = child.getTargetPhoneAccount();
-                    if (childph.getId().equals(subId)) {
+                    if (childph != null && isSameIdOrSipId(childph.getId(), subId)) {
                         return call;
                     }
                 }
 
                 if (currentState == call.getState() && call.getTargetPhoneAccount() != null
-                        && call.getTargetPhoneAccount().equals(subId)) {
+                        && isSameIdOrSipId(call.getTargetPhoneAccount().getId(), subId)) {
                     return call;
                 }
             }
@@ -1438,7 +1448,7 @@ public final class CallsManager extends Call.ListenerBase {
         for (int state : states) {
             for (Call call : mCalls) {
                 if (call.getState() == state && call.getTargetPhoneAccount() != null
-                        && call.getTargetPhoneAccount().getId().equals(subId)) {
+                        && isSameIdOrSipId(call.getTargetPhoneAccount().getId(), subId)) {
                     count++;
                 }
             }
@@ -1740,14 +1750,15 @@ public final class CallsManager extends Call.ListenerBase {
             // check the foreground first
             if (mForegroundCall != null && mForegroundCall.getState() == currentState
                     && (mForegroundCall.getTargetPhoneAccount() != null)
-                    && mForegroundCall.getTargetPhoneAccount().getId().equals(sub)) {
+                    && isSameIdOrSipId(mForegroundCall.getTargetPhoneAccount().getId(),
+                    sub)) {
                 return mForegroundCall;
             }
 
             for (Call call : mCalls) {
                 if ((currentState == call.getState()) &&
                         (call.getTargetPhoneAccount() != null) &&
-                        (call.getTargetPhoneAccount().getId().equals(sub))) {
+                        (isSameIdOrSipId(call.getTargetPhoneAccount().getId(), sub))) {
                     return call;
                 }
             }
@@ -1862,8 +1873,15 @@ public final class CallsManager extends Call.ListenerBase {
      */
     private void updateLchStatus(String subInConversation) {
         Log.i(this, "updateLchStatus subInConversation: " + subInConversation);
+        if (subInConversation != null && subInConversation.contains("sip")) {
+            return;
+        }
         for (PhoneAccountHandle ph : getPhoneAccountRegistrar().getCallCapablePhoneAccounts()) {
             String sub = ph.getId();
+            if (sub != null && sub.contains("sip")) {
+                Log.d(this, "update lch. Skipping account: " + sub);
+                continue;
+            }
             PhoneAccount phAcc = getPhoneAccountRegistrar().getPhoneAccount(ph);
             boolean lchState = false;
             if (subInConversation != null && hasActiveOrHoldingCall(sub) &&
