@@ -80,4 +80,8 @@ class CallsManagerListenerBase implements CallsManager.CallsManagerListener {
     @Override
     public void onCallSubstateChanged(Call call) {
     }
+
+    @Override
+    public void onCanAddCallChanged(boolean canAddCall) {
+    }
 }
