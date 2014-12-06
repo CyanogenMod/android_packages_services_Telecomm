@@ -77,7 +77,11 @@ public class TestConnectionService extends ConnectionService {
 
         public TestConference(Connection a, Connection b) {
             super(null);
-
+            setCapabilities(
+                    PhoneCapabilities.SUPPORT_HOLD |
+                    PhoneCapabilities.HOLD |
+                    PhoneCapabilities.MUTE |
+                    PhoneCapabilities.MANAGE_CONFERENCE);
             addConnection(a);
             addConnection(b);
 
@@ -135,7 +139,6 @@ public class TestConnectionService extends ConnectionService {
             // Assume all calls are video capable.
             int capabilities = getCallCapabilities();
             capabilities |= PhoneCapabilities.SUPPORTS_VT_LOCAL;
-            capabilities |= PhoneCapabilities.ADD_CALL;
             capabilities |= PhoneCapabilities.MUTE;
             capabilities |= PhoneCapabilities.SUPPORT_HOLD;
             capabilities |= PhoneCapabilities.HOLD;
