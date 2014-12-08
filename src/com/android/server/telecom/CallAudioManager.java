@@ -142,6 +142,7 @@ final class CallAudioManager extends CallsManagerListenerBase
     @Override
     public void onWiredHeadsetPluggedInChanged(boolean oldIsPluggedIn, boolean newIsPluggedIn) {
         // This can happen even when there are no calls and we don't have focus.
+        int newRoute;
         if (!hasFocus()) {
             return;
         }
@@ -149,7 +150,7 @@ final class CallAudioManager extends CallsManagerListenerBase
         Log.d(this,"isBluetoothAudioOn(): "+isBluetoothAudioOn());
 
         if (!isBluetoothAudioOn()) {
-            int newRoute = AudioState.ROUTE_EARPIECE;
+            newRoute = AudioState.ROUTE_EARPIECE;
             if (newIsPluggedIn) {
                 newRoute = AudioState.ROUTE_WIRED_HEADSET;
             } else if (mWasSpeakerOn) {
@@ -159,8 +160,10 @@ final class CallAudioManager extends CallsManagerListenerBase
                     newRoute = AudioState.ROUTE_SPEAKER;
                 }
             }
-            setSystemAudioState(mAudioState.isMuted, newRoute, calculateSupportedRoutes());
+        } else {
+            newRoute = AudioState.ROUTE_BLUETOOTH;
         }
+        setSystemAudioState(mAudioState.isMuted, newRoute, calculateSupportedRoutes());
     }
 
     void toggleMute() {
