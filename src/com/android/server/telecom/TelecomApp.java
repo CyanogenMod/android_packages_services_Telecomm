@@ -17,82 +17,19 @@
 package com.android.server.telecom;
 
 import android.app.Application;
-import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
-import android.os.ServiceManager;
 import android.os.UserHandle;
-import android.os.UserManager;
 
 /**
  * Top-level Application class for Telecom.
  */
 public final class TelecomApp extends Application {
-    private static final IntentFilter USER_SWITCHED_FILTER =
-            new IntentFilter(Intent.ACTION_USER_SWITCHED);
-
-    /**
-     * The Telecom service implementation.
-     */
-    private TelecomServiceImpl mTelecomService;
-
-    /**
-     * Missed call notifier. Exists here so that the instance can be shared with
-     * {@link TelecomBroadcastReceiver}.
-     */
-    private MissedCallNotifier mMissedCallNotifier;
-
-    /**
-     * Maintains the list of registered {@link android.telecom.PhoneAccountHandle}s.
-     */
-    private PhoneAccountRegistrar mPhoneAccountRegistrar;
-
-    /**
-     * The calls manager for the Telecom service.
-     */
-    private CallsManager mCallsManager;
-
-    private final BroadcastReceiver mUserSwitchedReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            int userHandleId = intent.getIntExtra(Intent.EXTRA_USER_HANDLE, 0);
-            UserHandle currentUserHandle = new UserHandle(userHandleId);
-            mPhoneAccountRegistrar.setCurrentUserHandle(currentUserHandle);
-        }
-    };
-
     /** {@inheritDoc} */
     @Override
     public void onCreate() {
         super.onCreate();
 
         if (UserHandle.myUserId() == UserHandle.USER_OWNER) {
-            // Note: This style of initialization mimics what will be performed once Telecom is
-            // moved
-            // to run in the system service. The emphasis is on ensuring that initialization of all
-            // telecom classes happens in one place without relying on Singleton initialization.
-            mMissedCallNotifier = new MissedCallNotifier(this);
-            mPhoneAccountRegistrar = new PhoneAccountRegistrar(this);
-
-            mCallsManager = new CallsManager(this, mMissedCallNotifier, mPhoneAccountRegistrar);
-            CallsManager.initialize(mCallsManager);
-
-            mTelecomService = new TelecomServiceImpl(mMissedCallNotifier, mPhoneAccountRegistrar,
-                    mCallsManager, this);
-            ServiceManager.addService(Context.TELECOM_SERVICE, mTelecomService);
-
-            // Start the BluetoothPhoneService
-            BluetoothPhoneService.start(this);
+            TelecomGlobals.getInstance().initialize(this);
         }
-        registerReceiver(mUserSwitchedReceiver, USER_SWITCHED_FILTER);
-    }
-
-    MissedCallNotifier getMissedCallNotifier() {
-        return mMissedCallNotifier;
-    }
-
-    PhoneAccountRegistrar getPhoneAccountRegistrar() {
-        return mPhoneAccountRegistrar;
     }
 }
