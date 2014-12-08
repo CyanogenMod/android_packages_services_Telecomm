@@ -908,14 +908,28 @@ public final class CallsManager extends Call.ListenerBase {
                  getPhoneAccountRegistrar().getPhoneAccount(call.getTargetPhoneAccount());
         if ((call.getTargetPhoneAccount() != null &&
                     call.getTargetPhoneAccount().getId().equals(getActiveSubscription())) &&
-                    (phAcc.isSet(PhoneAccount.LCH)) && (getConversationSub() != null) &&
+                    (phAcc != null) && (phAcc.isSet(PhoneAccount.LCH)) &&
+                    (getConversationSub() != null) &&
                     (!getConversationSub().equals(getActiveSubscription()))) {
             Log.d(this,"Set active sub to conversation sub");
             setActiveSubscription(getConversationSub());
         }
+
+        if ((call.getTargetPhoneAccount() != null) && (phAcc != null) &&
+                (phAcc.isSet(PhoneAccount.LCH))) {
+            Call activecall = getFirstCallWithStateUsingSubId(call.getTargetPhoneAccount().getId(),
+                    CallState.RINGING, CallState.DIALING, CallState.ACTIVE, CallState.ON_HOLD);
+            Log.d(this,"activecall: " + activecall);
+            if (activecall == null) {
+                phAcc.unSetBit(PhoneAccount.LCH);
+                manageMSimInCallTones(false);
+            }
+        }
+
         removeCall(call);
         if (!hasAnyCalls()) {
             updateLchStatus(null);
+            setActiveSubscription(null);
             manageMSimInCallTones(false);
         }
     }
@@ -1566,7 +1580,9 @@ public final class CallsManager extends Call.ListenerBase {
                 // There is no more room for any more calls, unless it's an emergency.
                 return false;  // No more room!
             }
-
+            if (Objects.equals(liveCall.getTargetPhoneAccount(), call.getTargetPhoneAccount())) {
+                return true;
+            }
             // Try to hold the live call before attempting the new outgoing call.
             if (liveCall.can(PhoneCapabilities.HOLD)) {
                 liveCall.hold();
@@ -1677,6 +1693,8 @@ public final class CallsManager extends Call.ListenerBase {
                         && phAcc.isSet(PhoneAccount.ACTIVE)) {
                 changed = true;
                 phAcc.unSetBit(PhoneAccount.ACTIVE);
+            } else if (subId == null && phAcc.isSet(PhoneAccount.ACTIVE)) {
+                phAcc.unSetBit(PhoneAccount.ACTIVE);
             }
         }
         if (!changed) {
@@ -1714,7 +1732,7 @@ public final class CallsManager extends Call.ListenerBase {
 
     private String getConversationSub() {
         for (PhoneAccountHandle ph : getPhoneAccountRegistrar().getCallCapablePhoneAccounts()) {
-            if (!getPhoneAccountRegistrar().getPhoneAccount(ph).isSet(PhoneAccount.ACTIVE) &&
+            if (!getPhoneAccountRegistrar().getPhoneAccount(ph).isSet(PhoneAccount.LCH) &&
                     (getFirstCallWithStateUsingSubId(ph.getId(), CallState.ACTIVE, CallState.DIALING,
                         CallState.ON_HOLD) != null)) {
                 Log.d(this, "getConversationSub: " + ph.getId());
