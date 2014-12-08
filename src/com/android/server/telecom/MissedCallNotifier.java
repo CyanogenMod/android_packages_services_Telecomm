@@ -29,6 +29,7 @@ import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.UserHandle;
 import android.provider.CallLog;
 import android.provider.CallLog.Calls;
@@ -91,18 +92,22 @@ class MissedCallNotifier extends CallsManagerListenerBase {
 
     /** Clears missed call notification and marks the call log's missed calls as read. */
     void clearMissedCalls() {
-        // Clear the list of new missed calls from the call log.
-        ContentValues values = new ContentValues();
-        values.put(Calls.NEW, 0);
-        values.put(Calls.IS_READ, 1);
-        StringBuilder where = new StringBuilder();
-        where.append(Calls.NEW);
-        where.append(" = 1 AND ");
-        where.append(Calls.TYPE);
-        where.append(" = ?");
-        mContext.getContentResolver().update(Calls.CONTENT_URI, values, where.toString(),
-                new String[]{ Integer.toString(Calls.MISSED_TYPE) });
-
+        AsyncTask.execute(new Runnable() {
+            @Override
+            public void run() {
+                // Clear the list of new missed calls from the call log.
+                ContentValues values = new ContentValues();
+                values.put(Calls.NEW, 0);
+                values.put(Calls.IS_READ, 1);
+                StringBuilder where = new StringBuilder();
+                where.append(Calls.NEW);
+                where.append(" = 1 AND ");
+                where.append(Calls.TYPE);
+                where.append(" = ?");
+                mContext.getContentResolver().update(Calls.CONTENT_URI, values, where.toString(),
+                        new String[]{ Integer.toString(Calls.MISSED_TYPE) });
+            }
+        });
         cancelMissedCallNotification();
     }
 
