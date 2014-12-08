@@ -17,16 +17,21 @@
 package com.android.server.telecom;
 
 import android.app.Application;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.ServiceManager;
 import android.os.UserHandle;
+import android.os.UserManager;
 
 /**
  * Top-level Application class for Telecom.
  */
 public final class TelecomApp extends Application {
+    private static final IntentFilter USER_SWITCHED_FILTER =
+            new IntentFilter(Intent.ACTION_USER_SWITCHED);
+
     /**
      * The Telecom service implementation.
      */
@@ -47,6 +52,15 @@ public final class TelecomApp extends Application {
      * The calls manager for the Telecom service.
      */
     private CallsManager mCallsManager;
+
+    private final BroadcastReceiver mUserSwitchedReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            int userHandleId = intent.getIntExtra(Intent.EXTRA_USER_HANDLE, 0);
+            UserHandle currentUserHandle = new UserHandle(userHandleId);
+            mPhoneAccountRegistrar.setCurrentUserHandle(currentUserHandle);
+        }
+    };
 
     /** {@inheritDoc} */
     @Override
@@ -71,6 +85,7 @@ public final class TelecomApp extends Application {
             // Start the BluetoothPhoneService
             BluetoothPhoneService.start(this);
         }
+        registerReceiver(mUserSwitchedReceiver, USER_SWITCHED_FILTER);
     }
 
     MissedCallNotifier getMissedCallNotifier() {
