@@ -39,8 +39,6 @@ import android.telecom.ParcelableCall;
 import android.telecom.TelecomManager;
 import android.util.ArrayMap;
 
-
-
 // TODO: Needed for move to system service: import com.android.internal.R;
 import com.android.internal.telecom.IInCallService;
 import com.android.internal.util.IndentingPrintWriter;
@@ -154,7 +152,7 @@ public final class InCallController extends CallsManagerListenerBase {
     @Override
     public void onCallAdded(Call call) {
         if (mInCallServices.isEmpty()) {
-            bind();
+            bind(call);
         } else {
             Log.i(this, "onCallAdded: %s", call);
             // Track the call if we don't already know about it.
@@ -274,8 +272,10 @@ public final class InCallController extends CallsManagerListenerBase {
     /**
      * Binds to the in-call app if not already connected by binding directly to the saved
      * component name of the {@link IInCallService} implementation.
+     *
+     * @param call The newly added call that triggered the binding to the in-call services.
      */
-    private void bind() {
+    private void bind(Call call) {
         ThreadUtil.checkOnMainThread();
         if (mInCallServices.isEmpty()) {
             PackageManager packageManager = mContext.getPackageManager();
@@ -316,9 +316,19 @@ public final class InCallController extends CallsManagerListenerBase {
                         Intent intent = new Intent(InCallService.SERVICE_INTERFACE);
                         intent.setComponent(componentName);
 
-                        final int bindFlags = mInCallComponentName.equals(componentName)
-                                ? Context.BIND_AUTO_CREATE | Context.BIND_IMPORTANT
-                                : Context.BIND_AUTO_CREATE;
+                        final int bindFlags;
+                        if (mInCallComponentName.equals(componentName)) {
+                            bindFlags = Context.BIND_AUTO_CREATE | Context.BIND_IMPORTANT;
+                            if (!call.isIncoming()) {
+                                intent.putExtra(TelecomManager.EXTRA_OUTGOING_CALL_EXTRAS,
+                                        call.getExtras());
+                                intent.putExtra(TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE,
+                                        call.getTargetPhoneAccount());
+                            }
+                        } else {
+                            bindFlags = Context.BIND_AUTO_CREATE;
+                        }
+
                         if (mContext.bindServiceAsUser(intent, inCallServiceConnection, bindFlags,
                                 UserHandle.CURRENT)) {
                             mServiceConnections.put(componentName, inCallServiceConnection);
