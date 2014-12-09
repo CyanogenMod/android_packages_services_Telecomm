@@ -177,9 +177,11 @@ final class CreateConnectionProcessor {
 
         if (mResponse != null && attempt != null) {
             Log.i(this, "Trying attempt %s", attempt);
+            PhoneAccountHandle phoneAccount = attempt.connectionManagerPhoneAccount;
             ConnectionServiceWrapper service =
                     mRepository.getService(
-                            attempt.connectionManagerPhoneAccount.getComponentName());
+                            phoneAccount.getComponentName(),
+                            phoneAccount.getUserHandle());
             if (service == null) {
                 Log.i(this, "Found no connection service for attempt %s", attempt);
                 attemptNextPhoneAccount();
