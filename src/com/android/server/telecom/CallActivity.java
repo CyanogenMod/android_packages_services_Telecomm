@@ -123,7 +123,6 @@ public class CallActivity extends Activity {
         }
 
         intent.putExtra(CallReceiver.KEY_IS_DEFAULT_DIALER, isDefaultDialer());
-
         sendBroadcastToReceiver(intent);
     }
 
