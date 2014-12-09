@@ -183,6 +183,8 @@ public class TelecomService extends Service {
     class TelecomServiceImpl extends ITelecomService.Stub {
         @Override
         public PhoneAccountHandle getDefaultOutgoingPhoneAccount(String uriScheme) {
+            enforceReadPermission();
+            long token = Binder.clearCallingIdentity();
             try {
                 PhoneAccountHandle defaultOutgoingPhoneAccount =
                         mPhoneAccountRegistrar.getDefaultOutgoingPhoneAccount(uriScheme);
@@ -196,6 +198,8 @@ public class TelecomService extends Service {
             } catch (Exception e) {
                 Log.e(this, e, "getDefaultOutgoingPhoneAccount");
                 throw e;
+            } finally {
+                Binder.restoreCallingIdentity(token);
             }
         }
 
@@ -230,23 +234,31 @@ public class TelecomService extends Service {
 
         @Override
         public List<PhoneAccountHandle> getCallCapablePhoneAccounts() {
+            enforceReadPermission();
+            long token = Binder.clearCallingIdentity();
             try {
                 return filterForAccountsVisibleToCaller(
                         mPhoneAccountRegistrar.getCallCapablePhoneAccounts());
             } catch (Exception e) {
                 Log.e(this, e, "getCallCapablePhoneAccounts");
                 throw e;
+            } finally {
+                Binder.restoreCallingIdentity(token);
             }
         }
 
         @Override
         public List<PhoneAccountHandle> getPhoneAccountsSupportingScheme(String uriScheme) {
+            enforceReadPermission();
+            long token = Binder.clearCallingIdentity();
             try {
                 return filterForAccountsVisibleToCaller(
                         mPhoneAccountRegistrar.getCallCapablePhoneAccounts(uriScheme));
             } catch (Exception e) {
                 Log.e(this, e, "getPhoneAccountsSupportingScheme %s", uriScheme);
                 throw e;
+            } finally {
+                Binder.restoreCallingIdentity(token);
             }
         }
 
@@ -343,12 +355,16 @@ public class TelecomService extends Service {
 
         @Override
         public List<PhoneAccountHandle> getSimCallManagers() {
+            enforceReadPermission();
+            long token = Binder.clearCallingIdentity();
             try {
                 return filterForAccountsVisibleToCaller(
                         mPhoneAccountRegistrar.getConnectionManagerPhoneAccounts());
             } catch (Exception e) {
                 Log.e(this, e, "getSimCallManagers");
                 throw e;
+            } finally {
+                Binder.restoreCallingIdentity(token);
             }
         }
 
