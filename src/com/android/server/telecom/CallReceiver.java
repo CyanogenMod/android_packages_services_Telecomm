@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Trace;
 import android.os.UserHandle;
 import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
@@ -33,11 +34,13 @@ public class CallReceiver extends BroadcastReceiver {
         final boolean isUnknownCall = intent.getBooleanExtra(KEY_IS_UNKNOWN_CALL, false);
         Log.i(this, "onReceive - isUnknownCall: %s", isUnknownCall);
 
+        Trace.beginSection("processNewCallCallIntent");
         if (isUnknownCall) {
             processUnknownCallIntent(intent);
         } else {
             processOutgoingCallIntent(context, intent);
         }
+        Trace.endSection();
     }
 
     /**
