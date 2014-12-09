@@ -24,8 +24,10 @@ import android.os.Bundle;
 import android.preference.EditTextPreference;
 import android.preference.Preference;
 import android.preference.PreferenceActivity;
+import android.text.TextUtils;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.Toast;
 
 // TODO: Needed for move to system service: import com.android.internal.R;
 
@@ -34,7 +36,6 @@ import android.view.MenuItem;
  */
 public class RespondViaSmsSettings {
     private static final String KEY_PREFERRED_PACKAGE = "preferred_package_pref";
-    private static final String KEY_INSTANT_TEXT_DEFAULT_COMPONENT = "instant_text_def_component";
 
     // TODO: This class is newly copied into Telecom (com.android.server.telecom) from it previous
     // location in Telephony (com.android.phone). User's preferences stored in the old location
@@ -107,6 +108,13 @@ public class RespondViaSmsSettings {
             Log.d(this, "  preference = '%s'", preference);
             Log.d(this, "  newValue = '%s'", newValue);
 
+            if (TextUtils.isEmpty((String) newValue)) {
+                // If the newValue is empty, we prompt a toast and do not save the newValue.
+                Toast.makeText(getApplicationContext(),
+                    R.string.respond_via_sms_cannot_be_empty, Toast.LENGTH_SHORT).show();
+                return false;
+            }
+
             EditTextPreference pref = (EditTextPreference) preference;
 
             // Copy the new text over to the title, just like in onCreate().
@@ -125,25 +133,11 @@ public class RespondViaSmsSettings {
                 case android.R.id.home:
                     goUpToTopLevelSetting(this);
                     return true;
-                case R.id.respond_via_message_reset:
-                    // Reset the preferences settings
-                    SharedPreferences prefs = getSharedPreferences(
-                            QuickResponseUtils.SHARED_PREFERENCES_NAME, Context.MODE_PRIVATE);
-                    SharedPreferences.Editor editor = prefs.edit();
-                    editor.remove(KEY_INSTANT_TEXT_DEFAULT_COMPONENT);
-                    editor.apply();
-
-                    return true;
                 default:
             }
             return super.onOptionsItemSelected(item);
         }
 
-        @Override
-        public boolean onCreateOptionsMenu(Menu menu) {
-            getMenuInflater().inflate(R.menu.respond_via_message_settings_menu, menu);
-            return super.onCreateOptionsMenu(menu);
-        }
     }
 
     /**
