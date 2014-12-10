@@ -73,6 +73,7 @@ final class Call implements CreateConnectionResponse {
         void onFailedUnknownCall(Call call);
         void onRingbackRequested(Call call, boolean ringbackRequested);
         void onPostDialWait(Call call, String remaining);
+        void onPostDialChar(Call call, char nextChar);
         void onConnectionCapabilitiesChanged(Call call);
         void onParentChanged(Call call);
         void onChildrenChanged(Call call);
@@ -108,6 +109,8 @@ final class Call implements CreateConnectionResponse {
         public void onRingbackRequested(Call call, boolean ringbackRequested) {}
         @Override
         public void onPostDialWait(Call call, String remaining) {}
+        @Override
+        public void onPostDialChar(Call call, char nextChar) {}
         @Override
         public void onConnectionCapabilitiesChanged(Call call) {}
         @Override
@@ -1048,6 +1051,12 @@ final class Call implements CreateConnectionResponse {
     void onPostDialWait(String remaining) {
         for (Listener l : mListeners) {
             l.onPostDialWait(this, remaining);
+        }
+    }
+
+    void onPostDialChar(char nextChar) {
+        for (Listener l : mListeners) {
+            l.onPostDialChar(this, nextChar);
         }
     }
 

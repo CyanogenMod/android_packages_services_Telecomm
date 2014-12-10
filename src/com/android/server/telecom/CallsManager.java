@@ -36,6 +36,8 @@ import android.telecom.ParcelableConnection;
 import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
 import android.telecom.TelecomManager;
+import android.telecom.VideoProfile;
+import android.telephony.PhoneNumberUtils;
 import android.telephony.TelephonyManager;
 
 import com.android.internal.telephony.PhoneConstants;
@@ -51,7 +53,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import android.telecom.VideoProfile;
 
 /**
  * Singleton.
@@ -158,6 +159,8 @@ public final class CallsManager extends Call.ListenerBase {
     private InCallTonePlayer mLocalCallReminderTonePlayer = null;
     private InCallTonePlayer mSupervisoryCallHoldTonePlayer = null;
     private String mSubInConversation = null;
+
+    private Runnable mStopTone;
 
     /** Singleton accessor. */
     static CallsManager getInstance() {
@@ -286,6 +289,40 @@ public final class CallsManager extends Call.ListenerBase {
     @Override
     public void onPostDialWait(Call call, String remaining) {
         mInCallController.onPostDialWait(call, remaining);
+    }
+
+    @Override
+    public void onPostDialChar(final Call call, char nextChar) {
+        if (PhoneNumberUtils.is12Key(nextChar)) {
+            // Play tone if it is one of the dialpad digits, canceling out the previously queued
+            // up stopTone runnable since playing a new tone automatically stops the previous tone.
+            if (mStopTone != null) {
+                mHandler.removeCallbacks(mStopTone);
+            }
+
+            mDtmfLocalTonePlayer.playTone(call, nextChar);
+
+            mStopTone = new Runnable() {
+                @Override
+                public void run() {
+                    // Set a timeout to stop the tone in case there isn't another tone to follow.
+                    mDtmfLocalTonePlayer.stopTone(call);
+                }
+            };
+            mHandler.postDelayed(
+                    mStopTone,
+                    Timeouts.getDelayBetweenDtmfTonesMillis(mContext.getContentResolver()));
+        } else if (nextChar == 0 || nextChar == TelecomManager.DTMF_CHARACTER_WAIT ||
+                nextChar == TelecomManager.DTMF_CHARACTER_PAUSE) {
+            // Stop the tone if a tone is playing, removing any other stopTone callbacks since
+            // the previous tone is being stopped anyway.
+            if (mStopTone != null) {
+                mHandler.removeCallbacks(mStopTone);
+            }
+            mDtmfLocalTonePlayer.stopTone(call);
+        } else {
+            Log.w(this, "onPostDialChar: invalid value %d", nextChar);
+        }
     }
 
     @Override

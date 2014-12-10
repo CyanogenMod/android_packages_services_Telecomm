@@ -70,4 +70,14 @@ public final class Timeouts {
         return get(contentResolver, "emergency_call_timeout_radio_off_millis",
                 60000L /* 1 minute */);
     }
+
+    /**
+     * Returns the amount of time to play each DTMF tone after post dial continue.
+     * This timeout allows the current tone to play for a certain amount of time before either being
+     * interrupted by the next tone or terminated.
+     */
+    public static long getDelayBetweenDtmfTonesMillis(ContentResolver contentResolver) {
+        return get(contentResolver, "delay_between_dtmf_tones_ms", 300L);
+    }
+
 }
