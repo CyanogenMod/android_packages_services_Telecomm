@@ -52,4 +52,14 @@ public final class Timeouts {
     public static long getDirectToVoicemailMillis(ContentResolver contentResolver) {
         return get(contentResolver, "direct_to_voicemail_ms", 500L);
     }
+
+    /**
+     * Returns the amount of time to play each DTMF tone after post dial continue.
+     * This timeout allows the current tone to play for a certain amount of time before either being
+     * interrupted by the next tone or terminated.
+     */
+    public static long getDelayBetweenDtmfTonesMillis(ContentResolver contentResolver) {
+        return get(contentResolver, "delay_between_dtmf_tones_ms", 300L);
+    }
+
 }
