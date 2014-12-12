@@ -1951,8 +1951,14 @@ public final class CallsManager extends Call.ListenerBase {
             if (lchState != phAcc.isSet(PhoneAccount.LCH)) {
                 Call call = getNonRingingLiveCall(sub);
                 Log.i(this, " setLocal Call Hold to  = " + lchState + " sub:" + sub);
+
                 if (call != null) {
-                    call.setLocalCallHold(lchState ? 1 : 0);
+                    if (call.getChildCalls().size() > 1) {
+                        Call child = call.getChildCalls().get(0);
+                        child.setLocalCallHold(lchState ? 1 : 0);
+                    } else {
+                        call.setLocalCallHold(lchState ? 1 : 0);
+                    }
                 }
                 if (lchState) {
                     phAcc.setBit(PhoneAccount.LCH);
