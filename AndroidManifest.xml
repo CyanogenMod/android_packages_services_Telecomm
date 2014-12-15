@@ -65,11 +65,11 @@
          can check for incompatible APIs. -->
     <uses-sdk android:minSdkVersion="19" />
 
-    <application android:persistent="true"
-            android:label="@string/telecommAppLabel"
+    <application android:label="@string/telecommAppLabel"
             android:icon="@mipmap/ic_launcher_phone"
             android:allowBackup="false"
-            android:supportsRtl="true">
+            android:supportsRtl="true"
+            android:process="system">
 
         <!-- CALL vs CALL_PRIVILEGED vs CALL_EMERGENCY
              We have three different intents through which a call can be initiated each with its
