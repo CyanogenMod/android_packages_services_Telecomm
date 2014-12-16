@@ -243,7 +243,8 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
 
                         // need to create a new Call
                         PhoneAccountHandle phAcc = null;
-                        if (parcelableConference != null) {
+                        if (parcelableConference != null &&
+                                parcelableConference.getPhoneAccount() != null) {
                             phAcc = parcelableConference.getPhoneAccount();
                         }
                         Call conferenceCall = mCallsManager.createConferenceCall(
