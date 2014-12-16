@@ -1520,6 +1520,8 @@ public final class CallsManager extends Call.ListenerBase {
             // NOTE: If the amount of live calls changes beyond 1, this logic will probably
             // have to change.
             Call liveCall = getFirstCallWithState(call, LIVE_CALL_STATES);
+            Log.i(this, "makeRoomForOutgoingCall call = " + call + " livecall = " +
+                   liveCall);
 
             if (call == liveCall) {
                 // If the call is already the foreground call, then we are golden.

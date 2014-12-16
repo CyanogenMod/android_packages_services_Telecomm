@@ -241,13 +241,17 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                                 (ParcelableConference) args.arg2;
 
                         // need to create a new Call
+                        PhoneAccountHandle phAcc = null;
+                        if (parcelableConference != null) {
+                            phAcc = parcelableConference.getPhoneAccount();
+                        }
                         Call conferenceCall = mCallsManager.createConferenceCall(
-                                null, parcelableConference);
+                                phAcc, parcelableConference);
                         mCallIdMapper.addCall(conferenceCall, id);
                         conferenceCall.setConnectionService(ConnectionServiceWrapper.this);
 
-                        Log.d(this, "adding children to conference %s",
-                                parcelableConference.getConnectionIds());
+                        Log.d(this, "adding children to conference %s phAcc %s",
+                                parcelableConference.getConnectionIds(), phAcc);
                         for (String callId : parcelableConference.getConnectionIds()) {
                             Call childCall = mCallIdMapper.getCall(callId);
                             Log.d(this, "found child: %s", callId);
