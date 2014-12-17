@@ -1129,6 +1129,12 @@ final class Call implements CreateConnectionResponse {
             return false;
         }
 
+        if (!mContext.getResources()
+                .getBoolean(com.android.internal.R.bool.config_reject_call_via_sms_enabled)) {
+            //"Respond via SMS" feature is disabled by the above config.
+            return false;
+        }
+
         if (PhoneNumberUtils.isUriNumber(getHandle().toString())) {
             // The incoming number is actually a URI (i.e. a SIP address),
             // not a regular PSTN phone number, and we can't send SMSes to
