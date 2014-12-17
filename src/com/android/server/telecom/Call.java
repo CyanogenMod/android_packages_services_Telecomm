@@ -40,6 +40,7 @@ import android.telecom.VideoProfile;
 import android.telephony.PhoneNumberUtils;
 import android.text.TextUtils;
 
+import com.android.internal.telephony.ConfigResourceUtil;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.telecom.IVideoProvider;
 import com.android.internal.telephony.CallerInfo;
@@ -330,6 +331,8 @@ public class Call implements CreateConnectionResponse {
     private Call mConferenceLevelActiveCall = null;
 
     private boolean mIsLocallyDisconnecting = false;
+
+    private ConfigResourceUtil mConfigResUtil = new ConfigResourceUtil();
 
     /**
      * Persists the specified parameters and initializes the new instance.
@@ -1344,6 +1347,12 @@ public class Call implements CreateConnectionResponse {
         if (getHandle() == null) {
             // No incoming number known or call presentation is "PRESENTATION_RESTRICTED", in
             // other words, the user should not be able to see the incoming phone number.
+            return false;
+        }
+
+        if (!mConfigResUtil.getBooleanValue(mContext,
+                        "config_reject_call_via_sms_enabled")) {
+            //"Respond via SMS" feature is disabled by the above config.
             return false;
         }
 
