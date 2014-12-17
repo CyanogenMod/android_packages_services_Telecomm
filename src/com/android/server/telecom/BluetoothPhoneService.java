@@ -32,13 +32,16 @@ import android.os.Message;
 import android.os.RemoteException;
 import android.telecom.CallState;
 import android.telecom.PhoneAccount;
+import android.telecom.PhoneAccountHandle;
 import android.telecom.PhoneCapabilities;
 import android.telephony.PhoneNumberUtils;
+import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 
 import com.android.server.telecom.CallsManager.CallsManagerListener;
 
+import java.lang.NumberFormatException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -291,7 +294,20 @@ public final class BluetoothPhoneService extends Service {
                     try {
                         PhoneAccount account = getBestPhoneAccount();
                         if (account != null) {
-                            label = account.getLabel().toString();
+                            PhoneAccountHandle ph = account.getAccountHandle();
+                            if (ph != null) {
+                                String subId = ph.getId();
+                                Long sub = SubscriptionManager.getDefaultVoiceSubId();
+                                try {
+                                    sub = Long.parseLong(subId);
+                                } catch (NumberFormatException e){
+                                    Log.w(this, " NumberFormatException " + e);
+                                }
+                                label = TelephonyManager.from(BluetoothPhoneService.this)
+                                         .getNetworkOperatorName(sub);
+                            } else {
+                                Log.w(this, "Phone Account Handle is NULL");
+                            }
                         } else {
                             // Finally, just get the network name from telephony.
                             label = TelephonyManager.from(BluetoothPhoneService.this)
