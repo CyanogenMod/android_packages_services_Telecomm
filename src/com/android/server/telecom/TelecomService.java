@@ -684,6 +684,38 @@ public class TelecomService extends Service {
                         + " to add new unknown call.");
             }
         }
+
+        /**
+         * Dumps the current state of the TelecomService.  Used when generating problem reports.
+         *
+         * @param fd The file descriptor.
+         * @param writer The print writer to dump the state to.
+         * @param args Optional dump arguments.
+         */
+        @Override
+        protected void dump(FileDescriptor fd, final PrintWriter writer, String[] args) {
+            if (mContext.checkCallingOrSelfPermission(
+                    android.Manifest.permission.DUMP)
+                    != PackageManager.PERMISSION_GRANTED) {
+                writer.println("Permission Denial: can't dump TelecomService " +
+                        "from from pid=" + Binder.getCallingPid() + ", uid=" +
+                        Binder.getCallingUid());
+                return;
+            }
+
+            final IndentingPrintWriter pw = new IndentingPrintWriter(writer, "  ");
+            if (mCallsManager != null) {
+                pw.println("mCallsManager: ");
+                pw.increaseIndent();
+                mCallsManager.dump(pw);
+                pw.decreaseIndent();
+
+                pw.println("mPhoneAccountRegistrar: ");
+                pw.increaseIndent();
+                mPhoneAccountRegistrar.dump(pw);
+                pw.decreaseIndent();
+            }
+        }
     }
 
     //
@@ -943,30 +975,6 @@ public class TelecomService extends Service {
                 }
             }
             return request.result;
-        }
-    }
-
-    /**
-     * Dumps the current state of the TelecomService.  Used when generating problem reports.
-     *
-     * @param fd The file descriptor.
-     * @param writer The print writer to dump the state to.
-     * @param args Optional dump arguments.
-     */
-    @Override
-    protected void dump(FileDescriptor fd, final PrintWriter writer, String[] args) {
-        mContext.enforceCallingOrSelfPermission(android.Manifest.permission.DUMP, TAG);
-        final IndentingPrintWriter pw = new IndentingPrintWriter(writer, "  ");
-        if (mCallsManager != null) {
-            pw.println("mCallsManager: ");
-            pw.increaseIndent();
-            mCallsManager.dump(pw);
-            pw.decreaseIndent();
-
-            pw.println("mPhoneAccountRegistrar: ");
-            pw.increaseIndent();
-            mPhoneAccountRegistrar.dump(pw);
-            pw.decreaseIndent();
         }
     }
 }
