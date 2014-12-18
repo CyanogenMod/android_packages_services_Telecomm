@@ -260,7 +260,7 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                 case MSG_REMOVE_CALL: {
                     call = mCallIdMapper.getCall(msg.obj);
                     if (call != null) {
-                        if (call.isActive()) {
+                        if (call.isAlive()) { //Any Call that is alive
                             mCallsManager.markCallAsDisconnected(
                                     call, new DisconnectCause(DisconnectCause.REMOTE));
                         } else {
