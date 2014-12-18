@@ -920,15 +920,22 @@ public final class CallsManager extends Call.ListenerBase {
     void markCallAsDisconnected(Call call, DisconnectCause disconnectCause) {
         call.setDisconnectCause(disconnectCause);
         setCallState(call, CallState.DISCONNECTED);
+        String activeSub = getActiveSubscription();
+        String conversationSub = getConversationSub();
         PhoneAccount phAcc =
                  getPhoneAccountRegistrar().getPhoneAccount(call.getTargetPhoneAccount());
         if ((call.getTargetPhoneAccount() != null &&
-                    call.getTargetPhoneAccount().getId().equals(getActiveSubscription())) &&
+                    call.getTargetPhoneAccount().getId().equals(activeSub)) &&
                     (phAcc != null) && (phAcc.isSet(PhoneAccount.LCH)) &&
-                    (getConversationSub() != null) &&
-                    (!getConversationSub().equals(getActiveSubscription()))) {
+                    (conversationSub != null) &&
+                    (!conversationSub.equals(activeSub))) {
             Log.d(this,"Set active sub to conversation sub");
-            setActiveSubscription(getConversationSub());
+            setActiveSubscription(conversationSub);
+        } else if ((conversationSub == null) && (call.getTargetPhoneAccount() != null) &&
+                (activeSub != null) && (!call.getTargetPhoneAccount().getId().equals(activeSub))) {
+            Log.d(this,"remove active sub from LCH");
+            updateLchStatus(activeSub);
+            manageMSimInCallTones(false);
         }
 
         if ((call.getTargetPhoneAccount() != null) && (phAcc != null) &&
