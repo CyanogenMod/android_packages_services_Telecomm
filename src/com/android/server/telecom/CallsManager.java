@@ -644,6 +644,13 @@ public final class CallsManager extends Call.ListenerBase {
                         mForegroundCall.disconnect();
                     }
                 } else {
+                    Call heldCall = getHeldCall();
+                    if (heldCall != null) {
+                        Log.v(this, "Disconnecting held call %s before holding active call.",
+                                heldCall);
+                        heldCall.disconnect();
+                    }
+
                     Log.v(this, "Holding active/dialing call %s before answering incoming call %s.",
                             mForegroundCall, call);
                     mForegroundCall.hold();
