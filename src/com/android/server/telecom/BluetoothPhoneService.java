@@ -1,4 +1,7 @@
 /*
+ * Copyright (c) 2014, The Linux Foundation. All rights reserved.
+ * Not a contribution.
+ *
  * Copyright (C) 2014 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -39,6 +42,8 @@ import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 
+import android.telecom.TelecomManager;
+import android.telephony.SubscriptionManager;
 import com.android.server.telecom.CallsManager.CallsManagerListener;
 
 import java.lang.NumberFormatException;
@@ -46,6 +51,11 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.codeaurora.btmultisim.IBluetoothDsdaService;
+import android.content.ServiceConnection;
+import android.os.RemoteException;
+import android.content.ComponentName;
 
 /**
  * Bluetooth headset manager for Telecom. This class shares the call state with the bluetooth device
@@ -55,6 +65,9 @@ public final class BluetoothPhoneService extends Service {
     /**
      * Request object for performing synchronous requests to the main thread.
      */
+    private TelecomManager mTelecomManager = null;
+    private IBluetoothDsdaService mBluetoothDsda = null; //Handles DSDA Service.
+
     private static class MainThreadRequest {
         Object result;
         int param;
@@ -107,6 +120,9 @@ public final class BluetoothPhoneService extends Service {
     private String mRingingAddress = null;
     private int mRingingAddressType = 0;
     private Call mOldHeldCall = null;
+    private static final long INVALID_SUBID = SubscriptionManager.INVALID_SUB_ID;
+    private static final int[] LIVE_CALL_STATES =
+            {CallState.CONNECTING, CallState.DIALING, CallState.ACTIVE};
 
     /**
      * Binder implementation of IBluetoothHeadsetPhone. Implements the command interface that the
@@ -328,7 +344,17 @@ public final class BluetoothPhoneService extends Service {
 
                 case MSG_QUERY_PHONE_STATE:
                     try {
-                        updateHeadsetWithCallState(true /* force */);
+                        if (isDsdaEnabled()) {
+                            if (mBluetoothDsda != null) {
+                                try {
+                                    mBluetoothDsda.processQueryPhoneState();
+                                } catch (RemoteException e) {
+                                    Log.i(TAG, "DSDA Service not found exception " + e);
+                                }
+                            }
+                        } else {
+                            updateHeadsetWithCallState(true /* force */, null);
+                        }
                     } finally {
                         if (request != null) {
                             request.setResult(true);
@@ -346,17 +372,41 @@ public final class BluetoothPhoneService extends Service {
     private CallsManagerListener mCallsManagerListener = new CallsManagerListenerBase() {
         @Override
         public void onCallAdded(Call call) {
-            updateHeadsetWithCallState(false /* force */);
+            Log.d(TAG, "onCallAdded");
+            if (isDsdaEnabled() && call.isConference() &&
+                    (call.getChildCalls().size() == 0)) {
+                Log.d(TAG, "Ignore onCallAdded for new parent call" +
+                        " update headset when onIsConferencedChanged is called later");
+                return;
+            }
+            updateHeadsetWithCallState(false /* force */, call);
         }
 
         @Override
         public void onCallRemoved(Call call) {
+            Log.d(TAG, "onCallRemoved");
             mClccIndexMap.remove(call);
-            updateHeadsetWithCallState(false /* force */);
+            updateHeadsetWithCallState(false /* force */, call);
         }
 
         @Override
         public void onCallStateChanged(Call call, int oldState, int newState) {
+            Log.d(TAG, "onCallStateChanged, call: " + call + " oldState: " + oldState +
+                    " newState: " + newState);
+            // If onCallStateChanged comes with oldState = newState when DSDA is enabled,
+            // check if the call is on ActiveSub. If so, this callback is called for
+            // Active Subscription change.
+            if (isDsdaEnabled() && (oldState == newState)) {
+                if (call.mIsActiveSub) {
+                    Log.d(TAG, "Active subscription changed");
+                    updateActiveSubChange();
+                    return;
+                } else {
+                    Log.d(TAG, "onCallStateChanged called without any call" +
+                            " state change for BG sub. Ignore updating HS");
+                    return;
+                }
+            }
             // If a call is being put on hold because of a new connecting call, ignore the
             // CONNECTING since the BT state update needs to send out the numHeld = 1 + dialing
             // state atomically.
@@ -370,18 +420,25 @@ public final class BluetoothPhoneService extends Service {
                 }
             }
 
-            // To have an active call and another dialing at the same time is an invalid BT
-            // state. We can assume that the active call will be automatically held which will
-            // send another update at which point we will be in the right state.
-            if (CallsManager.getInstance().getActiveCall() != null
-                    && oldState == CallState.CONNECTING && newState == CallState.DIALING) {
-                return;
+            // To have an active call and another dialing at the same time on Active Sub is an
+            // invalid BT state. We can assume that the active call will be automatically held
+            // which will send another update at which point we will be in the right state.
+            Call anyActiveCall = CallsManager.getInstance().getActiveCall();
+            if ((anyActiveCall != null) && oldState == CallState.CONNECTING &&
+                    newState == CallState.DIALING) {
+                if (!isDsdaEnabled()) {
+                    return;
+                } else if (anyActiveCall.mIsActiveSub) {
+                    Log.d(TAG, "Dialing attempted on active sub when call is active");
+                    return;
+                }
             }
-            updateHeadsetWithCallState(false /* force */);
+            updateHeadsetWithCallState(false /* force */, call);
         }
 
         @Override
         public void onForegroundCallChanged(Call oldForegroundCall, Call newForegroundCall) {
+            Log.d(TAG, "onForegroundCallChanged");
             // The BluetoothPhoneService does not need to respond to changes in foreground calls,
             // which are always accompanied by call state changes anyway.
         }
@@ -401,6 +458,7 @@ public final class BluetoothPhoneService extends Service {
              * 3) updateHeadsetWithCallState now thinks that there are two active calls (Call 2 and
              * Call 3) when there is actually only one active call (Call 3).
              */
+            Log.d(TAG, "onIsConferencedChanged");
             if (call.getParentCall() != null) {
                 // If this call is newly conferenced, ignore the callback. We only care about the
                 // one sent for the parent conference call.
@@ -414,7 +472,7 @@ public final class BluetoothPhoneService extends Service {
                 Log.d(this, "Ignoring onIsConferenceChanged from parent with only one child call");
                 return;
             }
-            updateHeadsetWithCallState(false /* force */);
+            updateHeadsetWithCallState(false /* force */, call);
         }
     };
 
@@ -487,9 +545,52 @@ public final class BluetoothPhoneService extends Service {
         IntentFilter intentFilter = new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED);
         registerReceiver(mBluetoothAdapterReceiver, intentFilter);
 
+        mTelecomManager = (TelecomManager)getSystemService(Context.TELECOM_SERVICE);
+        if (mTelecomManager == null) {
+            Log.d(TAG, "BluetoothPhoneService shutting down, TELECOM_SERVICE found.");
+            return;
+        }
+
+        //Check whether we support DSDA or not
+        if (TelephonyManager.getDefault().isMultiSimEnabled()) {
+            Log.d(TAG, "DSDA is enabled, Bind to DSDA service");
+            createBtMultiSimService();
+        }
+
         CallsManager.getInstance().addListener(mCallsManagerListener);
-        updateHeadsetWithCallState(false /* force */);
+        updateHeadsetWithCallState(false /* force */, null);
     }
+
+    private void createBtMultiSimService() {
+        Context context = this;
+        Intent intent = new Intent(IBluetoothDsdaService.class.getName());
+        intent.setComponent(intent.resolveSystemService(context.getPackageManager(), 0));
+        if (intent.getComponent() == null || !context.bindService(intent,
+                btMultiSimServiceConnection, Context.BIND_AUTO_CREATE)) {
+            Log.i(TAG, "Ignoring IBluetoothDsdaService class not found exception ");
+        } else {
+            Log.d(TAG, "IBluetoothDsdaService bound request success");
+        }
+    }
+
+    private ServiceConnection btMultiSimServiceConnection = new ServiceConnection() {
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            //Get handle to IBluetoothDsdaService.Stub.asInterface(service);
+            mBluetoothDsda = IBluetoothDsdaService.Stub.asInterface(service);
+            Log.d(TAG,"Dsda Service Connected" + mBluetoothDsda);
+            if (mBluetoothDsda != null) {
+                Log.i(TAG, "IBluetoothDsdaService created");
+            } else {
+                Log.i(TAG, "IBluetoothDsdaService Error");
+            }
+        }
+
+        public void onServiceDisconnected(ComponentName arg0) {
+            Log.i(TAG,"DSDA Service onServiceDisconnected");
+            mBluetoothDsda = null;
+        }
+    };
+
 
     @Override
     public void onDestroy() {
@@ -499,6 +600,14 @@ public final class BluetoothPhoneService extends Service {
     }
 
     private boolean processChld(int chld) {
+        if (isDsdaEnabled() && (mBluetoothDsda != null)) {
+            try {
+                return processDsdaChld(chld);
+            } catch (RemoteException e) {
+                Log.i(TAG, " BluetoothDsdaService class not found exception " + e);
+            }
+        }
+
         CallsManager callsManager = CallsManager.getInstance();
         Call activeCall = callsManager.getActiveCall();
         Call ringingCall = callsManager.getRingingCall();
@@ -529,7 +638,7 @@ public final class BluetoothPhoneService extends Service {
             if (activeCall != null && activeCall.can(PhoneCapabilities.SWAP_CONFERENCE)) {
                 activeCall.swapConference();
                 Log.i(TAG, "CDMA calls in conference swapped, updating headset");
-                updateHeadsetWithCallState(true /* force */);
+                updateHeadsetWithCallState(true /* force */, activeCall);
                 return true;
             } else if (ringingCall != null) {
                 callsManager.answerCall(ringingCall, 0);
@@ -593,7 +702,15 @@ public final class BluetoothPhoneService extends Service {
         for (Call call : mCalls) {
             // We don't send the parent conference call to the bluetooth device.
             if (!call.isConference()) {
-                sendClccForCall(call, shouldLog);
+                if (isDsdaEnabled() && (mBluetoothDsda != null)) {
+                    try {
+                        sendDsdaClccForCall(call, shouldLog);
+                    } catch (RemoteException e) {
+                        Log.i(TAG, " BluetoothDsdaService class not found exception " + e);
+                    }
+                } else {
+                    sendClccForCall(call, shouldLog);
+                }
             }
         }
         sendClccEndMarker();
@@ -667,6 +784,154 @@ public final class BluetoothPhoneService extends Service {
         }
     }
 
+    /**
+     * Sends a single clcc (C* List Current Calls) event for the specified call in DSDA scenario.
+     */
+    private void sendDsdaClccForCall(Call call, boolean shouldLog) throws  RemoteException {
+        CallsManager callsManager = CallsManager.getInstance();
+        boolean isForeground = callsManager.getForegroundCall() == call;
+        boolean isPartOfConference = false;
+        boolean isActive = false;
+        boolean allowDsda = false;
+        int state = convertCallState(call.getState(), isForeground);
+        long subForCall = Long.parseLong(call.getTargetPhoneAccount().getId());
+        long activeSub = mTelecomManager.getActiveSubscription();
+        if (INVALID_SUBID == activeSub) {
+            Log.i(TAG, "Invalid activeSub id, returning");
+            return;
+        }
+
+        Call activeSubForegroundCall = callsManager.getFirstCallWithStateUsingSubId(
+                Long.toString(activeSub), LIVE_CALL_STATES);
+        Call activeSubRingingCall = callsManager.getFirstCallWithStateUsingSubId(
+                Long.toString(activeSub), CallState.RINGING);
+        Call activeSubBackgroundCall = callsManager.getFirstCallWithStateUsingSubId(
+                Long.toString(activeSub), CallState.ON_HOLD);
+
+        if (getBluetoothCallStateForUpdate() != CALL_STATE_IDLE) {
+            allowDsda = true;
+            Log.i(this, "Call setup in progress, allowDsda: " + allowDsda);
+        }
+
+        Log.i(this, "CLCC on SUB: " + subForCall + " CallState: " + state);
+
+        if (state == CALL_STATE_IDLE) {
+            return;
+        }
+
+        if (call == activeSubRingingCall) {
+            Log.i(this, "This is FG Ringing call on active sub");
+            isActive = true;
+        } else if (call == activeSubForegroundCall) {
+            Log.i(this, "This is FG live call on active sub");
+            isActive = true;
+        } else if (call == activeSubBackgroundCall) {
+            Log.i(this, "This is BG call on active sub");
+        }
+
+        Call conferenceCall = call.getParentCall();
+        if (conferenceCall != null) {
+            Log.i(this, "This call has parent call");
+            isPartOfConference = true;
+            Call activeChild = conferenceCall.getConferenceLevelActiveCall();
+            if (state == CALL_STATE_ACTIVE && activeChild != null) {
+                boolean shouldReevaluateState =
+                        conferenceCall.can(PhoneCapabilities.MERGE_CONFERENCE) ||
+                        (conferenceCall.can(PhoneCapabilities.SWAP_CONFERENCE) &&
+                        !conferenceCall.wasConferencePreviouslyMerged());
+
+                Log.i(this, "shouldReevaluateState: " + shouldReevaluateState);
+                if (shouldReevaluateState) {
+                    isPartOfConference = false;
+                    if (call == activeChild) {
+                        Log.i(this, "this is active child");
+                        if ((mBluetoothDsda.hasCallsOnBothSubs() == true) &&
+                                activeChild.mIsActiveSub) {
+                            isActive = true;
+                        }
+                        state = CALL_STATE_ACTIVE;
+                    } else {
+                        Log.i(this, "this is not active child");
+                        if ((mBluetoothDsda.hasCallsOnBothSubs() == true) && call.mIsActiveSub) {
+                            isActive = false;
+                        }
+                        state = CALL_STATE_HELD;
+                    }
+                }
+            }
+        }
+
+        if (call != null) {
+            if (mBluetoothDsda.isFakeMultiPartyCall() && !isActive) {
+                Log.i(this, "A fake mparty scenario");
+                isPartOfConference = true;
+            }
+        }
+
+        //Special case:
+        //Sub1: 1A(isPartOfConference=true), 2A(isPartOfConference=true)
+        //Sub2: 3A(isPartOfConference should set to true), 4W(isPartOfConference=false)
+        if ((mBluetoothDsda.hasCallsOnBothSubs() == true) && call.mIsActiveSub
+                && (activeSubRingingCall != null) && (call != activeSubRingingCall)) {
+            Log.i(this, "A fake mparty special scenario");
+            isPartOfConference = true;
+        }
+        Log.i(this, "call.isPartOfConference: " + isPartOfConference);
+
+        int index = getIndexForCall(call);
+        int direction = call.isIncoming() ? 1 : 0;
+        final Uri addressUri;
+        if (call.getGatewayInfo() != null) {
+            addressUri = call.getGatewayInfo().getOriginalAddress();
+        } else {
+            addressUri = call.getHandle();
+        }
+        String address = addressUri == null ? null : addressUri.getSchemeSpecificPart();
+        int addressType = address == null ? -1 : PhoneNumberUtils.toaFromString(address);
+
+        if (callsManager.hasActiveOrHoldingCall()) {
+            if (state == CALL_STATE_INCOMING) {
+                Log.i(this, "hasActiveOrHoldingCall(), If Incoming, make it Waiting");
+                state = CALL_STATE_WAITING; //DSDA
+            }
+        }
+
+       // If calls on both Subs, need to change call states on BG calls
+       if (((mBluetoothDsda.hasCallsOnBothSubs() == true) || allowDsda) && !isActive) {
+           Log.i(this, "Calls on both Subs, manage call state for BG sub calls");
+           int activeCallState = convertCallState(
+                   (activeSubRingingCall != null) ? activeSubRingingCall.getState():
+                   CallState.NEW, (activeSubForegroundCall !=null) ?
+                   activeSubForegroundCall.getState(): CallState.NEW);
+           Log.i(this, "state : " + state + "activeCallState: " + activeCallState);
+           //Fake call held for all background calls
+           if ((state == CALL_STATE_ACTIVE) && (activeCallState != CALL_STATE_INCOMING)) {
+               state = CALL_STATE_HELD;
+           } else if (isPartOfConference == true) {
+               Log.i(this, "isPartOfConference, manage call states on BG sub");
+               if (activeCallState != CALL_STATE_INCOMING) {
+                   state = CALL_STATE_HELD;
+               } else if (activeCallState == CALL_STATE_INCOMING) {
+                   state = CALL_STATE_ACTIVE;
+               }
+           }
+           Log.i(this, "state of this BG Sub call: " + state);
+        }
+
+        if (shouldLog) {
+            Log.i(this, "sending clcc for call %d, %d, %d, %b, %s, %d",
+                    index, direction, state, isPartOfConference, Log.piiHandle(address),
+                    addressType);
+        }
+
+        if (mBluetoothHeadset != null) {
+            mBluetoothHeadset.clccResponse(
+                    index, direction, state, 0, isPartOfConference, address, addressType);
+        } else {
+            Log.i(this, "headset null, no need to send clcc");
+        }
+    }
+
     private void sendClccEndMarker() {
         // End marker is recognized with an index value of 0. All other parameters are ignored.
         if (mBluetoothHeadset != null) {
@@ -693,84 +958,119 @@ public final class BluetoothPhoneService extends Service {
         return i;
     }
 
+    private void updateActiveSubChange() {
+        Log.d(TAG, "update ActiveSubChange to DSDA service");
+        if (isDsdaEnabled() && (mBluetoothDsda != null)) {
+            try {
+                mBluetoothDsda.phoneSubChanged();
+            } catch (RemoteException e) {
+                Log.w(TAG, "DSDA class not found exception " + e);
+            }
+        }
+    }
+
     /**
      * Sends an update of the current call state to the current Headset.
      *
      * @param force {@code true} if the headset state should be sent regardless if no changes to the
      *      state have occurred, {@code false} if the state should only be sent if the state has
      *      changed.
+     * @ param call is specified call for which Headset is to be updated.
      */
-    private void updateHeadsetWithCallState(boolean force) {
-        CallsManager callsManager = getCallsManager();
-        Call activeCall = callsManager.getActiveCall();
-        Call ringingCall = callsManager.getRingingCall();
-        Call heldCall = callsManager.getHeldCall();
+    private void updateHeadsetWithCallState(boolean force, Call call) {
+        if (isDsdaEnabled() && (call != null)) {
+            Log.d(TAG, "DSDA call operation, handle it separately");
+            updateDsdaServiceWithCallState(call);
+        } else {
+            CallsManager callsManager = getCallsManager();
+            Call activeCall = callsManager.getActiveCall();
+            Call ringingCall = callsManager.getRingingCall();
+            Call heldCall = callsManager.getHeldCall();
 
-        int bluetoothCallState = getBluetoothCallStateForUpdate();
+            int bluetoothCallState = getBluetoothCallStateForUpdate();
 
-        String ringingAddress = null;
-        int ringingAddressType = 128;
-        if (ringingCall != null) {
-            ringingAddress = ringingCall.getHandle().getSchemeSpecificPart();
-            if (ringingAddress != null) {
-                ringingAddressType = PhoneNumberUtils.toaFromString(ringingAddress);
-            }
-        }
-        if (ringingAddress == null) {
-            ringingAddress = "";
-        }
-
-        int numActiveCalls = activeCall == null ? 0 : 1;
-        int numHeldCalls = callsManager.getNumHeldCalls();
-        boolean callsSwitched = (numHeldCalls == 2);
-        // For conference calls which support swapping the active call within the conference
-        // (namely CDMA calls) we need to expose that as a held call in order for the BT device
-        // to show "swap" and "merge" functionality.
-        boolean ignoreHeldCallChange = false;
-        if (activeCall != null && activeCall.isConference()) {
-            if (activeCall.can(PhoneCapabilities.SWAP_CONFERENCE)) {
-                // Indicate that BT device should show SWAP command by indicating that there is a
-                // call on hold, but only if the conference wasn't previously merged.
-                numHeldCalls = activeCall.wasConferencePreviouslyMerged() ? 0 : 1;
-            } else if (activeCall.can(PhoneCapabilities.MERGE_CONFERENCE)) {
-                numHeldCalls = 1;  // Merge is available, so expose via numHeldCalls.
-            }
-
-            for (Call childCall : activeCall.getChildCalls()) {
-                // Held call has changed due to it being combined into a CDMA conference. Keep
-                // track of this and ignore any future update since it doesn't really count as
-                // a call change.
-                if (mOldHeldCall == childCall) {
-                    ignoreHeldCallChange = true;
-                    break;
+            String ringingAddress = null;
+            int ringingAddressType = 128;
+            if (ringingCall != null) {
+                ringingAddress = ringingCall.getHandle().getSchemeSpecificPart();
+                if (ringingAddress != null) {
+                    ringingAddressType = PhoneNumberUtils.toaFromString(ringingAddress);
                 }
             }
-        }
+            if (ringingAddress == null) {
+                ringingAddress = "";
+            }
 
-        if (mBluetoothHeadset != null &&
-                (numActiveCalls != mNumActiveCalls ||
-                 numHeldCalls != mNumHeldCalls ||
-                 bluetoothCallState != mBluetoothCallState ||
-                 !TextUtils.equals(ringingAddress, mRingingAddress) ||
-                 ringingAddressType != mRingingAddressType ||
-                 (heldCall != mOldHeldCall && !ignoreHeldCallChange) ||
-                 force) && !callsSwitched) {
+            int numActiveCalls = activeCall == null ? 0 : 1;
+            int numHeldCalls = callsManager.getNumHeldCalls();
+            boolean callsSwitched = (numHeldCalls == 2);
+            // For conference calls which support swapping the active call within the conference
+            // (namely CDMA calls) we need to expose that as a held call in order for the BT device
+            // to show "swap" and "merge" functionality.
+            boolean ignoreHeldCallChange = false;
+            if (activeCall != null && activeCall.isConference()) {
+                if (activeCall.can(PhoneCapabilities.SWAP_CONFERENCE)) {
+                    // Indicate that BT device should show SWAP command by indicating that there
+                    // is a call on hold, but only if the conference wasn't previously merged.
+                    numHeldCalls = activeCall.wasConferencePreviouslyMerged() ? 0 : 1;
+                } else if (activeCall.can(PhoneCapabilities.MERGE_CONFERENCE)) {
+                    numHeldCalls = 1;  // Merge is available, so expose via numHeldCalls.
+                }
 
-            // If the call is transitioning into the alerting state, send DIALING first.
-            // Some devices expect to see a DIALING state prior to seeing an ALERTING state
-            // so we need to send it first.
-            boolean sendDialingFirst = mBluetoothCallState != bluetoothCallState &&
-                    bluetoothCallState == CALL_STATE_ALERTING;
+                for (Call childCall : activeCall.getChildCalls()) {
+                    // Held call has changed due to it being combined into a CDMA conference. Keep
+                    // track of this and ignore any future update since it doesn't really count as
+                    // a call change.
+                    if (mOldHeldCall == childCall) {
+                        ignoreHeldCallChange = true;
+                        break;
+                    }
+                }
+            }
 
-            mOldHeldCall = heldCall;
-            mNumActiveCalls = numActiveCalls;
-            mNumHeldCalls = numHeldCalls;
-            mBluetoothCallState = bluetoothCallState;
-            mRingingAddress = ringingAddress;
-            mRingingAddressType = ringingAddressType;
+            if (mBluetoothHeadset != null &&
+                    (numActiveCalls != mNumActiveCalls ||
+                    numHeldCalls != mNumHeldCalls ||
+                    bluetoothCallState != mBluetoothCallState ||
+                    !TextUtils.equals(ringingAddress, mRingingAddress) ||
+                    ringingAddressType != mRingingAddressType ||
+                    (heldCall != mOldHeldCall && !ignoreHeldCallChange) ||
+                    force) && !callsSwitched) {
 
-            if (sendDialingFirst) {
-                // Log in full to make logs easier to debug.
+                // If the call is transitioning into the alerting state, send DIALING first.
+                // Some devices expect to see a DIALING state prior to seeing an ALERTING state
+                // so we need to send it first.
+                boolean sendDialingFirst = mBluetoothCallState != bluetoothCallState &&
+                        bluetoothCallState == CALL_STATE_ALERTING;
+
+                mOldHeldCall = heldCall;
+                mNumActiveCalls = numActiveCalls;
+                mNumHeldCalls = numHeldCalls;
+                mBluetoothCallState = bluetoothCallState;
+                mRingingAddress = ringingAddress;
+                mRingingAddressType = ringingAddressType;
+
+                if (sendDialingFirst) {
+                    // Log in full to make logs easier to debug.
+                    Log.i(TAG, "updateHeadsetWithCallState " +
+                            "numActive %s, " +
+                            "numHeld %s, " +
+                            "callState %s, " +
+                            "ringing number %s, " +
+                            "ringing type %s",
+                            mNumActiveCalls,
+                            mNumHeldCalls,
+                            CALL_STATE_DIALING,
+                            Log.pii(mRingingAddress),
+                            mRingingAddressType);
+                    mBluetoothHeadset.phoneStateChanged(
+                            mNumActiveCalls,
+                            mNumHeldCalls,
+                            CALL_STATE_DIALING,
+                            mRingingAddress,
+                            mRingingAddressType);
+                }
+
                 Log.i(TAG, "updateHeadsetWithCallState " +
                         "numActive %s, " +
                         "numHeld %s, " +
@@ -779,40 +1079,117 @@ public final class BluetoothPhoneService extends Service {
                         "ringing type %s",
                         mNumActiveCalls,
                         mNumHeldCalls,
-                        CALL_STATE_DIALING,
+                        mBluetoothCallState,
                         Log.pii(mRingingAddress),
                         mRingingAddressType);
+
                 mBluetoothHeadset.phoneStateChanged(
                         mNumActiveCalls,
                         mNumHeldCalls,
-                        CALL_STATE_DIALING,
+                        mBluetoothCallState,
                         mRingingAddress,
                         mRingingAddressType);
+
+                mHeadsetUpdatedRecently = true;
             }
-
-            Log.i(TAG, "updateHeadsetWithCallState " +
-                    "numActive %s, " +
-                    "numHeld %s, " +
-                    "callState %s, " +
-                    "ringing number %s, " +
-                    "ringing type %s",
-                    mNumActiveCalls,
-                    mNumHeldCalls,
-                    mBluetoothCallState,
-                    Log.pii(mRingingAddress),
-                    mRingingAddressType);
-
-            mBluetoothHeadset.phoneStateChanged(
-                    mNumActiveCalls,
-                    mNumHeldCalls,
-                    mBluetoothCallState,
-                    mRingingAddress,
-                    mRingingAddressType);
-
-            mHeadsetUpdatedRecently = true;
         }
     }
 
+    /**
+     * Sends an update of the current dsda call state to the Dsda service.
+     *
+     * @param call is specified call for which Headset is to be updated.
+     */
+    private void updateDsdaServiceWithCallState(Call call) {
+        CallsManager callsManager = getCallsManager();
+        long subscription = INVALID_SUBID;
+        if (mBluetoothDsda != null) {
+            Log.d(TAG, "Get the Sub on which call state change happened");
+            if (!call.isConference()) {
+                subscription = Long.parseLong(call.getTargetPhoneAccount().getId());
+            } else {
+                for (Call childCall : call.getChildCalls()) {
+                    subscription = Long.parseLong(childCall.getTargetPhoneAccount().getId());
+                    if (subscription != INVALID_SUBID)
+                        break;
+                }
+            }
+            Log.d(TAG, "SUB on which call state to be updated " + subscription);
+            if (subscription == INVALID_SUBID) {
+                return;
+            }
+
+            try {
+                mBluetoothDsda.setCurrentSub(subscription);
+                Call ringCall = callsManager.getFirstCallWithStateUsingSubId(
+                        Long.toString(subscription), CallState.RINGING);
+                int ringingCallState = callsManager.hasRingingCall() ?
+                        CallState.RINGING : CallState.NEW;
+
+                Call foregroundCall = callsManager.getFirstCallWithStateUsingSubId(
+                        Long.toString(subscription), LIVE_CALL_STATES);
+                int foregroundCallState = (foregroundCall != null) ?
+                        foregroundCall.getState() : CallState.NEW;
+
+                Call backgroundCall = callsManager.getFirstCallWithStateUsingSubId(
+                        Long.toString(subscription), CallState.ON_HOLD);
+                int backgroundCallState = (backgroundCall != null) ?
+                        CallState.ON_HOLD: CallState.NEW;
+
+                Log.d(TAG, "callsManager.getActiveCall()  =  " + callsManager.getActiveCall());
+                int numHeldCallsonSub = getDsdaNumHeldCalls(callsManager.getActiveCall(),
+                        subscription, mOldHeldCall);
+
+                String ringingAddress = null;
+                int ringingAddressType = 128;
+                if (ringCall != null) {
+                    ringingAddress = ringCall.getHandle().getSchemeSpecificPart();
+                    if (ringingAddress != null) {
+                        ringingAddressType = PhoneNumberUtils.toaFromString(ringingAddress);
+                    }
+                }
+                if (ringingAddress == null) {
+                    ringingAddress = "";
+                }
+                mBluetoothDsda.handleMultiSimPreciseCallStateChange(foregroundCallState,
+                        ringingCallState, ringingAddress, ringingAddressType,
+                        backgroundCallState, numHeldCallsonSub);
+            } catch (RemoteException e) {
+                Log.i(TAG, "Ignoring DSDA class not found exception " + e);
+            }
+        }
+        return;
+    }
+
+    private int getDsdaNumHeldCalls(Call activeCall, long subscription, Call mOldHeldCall) {
+        // For conference calls which support swapping the active call within the conference
+        // (namely CDMA calls) we need to expose that as a held call in order for the BT device
+        // to show "swap" and "merge" functionality.
+        int numHeldCalls = 0;
+        long activeCallSub = 0;
+
+        if (activeCall != null && activeCall.isConference()) {
+            for (Call childCall : activeCall.getChildCalls()) {
+                activeCallSub = Long.parseLong(childCall.getTargetPhoneAccount().getId());
+                if (activeCallSub != INVALID_SUBID)
+                    break;
+            }
+            if (activeCallSub == subscription) {
+                if (activeCall.can(PhoneCapabilities.SWAP_CONFERENCE)) {
+                    // Indicate that BT device should show SWAP command by indicating that there
+                    // is a call on hold, but only if the conference wasn't previously merged.
+                    numHeldCalls = activeCall.wasConferencePreviouslyMerged() ? 0 : 1;
+                } else if (activeCall.can(PhoneCapabilities.MERGE_CONFERENCE)) {
+                    numHeldCalls = 1;  // Merge is available, so expose via numHeldCalls.
+                }
+                Log.i(TAG, "getDsdaNumHeldCalls: numHeldCalls:  " + numHeldCalls);
+                return numHeldCalls;
+            }
+        }
+        numHeldCalls = getNumCallsWithState(Long.toString(subscription), CallState.ON_HOLD);
+        Log.i(TAG, "getDsdaNumHeldCalls: numHeldCalls = " + numHeldCalls);
+        return numHeldCalls;
+    }
     private int getBluetoothCallStateForUpdate() {
         CallsManager callsManager = getCallsManager();
         Call ringingCall = callsManager.getRingingCall();
@@ -834,6 +1211,15 @@ public final class BluetoothPhoneService extends Service {
             bluetoothCallState = CALL_STATE_ALERTING;
         }
         return bluetoothCallState;
+    }
+
+    private int convertCallState(int ringingState, int foregroundState) {
+        if (ringingState == CallState.RINGING)
+            return CALL_STATE_INCOMING;
+        else if (foregroundState == CallState.DIALING)
+            return CALL_STATE_ALERTING;
+        else
+            return CALL_STATE_IDLE;
     }
 
     private int convertCallState(int callState, boolean isForegroundCall) {
@@ -897,5 +1283,188 @@ public final class BluetoothPhoneService extends Service {
                     registry.getDefaultOutgoingPhoneAccount(PhoneAccount.SCHEME_TEL));
         }
         return account;
+    }
+
+    private boolean isDsdaEnabled() {
+        //Check whether we support DSDA or not
+        if ((TelephonyManager.getDefault().getMultiSimConfiguration()
+                == TelephonyManager.MultiSimVariants.DSDA)) {
+            Log.d(TAG, "DSDA is enabled");
+            return true;
+        }
+        return false;
+    }
+
+    private int getNumCallsWithState(String subId, int state) {
+        int count = 0;
+        CallsManager callsManager = getCallsManager();
+        for (Call call : callsManager.getCalls()) {
+            if (call.getState() == state && call.getTargetPhoneAccount() != null
+                    && call.getTargetPhoneAccount().getId().equals(subId)) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private boolean processDsdaChld(int chld) throws  RemoteException {
+        boolean status = true;
+        CallsManager callsManager = CallsManager.getInstance();
+        Log.i(TAG, "processDsdaChld: " + chld );
+        long activeSub = mTelecomManager.getActiveSubscription();
+        Log.i(TAG, "activeSub: " + activeSub);
+        if (INVALID_SUBID == activeSub) {
+            Log.i(TAG, "Invalid activeSub id, returning");
+            return false;
+        }
+
+        Call activeCall = callsManager.getActiveCall();
+        Call ringingCall = callsManager.getFirstCallWithStateUsingSubId(
+                Long.toString(activeSub), CallState.RINGING);
+        Call backgroundCall = callsManager.getFirstCallWithStateUsingSubId(
+                Long.toString(activeSub), CallState.ON_HOLD);
+
+        switch (chld) {
+            case CHLD_TYPE_RELEASEHELD:
+                if (ringingCall != null) {
+                    callsManager.rejectCall(ringingCall, false, null);
+                } else {
+                    Call call = getCallOnOtherSub(false);
+                    if (call != null) {
+                        callsManager.disconnectCall(call);
+                    } else {
+                        if (backgroundCall != null) {
+                            callsManager.disconnectCall(backgroundCall);
+                        }
+                    }
+                }
+                status = true;
+                break;
+
+            case CHLD_TYPE_RELEASEACTIVE_ACCEPTHELD:
+                Call call = getCallOnOtherSub(false);
+                if ((ringingCall != null) && (call != null)) {
+                    //first answer the incoming call
+                    callsManager.answerCall(ringingCall, 0);
+                    //Try to Drop the call on the other SUB.
+                    callsManager.disconnectCall(call);
+                } else if (mBluetoothDsda.isSwitchSubAllowed()) {
+                    /* In case of Sub1=Active and Sub2=lch/held, drop call
+                       on active  Sub */
+                    Log.i(TAG, "processChld drop the call on Active sub, move LCH to active");
+                    call = getCallOnOtherSub(true);
+                    if (call != null) {
+                        callsManager.disconnectCall(call);
+                    }
+                } else {
+                    if (activeCall != null) {
+                        Log.i(TAG, "Dropping active call");
+                        callsManager.disconnectCall(activeCall);
+                        if (ringingCall != null) {
+                            callsManager.answerCall(ringingCall, 0);
+                        } else if (backgroundCall != null) {
+                            callsManager.unholdCall(backgroundCall);
+                        }
+                    }
+                }
+                status = true;
+                break;
+
+            case CHLD_TYPE_HOLDACTIVE_ACCEPTHELD:
+                if (mBluetoothDsda.canDoCallSwap()) {
+                    Log.i(TAG, "Try to do call swap on same sub");
+                    if (activeCall != null && activeCall.can(PhoneCapabilities.SWAP_CONFERENCE)) {
+                        activeCall.swapConference();
+                    } else if (backgroundCall != null) {
+                        callsManager.unholdCall(backgroundCall);
+                    }
+                } else if (mBluetoothDsda.isSwitchSubAllowed()) {
+                    /*Switch SUB*/
+                    Log.i(TAG, "Switch sub");
+                    // If there is a change in active subscription while both the
+                    // subscriptions are in active state, need to siwtch the
+                    // playing of LCH/SCH tone to new LCH subscription.
+                    mBluetoothDsda.switchSub();
+                } else if (mBluetoothDsda.answerOnThisSubAllowed() == true) {
+                    Log.i(TAG, "Can we answer the call on other SUB?");
+                    /* Answer the call on current SUB*/
+                    if (ringingCall != null)
+                        callsManager.answerCall(ringingCall, 0);
+                } else {
+                    Log.i(TAG, "CHLD=2, Answer the call on same sub");
+                    if (ringingCall != null) {
+                        Log.i(TAG, "Background is on hold when incoming call came");
+                        callsManager.answerCall(ringingCall, 0);
+                    } else if (backgroundCall != null) {
+                        callsManager.unholdCall(backgroundCall);
+                    }
+                }
+                status = true;
+                break;
+
+            case CHLD_TYPE_ADDHELDTOCONF:
+                if (activeCall != null) {
+                    if (activeCall.can(PhoneCapabilities.MERGE_CONFERENCE)) {
+                        activeCall.mergeConference();
+                    } else {
+                        List<Call> conferenceable = activeCall.getConferenceableCalls();
+                        if (!conferenceable.isEmpty()) {
+                            callsManager.conference(activeCall, conferenceable.get(0));
+                        }
+                    }
+                }
+                status = true;
+                break;
+
+            default:
+                Log.i(TAG, "bad CHLD value: " + chld);
+                status = false;
+                break;
+        }
+        return status;
+    }
+
+    /* Get the active or held call on other Sub. */
+    private Call getCallOnOtherSub(boolean isActive) throws  RemoteException {
+        CallsManager callsManager = getCallsManager();
+        Log.d(TAG, "getCallOnOtherSub, isActiveSub call required: " + isActive);
+        long activeSub = mTelecomManager.getActiveSubscription();
+        if (INVALID_SUBID == activeSub) {
+            Log.i(TAG, "Invalid activeSub id, returning");
+            return null;
+        }
+        long bgSub = getOtherActiveSub(activeSub);
+        /*bgSub would be INVALID_SUBID when bg subscription has no calls*/
+        if (bgSub == INVALID_SUBID) {
+            return null;
+        }
+
+        Call call = null;
+        if (isActive) {
+            if (mBluetoothDsda.getTotalCallsOnSub(bgSub) < 2 ) {
+                if (callsManager.hasActiveOrHoldingCall(Long.toString(activeSub)))
+                    call = callsManager.getFirstCallWithStateUsingSubId(
+                            Long.toString(activeSub), CallState.ACTIVE, CallState.ON_HOLD);
+            }
+        } else {
+            if (mBluetoothDsda.getTotalCallsOnSub(bgSub) == 1) {
+                if (callsManager.hasActiveOrHoldingCall(Long.toString(bgSub)))
+                    call = callsManager.getFirstCallWithStateUsingSubId(
+                            Long.toString(bgSub), CallState.ACTIVE, CallState.ON_HOLD);
+            }
+        }
+        return call;
+    }
+
+    private long getOtherActiveSub(long activeSub) {
+        boolean subSwitched = false;
+        for (int i = 0; i < TelephonyManager.getDefault().getPhoneCount(); i++) {
+            long[] subId = SubscriptionManager.getSubId(i);
+            if (subId[0] != activeSub) {
+                Log.i(TAG, "other Sub: " + subId[0]);
+                return subId[0];
+            }
+        }
+        return INVALID_SUBID;
     }
 }
