@@ -111,7 +111,8 @@ public class RespondViaSmsManager extends CallsManagerListenerBase {
                 QuickResponseUtils.maybeMigrateLegacyQuickResponses(context);
 
                 final SharedPreferences prefs = context.getSharedPreferences(
-                        QuickResponseUtils.SHARED_PREFERENCES_NAME, Context.MODE_PRIVATE);
+                        QuickResponseUtils.SHARED_PREFERENCES_NAME,
+                        Context.MODE_PRIVATE | Context.MODE_MULTI_PROCESS);
                 final Resources res = context.getResources();
 
                 final ArrayList<String> textMessages = new ArrayList<>(
