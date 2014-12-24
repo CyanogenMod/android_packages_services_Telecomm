@@ -1001,6 +1001,17 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
         }
     }
 
+    void addParticipantWithConference(Call call, String receipant) {
+        final String callId = mCallIdMapper.getCallId(call);
+            if (isServiceValid("addParticipantWithConference")) {
+                try {
+                    logOutgoing("addParticipantWithConference %s, %s", receipant, callId);
+                    mServiceInterface.addParticipantWithConference(callId, receipant);
+                } catch (RemoteException ignored) {
+                }
+        }
+    }
+
     void mergeConference(Call call) {
         final String callId = mCallIdMapper.getCallId(call);
         if (callId != null && isServiceValid("mergeConference")) {
