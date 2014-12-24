@@ -85,6 +85,7 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
     private static final int MSG_SET_PHONE_ACCOUNT = 23;
     private static final int MSG_SET_CALL_SUBSTATE = 24;
     private static final int MSG_ADD_EXISTING_CONNECTION = 25;
+    private static final int MSG_SET_CALL_PROPERTIES = 26;
 
     private final Handler mHandler = new Handler() {
         @Override
@@ -157,28 +158,6 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                     }
                     break;
                 }
-                case MSG_SET_DISCONNECTED_WITH_SUPP_NOTIFICATION: {
-                    SomeArgs args = (SomeArgs) msg.obj;
-                    try {
-                        call = mCallIdMapper.getCall(args.arg1);
-                        String disconnectMessage = (String) args.arg2;
-                        int disconnectCause = args.argi1;
-                        int type = args.argi2;
-                        int code = args.argi3;
-                        if (call != null) {
-                            call.setNotificationType(type);
-                            call.setNotificationCode(code);
-                            // FIXME this needs to be realigned
-                            mCallsManager.markCallAsDisconnected(call,
-                                    new DisconnectCause(disconnectCause));
-                        } else {
-                            //Log.w(this, "setDisconnected, unknown call id: %s", args.arg1);
-                        }
-                    } finally {
-                        args.recycle();
-                    }
-                    break;
-                }
                 case MSG_SET_ON_HOLD:
                     call = mCallIdMapper.getCall(msg.obj);
                     if (call != null) {
@@ -203,6 +182,16 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                     } else {
                         //Log.w(ConnectionServiceWrapper.this,
                         //      "setCallCapabilities, unknown call id: %s", msg.obj);
+                    }
+                    break;
+                }
+                case MSG_SET_CALL_PROPERTIES: {
+                    call = mCallIdMapper.getCall(msg.obj);
+                    if (call != null) {
+                        call.setCallProperties(msg.arg1);
+                    } else {
+                        //Log.w(ConnectionServiceWrapper.this,
+                        //      "setCallProperties, unknown call id: %s", msg.obj);
                     }
                     break;
                 }
@@ -499,22 +488,6 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
         }
 
         @Override
-        public void setDisconnectedWithSsNotification(
-                String callId, int disconnectCause, String disconnectMessage, int type, int code) {
-            logIncoming("setDisconnected %s %d %s", callId, disconnectCause, disconnectMessage);
-            if (mCallIdMapper.isValidCallId(callId)) {
-                SomeArgs args = SomeArgs.obtain();
-                args.arg1 = callId;
-                args.arg2 = disconnectMessage;
-                args.argi1 = disconnectCause;
-                args.argi2 = type;
-                args.argi3 = code;
-                mHandler.obtainMessage(MSG_SET_DISCONNECTED_WITH_SUPP_NOTIFICATION,
-                        args).sendToTarget();
-            }
-        }
-
-        @Override
         public void setOnHold(String callId) {
             logIncoming("setOnHold %s", callId);
             if (mCallIdMapper.isValidCallId(callId) || mCallIdMapper.isValidConferenceId(callId)) {
@@ -547,6 +520,17 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                         .sendToTarget();
             } else {
                 Log.w(this, "ID not valid for setCallCapabilities");
+            }
+        }
+
+        @Override
+        public void setCallProperties(String callId, int callProperties) {
+            logIncoming("setCallProperties %s %x", callId, callProperties);
+            if (mCallIdMapper.isValidCallId(callId) || mCallIdMapper.isValidConferenceId(callId)) {
+                mHandler.obtainMessage(MSG_SET_CALL_PROPERTIES, callProperties, 0, callId)
+                        .sendToTarget();
+            } else {
+                Log.w(this, "ID not valid for setCallProperties");
             }
         }
 
