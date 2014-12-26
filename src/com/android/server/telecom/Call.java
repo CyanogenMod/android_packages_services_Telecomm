@@ -988,6 +988,14 @@ final class Call implements CreateConnectionResponse {
         }
     }
 
+    void addParticipantWithConference(String receipants) {
+        if (mConnectionService == null) {
+            Log.w(this, "conference requested on a call without a connection service.");
+        } else {
+            mConnectionService.addParticipantWithConference(this, receipants);
+        }
+    }
+
     void mergeConference() {
         if (mConnectionService == null) {
             Log.w(this, "merging conference calls without a connection service.");
