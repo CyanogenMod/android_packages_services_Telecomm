@@ -534,8 +534,6 @@ public final class InCallController extends CallsManagerListenerBase {
                 call.getVideoState(),
                 conferenceableCallIds,
                 call.getExtras(),
-                call.getNotificationType(),
-                call.getNotificationCode(),
                 call.mIsActiveSub,
                 call.getCallSubstate());
     }
