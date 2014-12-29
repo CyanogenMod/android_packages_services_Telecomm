@@ -832,6 +832,15 @@ public final class CallsManager extends Call.ListenerBase {
     /** Called by the in-call UI to change the mute state. */
     void mute(boolean shouldMute) {
         mCallAudioManager.mute(shouldMute);
+        if (!shouldMute) {
+            // if the current active sub is in lch state and user
+            // has clicked the unmute button, deactivate this sub's
+            // lch state.
+            String activeSub = getActiveSubscription();
+            if (activeSub != null && activeSub.equals(getLchSub())) {
+                updateLchStatus(activeSub);
+            }
+        }
     }
 
     /**
@@ -1718,6 +1727,21 @@ public final class CallsManager extends Call.ListenerBase {
                 + " retainLch:" + retainLch);
         setActiveSubscription(subId);
         updateLchStatus(subId);
+        if (retainLch) {
+            Call call = getNonRingingLiveCall(subId);
+            if (call != null) {
+                call.setLocalCallHold(1);
+                PhoneAccountHandle ph = call.getTargetPhoneAccount();
+                PhoneAccount phAcc = getPhoneAccountRegistrar().getPhoneAccount(ph);
+                // Update state only if the new state is not true
+                if (!phAcc.isSet(PhoneAccount.LCH)) {
+                    phAcc.setBit(PhoneAccount.LCH);
+                }
+            }
+            // lch state should be retained on active subscription, hence enable
+            // mute so that user is aware that call is in lch.
+            mute(true);
+        }
         manageMSimInCallTones(true);
         updateForegroundCall();
     }
