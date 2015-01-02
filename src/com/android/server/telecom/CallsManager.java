@@ -42,6 +42,7 @@ import android.telephony.TelephonyManager;
 import com.android.internal.telephony.CallStateException;
 import com.android.internal.telephony.CallerInfo;
 import com.android.internal.telephony.Connection;
+import com.android.internal.telephony.PhoneConstants;
 import com.android.internal.telephony.TelephonyProperties;
 import com.android.internal.telephony.util.BlacklistUtils;
 import com.android.internal.util.IndentingPrintWriter;
@@ -660,10 +661,17 @@ public final class CallsManager extends Call.ListenerBase {
             call.answer(videoState);
             if (VideoProfile.VideoState.isVideo(videoState) &&
                 !mWiredHeadsetManager.isPluggedIn() &&
-                !mCallAudioManager.isBluetoothDeviceAvailable()) {
+                !mCallAudioManager.isBluetoothDeviceAvailable() &&
+                isSpeakerEnabledForVideoCalls()) {
                 call.setStartWithSpeakerphoneOn(true);
             }
         }
+    }
+
+    private static boolean isSpeakerEnabledForVideoCalls() {
+        return (SystemProperties.getInt(TelephonyProperties.PROPERTY_IMS_AUDIO_OUTPUT,
+                PhoneConstants.IMS_AUDIO_OUTPUT_DEFAULT) ==
+                PhoneConstants.IMS_AUDIO_OUTPUT_ENABLE_SPEAKER);
     }
 
     /**
