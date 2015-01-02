@@ -769,7 +769,8 @@ public final class CallsManager extends Call.ListenerBase {
         } else {
             Log.d(this, "unholding call: (%s)", call);
             for (Call c : mCalls) {
-                if (c != null && c.isAlive() && c != call) {
+                // Only attempt to hold parent calls and not the individual children.
+                if (c != null && c.isAlive() && c != call && c.getParentCall() == null) {
                     c.hold();
                 }
             }
