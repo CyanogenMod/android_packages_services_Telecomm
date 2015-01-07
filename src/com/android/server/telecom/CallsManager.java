@@ -1678,8 +1678,20 @@ public final class CallsManager extends Call.ListenerBase {
                 false /* isIncoming */,
                 false /* isConference */);
 
-        setCallState(call, Call.getStateFromConnectionState(connection.getState()));
-        call.setConnectTimeMillis(System.currentTimeMillis());
+        int callState = Call.getStateFromConnectionState(connection.getState());
+        Call existingCall = getFirstCallWithStateUsingSubId(
+                connection.getPhoneAccount().getId(), callState);
+        setCallState(call, callState);
+        Log.i(this, "createCallForExistingConnection existingCall = "
+                + existingCall + " new call = " + call);
+        //SRVCC case, call is getting transfer. Copy connect time from existing call of same
+        //state to new call in same sub.
+        if ((callState == CallState.ACTIVE || callState == CallState.ON_HOLD)
+                && existingCall != null) {
+            call.setConnectTimeMillis(existingCall.getConnectTimeMillis());
+        } else {
+            call.setConnectTimeMillis(System.currentTimeMillis());
+        }
         call.setCallCapabilities(connection.getCapabilities());
         call.setCallerDisplayName(connection.getCallerDisplayName(),
                 connection.getCallerDisplayNamePresentation());
