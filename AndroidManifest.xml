@@ -71,6 +71,8 @@
             android:allowBackup="false"
             android:supportsRtl="true">
 
+        <uses-library android:name="org.cyanogenmod.hardware" android:required="false" />
+
         <!-- CALL vs CALL_PRIVILEGED vs CALL_EMERGENCY
              We have three different intents through which a call can be initiated each with its
              own behavior.
