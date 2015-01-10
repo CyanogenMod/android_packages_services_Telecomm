@@ -86,6 +86,7 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
     private static final int MSG_SET_CALL_SUBSTATE = 24;
     private static final int MSG_ADD_EXISTING_CONNECTION = 25;
     private static final int MSG_SET_CALL_PROPERTIES = 26;
+    private static final int MSG_RESET_CDMA_CONNECT_TIME = 27;
 
     private final Handler mHandler = new Handler() {
         @Override
@@ -409,6 +410,12 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                         args.recycle();
                     }
                 }
+                case MSG_RESET_CDMA_CONNECT_TIME:
+                    call = mCallIdMapper.getCall(msg.obj);
+                    if (call != null) {
+                        mCallsManager.resetCdmaConnectionTime(call);
+                    }
+                    break;
             }
         }
     };
@@ -663,6 +670,13 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
             args.arg1 = callId;
             args.arg2 = connection;
             mHandler.obtainMessage(MSG_ADD_EXISTING_CONNECTION, args).sendToTarget();
+       }
+
+       public void resetCdmaConnectionTime(String callId) {
+            logIncoming("resetCdmaConnectionTime");
+            if (mCallIdMapper.isValidCallId(callId) || mCallIdMapper.isValidConferenceId(callId)) {
+                mHandler.obtainMessage(MSG_RESET_CDMA_CONNECT_TIME, callId).sendToTarget();
+            }
         }
     }
 
