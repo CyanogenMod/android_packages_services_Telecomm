@@ -334,13 +334,6 @@ final class Call implements CreateConnectionResponse {
             boolean isIncoming,
             boolean isConference) {
         mState = isConference ? CallState.ACTIVE : CallState.NEW;
-
-        // Conference calls are considered connected upon adding to Telecom, so set the connect
-        // time now.
-        if (isConference) {
-            mConnectTimeMillis = System.currentTimeMillis();
-        }
-
         mContext = context;
         mRepository = repository;
         setHandle(handle);
@@ -351,6 +344,37 @@ final class Call implements CreateConnectionResponse {
         mIsIncoming = isIncoming;
         mIsConference = isConference;
         maybeLoadCannedSmsResponses();
+    }
+
+    /**
+     * Persists the specified parameters and initializes the new instance.
+     *
+     * @param context The context.
+     * @param repository The connection service repository.
+     * @param handle The handle to dial.
+     * @param gatewayInfo Gateway information to use for the call.
+     * @param connectionManagerPhoneAccountHandle Account to use for the service managing the call.
+     *         This account must be one that was registered with the
+     *         {@link PhoneAccount#CAPABILITY_CONNECTION_MANAGER} flag.
+     * @param targetPhoneAccountHandle Account information to use for the call. This account must be
+     *         one that was registered with the {@link PhoneAccount#CAPABILITY_CALL_PROVIDER} flag.
+     * @param isIncoming True if this is an incoming call.
+     * @param connectTimeMillis The connection time of the call.
+     */
+    Call(
+            Context context,
+            ConnectionServiceRepository repository,
+            Uri handle,
+            GatewayInfo gatewayInfo,
+            PhoneAccountHandle connectionManagerPhoneAccountHandle,
+            PhoneAccountHandle targetPhoneAccountHandle,
+            boolean isIncoming,
+            boolean isConference,
+            long connectTimeMillis) {
+        this(context, repository, handle, gatewayInfo, connectionManagerPhoneAccountHandle,
+                targetPhoneAccountHandle, isIncoming, isConference);
+
+        mConnectTimeMillis = connectTimeMillis;
     }
 
     void addListener(Listener listener) {
