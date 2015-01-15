@@ -21,6 +21,7 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.TaskStackBuilder;
 import android.content.AsyncQueryHandler;
+import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
@@ -33,6 +34,7 @@ import android.os.AsyncTask;
 import android.os.UserHandle;
 import android.provider.CallLog;
 import android.provider.CallLog.Calls;
+import android.provider.Settings;
 import android.telecom.CallState;
 import android.telecom.DisconnectCause;
 import android.telecom.PhoneAccount;
@@ -66,6 +68,10 @@ class MissedCallNotifier extends CallsManagerListenerBase {
     private static final int CALL_LOG_COLUMN_TYPE = 5;
 
     private static final int MISSED_CALL_NOTIFICATION_ID = 1;
+
+    // notification light default constants
+    public static final int DEFAULT_COLOR = 0xFFFFFF; //White
+    public static final int DEFAULT_TIME = 1000; // 1 second
 
     private final Context mContext;
     private final NotificationManager mNotificationManager;
@@ -178,7 +184,7 @@ class MissedCallNotifier extends CallsManagerListenerBase {
         }
 
         Notification notification = builder.build();
-        configureLedOnNotification(notification);
+        configureLedOnNotification(mContext, notification);
 
         Log.i(this, "Adding missed call notification for %s.", call);
         mNotificationManager.notifyAsUser(
@@ -271,10 +277,33 @@ class MissedCallNotifier extends CallsManagerListenerBase {
 
     /**
      * Configures a notification to emit the blinky notification light.
+     *
      */
-    private void configureLedOnNotification(Notification notification) {
+    private static void configureLedOnNotification(Context context, Notification notification) {
+        ContentResolver resolver = context.getContentResolver();
+
+        boolean lightEnabled = Settings.System.getInt(resolver,
+                Settings.System.NOTIFICATION_LIGHT_PULSE, 0) == 1;
+        if (!lightEnabled) {
+            return;
+        }
+
         notification.flags |= Notification.FLAG_SHOW_LIGHTS;
-        notification.defaults |= Notification.DEFAULT_LIGHTS;
+
+        // Get Missed call values if they are to be used
+        boolean customEnabled = Settings.System.getInt(resolver,
+                Settings.System.NOTIFICATION_LIGHT_PULSE_CUSTOM_ENABLE, 0) == 1;
+        if (!customEnabled) {
+            notification.defaults |= Notification.DEFAULT_LIGHTS;
+            return;
+        }
+
+        notification.ledARGB = Settings.System.getInt(resolver,
+            Settings.System.NOTIFICATION_LIGHT_PULSE_CALL_COLOR, DEFAULT_COLOR);
+        notification.ledOnMS = Settings.System.getInt(resolver,
+            Settings.System.NOTIFICATION_LIGHT_PULSE_CALL_LED_ON, DEFAULT_TIME);
+        notification.ledOffMS = Settings.System.getInt(resolver,
+            Settings.System.NOTIFICATION_LIGHT_PULSE_CALL_LED_OFF, DEFAULT_TIME);
     }
 
     /**
