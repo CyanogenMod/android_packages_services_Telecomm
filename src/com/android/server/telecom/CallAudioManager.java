@@ -145,22 +145,37 @@ final class CallAudioManager extends CallsManagerListenerBase
             return;
         }
 
-        Log.d(this,"isBluetoothAudioOn(): "+isBluetoothAudioOn());
+        boolean isCurrentlyWiredHeadset = mAudioState.getRoute() == AudioState.ROUTE_WIRED_HEADSET;
 
-        if (!isBluetoothAudioOn()) {
-            newRoute = AudioState.ROUTE_EARPIECE;
-            if (newIsPluggedIn) {
-                newRoute = AudioState.ROUTE_WIRED_HEADSET;
-            } else if (mWasSpeakerOn) {
-                Call call = getForegroundCall();
-                if (call != null && call.isAlive()) {
-                    // Restore the speaker state.
+        int newRoute = mAudioState.getRoute();  // start out with existing route
+        if (newIsPluggedIn) {
+            newRoute = AudioState.ROUTE_WIRED_HEADSET;
+        } else if (isCurrentlyWiredHeadset) {
+            Call call = getForegroundCall();
+            boolean hasLiveCall = call != null && call.isAlive();
+
+            if (hasLiveCall) {
+                // In order of preference when a wireless headset is unplugged.
+                if (mWasSpeakerOn) {
                     newRoute = AudioState.ROUTE_SPEAKER;
+                } else {
+                    newRoute = AudioState.ROUTE_EARPIECE;
                 }
+
+                // We don't automatically connect to bluetooth when user unplugs their wired headset
+                // and they were previously using the wired. Wired and earpiece are effectively the
+                // same choice in that they replace each other as an option when wired headsets
+                // are plugged in and out. This means that keeping it earpiece is a bit more
+                // consistent with the status quo.  Bluetooth also has more danger associated with
+                // choosing it in the wrong curcumstance because bluetooth devices can be
+                // semi-public (like in a very-occupied car) where earpiece doesn't carry that risk.
             }
         } else {
             newRoute = AudioState.ROUTE_BLUETOOTH;
         }
+
+        // We need to call this every time even if we do not change the route because the supported
+        // routes changed either to include or not include WIRED_HEADSET.
         setSystemAudioState(mAudioState.isMuted(), newRoute, calculateSupportedRoutes());
     }
 
