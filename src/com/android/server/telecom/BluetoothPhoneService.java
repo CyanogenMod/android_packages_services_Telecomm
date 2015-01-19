@@ -794,7 +794,6 @@ public final class BluetoothPhoneService extends Service {
         boolean isActive = false;
         boolean allowDsda = false;
         int state = convertCallState(call.getState(), isForeground);
-        long subForCall = Long.parseLong(call.getTargetPhoneAccount().getId());
         long activeSub = mTelecomManager.getActiveSubscription();
         if (INVALID_SUBID == activeSub) {
             Log.i(TAG, "Invalid activeSub id, returning");
@@ -812,8 +811,6 @@ public final class BluetoothPhoneService extends Service {
             allowDsda = true;
             Log.i(this, "Call setup in progress, allowDsda: " + allowDsda);
         }
-
-        Log.i(this, "CLCC on SUB: " + subForCall + " CallState: " + state);
 
         if (state == CALL_STATE_IDLE) {
             return;
@@ -1105,15 +1102,34 @@ public final class BluetoothPhoneService extends Service {
         long subscription = INVALID_SUBID;
         if (mBluetoothDsda != null) {
             Log.d(TAG, "Get the Sub on which call state change happened");
-            if (!call.isConference()) {
-                subscription = Long.parseLong(call.getTargetPhoneAccount().getId());
-            } else {
+            if (call.getTargetPhoneAccount() != null) {
+                String sub = call.getTargetPhoneAccount().getId();
+                subscription = SubscriptionManager.getDefaultVoiceSubId();
+                try {
+                    subscription = Long.parseLong(sub);
+                } catch (NumberFormatException e) {
+                    Log.w(this, " NumberFormatException " + e);
+                }
+            } else if (call.isConference()) {
                 for (Call childCall : call.getChildCalls()) {
-                    subscription = Long.parseLong(childCall.getTargetPhoneAccount().getId());
+                    if (childCall.getTargetPhoneAccount() != null) {
+                        String sub = childCall.getTargetPhoneAccount().getId();
+                        subscription = SubscriptionManager.getDefaultVoiceSubId();
+                        try {
+                            subscription = Long.parseLong(sub);
+                        } catch (NumberFormatException e) {
+                            Log.w(this, " NumberFormatException " + e);
+                        }
+                    } else {
+                        Log.w(this, "PhoneAccountHandle is NULL for childCall: " + childCall);
+                    }
                     if (subscription != INVALID_SUBID)
                         break;
                 }
+            } else {
+                Log.w(this, "PhoneAccountHandle is NULL");
             }
+
             Log.d(TAG, "SUB on which call state to be updated " + subscription);
             if (subscription == INVALID_SUBID) {
                 return;
@@ -1169,10 +1185,30 @@ public final class BluetoothPhoneService extends Service {
         long activeCallSub = 0;
 
         if (activeCall != null && activeCall.isConference()) {
-            for (Call childCall : activeCall.getChildCalls()) {
-                activeCallSub = Long.parseLong(childCall.getTargetPhoneAccount().getId());
-                if (activeCallSub != INVALID_SUBID)
-                    break;
+            if (activeCall.getTargetPhoneAccount() != null) {
+                String sub = activeCall.getTargetPhoneAccount().getId();
+                activeCallSub = SubscriptionManager.getDefaultVoiceSubId();
+                try {
+                    activeCallSub = Long.parseLong(sub);
+                } catch (NumberFormatException e) {
+                    Log.w(this, " NumberFormatException " + e);
+                }
+            } else {
+                for (Call childCall : activeCall.getChildCalls()) {
+                    if (childCall.getTargetPhoneAccount() != null) {
+                        String sub = childCall.getTargetPhoneAccount().getId();
+                        activeCallSub = SubscriptionManager.getDefaultVoiceSubId();
+                        try {
+                            activeCallSub = Long.parseLong(sub);
+                        } catch (NumberFormatException e) {
+                            Log.w(this, " NumberFormatException " + e);
+                        }
+                    } else {
+                        Log.w(this, "PhoneAccountHandle is NULL for childCall: " + childCall);
+                    }
+                    if (activeCallSub != INVALID_SUBID)
+                        break;
+                }
             }
             if (activeCallSub == subscription) {
                 if (activeCall.can(PhoneCapabilities.SWAP_CONFERENCE)) {
