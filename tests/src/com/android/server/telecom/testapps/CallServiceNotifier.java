@@ -109,7 +109,8 @@ public class CallServiceNotifier {
                 "TelecomTestApp Call Provider")
                 .setAddress(Uri.parse("tel:555-TEST"))
                 .setSubscriptionAddress(Uri.parse("tel:555-TEST"))
-                .setCapabilities(PhoneAccount.CAPABILITY_CALL_PROVIDER)
+                .setCapabilities(PhoneAccount.CAPABILITY_CALL_PROVIDER |
+                        PhoneAccount.CAPABILITY_VIDEO_CALLING)
                 .setIcon(context, R.drawable.stat_sys_phone_call, Color.RED)
                 .setHighlightColor(Color.RED)
                 .setShortDescription("a short description for the call provider")
@@ -124,7 +125,8 @@ public class CallServiceNotifier {
                 .setAddress(Uri.parse("tel:555-TSIM"))
                 .setSubscriptionAddress(Uri.parse("tel:555-TSIM"))
                 .setCapabilities(PhoneAccount.CAPABILITY_CALL_PROVIDER |
-                        PhoneAccount.CAPABILITY_SIM_SUBSCRIPTION)
+                        PhoneAccount.CAPABILITY_SIM_SUBSCRIPTION |
+                        PhoneAccount.CAPABILITY_VIDEO_CALLING)
                 .setIcon(context, R.drawable.stat_sys_phone_call, Color.GREEN)
                 .setHighlightColor(Color.GREEN)
                 .setShortDescription("a short description for the sim subscription")
