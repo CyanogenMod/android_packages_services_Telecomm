@@ -469,6 +469,7 @@ public final class InCallController extends CallsManagerListenerBase {
 
         int capabilities = convertConnectionToCallCapabilities(call.getConnectionCapabilities());
 
+        // If this is a single-SIM device, the "default SIM" will always be the only SIM.
         boolean isDefaultSmsAccount =
                 CallsManager.getInstance().getPhoneAccountRegistrar().isUserSelectedSmsPhoneAccount(
                         call.getTargetPhoneAccount());
@@ -476,11 +477,6 @@ public final class InCallController extends CallsManagerListenerBase {
             capabilities |= android.telecom.Call.Details.CAPABILITY_RESPOND_VIA_TEXT;
         }
 
-        if (call.isRespondViaSmsCapable()) {
-            capabilities |= android.telecom.Call.Details.CAPABILITY_RESPOND_VIA_TEXT;
-        }
-
-        // Disable mute and add call for emergency calls.
         if (call.isEmergencyCall()) {
             capabilities = removeCapability(
                     capabilities, android.telecom.Call.Details.CAPABILITY_MUTE);
