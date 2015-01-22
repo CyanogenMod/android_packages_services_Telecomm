@@ -462,14 +462,11 @@ public final class InCallController extends CallsManagerListenerBase {
         int state = call.getState();
         int capabilities = convertConnectionToCallCapabilities(call.getConnectionCapabilities());
 
+        // If this is a single-SIM device, the "default SIM" will always be the only SIM.
         boolean isDefaultSmsAccount =
                 CallsManager.getInstance().getPhoneAccountRegistrar().isUserSelectedSmsPhoneAccount(
                         call.getTargetPhoneAccount());
         if (call.isRespondViaSmsCapable() && isDefaultSmsAccount) {
-            capabilities |= android.telecom.Call.Details.CAPABILITY_RESPOND_VIA_TEXT;
-        }
-
-        if (call.isRespondViaSmsCapable()) {
             capabilities |= android.telecom.Call.Details.CAPABILITY_RESPOND_VIA_TEXT;
         }
 
