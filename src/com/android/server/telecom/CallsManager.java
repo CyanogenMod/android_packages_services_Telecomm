@@ -37,6 +37,7 @@ import android.telecom.VideoProfile;
 import android.telephony.PhoneNumberUtils;
 import android.telephony.TelephonyManager;
 
+import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.util.IndentingPrintWriter;
 
 import java.util.Collection;
@@ -975,7 +976,8 @@ public final class CallsManager extends Call.ListenerBase {
         return true;
     }
 
-    Call getRingingCall() {
+    @VisibleForTesting
+    public Call getRingingCall() {
         return getFirstCallWithState(CallState.RINGING);
     }
 

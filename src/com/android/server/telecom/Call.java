@@ -38,6 +38,7 @@ import android.telecom.VideoProfile;
 import android.telephony.PhoneNumberUtils;
 import android.text.TextUtils;
 
+import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.telecom.IVideoProvider;
 import com.android.internal.telephony.CallerInfo;
 import com.android.internal.telephony.CallerInfoAsyncQuery;
@@ -60,7 +61,8 @@ import java.util.concurrent.ConcurrentHashMap;
  *  from the time the call intent was received by Telecom (vs. the time the call was
  *  connected etc).
  */
-final class Call implements CreateConnectionResponse {
+@VisibleForTesting
+final public class Call implements CreateConnectionResponse {
     /**
      * Listener for events on the call.
      */
