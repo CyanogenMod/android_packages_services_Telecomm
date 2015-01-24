@@ -401,6 +401,8 @@ public final class CallsManager extends Call.ListenerBase {
 
     void addNewUnknownCall(PhoneAccountHandle phoneAccountHandle, Bundle extras) {
         Uri handle = extras.getParcelable(TelecomManager.EXTRA_UNKNOWN_CALL_HANDLE);
+        String state = extras.getString(TelecomManager.EXTRA_UNKNOWN_CALL_STATE);
+
         Log.i(this, "addNewUnknownCall with handle: %s", Log.pii(handle));
         Call call = new Call(
                 mContext,
@@ -415,9 +417,33 @@ public final class CallsManager extends Call.ListenerBase {
                 false /* isConference */);
         call.setConnectTimeMillis(System.currentTimeMillis());
         call.setIsUnknown(true);
+        call.setState(convertState(state));
         call.setExtras(extras);
         call.addListener(this);
         call.startCreateConnection(mPhoneAccountRegistrar);
+    }
+
+
+    private int convertState(String state) {
+        if (state == null) {
+            return CallState.RINGING;
+        } else if (state.compareTo("ACTIVE") == 0) {
+            return CallState.ACTIVE;
+        } else if (state.compareTo("HOLDING") == 0) {
+            return CallState.ON_HOLD;
+        } else if (state.compareTo("DIALING") == 0) {
+            return CallState.DIALING;
+        }  else if (state.compareTo("ALERTING") == 0) {
+            return CallState.RINGING;
+        }  else if (state.compareTo("INCOMING") == 0) {
+            return CallState.RINGING;
+        }  else if (state.compareTo("DISCONNECTED") == 0) {
+            return CallState.DISCONNECTED;
+        }  else if (state.compareTo("DISCONNECTING") == 0) {
+            return CallState.DISCONNECTING;
+        } else {
+            return CallState.RINGING;
+        }
     }
 
     /**
