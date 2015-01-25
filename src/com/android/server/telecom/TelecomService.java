@@ -478,11 +478,27 @@ public class TelecomService extends Service {
                     return false;
                 }
 
-                int subId = SubscriptionManager.getDefaultVoiceSubId();
-                if (accountHandle != null) {
-                    subId = mPhoneAccountRegistrar.getSubscriptionIdForPhoneAccount(accountHandle);
-                }
+                int subId = mPhoneAccountRegistrar.getSubscriptionIdForPhoneAccount(accountHandle);
                 return !TextUtils.isEmpty(getTelephonyManager().getVoiceMailNumber(subId));
+            } catch (Exception e) {
+                Log.e(this, e, "getSubscriptionIdForPhoneAccount");
+                throw e;
+            }
+        }
+
+        /**
+         * @see android.telecom.TelecomManager#getLine1Number
+         */
+        @Override
+        public String getLine1Number(PhoneAccountHandle accountHandle) {
+            enforceReadPermissionOrDefaultDialer();
+            try {
+                if (!isVisibleToCaller(accountHandle)) {
+                    Log.w(this, "%s is not visible for the calling user", accountHandle);
+                    return null;
+                }
+                int subId = mPhoneAccountRegistrar.getSubscriptionIdForPhoneAccount(accountHandle);
+                return getTelephonyManager().getLine1NumberForSubscriber(subId);
             } catch (Exception e) {
                 Log.e(this, e, "getSubscriptionIdForPhoneAccount");
                 throw e;
