@@ -413,6 +413,28 @@ final class Call implements CreateConnectionResponse {
         return mState;
     }
 
+    private boolean shouldContinueProcessingAfterDisconnect() {
+        // Stop processing once the call is active.
+        if (!CreateConnectionTimeout.isCallBeingPlaced(this)) {
+            return false;
+        }
+
+        // Make sure that there are additional connection services to process.
+        if (mCreateConnectionProcessor == null
+            || !mCreateConnectionProcessor.isProcessingComplete()
+            || !mCreateConnectionProcessor.hasMorePhoneAccounts()) {
+            return false;
+        }
+
+        if (mDisconnectCause == null) {
+            return false;
+        }
+
+        // Continue processing if the current attempt failed or timed out.
+        return mDisconnectCause.getCode() == DisconnectCause.ERROR ||
+            mCreateConnectionProcessor.isCallTimedOut();
+    }
+
     /**
      * Sets the call state. Although there exists the notion of appropriate state transitions
      * (see {@link CallState}), in practice those expectations break down when cellular systems
@@ -422,6 +444,13 @@ final class Call implements CreateConnectionResponse {
     void setState(int newState) {
         if (mState != newState) {
             Log.v(this, "setState %s -> %s", mState, newState);
+
+            if (newState == CallState.DISCONNECTED && shouldContinueProcessingAfterDisconnect()) {
+                Log.w(this, "continuing processing disconnected call with another service");
+                mCreateConnectionProcessor.continueProcessingIfPossible(this, mDisconnectCause);
+                return;
+            }
+
             mState = newState;
             maybeLoadCannedSmsResponses();
 
