@@ -90,7 +90,21 @@ public class CallActivity extends Activity {
         if (Intent.ACTION_CALL.equals(action) ||
                 Intent.ACTION_CALL_PRIVILEGED.equals(action) ||
                 Intent.ACTION_CALL_EMERGENCY.equals(action)) {
+        boolean isAddParticipant = intent.getBooleanExtra(
+                TelephonyProperties.ADD_PARTICIPANT_KEY, false);
+        Log.d(this, "isAddparticipant = "+isAddParticipant);
+        if (isAddParticipant) {
+            String number = PhoneNumberUtils.getNumberFromIntent(intent, this);
+            CallsManager callsManager = CallsManager.getInstance();
+            if (callsManager != null) {
+                callsManager.addParticipant(number);
+                callsManager.getInCallController().bringToForeground(false);
+            } else {
+                Log.w(this, "CallsManager is null, can't process add Participant");
+            }
+        } else {
             processOutgoingCallIntent(intent);
+        }
         } else if (TelecomManager.ACTION_INCOMING_CALL.equals(action)) {
             processIncomingCallIntent(intent);
         }
@@ -133,6 +147,14 @@ public class CallActivity extends Activity {
                 TelecomManager.EXTRA_START_CALL_WITH_VIDEO_STATE,
                 VideoProfile.VideoState.AUDIO_ONLY);
         Log.d(this, "processOutgoingCallIntent videoState = " + videoState);
+
+        if (VideoProfile.VideoState.isVideo(videoState)
+                && TelephonyUtil.shouldProcessAsEmergency(this, handle)) {
+            Log.d(this, "Emergency call...Converting video call to voice...");
+            videoState = VideoProfile.VideoState.AUDIO_ONLY;
+            intent.putExtra(TelecomManager.EXTRA_START_CALL_WITH_VIDEO_STATE,
+                    videoState);
+        }
 
         if (VideoProfile.VideoState.isVideo(videoState) && isTtyModeEnabled()) {
             Toast.makeText(this, getResources().getString(R.string.

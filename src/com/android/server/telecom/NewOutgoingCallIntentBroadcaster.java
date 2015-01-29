@@ -171,7 +171,8 @@ class NewOutgoingCallIntentBroadcaster {
 
         boolean isVoicemailNumber = PhoneAccount.SCHEME_VOICEMAIL.equals(handle.getScheme());
         if (isVoicemailNumber) {
-            if (Intent.ACTION_CALL.equals(action)) {
+            if (Intent.ACTION_CALL.equals(action)
+                    || Intent.ACTION_CALL_PRIVILEGED.equals(action)) {
                 // Voicemail calls will be handled directly by the telephony connection manager
                 Log.i(this, "Placing call immediately instead of waiting for "
                         + " OutgoingCallBroadcastReceiver: %s", intent);
@@ -239,7 +240,7 @@ class NewOutgoingCallIntentBroadcaster {
             return DisconnectCause.INVALID_NUMBER;
         }
 
-        if (!processAddParticipant(intent, number) && callImmediately) {
+        if (callImmediately) {
             Log.i(this, "Placing call immediately instead of waiting for "
                     + " OutgoingCallBroadcastReceiver: %s", intent);
             String scheme = isUriNumber ? PhoneAccount.SCHEME_SIP : PhoneAccount.SCHEME_TEL;
@@ -259,25 +260,6 @@ class NewOutgoingCallIntentBroadcaster {
 
         broadcastIntent(intent, number, !callImmediately);
         return DisconnectCause.NOT_DISCONNECTED;
-    }
-
-    private boolean processAddParticipant(Intent intent, String handle) {
-        boolean ret = false;
-        boolean isUriNumber = PhoneNumberUtils.isUriNumber(handle);
-        if (intent.getBooleanExtra(TelephonyProperties.ADD_PARTICIPANT_KEY, false)) {
-            String scheme = isUriNumber ? PhoneAccount.SCHEME_SIP : PhoneAccount.SCHEME_TEL;
-            boolean speakerphoneOn = mIntent.getBooleanExtra(
-                    TelecomManager.EXTRA_START_CALL_WITH_SPEAKERPHONE, false);
-            int videoState = mIntent.getIntExtra(
-                    TelecomManager.EXTRA_START_CALL_WITH_VIDEO_STATE,
-                    VideoProfile.VideoState.AUDIO_ONLY);
-
-            mCallsManager.addParticipant(mCall, Uri.fromParts(scheme, handle, null), null,
-                    speakerphoneOn, videoState);
-            ret = true;
-        }
-        Log.d(this, "processAddParticipant return = " + ret);
-        return ret;
     }
 
     /**

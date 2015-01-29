@@ -996,6 +996,14 @@ final class Call implements CreateConnectionResponse {
         }
     }
 
+    void addParticipantWithConference(String receipants) {
+        if (mConnectionService == null) {
+            Log.w(this, "conference requested on a call without a connection service.");
+        } else {
+            mConnectionService.addParticipantWithConference(this, receipants);
+        }
+    }
+
     void mergeConference() {
         if (mConnectionService == null) {
             Log.w(this, "merging conference calls without a connection service.");
@@ -1118,6 +1126,12 @@ final class Call implements CreateConnectionResponse {
         if (getHandle() == null) {
             // No incoming number known or call presentation is "PRESENTATION_RESTRICTED", in
             // other words, the user should not be able to see the incoming phone number.
+            return false;
+        }
+
+        if (!mContext.getResources()
+                .getBoolean(com.android.internal.R.bool.config_reject_call_via_sms_enabled)) {
+            //"Respond via SMS" feature is disabled by the above config.
             return false;
         }
 

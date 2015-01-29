@@ -54,6 +54,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.Integer;
+import java.lang.NumberFormatException;
 import java.lang.SecurityException;
 import java.lang.String;
 import java.util.ArrayList;
@@ -180,8 +181,12 @@ public final class PhoneAccountRegistrar {
                    Log.i(this, "getUserSelVoicePhoneAccount, emergency account ");
                    return mState.accounts.get(i).getAccountHandle();
                 }
-
-                long subId = Long.parseLong(id);
+                long subId = voiceSubId;
+                try {
+                    subId = Long.parseLong(id);
+                } catch (NumberFormatException e) {
+                    Log.w(this, " NumberFormatException " + e);
+                }
                 Log.i(this, "getUserSelectedVoicePhoneAccount, voice subId = "
                          + voiceSubId + " subId = " + subId + " mId = " + id);
                 if (subId == voiceSubId) {
@@ -244,7 +249,12 @@ public final class PhoneAccountRegistrar {
                 Log.i(this, "setDefaultVoicePhoneAccount, only emergency account present ");
                 return;
             }
-            long subId = Long.parseLong(mState.defaultOutgoing.getId());
+            Long subId = SubscriptionManager.getDefaultVoiceSubId();
+            try {
+                subId = Long.parseLong(mState.defaultOutgoing.getId());
+            } catch (NumberFormatException e) {
+                Log.w(this, " NumberFormatException " + e);
+            }
             Log.i(this, "set voice default subId as  " + subId + " prmotp = " + voicePrompt);
             if (SubscriptionManager.getDefaultVoiceSubId() != subId) {
                 SubscriptionManager.setDefaultVoiceSubId(subId);
