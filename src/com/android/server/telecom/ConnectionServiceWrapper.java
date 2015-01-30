@@ -202,6 +202,22 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                         ParcelableConference parcelableConference =
                                 (ParcelableConference) args.arg2;
 
+                        // Make sure that there's at least one valid call. For remote connections
+                        // we'll get a add conference msg from both the remote connection service
+                        // and from the real connection service.
+                        boolean hasValidCalls = false;
+                        for (String callId : parcelableConference.getConnectionIds()) {
+                            if (mCallIdMapper.getCall(callId) != null) {
+                                hasValidCalls = true;
+                            }
+                        }
+                        // But don't bail out if the connection count is 0, because that is a valid
+                        // IMS conference state.
+                        if (!hasValidCalls && parcelableConference.getConnectionIds().size() > 0) {
+                            Log.d(this, "Attempting to add a conference with no valid calls");
+                            break;
+                        }
+
                         // need to create a new Call
                         PhoneAccountHandle phAcc = null;
                         if (parcelableConference != null &&
