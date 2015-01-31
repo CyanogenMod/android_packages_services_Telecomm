@@ -542,4 +542,8 @@ public final class InCallController extends CallsManagerListenerBase {
             call.addListener(mCallListener);
         }
     }
+
+    boolean isServiceConnected() {
+        return !mInCallServices.isEmpty();
+    }
 }
