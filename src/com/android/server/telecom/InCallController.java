@@ -586,8 +586,8 @@ public final class InCallController extends CallsManagerListenerBase {
         Connection.CAPABILITY_HIGH_DEF_AUDIO,
         android.telecom.Call.Details.CAPABILITY_HIGH_DEF_AUDIO,
 
-        Connection.CAPABILITY_VoWIFI,
-        android.telecom.Call.Details.CAPABILITY_VoWIFI,
+        Connection.CAPABILITY_WIFI,
+        android.telecom.Call.Details.CAPABILITY_WIFI,
 
         Connection.CAPABILITY_SEPARATE_FROM_CONFERENCE,
         android.telecom.Call.Details.CAPABILITY_SEPARATE_FROM_CONFERENCE,
