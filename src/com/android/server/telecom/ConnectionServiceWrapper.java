@@ -60,7 +60,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * {@link IConnectionService} directly and instead should use this class to invoke methods of
  * {@link IConnectionService}.
  */
-final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
+final class ConnectionServiceWrapper extends ServiceBinder {
     private static final int MSG_HANDLE_CREATE_CONNECTION_COMPLETE = 1;
     private static final int MSG_SET_ACTIVE = 2;
     private static final int MSG_SET_RINGING = 3;
@@ -104,7 +104,7 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                 case MSG_SET_ACTIVE:
                     call = mCallIdMapper.getCall(msg.obj);
                     if (call != null) {
-                        mCallsManager.markCallAsActive(call);
+                        TelecomSystem.getInstance().getCallsManager().markCallAsActive(call);
                     } else {
                         //Log.w(this, "setActive, unknown call id: %s", msg.obj);
                     }
@@ -112,7 +112,7 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                 case MSG_SET_RINGING:
                     call = mCallIdMapper.getCall(msg.obj);
                     if (call != null) {
-                        mCallsManager.markCallAsRinging(call);
+                        TelecomSystem.getInstance().getCallsManager().markCallAsRinging(call);
                     } else {
                         //Log.w(this, "setRinging, unknown call id: %s", msg.obj);
                     }
@@ -120,7 +120,7 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                 case MSG_SET_DIALING:
                     call = mCallIdMapper.getCall(msg.obj);
                     if (call != null) {
-                        mCallsManager.markCallAsDialing(call);
+                        TelecomSystem.getInstance().getCallsManager().markCallAsDialing(call);
                     } else {
                         //Log.w(this, "setDialing, unknown call id: %s", msg.obj);
                     }
@@ -132,7 +132,8 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                         DisconnectCause disconnectCause = (DisconnectCause) args.arg2;
                         Log.d(this, "disconnect call %s %s", disconnectCause, call);
                         if (call != null) {
-                            mCallsManager.markCallAsDisconnected(call, disconnectCause);
+                            TelecomSystem.getInstance().getCallsManager()
+                                    .markCallAsDisconnected(call, disconnectCause);
                         } else {
                             //Log.w(this, "setDisconnected, unknown call id: %s", args.arg1);
                         }
@@ -144,7 +145,7 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                 case MSG_SET_ON_HOLD:
                     call = mCallIdMapper.getCall(msg.obj);
                     if (call != null) {
-                        mCallsManager.markCallAsOnHold(call);
+                        TelecomSystem.getInstance().getCallsManager().markCallAsOnHold(call);
                     } else {
                         //Log.w(this, "setOnHold, unknown call id: %s", msg.obj);
                     }
@@ -224,7 +225,7 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                                 parcelableConference.getPhoneAccount() != null) {
                             phAcc = parcelableConference.getPhoneAccount();
                         }
-                        Call conferenceCall = mCallsManager.createConferenceCall(
+                        Call conferenceCall = TelecomSystem.getInstance().getCallsManager().createConferenceCall(
                                 phAcc, parcelableConference);
                         mCallIdMapper.addCall(conferenceCall, id);
                         conferenceCall.setConnectionService(ConnectionServiceWrapper.this);
@@ -247,10 +248,10 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                     call = mCallIdMapper.getCall(msg.obj);
                     if (call != null) {
                         if (call.isAlive()) {
-                            mCallsManager.markCallAsDisconnected(
+                            TelecomSystem.getInstance().getCallsManager().markCallAsDisconnected(
                                     call, new DisconnectCause(DisconnectCause.REMOTE));
                         } else {
-                            mCallsManager.markCallAsRemoved(call);
+                            TelecomSystem.getInstance().getCallsManager().markCallAsRemoved(call);
                         }
                     }
                     break;
@@ -380,7 +381,8 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                     try {
                         String callId = (String)args.arg1;
                         ParcelableConnection connection = (ParcelableConnection)args.arg2;
-                        Call existingCall = mCallsManager.createCallForExistingConnection(callId,
+                        Call existingCall = TelecomSystem.getInstance().getCallsManager()
+                                .createCallForExistingConnection(callId,
                                 connection);
                         mCallIdMapper.addCall(existingCall, callId);
                         existingCall.setConnectionService(ConnectionServiceWrapper.this);
@@ -486,7 +488,8 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
         public void setConnectionCapabilities(String callId, int connectionCapabilities) {
             logIncoming("setConnectionCapabilities %s %d", callId, connectionCapabilities);
             if (mCallIdMapper.isValidCallId(callId) || mCallIdMapper.isValidConferenceId(callId)) {
-                mHandler.obtainMessage(MSG_SET_CONNECTION_CAPABILITIES, connectionCapabilities, 0, callId)
+                mHandler.obtainMessage(
+                        MSG_SET_CONNECTION_CAPABILITIES, connectionCapabilities, 0, callId)
                         .sendToTarget();
             } else {
                 Log.w(this, "ID not valid for setCallCapabilities");
@@ -617,14 +620,6 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
     }
 
     private final Adapter mAdapter = new Adapter();
-    private final CallsManager mCallsManager = CallsManager.getInstance();
-    /**
-     * ConcurrentHashMap constructor params: 8 is initial table size, 0.9f is
-     * load factor before resizing, 1 means we only expect a single thread to
-     * access the map so make only a single shard
-     */
-    private final Set<Call> mPendingConferenceCalls = Collections.newSetFromMap(
-            new ConcurrentHashMap<Call, Boolean>(8, 0.9f, 1));
     private final CallIdMapper mCallIdMapper = new CallIdMapper("ConnectionService");
     private final Map<String, CreateConnectionResponse> mPendingResponses = new HashMap<>();
 
@@ -938,7 +933,7 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
             // outgoing calls to try the next service. This needs to happen before CallsManager
             // tries to clean up any calls still associated with this service.
             handleConnectionServiceDeath();
-            CallsManager.getInstance().handleConnectionServiceDeath(this);
+            TelecomSystem.getInstance().getCallsManager().handleConnectionServiceDeath(this);
             mServiceInterface = null;
         } else {
             mServiceInterface = IConnectionService.Stub.asInterface(binder);

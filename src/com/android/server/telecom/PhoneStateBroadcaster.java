@@ -43,7 +43,8 @@ final class PhoneStateBroadcaster extends CallsManagerListenerBase {
     @Override
     public void onCallStateChanged(Call call, int oldState, int newState) {
         if ((newState == CallState.DIALING || newState == CallState.ACTIVE
-                || newState == CallState.ON_HOLD) && !CallsManager.getInstance().hasRingingCall()) {
+                || newState == CallState.ON_HOLD) &&
+                !TelecomSystem.getInstance().getCallsManager().hasRingingCall()) {
             /*
              * EXTRA_STATE_RINGING takes precedence over EXTRA_STATE_OFFHOOK, so if there is
              * already a ringing call, don't broadcast EXTRA_STATE_OFFHOOK.
@@ -63,7 +64,7 @@ final class PhoneStateBroadcaster extends CallsManagerListenerBase {
     public void onCallRemoved(Call call) {
         // Recalculate the current phone state based on the consolidated state of the remaining
         // calls in the call list.
-        final CallsManager callsManager = CallsManager.getInstance();
+        final CallsManager callsManager = TelecomSystem.getInstance().getCallsManager();
         int callState = TelephonyManager.CALL_STATE_IDLE;
         if (callsManager.hasRingingCall()) {
             callState = TelephonyManager.CALL_STATE_RINGING;

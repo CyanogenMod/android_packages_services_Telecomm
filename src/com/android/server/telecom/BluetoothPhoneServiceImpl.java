@@ -16,7 +16,6 @@
 
 package com.android.server.telecom;
 
-import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothHeadset;
 import android.bluetooth.BluetoothProfile;
@@ -49,7 +48,7 @@ import java.util.Map;
  * Bluetooth headset manager for Telecom. This class shares the call state with the bluetooth device
  * and accepts call-related commands to perform on behalf of the BT device.
  */
-public final class BluetoothPhoneService extends Service {
+public final class BluetoothPhoneServiceImpl {
     /**
      * Request object for performing synchronous requests to the main thread.
      */
@@ -204,7 +203,7 @@ public final class BluetoothPhoneService extends Service {
         public void handleMessage(Message msg) {
             MainThreadRequest request = msg.obj instanceof MainThreadRequest ?
                     (MainThreadRequest) msg.obj : null;
-            CallsManager callsManager = getCallsManager();
+            CallsManager callsManager = mCallsManager;
             Call call = null;
 
             Log.d(TAG, "handleMessage(%d) w/ param %s",
@@ -215,7 +214,7 @@ public final class BluetoothPhoneService extends Service {
                     try {
                         call = callsManager.getRingingCall();
                         if (call != null) {
-                            getCallsManager().answerCall(call, 0);
+                            mCallsManager.answerCall(call, 0);
                         }
                     } finally {
                         request.setResult(call != null);
@@ -268,7 +267,7 @@ public final class BluetoothPhoneService extends Service {
                         }
 
                         if (TextUtils.isEmpty(address)) {
-                            address = TelephonyManager.from(BluetoothPhoneService.this)
+                            address = TelephonyManager.from(mContext)
                                     .getLine1Number();
                         }
                     } finally {
@@ -284,7 +283,7 @@ public final class BluetoothPhoneService extends Service {
                             label = account.getLabel().toString();
                         } else {
                             // Finally, just get the network name from telephony.
-                            label = TelephonyManager.from(BluetoothPhoneService.this)
+                            label = TelephonyManager.from(mContext)
                                     .getNetworkOperatorName();
                         }
                     } finally {
@@ -337,7 +336,7 @@ public final class BluetoothPhoneService extends Service {
             // When the call later transitions to DIALING/DISCONNECTED we will then send out the
             // aggregated update.
             if (oldState == CallState.ACTIVE && newState == CallState.ON_HOLD) {
-                for (Call otherCall : CallsManager.getInstance().getCalls()) {
+                for (Call otherCall : mCallsManager.getCalls()) {
                     if (otherCall.getState() == CallState.CONNECTING) {
                         return;
                     }
@@ -347,7 +346,7 @@ public final class BluetoothPhoneService extends Service {
             // To have an active call and another dialing at the same time is an invalid BT
             // state. We can assume that the active call will be automatically held which will
             // send another update at which point we will be in the right state.
-            if (CallsManager.getInstance().getActiveCall() != null
+            if (mCallsManager.getActiveCall() != null
                     && oldState == CallState.CONNECTING && newState == CallState.DIALING) {
                 return;
             }
@@ -431,49 +430,40 @@ public final class BluetoothPhoneService extends Service {
 
     private boolean mHeadsetUpdatedRecently = false;
 
-    public BluetoothPhoneService() {
-        Log.v(TAG, "Constructor");
-    }
+    private Context mContext;
+    private CallsManager mCallsManager;
+    private PhoneAccountRegistrar mPhoneAccountRegistrar;
 
-    public static final void start(Context context) {
-        if (BluetoothAdapter.getDefaultAdapter() != null) {
-            context.startService(new Intent(context, BluetoothPhoneService.class));
-        }
-    }
-
-    @Override
-    public IBinder onBind(Intent intent) {
-        Log.d(TAG, "Binding service");
+    public IBinder getBinder() {
         return mBinder;
     }
 
-    @Override
-    public void onCreate() {
-        Log.d(TAG, "onCreate");
+    public BluetoothPhoneServiceImpl(
+            Context context,
+            CallsManager callsManager,
+            PhoneAccountRegistrar phoneAccountRegistrar) {
+        Log.d(this, "onCreate");
+
+        mContext = context;
+        mCallsManager = callsManager;
+        mPhoneAccountRegistrar = phoneAccountRegistrar;
 
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
         if (mBluetoothAdapter == null) {
-            Log.d(TAG, "BluetoothPhoneService shutting down, no BT Adapter found.");
+            Log.d(this, "BluetoothPhoneService shutting down, no BT Adapter found.");
             return;
         }
-        mBluetoothAdapter.getProfileProxy(this, mProfileListener, BluetoothProfile.HEADSET);
+        mBluetoothAdapter.getProfileProxy(context, mProfileListener, BluetoothProfile.HEADSET);
 
         IntentFilter intentFilter = new IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED);
-        registerReceiver(mBluetoothAdapterReceiver, intentFilter);
+        context.registerReceiver(mBluetoothAdapterReceiver, intentFilter);
 
-        CallsManager.getInstance().addListener(mCallsManagerListener);
+        mCallsManager.addListener(mCallsManagerListener);
         updateHeadsetWithCallState(false /* force */);
     }
 
-    @Override
-    public void onDestroy() {
-        Log.d(TAG, "onDestroy");
-        CallsManager.getInstance().removeListener(mCallsManagerListener);
-        super.onDestroy();
-    }
-
     private boolean processChld(int chld) {
-        CallsManager callsManager = CallsManager.getInstance();
+        CallsManager callsManager = mCallsManager;
         Call activeCall = callsManager.getActiveCall();
         Call ringingCall = callsManager.getRingingCall();
         Call heldCall = callsManager.getHeldCall();
@@ -533,7 +523,8 @@ public final class BluetoothPhoneService extends Service {
     }
 
     private void enforceModifyPermission() {
-        enforceCallingOrSelfPermission(android.Manifest.permission.MODIFY_PHONE_STATE, null);
+        mContext.enforceCallingOrSelfPermission(
+                android.Manifest.permission.MODIFY_PHONE_STATE, null);
     }
 
     private <T> T sendSynchronousRequest(int message) {
@@ -566,7 +557,7 @@ public final class BluetoothPhoneService extends Service {
     }
 
     private void sendListOfCalls(boolean shouldLog) {
-        Collection<Call> mCalls = getCallsManager().getCalls();
+        Collection<Call> mCalls = mCallsManager.getCalls();
         for (Call call : mCalls) {
             // We don't send the parent conference call to the bluetooth device.
             if (!call.isConference()) {
@@ -580,7 +571,7 @@ public final class BluetoothPhoneService extends Service {
      * Sends a single clcc (C* List Current Calls) event for the specified call.
      */
     private void sendClccForCall(Call call, boolean shouldLog) {
-        boolean isForeground = getCallsManager().getForegroundCall() == call;
+        boolean isForeground = mCallsManager.getForegroundCall() == call;
         int state = convertCallState(call.getState(), isForeground);
         boolean isPartOfConference = false;
 
@@ -678,7 +669,7 @@ public final class BluetoothPhoneService extends Service {
      *      changed.
      */
     private void updateHeadsetWithCallState(boolean force) {
-        CallsManager callsManager = getCallsManager();
+        CallsManager callsManager = mCallsManager;
         Call activeCall = callsManager.getActiveCall();
         Call ringingCall = callsManager.getRingingCall();
         Call heldCall = callsManager.getHeldCall();
@@ -791,7 +782,7 @@ public final class BluetoothPhoneService extends Service {
     }
 
     private int getBluetoothCallStateForUpdate() {
-        CallsManager callsManager = getCallsManager();
+        CallsManager callsManager = mCallsManager;
         Call ringingCall = callsManager.getRingingCall();
         Call dialingCall = callsManager.getDialingCall();
 
@@ -848,33 +839,28 @@ public final class BluetoothPhoneService extends Service {
         return CALL_STATE_IDLE;
     }
 
-    private CallsManager getCallsManager() {
-        return CallsManager.getInstance();
-    }
-
     /**
      * Returns the best phone account to use for the given state of all calls.
      * First, tries to return the phone account for the foreground call, second the default
      * phone account for PhoneAccount.SCHEME_TEL.
      */
     private PhoneAccount getBestPhoneAccount() {
-        PhoneAccountRegistrar registry = TelecomGlobals.getInstance().getPhoneAccountRegistrar();
-        if (registry == null) {
+        if (mPhoneAccountRegistrar == null) {
             return null;
         }
 
-        Call call = getCallsManager().getForegroundCall();
+        Call call = mCallsManager.getForegroundCall();
 
         PhoneAccount account = null;
         if (call != null) {
             // First try to get the network name of the foreground call.
-            account = registry.getPhoneAccount(call.getTargetPhoneAccount());
+            account = mPhoneAccountRegistrar.getPhoneAccount(call.getTargetPhoneAccount());
         }
 
         if (account == null) {
             // Second, Try to get the label for the default Phone Account.
-            account = registry.getPhoneAccount(
-                    registry.getDefaultOutgoingPhoneAccount(PhoneAccount.SCHEME_TEL));
+            account = mPhoneAccountRegistrar.getPhoneAccount(
+                    mPhoneAccountRegistrar.getDefaultOutgoingPhoneAccount(PhoneAccount.SCHEME_TEL));
         }
         return account;
     }

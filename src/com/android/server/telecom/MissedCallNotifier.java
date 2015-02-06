@@ -68,6 +68,7 @@ class MissedCallNotifier extends CallsManagerListenerBase {
     private static final int MISSED_CALL_NOTIFICATION_ID = 1;
 
     private final Context mContext;
+    private CallsManager mCallsManager;
     private final NotificationManager mNotificationManager;
 
     // Used to track the number of missed calls.
@@ -79,6 +80,10 @@ class MissedCallNotifier extends CallsManagerListenerBase {
                 (NotificationManager) mContext.getSystemService(Context.NOTIFICATION_SERVICE);
 
         updateOnStartup();
+    }
+
+    void setCallsManager(CallsManager callsManager) {
+        this.mCallsManager = callsManager;
     }
 
     /** {@inheritDoc} */
@@ -233,7 +238,7 @@ class MissedCallNotifier extends CallsManagerListenerBase {
      */
     private PendingIntent createClearMissedCallsPendingIntent() {
         return createTelecomPendingIntent(
-                TelecomBroadcastReceiver.ACTION_CLEAR_MISSED_CALLS, null);
+                TelecomBroadcastIntentProcessor.ACTION_CLEAR_MISSED_CALLS, null);
     }
 
     /**
@@ -244,7 +249,7 @@ class MissedCallNotifier extends CallsManagerListenerBase {
      */
     private PendingIntent createCallBackPendingIntent(Uri handle) {
         return createTelecomPendingIntent(
-                TelecomBroadcastReceiver.ACTION_CALL_BACK_FROM_NOTIFICATION, handle);
+                TelecomBroadcastIntentProcessor.ACTION_CALL_BACK_FROM_NOTIFICATION, handle);
     }
 
     /**
@@ -253,19 +258,19 @@ class MissedCallNotifier extends CallsManagerListenerBase {
      */
     private PendingIntent createSendSmsFromNotificationPendingIntent(Uri handle) {
         return createTelecomPendingIntent(
-                TelecomBroadcastReceiver.ACTION_SEND_SMS_FROM_NOTIFICATION,
+                TelecomBroadcastIntentProcessor.ACTION_SEND_SMS_FROM_NOTIFICATION,
                 Uri.fromParts(Constants.SCHEME_SMSTO, handle.getSchemeSpecificPart(), null));
     }
 
     /**
      * Creates generic pending intent from the specified parameters to be received by
-     * {@link TelecomBroadcastReceiver}.
+     * {@link TelecomBroadcastIntentProcessor}.
      *
      * @param action The intent action.
      * @param data The intent data.
      */
     private PendingIntent createTelecomPendingIntent(String action, Uri data) {
-        Intent intent = new Intent(action, data, mContext, TelecomBroadcastReceiver.class);
+        Intent intent = new Intent(action, data, mContext, TelecomBroadcastIntentProcessor.class);
         return PendingIntent.getBroadcast(mContext, 0, intent, 0);
     }
 
@@ -308,7 +313,8 @@ class MissedCallNotifier extends CallsManagerListenerBase {
                             }
 
                             // Convert the data to a call object
-                            Call call = new Call(mContext, null, null, null, null, null, true,
+                            Call call = new Call(mContext, mCallsManager,
+                                    null, null, null, null, null, true,
                                     false);
                             call.setDisconnectCause(new DisconnectCause(DisconnectCause.MISSED));
                             call.setState(CallState.DISCONNECTED);

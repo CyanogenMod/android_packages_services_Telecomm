@@ -175,7 +175,7 @@ public final class InCallController extends CallsManagerListenerBase {
     @Override
     public void onCallRemoved(Call call) {
         Log.i(this, "onCallRemoved: %s", call);
-        if (CallsManager.getInstance().getCalls().isEmpty()) {
+        if (TelecomSystem.getInstance().getCallsManager().getCalls().isEmpty()) {
             // TODO: Wait for all messages to be delivered to the service before unbinding.
             unbind();
         }
@@ -355,8 +355,10 @@ public final class InCallController extends CallsManagerListenerBase {
         IInCallService inCallService = IInCallService.Stub.asInterface(service);
 
         try {
-            inCallService.setInCallAdapter(new InCallAdapter(CallsManager.getInstance(),
-                    mCallIdMapper));
+            inCallService.setInCallAdapter(
+                    new InCallAdapter(
+                            TelecomSystem.getInstance().getCallsManager(),
+                            mCallIdMapper));
             mInCallServices.put(componentName, inCallService);
         } catch (RemoteException e) {
             Log.e(this, e, "Failed to set the in-call adapter.");
@@ -365,7 +367,7 @@ public final class InCallController extends CallsManagerListenerBase {
         }
 
         // Upon successful connection, send the state of the world to the service.
-        Collection<Call> calls = CallsManager.getInstance().getCalls();
+        Collection<Call> calls = TelecomSystem.getInstance().getCallsManager().getCalls();
         if (!calls.isEmpty()) {
             Log.i(this, "Adding %s calls to InCallService after onConnected: %s", calls.size(),
                     componentName);
@@ -380,8 +382,10 @@ public final class InCallController extends CallsManagerListenerBase {
                 } catch (RemoteException ignored) {
                 }
             }
-            onAudioStateChanged(null, CallsManager.getInstance().getAudioState());
-            onCanAddCallChanged(CallsManager.getInstance().canAddCall());
+            onAudioStateChanged(
+                    null,
+                    TelecomSystem.getInstance().getCallsManager().getAudioState());
+            onCanAddCallChanged(TelecomSystem.getInstance().getCallsManager().canAddCall());
         } else {
             unbind();
         }
@@ -407,7 +411,7 @@ public final class InCallController extends CallsManagerListenerBase {
             // implementations.
             if (disconnectedComponent.equals(mInCallComponentName)) {
                 Log.i(this, "In-call UI %s disconnected.", disconnectedComponent);
-                CallsManager.getInstance().disconnectAllCalls();
+                TelecomSystem.getInstance().getCallsManager().disconnectAllCalls();
                 unbind();
             } else {
                 Log.i(this, "In-Call Service %s suddenly disconnected", disconnectedComponent);
@@ -464,8 +468,8 @@ public final class InCallController extends CallsManagerListenerBase {
 
         // If this is a single-SIM device, the "default SIM" will always be the only SIM.
         boolean isDefaultSmsAccount =
-                CallsManager.getInstance().getPhoneAccountRegistrar().isUserSelectedSmsPhoneAccount(
-                        call.getTargetPhoneAccount());
+                TelecomSystem.getInstance().getCallsManager().getPhoneAccountRegistrar()
+                        .isUserSelectedSmsPhoneAccount(call.getTargetPhoneAccount());
         if (call.isRespondViaSmsCapable() && isDefaultSmsAccount) {
             capabilities |= android.telecom.Call.Details.CAPABILITY_RESPOND_VIA_TEXT;
         }

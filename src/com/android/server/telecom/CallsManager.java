@@ -77,11 +77,6 @@ public final class CallsManager extends Call.ListenerBase {
         void onCanAddCallChanged(boolean canAddCall);
     }
 
-    /**
-     * Singleton instance of the {@link CallsManager}, initialized from {@link TelecomService}.
-     */
-    private static CallsManager sInstance = null;
-
     private static final String TAG = "CallsManager";
 
     private static final int MAXIMUM_LIVE_CALLS = 1;
@@ -141,25 +136,12 @@ public final class CallsManager extends Call.ListenerBase {
 
     private Runnable mStopTone;
 
-    /** Singleton accessor. */
-    static CallsManager getInstance() {
-        return sInstance;
-    }
-
-    /**
-     * Sets the static singleton instance.
-     *
-     * @param instance The instance to set.
-     */
-    static void initialize(CallsManager instance) {
-        sInstance = instance;
-    }
-
     /**
      * Initializes the required Telecom components.
      */
      CallsManager(Context context, MissedCallNotifier missedCallNotifier,
-             PhoneAccountRegistrar phoneAccountRegistrar) {
+             PhoneAccountRegistrar phoneAccountRegistrar,
+             RespondViaSmsManager respondViaSmsManager) {
         mContext = context;
         mPhoneAccountRegistrar = phoneAccountRegistrar;
         mMissedCallNotifier = missedCallNotifier;
@@ -190,7 +172,7 @@ public final class CallsManager extends Call.ListenerBase {
         mListeners.add(missedCallNotifier);
         mListeners.add(mDtmfLocalTonePlayer);
         mListeners.add(mHeadsetMediaButton);
-        mListeners.add(RespondViaSmsManager.getInstance());
+        mListeners.add(respondViaSmsManager);
         mListeners.add(mProximitySensorManager);
     }
 
@@ -416,6 +398,7 @@ public final class CallsManager extends Call.ListenerBase {
         Uri handle = extras.getParcelable(TelephonyManager.EXTRA_INCOMING_NUMBER);
         Call call = new Call(
                 mContext,
+                this,
                 mConnectionServiceRepository,
                 handle,
                 null /* gatewayInfo */,
@@ -435,6 +418,7 @@ public final class CallsManager extends Call.ListenerBase {
         Log.i(this, "addNewUnknownCall with handle: %s", Log.pii(handle));
         Call call = new Call(
                 mContext,
+                this,
                 mConnectionServiceRepository,
                 handle,
                 null /* gatewayInfo */,
@@ -471,6 +455,7 @@ public final class CallsManager extends Call.ListenerBase {
         // to a connection service, but in most cases will remain the same.
         return new Call(
                 mContext,
+                this,
                 mConnectionServiceRepository,
                 handle,
                 null /* gatewayInfo */,
@@ -872,7 +857,7 @@ public final class CallsManager extends Call.ListenerBase {
      * Marks the specified call as STATE_DISCONNECTED and notifies the in-call app. If this was the
      * last live call, then also disconnect from the in-call controller.
      *
-     * @param disconnectCause The disconnect cause, see {@link android.telecomm.DisconnectCause}.
+     * @param disconnectCause The disconnect cause, see {@link android.telecom.DisconnectCause}.
      */
     void markCallAsDisconnected(Call call, DisconnectCause disconnectCause) {
         call.setDisconnectCause(disconnectCause);
@@ -1052,6 +1037,7 @@ public final class CallsManager extends Call.ListenerBase {
 
         Call call = new Call(
                 mContext,
+                this,
                 mConnectionServiceRepository,
                 null /* handle */,
                 null /* gatewayInfo */,
@@ -1398,6 +1384,7 @@ public final class CallsManager extends Call.ListenerBase {
     Call createCallForExistingConnection(String callId, ParcelableConnection connection) {
         Call call = new Call(
                 mContext,
+                this,
                 mConnectionServiceRepository,
                 connection.getHandle() /* handle */,
                 null /* gatewayInfo */,

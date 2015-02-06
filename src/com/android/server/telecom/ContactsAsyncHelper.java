@@ -244,6 +244,4 @@ public final class ContactsAsyncHelper {
         // notify the thread to begin working
         sThreadHandler.sendMessage(msg);
     }
-
-
 }

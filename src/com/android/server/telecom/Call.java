@@ -301,6 +301,7 @@ final public class Call implements CreateConnectionResponse {
     private StatusHints mStatusHints;
     private final ConnectionServiceRepository mRepository;
     private final Context mContext;
+    private final CallsManager mCallsManager;
 
     private boolean mWasConferencePreviouslyMerged = false;
 
@@ -328,6 +329,7 @@ final public class Call implements CreateConnectionResponse {
      */
     Call(
             Context context,
+            CallsManager callsManager,
             ConnectionServiceRepository repository,
             Uri handle,
             GatewayInfo gatewayInfo,
@@ -337,6 +339,7 @@ final public class Call implements CreateConnectionResponse {
             boolean isConference) {
         mState = isConference ? CallState.ACTIVE : CallState.NEW;
         mContext = context;
+        mCallsManager = callsManager;
         mRepository = repository;
         setHandle(handle);
         setHandle(handle, TelecomManager.PRESENTATION_ALLOWED);
@@ -365,6 +368,7 @@ final public class Call implements CreateConnectionResponse {
      */
     Call(
             Context context,
+            CallsManager callsManager,
             ConnectionServiceRepository repository,
             Uri handle,
             GatewayInfo gatewayInfo,
@@ -373,8 +377,9 @@ final public class Call implements CreateConnectionResponse {
             boolean isIncoming,
             boolean isConference,
             long connectTimeMillis) {
-        this(context, repository, handle, gatewayInfo, connectionManagerPhoneAccountHandle,
-                targetPhoneAccountHandle, isIncoming, isConference);
+        this(context, callsManager, repository, handle, gatewayInfo,
+                connectionManagerPhoneAccountHandle, targetPhoneAccountHandle, isIncoming,
+                isConference);
 
         mConnectTimeMillis = connectTimeMillis;
     }
@@ -822,7 +827,7 @@ final public class Call implements CreateConnectionResponse {
     public void handleCreateConnectionFailure(DisconnectCause disconnectCause) {
         clearConnectionService();
         setDisconnectCause(disconnectCause);
-        CallsManager.getInstance().markCallAsDisconnected(this, disconnectCause);
+        mCallsManager.markCallAsDisconnected(this, disconnectCause);
 
         if (mIsUnknown) {
             for (Listener listener : mListeners) {
@@ -1316,7 +1321,7 @@ final public class Call implements CreateConnectionResponse {
         if (mIsIncoming && isRespondViaSmsCapable() && !mCannedSmsResponsesLoadingStarted) {
             Log.d(this, "maybeLoadCannedSmsResponses: starting task to load messages");
             mCannedSmsResponsesLoadingStarted = true;
-            RespondViaSmsManager.getInstance().loadCannedTextMessages(
+            TelecomSystem.getInstance().getRespondViaSmsManager().loadCannedTextMessages(
                     new Response<Void, List<String>>() {
                         @Override
                         public void onResult(Void request, List<String>... result) {

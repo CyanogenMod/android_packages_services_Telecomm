@@ -28,12 +28,19 @@ import java.util.HashMap;
 /**
  * Searches for and returns connection services.
  */
-final class ConnectionServiceRepository
-        implements ServiceBinder.Listener<ConnectionServiceWrapper> {
+final class ConnectionServiceRepository {
     private final HashMap<Pair<ComponentName, UserHandle>, ConnectionServiceWrapper> mServiceCache =
             new HashMap<>();
     private final PhoneAccountRegistrar mPhoneAccountRegistrar;
     private final Context mContext;
+
+    private final ServiceBinder.Listener<ConnectionServiceWrapper> mUnbindListener =
+            new ServiceBinder.Listener<ConnectionServiceWrapper>() {
+                @Override
+                public void onUnbind(ConnectionServiceWrapper service) {
+                    mServiceCache.remove(service.getComponentName());
+                }
+            };
 
     ConnectionServiceRepository(PhoneAccountRegistrar phoneAccountRegistrar, Context context) {
         mPhoneAccountRegistrar = phoneAccountRegistrar;
@@ -50,20 +57,10 @@ final class ConnectionServiceRepository
                     mPhoneAccountRegistrar,
                     mContext,
                     userHandle);
-            service.addListener(this);
+            service.addListener(mUnbindListener);
             mServiceCache.put(cacheKey, service);
         }
         return service;
-    }
-
-    /**
-     * Removes the specified service from the cache when the service unbinds.
-     *
-     * {@inheritDoc}
-     */
-    @Override
-    public void onUnbind(ConnectionServiceWrapper service) {
-        mServiceCache.remove(service.getComponentName());
     }
 
     /**
