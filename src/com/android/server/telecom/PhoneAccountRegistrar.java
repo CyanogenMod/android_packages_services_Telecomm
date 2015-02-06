@@ -36,10 +36,12 @@ import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
 import android.telephony.PhoneNumberUtils;
 import android.telephony.SubscriptionManager;
+import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 import android.util.AtomicFile;
 import android.util.Base64;
 import android.util.Xml;
+
 
 // TODO: Needed for move to system service: import com.android.internal.R;
 import com.android.internal.annotations.VisibleForTesting;
@@ -136,15 +138,15 @@ public final class PhoneAccountRegistrar {
      */
     public int getSubscriptionIdForPhoneAccount(PhoneAccountHandle accountHandle) {
         PhoneAccount account = getPhoneAccountInternal(accountHandle);
-        if (account == null
-                || !account.hasCapabilities(PhoneAccount.CAPABILITY_SIM_SUBSCRIPTION)
-                || !TextUtils.isDigitsOnly(accountHandle.getId())
-                || !isVisibleForUser(accountHandle)) {
-            // Since no decimals or negative numbers can be valid subscription ids, only a string of
-            // numbers can be subscription id
-            return SubscriptionManager.INVALID_SUBSCRIPTION_ID;
+
+        if (account != null
+                && account.hasCapabilities(PhoneAccount.CAPABILITY_SIM_SUBSCRIPTION)
+                && isVisibleForUser(accountHandle)) {
+            TelephonyManager tm =
+                    (TelephonyManager) mContext.getSystemService(Context.TELEPHONY_SERVICE);
+            return tm.getSubIdForPhoneAccount(account);
         }
-        return Integer.parseInt(accountHandle.getId());
+        return SubscriptionManager.INVALID_SUBSCRIPTION_ID;
     }
 
     /**
