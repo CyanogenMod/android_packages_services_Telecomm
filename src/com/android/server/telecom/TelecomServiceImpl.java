@@ -747,10 +747,12 @@ public class TelecomServiceImpl {
             return false;
         }
 
+        if (phoneAccountUserHandle.equals(Binder.getCallingUserHandle())) {
+            return true;
+        }
+
         List<UserHandle> profileUserHandles;
-        if (isCallerSystemApp()) {
-            // If the caller lives in /system/priv-app, it can see PhoneAccounts for all of the
-            // *profiles* that the calling user owns, but not for any other *users*.
+        if (UserHandle.getCallingUserId() == UserHandle.USER_OWNER) {
             profileUserHandles = mUserManager.getUserProfiles();
         } else {
             // Otherwise, it has to be owned by the current caller's profile.

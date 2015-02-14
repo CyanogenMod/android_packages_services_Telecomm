@@ -267,6 +267,10 @@ final class CreateConnectionProcessor {
         // Connection managers are only allowed to manage SIM subscriptions.
         PhoneAccount targetPhoneAccount = mPhoneAccountRegistrar.getPhoneAccount(
                 targetPhoneAccountHandle);
+        if (targetPhoneAccount == null) {
+            Log.d(this, "shouldSetConnectionManager, phone account not found");
+            return false;
+        }
         boolean isSimSubscription = (targetPhoneAccount.getCapabilities() &
                 PhoneAccount.CAPABILITY_SIM_SUBSCRIPTION) != 0;
         if (!isSimSubscription) {
@@ -326,7 +330,8 @@ final class CreateConnectionProcessor {
             if (mShouldUseConnectionManager && callManagerHandle != null) {
                 PhoneAccount callManager = mPhoneAccountRegistrar
                         .getPhoneAccount(callManagerHandle);
-                if (callManager.hasCapabilities(PhoneAccount.CAPABILITY_PLACE_EMERGENCY_CALLS)) {
+                if (callManager != null && callManager.hasCapabilities(
+                        PhoneAccount.CAPABILITY_PLACE_EMERGENCY_CALLS)) {
                     CallAttemptRecord callAttemptRecord = new CallAttemptRecord(callManagerHandle,
                             mPhoneAccountRegistrar.
                                     getDefaultOutgoingPhoneAccount(mCall.getHandle().getScheme())
