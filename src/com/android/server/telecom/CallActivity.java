@@ -95,6 +95,11 @@ public class CallActivity extends Activity {
         Log.d(this, "isAddparticipant = "+isAddParticipant);
         if (isAddParticipant) {
             String number = PhoneNumberUtils.getNumberFromIntent(intent, this);
+            boolean isConferenceUri = intent.getBooleanExtra(
+                    TelephonyProperties.EXTRA_DIAL_CONFERENCE_URI, false);
+            if (!isConferenceUri) {
+                number = PhoneNumberUtils.stripSeparators(number);
+            }
             CallsManager callsManager = CallsManager.getInstance();
             if (callsManager != null) {
                 callsManager.addParticipant(number);
