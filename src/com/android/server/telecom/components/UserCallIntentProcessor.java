@@ -123,6 +123,14 @@ public class UserCallIntentProcessor {
                 VideoProfile.STATE_AUDIO_ONLY);
         Log.d(this, "processOutgoingCallIntent videoState = " + videoState);
 
+        if (!isEmergencyVideoCallingSupported() && VideoProfile.isVideo(videoState)
+                && TelephonyUtil.shouldProcessAsEmergency(mContext, handle)) {
+            Log.d(this, "Emergency call...Converting video call to voice...");
+            videoState = VideoProfile.STATE_AUDIO_ONLY;
+            intent.putExtra(TelecomManager.EXTRA_START_CALL_WITH_VIDEO_STATE,
+                    videoState);
+        }
+
         if (VideoProfile.isVideo(videoState) && isTtyModeEnabled() &&
                 !TelephonyUtil.shouldProcessAsEmergency(mContext, handle)) {
 
@@ -142,6 +150,11 @@ public class UserCallIntentProcessor {
                 mContext.getContentResolver(),
                 android.provider.Settings.Secure.PREFERRED_TTY_MODE,
                 TelecomManager.TTY_MODE_OFF) != TelecomManager.TTY_MODE_OFF);
+    }
+
+    private boolean isEmergencyVideoCallingSupported() {
+        return mContext.getResources().getBoolean(
+                R.bool.config_enable_emergency_video_calling);
     }
 
     private boolean isDefaultOrSystemDialer(String callingPackageName) {
