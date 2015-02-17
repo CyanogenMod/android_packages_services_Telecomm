@@ -44,6 +44,8 @@ public class RespondViaSmsManager extends CallsManagerListenerBase {
     private static final int MSG_CANNED_TEXT_MESSAGES_READY = 1;
     private static final int MSG_SHOW_SENT_TOAST = 2;
 
+    private final CallsManager mCallsManager;
+
     private final Handler mHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
@@ -80,7 +82,9 @@ public class RespondViaSmsManager extends CallsManagerListenerBase {
         }
     };
 
-    public RespondViaSmsManager() {}
+    public RespondViaSmsManager(CallsManager callsManager) {
+        mCallsManager = callsManager;
+    }
 
     /**
      * Read the (customizable) canned responses from SharedPreferences,
@@ -139,9 +143,7 @@ public class RespondViaSmsManager extends CallsManagerListenerBase {
     @Override
     public void onIncomingCallRejected(Call call, boolean rejectWithMessage, String textMessage) {
         if (rejectWithMessage && call.getHandle() != null) {
-            PhoneAccountRegistrar phoneAccountRegistrar =
-                    TelecomSystem.getInstance().getCallsManager().getPhoneAccountRegistrar();
-            int subId = phoneAccountRegistrar.getSubscriptionIdForPhoneAccount(
+            int subId = mCallsManager.getPhoneAccountRegistrar().getSubscriptionIdForPhoneAccount(
                     call.getTargetPhoneAccount());
             rejectCallWithMessage(call.getContext(), call.getHandle().getSchemeSpecificPart(),
                     textMessage, subId);

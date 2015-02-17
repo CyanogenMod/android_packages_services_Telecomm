@@ -139,9 +139,11 @@ public final class InCallController extends CallsManagerListenerBase {
     private final ComponentName mInCallComponentName;
 
     private final Context mContext;
+    private final CallsManager mCallsManager;
 
-    public InCallController(Context context) {
+    public InCallController(Context context, CallsManager callsManager) {
         mContext = context;
+        mCallsManager = callsManager;
         Resources resources = mContext.getResources();
 
         mInCallComponentName = new ComponentName(
@@ -175,7 +177,7 @@ public final class InCallController extends CallsManagerListenerBase {
     @Override
     public void onCallRemoved(Call call) {
         Log.i(this, "onCallRemoved: %s", call);
-        if (TelecomSystem.getInstance().getCallsManager().getCalls().isEmpty()) {
+        if (mCallsManager.getCalls().isEmpty()) {
             // TODO: Wait for all messages to be delivered to the service before unbinding.
             unbind();
         }
@@ -357,7 +359,7 @@ public final class InCallController extends CallsManagerListenerBase {
         try {
             inCallService.setInCallAdapter(
                     new InCallAdapter(
-                            TelecomSystem.getInstance().getCallsManager(),
+                            mCallsManager,
                             mCallIdMapper));
             mInCallServices.put(componentName, inCallService);
         } catch (RemoteException e) {
@@ -367,25 +369,24 @@ public final class InCallController extends CallsManagerListenerBase {
         }
 
         // Upon successful connection, send the state of the world to the service.
-        Collection<Call> calls = TelecomSystem.getInstance().getCallsManager().getCalls();
+        Collection<Call> calls = mCallsManager.getCalls();
         if (!calls.isEmpty()) {
             Log.i(this, "Adding %s calls to InCallService after onConnected: %s", calls.size(),
                     componentName);
             for (Call call : calls) {
                 try {
                     // Track the call if we don't already know about it.
-                    Log.i(this, "addCall after binding: %s", call);
                     addCall(call);
-
-                    inCallService.addCall(toParcelableCall(call,
+                    inCallService.addCall(toParcelableCall(
+                            call,
                             componentName.equals(mInCallComponentName) /* includeVideoProvider */));
                 } catch (RemoteException ignored) {
                 }
             }
             onAudioStateChanged(
                     null,
-                    TelecomSystem.getInstance().getCallsManager().getAudioState());
-            onCanAddCallChanged(TelecomSystem.getInstance().getCallsManager().canAddCall());
+                    mCallsManager.getAudioState());
+            onCanAddCallChanged(mCallsManager.canAddCall());
         } else {
             unbind();
         }
@@ -411,7 +412,7 @@ public final class InCallController extends CallsManagerListenerBase {
             // implementations.
             if (disconnectedComponent.equals(mInCallComponentName)) {
                 Log.i(this, "In-call UI %s disconnected.", disconnectedComponent);
-                TelecomSystem.getInstance().getCallsManager().disconnectAllCalls();
+                mCallsManager.disconnectAllCalls();
                 unbind();
             } else {
                 Log.i(this, "In-Call Service %s suddenly disconnected", disconnectedComponent);
@@ -468,7 +469,7 @@ public final class InCallController extends CallsManagerListenerBase {
 
         // If this is a single-SIM device, the "default SIM" will always be the only SIM.
         boolean isDefaultSmsAccount =
-                TelecomSystem.getInstance().getCallsManager().getPhoneAccountRegistrar()
+                mCallsManager.getPhoneAccountRegistrar()
                         .isUserSelectedSmsPhoneAccount(call.getTargetPhoneAccount());
         if (call.isRespondViaSmsCapable() && isDefaultSmsAccount) {
             capabilities |= android.telecom.Call.Details.CAPABILITY_RESPOND_VIA_TEXT;

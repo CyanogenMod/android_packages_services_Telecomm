@@ -106,6 +106,7 @@ public final class CallsManager extends Call.ListenerBase {
     private final DtmfLocalTonePlayer mDtmfLocalTonePlayer;
     private final InCallController mInCallController;
     private final CallAudioManager mCallAudioManager;
+    private RespondViaSmsManager mRespondViaSmsManager;
     private final Ringer mRinger;
     private final InCallWakeLockController mInCallWakeLockController;
     // For this set initial table size to 16 because we add 13 listeners in
@@ -139,27 +140,32 @@ public final class CallsManager extends Call.ListenerBase {
     /**
      * Initializes the required Telecom components.
      */
-     CallsManager(Context context, MissedCallNotifier missedCallNotifier,
+     CallsManager(
+             Context context,
+             MissedCallNotifier missedCallNotifier,
              PhoneAccountRegistrar phoneAccountRegistrar,
-             RespondViaSmsManager respondViaSmsManager) {
+             HeadsetMediaButtonFactory headsetMediaButtonFactory,
+             ProximitySensorManagerFactory proximitySensorManagerFactory,
+             InCallWakeLockControllerFactory inCallWakeLockControllerFactory) {
         mContext = context;
         mPhoneAccountRegistrar = phoneAccountRegistrar;
         mMissedCallNotifier = missedCallNotifier;
         StatusBarNotifier statusBarNotifier = new StatusBarNotifier(context, this);
         mWiredHeadsetManager = new WiredHeadsetManager(context);
-        mCallAudioManager = new CallAudioManager(context, statusBarNotifier, mWiredHeadsetManager);
+        mCallAudioManager = new CallAudioManager(
+                context, statusBarNotifier, mWiredHeadsetManager, this);
         InCallTonePlayer.Factory playerFactory = new InCallTonePlayer.Factory(mCallAudioManager);
         mRinger = new Ringer(mCallAudioManager, this, playerFactory, context);
-        mHeadsetMediaButton = new HeadsetMediaButton(context, this);
+        mHeadsetMediaButton = headsetMediaButtonFactory.create(context, this);
         mTtyManager = new TtyManager(context, mWiredHeadsetManager);
-        mProximitySensorManager = new ProximitySensorManager(context);
-        mPhoneStateBroadcaster = new PhoneStateBroadcaster();
+        mProximitySensorManager = proximitySensorManagerFactory.create(context, this);
+        mPhoneStateBroadcaster = new PhoneStateBroadcaster(this);
         mCallLogManager = new CallLogManager(context);
-        mInCallController = new InCallController(context);
+        mInCallController = new InCallController(context, this);
         mDtmfLocalTonePlayer = new DtmfLocalTonePlayer(context);
-        mConnectionServiceRepository = new ConnectionServiceRepository(mPhoneAccountRegistrar,
-                context);
-        mInCallWakeLockController = new InCallWakeLockController(context, this);
+        mConnectionServiceRepository =
+                new ConnectionServiceRepository(mPhoneAccountRegistrar, mContext, this);
+        mInCallWakeLockController = inCallWakeLockControllerFactory.create(context, this);
 
         mListeners.add(statusBarNotifier);
         mListeners.add(mCallLogManager);
@@ -172,8 +178,19 @@ public final class CallsManager extends Call.ListenerBase {
         mListeners.add(missedCallNotifier);
         mListeners.add(mDtmfLocalTonePlayer);
         mListeners.add(mHeadsetMediaButton);
-        mListeners.add(respondViaSmsManager);
         mListeners.add(mProximitySensorManager);
+    }
+
+    public void setRespondViaSmsManager(RespondViaSmsManager respondViaSmsManager) {
+        if (mRespondViaSmsManager != null) {
+            mListeners.remove(mRespondViaSmsManager);
+        }
+        mRespondViaSmsManager = respondViaSmsManager;
+        mListeners.add(respondViaSmsManager);
+    }
+
+    public RespondViaSmsManager getRespondViaSmsManager() {
+        return mRespondViaSmsManager;
     }
 
     @Override

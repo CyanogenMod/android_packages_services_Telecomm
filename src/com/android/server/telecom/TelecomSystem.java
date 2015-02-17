@@ -77,25 +77,38 @@ public final class TelecomSystem {
         INSTANCE = instance;
     }
 
-    public TelecomSystem(Context context) {
+    public TelecomSystem(
+            Context context,
+            MissedCallNotifier missedCallNotifier,
+            HeadsetMediaButtonFactory headsetMediaButtonFactory,
+            ProximitySensorManagerFactory proximitySensorManagerFactory,
+            InCallWakeLockControllerFactory inCallWakeLockControllerFactory) {
         mContext = context.getApplicationContext();
 
-        mMissedCallNotifier = new MissedCallNotifier(mContext);
+        mMissedCallNotifier = missedCallNotifier;
         mPhoneAccountRegistrar = new PhoneAccountRegistrar(mContext);
 
-        mRespondViaSmsManager = new RespondViaSmsManager();
-
         mCallsManager = new CallsManager(
-                mContext, mMissedCallNotifier, mPhoneAccountRegistrar, mRespondViaSmsManager);
-        Log.i(this, "CallsManager initialized");
+                mContext,
+                mMissedCallNotifier,
+                mPhoneAccountRegistrar,
+                headsetMediaButtonFactory,
+                proximitySensorManagerFactory,
+                inCallWakeLockControllerFactory);
+
+        mRespondViaSmsManager = new RespondViaSmsManager(mCallsManager);
+        mCallsManager.setRespondViaSmsManager(mRespondViaSmsManager);
+
         mMissedCallNotifier.setCallsManager(mCallsManager);
 
         mContext.registerReceiver(mUserSwitchedReceiver, USER_SWITCHED_FILTER);
         mBluetoothPhoneServiceImpl =
-                new BluetoothPhoneServiceImpl(context, mCallsManager, mPhoneAccountRegistrar);
-        mCallIntentProcessor = new CallIntentProcessor(context, mCallsManager);
-        mTelecomBroadcastIntentProcessor = new TelecomBroadcastIntentProcessor(context);
-        mTelecomServiceImpl = new TelecomServiceImpl(context, mCallsManager);
+                new BluetoothPhoneServiceImpl(mContext, mCallsManager, mPhoneAccountRegistrar);
+        mCallIntentProcessor = new CallIntentProcessor(mContext, mCallsManager);
+        mTelecomBroadcastIntentProcessor = new TelecomBroadcastIntentProcessor(
+                mContext, mCallsManager);
+        mTelecomServiceImpl =
+                new TelecomServiceImpl(mContext, mCallsManager, mPhoneAccountRegistrar);
     }
 
     public MissedCallNotifier getMissedCallNotifier() {

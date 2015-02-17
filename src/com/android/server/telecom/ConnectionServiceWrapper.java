@@ -104,7 +104,7 @@ final class ConnectionServiceWrapper extends ServiceBinder {
                 case MSG_SET_ACTIVE:
                     call = mCallIdMapper.getCall(msg.obj);
                     if (call != null) {
-                        TelecomSystem.getInstance().getCallsManager().markCallAsActive(call);
+                        mCallsManager.markCallAsActive(call);
                     } else {
                         //Log.w(this, "setActive, unknown call id: %s", msg.obj);
                     }
@@ -112,7 +112,7 @@ final class ConnectionServiceWrapper extends ServiceBinder {
                 case MSG_SET_RINGING:
                     call = mCallIdMapper.getCall(msg.obj);
                     if (call != null) {
-                        TelecomSystem.getInstance().getCallsManager().markCallAsRinging(call);
+                        mCallsManager.markCallAsRinging(call);
                     } else {
                         //Log.w(this, "setRinging, unknown call id: %s", msg.obj);
                     }
@@ -120,7 +120,7 @@ final class ConnectionServiceWrapper extends ServiceBinder {
                 case MSG_SET_DIALING:
                     call = mCallIdMapper.getCall(msg.obj);
                     if (call != null) {
-                        TelecomSystem.getInstance().getCallsManager().markCallAsDialing(call);
+                        mCallsManager.markCallAsDialing(call);
                     } else {
                         //Log.w(this, "setDialing, unknown call id: %s", msg.obj);
                     }
@@ -132,7 +132,7 @@ final class ConnectionServiceWrapper extends ServiceBinder {
                         DisconnectCause disconnectCause = (DisconnectCause) args.arg2;
                         Log.d(this, "disconnect call %s %s", disconnectCause, call);
                         if (call != null) {
-                            TelecomSystem.getInstance().getCallsManager()
+                            mCallsManager
                                     .markCallAsDisconnected(call, disconnectCause);
                         } else {
                             //Log.w(this, "setDisconnected, unknown call id: %s", args.arg1);
@@ -145,7 +145,7 @@ final class ConnectionServiceWrapper extends ServiceBinder {
                 case MSG_SET_ON_HOLD:
                     call = mCallIdMapper.getCall(msg.obj);
                     if (call != null) {
-                        TelecomSystem.getInstance().getCallsManager().markCallAsOnHold(call);
+                        mCallsManager.markCallAsOnHold(call);
                     } else {
                         //Log.w(this, "setOnHold, unknown call id: %s", msg.obj);
                     }
@@ -225,7 +225,7 @@ final class ConnectionServiceWrapper extends ServiceBinder {
                                 parcelableConference.getPhoneAccount() != null) {
                             phAcc = parcelableConference.getPhoneAccount();
                         }
-                        Call conferenceCall = TelecomSystem.getInstance().getCallsManager().createConferenceCall(
+                        Call conferenceCall = mCallsManager.createConferenceCall(
                                 phAcc, parcelableConference);
                         mCallIdMapper.addCall(conferenceCall, id);
                         conferenceCall.setConnectionService(ConnectionServiceWrapper.this);
@@ -248,10 +248,10 @@ final class ConnectionServiceWrapper extends ServiceBinder {
                     call = mCallIdMapper.getCall(msg.obj);
                     if (call != null) {
                         if (call.isAlive()) {
-                            TelecomSystem.getInstance().getCallsManager().markCallAsDisconnected(
+                            mCallsManager.markCallAsDisconnected(
                                     call, new DisconnectCause(DisconnectCause.REMOTE));
                         } else {
-                            TelecomSystem.getInstance().getCallsManager().markCallAsRemoved(call);
+                            mCallsManager.markCallAsRemoved(call);
                         }
                     }
                     break;
@@ -381,7 +381,7 @@ final class ConnectionServiceWrapper extends ServiceBinder {
                     try {
                         String callId = (String)args.arg1;
                         ParcelableConnection connection = (ParcelableConnection)args.arg2;
-                        Call existingCall = TelecomSystem.getInstance().getCallsManager()
+                        Call existingCall = mCallsManager
                                 .createCallForExistingConnection(callId,
                                 connection);
                         mCallIdMapper.addCall(existingCall, callId);
@@ -401,7 +401,7 @@ final class ConnectionServiceWrapper extends ServiceBinder {
                 String callId,
                 ConnectionRequest request,
                 ParcelableConnection connection) {
-            logIncoming("handleCreateConnectionComplete %s", request);
+            logIncoming("handleCreateConnectionComplete %s", callId);
             if (mCallIdMapper.isValidCallId(callId)) {
                 SomeArgs args = SomeArgs.obtain();
                 args.arg1 = callId;
@@ -627,6 +627,7 @@ final class ConnectionServiceWrapper extends ServiceBinder {
     private IConnectionService mServiceInterface;
     private final ConnectionServiceRepository mConnectionServiceRepository;
     private final PhoneAccountRegistrar mPhoneAccountRegistrar;
+    private final CallsManager mCallsManager;
 
     /**
      * Creates a connection service.
@@ -634,6 +635,7 @@ final class ConnectionServiceWrapper extends ServiceBinder {
      * @param componentName The component name of the service with which to bind.
      * @param connectionServiceRepository Connection service repository.
      * @param phoneAccountRegistrar Phone account registrar
+     * @param callsManager Calls manager
      * @param context The context.
      * @param userHandle The {@link UserHandle} to use when binding.
      */
@@ -641,6 +643,7 @@ final class ConnectionServiceWrapper extends ServiceBinder {
             ComponentName componentName,
             ConnectionServiceRepository connectionServiceRepository,
             PhoneAccountRegistrar phoneAccountRegistrar,
+            CallsManager callsManager,
             Context context,
             UserHandle userHandle) {
         super(ConnectionService.SERVICE_INTERFACE, componentName, context, userHandle);
@@ -650,6 +653,7 @@ final class ConnectionServiceWrapper extends ServiceBinder {
             // To do this, we must proxy remote ConnectionService objects
         });
         mPhoneAccountRegistrar = phoneAccountRegistrar;
+        mCallsManager = callsManager;
     }
 
     /** See {@link IConnectionService#addConnectionServiceAdapter}. */
@@ -715,7 +719,7 @@ final class ConnectionServiceWrapper extends ServiceBinder {
         mBinder.bind(callback);
     }
 
-    /** @see ConnectionService#abort(String) */
+    /** @see IConnectionService#abort(String) */
     void abort(Call call) {
         // Clear out any pending outgoing call data
         final String callId = mCallIdMapper.getCallId(call);
@@ -732,7 +736,7 @@ final class ConnectionServiceWrapper extends ServiceBinder {
         removeCall(call, new DisconnectCause(DisconnectCause.LOCAL));
     }
 
-    /** @see ConnectionService#hold(String) */
+    /** @see IConnectionService#hold(String) */
     void hold(Call call) {
         final String callId = mCallIdMapper.getCallId(call);
         if (callId != null && isServiceValid("hold")) {
@@ -744,7 +748,7 @@ final class ConnectionServiceWrapper extends ServiceBinder {
         }
     }
 
-    /** @see ConnectionService#unhold(String) */
+    /** @see IConnectionService#unhold(String) */
     void unhold(Call call) {
         final String callId = mCallIdMapper.getCallId(call);
         if (callId != null && isServiceValid("unhold")) {
@@ -756,7 +760,7 @@ final class ConnectionServiceWrapper extends ServiceBinder {
         }
     }
 
-    /** @see ConnectionService#onAudioStateChanged(String,AudioState) */
+    /** @see IConnectionService#onAudioStateChanged(String,AudioState) */
     void onAudioStateChanged(Call activeCall, AudioState audioState) {
         final String callId = mCallIdMapper.getCallId(activeCall);
         if (callId != null && isServiceValid("onAudioStateChanged")) {
@@ -768,7 +772,7 @@ final class ConnectionServiceWrapper extends ServiceBinder {
         }
     }
 
-    /** @see ConnectionService#disconnect(String) */
+    /** @see IConnectionService#disconnect(String) */
     void disconnect(Call call) {
         final String callId = mCallIdMapper.getCallId(call);
         if (callId != null && isServiceValid("disconnect")) {
@@ -780,7 +784,7 @@ final class ConnectionServiceWrapper extends ServiceBinder {
         }
     }
 
-    /** @see ConnectionService#answer(String,int) */
+    /** @see IConnectionService#answer(String) */
     void answer(Call call, int videoState) {
         final String callId = mCallIdMapper.getCallId(call);
         if (callId != null && isServiceValid("answer")) {
@@ -796,7 +800,7 @@ final class ConnectionServiceWrapper extends ServiceBinder {
         }
     }
 
-    /** @see ConnectionService#reject(String) */
+    /** @see IConnectionService#reject(String) */
     void reject(Call call) {
         final String callId = mCallIdMapper.getCallId(call);
         if (callId != null && isServiceValid("reject")) {
@@ -808,7 +812,7 @@ final class ConnectionServiceWrapper extends ServiceBinder {
         }
     }
 
-    /** @see ConnectionService#playDtmfTone(String,char) */
+    /** @see IConnectionService#playDtmfTone(String,char) */
     void playDtmfTone(Call call, char digit) {
         final String callId = mCallIdMapper.getCallId(call);
         if (callId != null && isServiceValid("playDtmfTone")) {
@@ -820,7 +824,7 @@ final class ConnectionServiceWrapper extends ServiceBinder {
         }
     }
 
-    /** @see ConnectionService#stopDtmfTone(String) */
+    /** @see IConnectionService#stopDtmfTone(String) */
     void stopDtmfTone(Call call) {
         final String callId = mCallIdMapper.getCallId(call);
         if (callId != null && isServiceValid("stopDtmfTone")) {
@@ -933,7 +937,7 @@ final class ConnectionServiceWrapper extends ServiceBinder {
             // outgoing calls to try the next service. This needs to happen before CallsManager
             // tries to clean up any calls still associated with this service.
             handleConnectionServiceDeath();
-            TelecomSystem.getInstance().getCallsManager().handleConnectionServiceDeath(this);
+            mCallsManager.handleConnectionServiceDeath(this);
             mServiceInterface = null;
         } else {
             mServiceInterface = IConnectionService.Stub.asInterface(binder);
@@ -1063,10 +1067,6 @@ final class ConnectionServiceWrapper extends ServiceBinder {
     }
 
     private void noRemoteServices(RemoteServiceCallback callback) {
-        try {
-            callback.onResult(Collections.EMPTY_LIST, Collections.EMPTY_LIST);
-        } catch (RemoteException e) {
-            Log.e(this, e, "Contacting ConnectionService %s", this.getComponentName());
-        }
+        setRemoteServices(callback, Collections.EMPTY_LIST, Collections.EMPTY_LIST);
     }
 }

@@ -33,6 +33,7 @@ final class ConnectionServiceRepository {
             new HashMap<>();
     private final PhoneAccountRegistrar mPhoneAccountRegistrar;
     private final Context mContext;
+    private final CallsManager mCallsManager;
 
     private final ServiceBinder.Listener<ConnectionServiceWrapper> mUnbindListener =
             new ServiceBinder.Listener<ConnectionServiceWrapper>() {
@@ -42,9 +43,13 @@ final class ConnectionServiceRepository {
                 }
             };
 
-    ConnectionServiceRepository(PhoneAccountRegistrar phoneAccountRegistrar, Context context) {
+    ConnectionServiceRepository(
+            PhoneAccountRegistrar phoneAccountRegistrar,
+            Context context,
+            CallsManager callsManager) {
         mPhoneAccountRegistrar = phoneAccountRegistrar;
         mContext = context;
+        mCallsManager = callsManager;
     }
 
     ConnectionServiceWrapper getService(ComponentName componentName, UserHandle userHandle) {
@@ -55,6 +60,7 @@ final class ConnectionServiceRepository {
                     componentName,
                     this,
                     mPhoneAccountRegistrar,
+                    mCallsManager,
                     mContext,
                     userHandle);
             service.addListener(mUnbindListener);

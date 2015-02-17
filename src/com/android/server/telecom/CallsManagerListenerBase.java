@@ -21,7 +21,7 @@ import android.telecom.AudioState;
 /**
  * Provides a default implementation for listeners of CallsManager.
  */
-class CallsManagerListenerBase implements CallsManager.CallsManagerListener {
+public class CallsManagerListenerBase implements CallsManager.CallsManagerListener {
     @Override
     public void onCallAdded(Call call) {
     }

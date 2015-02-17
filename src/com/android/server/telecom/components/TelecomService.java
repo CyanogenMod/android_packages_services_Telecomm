@@ -18,11 +18,20 @@ package com.android.server.telecom.components;
 
 import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
+import android.content.Context;
 import android.content.Intent;
 import android.os.IBinder;
 
+import com.android.server.telecom.CallsManager;
+import com.android.server.telecom.HeadsetMediaButton;
+import com.android.server.telecom.HeadsetMediaButtonFactory;
+import com.android.server.telecom.InCallWakeLockControllerFactory;
+import com.android.server.telecom.ProximitySensorManagerFactory;
+import com.android.server.telecom.InCallWakeLockController;
 import com.android.server.telecom.Log;
+import com.android.server.telecom.ProximitySensorManager;
 import com.android.server.telecom.TelecomSystem;
+import com.android.server.telecom.ui.MissedCallNotifierImpl;
 
 /**
  * Implementation of the ITelecom interface.
@@ -34,7 +43,32 @@ public class TelecomService extends Service implements TelecomSystem.Component {
         Log.d(this, "onBind");
         // We are guaranteed that the TelecomService will be started before any other
         // components in this package because it is started and kept running by the system.
-        TelecomSystem.setInstance(new TelecomSystem(this));
+        TelecomSystem.setInstance(
+                new TelecomSystem(
+                        this,
+                        new MissedCallNotifierImpl(getApplicationContext()),
+                        new HeadsetMediaButtonFactory() {
+                            @Override
+                            public HeadsetMediaButton create(Context context,
+                                    CallsManager callsManager) {
+                                return new HeadsetMediaButton(context, callsManager);
+                            }
+                        },
+                        new ProximitySensorManagerFactory() {
+                            @Override
+                            public ProximitySensorManager create(
+                                    Context context,
+                                    CallsManager callsManager) {
+                                return new ProximitySensorManager(context, callsManager);
+                            }
+                        },
+                        new InCallWakeLockControllerFactory() {
+                            @Override
+                            public InCallWakeLockController create(Context context,
+                                    CallsManager callsManager) {
+                                return new InCallWakeLockController(context, callsManager);
+                            }
+                        }));
         // Start the BluetoothPhoneService
         if (BluetoothAdapter.getDefaultAdapter() != null) {
             startService(new Intent(this, BluetoothPhoneService.class));

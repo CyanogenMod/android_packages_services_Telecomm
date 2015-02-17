@@ -21,8 +21,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.IBinder;
-import android.os.IInterface;
-import android.os.Process;
 import android.os.UserHandle;
 import android.text.TextUtils;
 import android.util.ArraySet;

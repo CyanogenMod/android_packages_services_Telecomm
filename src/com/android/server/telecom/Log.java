@@ -25,13 +25,16 @@ import java.security.NoSuchAlgorithmException;
 import java.util.IllegalFormatException;
 import java.util.Locale;
 
+import com.android.internal.annotations.VisibleForTesting;
+
 /**
  * Manages logging for the entire module.
  */
+@VisibleForTesting
 public class Log {
 
     // Generic tag for all In Call logging
-    private static final String TAG = "Telecom";
+    private static String TAG = "Telecom";
 
     public static final boolean FORCE_LOGGING = false; /* STOP SHIP if true */
     public static final boolean SYSTRACE_DEBUG = false; /* STOP SHIP if true */
@@ -42,6 +45,11 @@ public class Log {
     public static final boolean ERROR = isLoggable(android.util.Log.ERROR);
 
     private Log() {}
+
+    @VisibleForTesting
+    public static void setTag(String tag) {
+        TAG = tag;
+    }
 
     public static boolean isLoggable(int level) {
         return FORCE_LOGGING || android.util.Log.isLoggable(TAG, level);

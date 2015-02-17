@@ -84,10 +84,10 @@ public class TelecomServiceImpl {
                 Object result = null;
                 switch (msg.what) {
                     case MSG_SILENCE_RINGER:
-                        TelecomSystem.getInstance().getCallsManager().getRinger().silence();
+                        mCallsManager.getRinger().silence();
                         break;
                     case MSG_SHOW_CALL_SCREEN:
-                        TelecomSystem.getInstance().getCallsManager().getInCallController().bringToForeground(msg.arg1 == 1);
+                        mCallsManager.getInCallController().bringToForeground(msg.arg1 == 1);
                         break;
                     case MSG_END_CALL:
                         result = endCallInternal();
@@ -96,13 +96,13 @@ public class TelecomServiceImpl {
                         acceptRingingCallInternal();
                         break;
                     case MSG_CANCEL_MISSED_CALLS_NOTIFICATION:
-                        TelecomSystem.getInstance().getMissedCallNotifier().clearMissedCalls();
+                        mCallsManager.getMissedCallNotifier().clearMissedCalls();
                         break;
                     case MSG_IS_TTY_SUPPORTED:
-                        result = TelecomSystem.getInstance().getCallsManager().isTtySupported();
+                        result = mCallsManager.isTtySupported();
                         break;
                     case MSG_GET_CURRENT_TTY_MODE:
-                        result = TelecomSystem.getInstance().getCallsManager().getCurrentTtyMode();
+                        result = mCallsManager.getCurrentTtyMode();
                         break;
                     case MSG_NEW_INCOMING_CALL:
                         if (request.arg == null || !(request.arg instanceof Intent)) {
@@ -140,13 +140,17 @@ public class TelecomServiceImpl {
 
     private final MainThreadHandler mMainThreadHandler = new MainThreadHandler();
 
-    private AppOpsManager mAppOpsManager;
-    private UserManager mUserManager;
-    private PackageManager mPackageManager;
-    private TelecomBinderImpl mBinderImpl;
-    private CallsManager mCallsManager;
+    private final AppOpsManager mAppOpsManager;
+    private final UserManager mUserManager;
+    private final PackageManager mPackageManager;
+    private final TelecomBinderImpl mBinderImpl;
+    private final CallsManager mCallsManager;
+    private final PhoneAccountRegistrar mPhoneAccountRegistrar;
 
-    public TelecomServiceImpl(Context context, CallsManager callsManager) {
+    public TelecomServiceImpl(
+            Context context,
+            CallsManager callsManager,
+            PhoneAccountRegistrar phoneAccountRegistrar) {
         mContext = context;
         mAppOpsManager = (AppOpsManager) mContext.getSystemService(Context.APP_OPS_SERVICE);
         mBinderImpl = new TelecomBinderImpl();
@@ -155,6 +159,7 @@ public class TelecomServiceImpl {
         mPackageManager = mContext.getPackageManager();
 
         mCallsManager = callsManager;
+        mPhoneAccountRegistrar = phoneAccountRegistrar;
     }
 
     public IBinder getBinder() {
@@ -172,7 +177,7 @@ public class TelecomServiceImpl {
             long token = Binder.clearCallingIdentity();
             try {
                 PhoneAccountHandle defaultOutgoingPhoneAccount =
-                        TelecomSystem.getInstance().getPhoneAccountRegistrar().getDefaultOutgoingPhoneAccount(uriScheme);
+                        mCallsManager.getPhoneAccountRegistrar().getDefaultOutgoingPhoneAccount(uriScheme);
                 // Make sure that the calling user can see this phone account.
                 if (defaultOutgoingPhoneAccount != null
                         && !isVisibleToCaller(defaultOutgoingPhoneAccount)) {
@@ -192,7 +197,7 @@ public class TelecomServiceImpl {
         public PhoneAccountHandle getUserSelectedOutgoingPhoneAccount() {
             try {
                 PhoneAccountHandle userSelectedOutgoingPhoneAccount =
-                        TelecomSystem.getInstance().getPhoneAccountRegistrar().getUserSelectedOutgoingPhoneAccount();
+                        mCallsManager.getPhoneAccountRegistrar().getUserSelectedOutgoingPhoneAccount();
                 // Make sure that the calling user can see this phone account.
                 if (!isVisibleToCaller(userSelectedOutgoingPhoneAccount)) {
                     Log.w(this, "No account found for the calling user");
@@ -210,7 +215,7 @@ public class TelecomServiceImpl {
             enforceModifyPermission();
 
             try {
-                TelecomSystem.getInstance().getPhoneAccountRegistrar().setUserSelectedOutgoingPhoneAccount(accountHandle);
+                mCallsManager.getPhoneAccountRegistrar().setUserSelectedOutgoingPhoneAccount(accountHandle);
             } catch (Exception e) {
                 Log.e(this, e, "setUserSelectedOutgoingPhoneAccount");
                 throw e;
@@ -223,7 +228,7 @@ public class TelecomServiceImpl {
             long token = Binder.clearCallingIdentity();
             try {
                 return filterForAccountsVisibleToCaller(
-                        TelecomSystem.getInstance().getPhoneAccountRegistrar().getCallCapablePhoneAccounts());
+                        mCallsManager.getPhoneAccountRegistrar().getCallCapablePhoneAccounts());
             } catch (Exception e) {
                 Log.e(this, e, "getCallCapablePhoneAccounts");
                 throw e;
@@ -238,7 +243,7 @@ public class TelecomServiceImpl {
             long token = Binder.clearCallingIdentity();
             try {
                 return filterForAccountsVisibleToCaller(
-                        TelecomSystem.getInstance().getPhoneAccountRegistrar().getCallCapablePhoneAccounts(uriScheme));
+                        mCallsManager.getPhoneAccountRegistrar().getCallCapablePhoneAccounts(uriScheme));
             } catch (Exception e) {
                 Log.e(this, e, "getPhoneAccountsSupportingScheme %s", uriScheme);
                 throw e;
@@ -251,7 +256,7 @@ public class TelecomServiceImpl {
         public List<PhoneAccountHandle> getPhoneAccountsForPackage(String packageName) {
             try {
                 return filterForAccountsVisibleToCaller(
-                        TelecomSystem.getInstance().getPhoneAccountRegistrar().getPhoneAccountsForPackage(packageName));
+                        mCallsManager.getPhoneAccountRegistrar().getPhoneAccountsForPackage(packageName));
             } catch (Exception e) {
                 Log.e(this, e, "getPhoneAccountsForPackage %s", packageName);
                 throw e;
@@ -265,7 +270,7 @@ public class TelecomServiceImpl {
                     Log.w(this, "%s is not visible for the calling user", accountHandle);
                     return null;
                 }
-                return TelecomSystem.getInstance().getPhoneAccountRegistrar().getPhoneAccountInternal(accountHandle);
+                return mCallsManager.getPhoneAccountRegistrar().getPhoneAccountInternal(accountHandle);
             } catch (Exception e) {
                 Log.e(this, e, "getPhoneAccount %s", accountHandle);
                 throw e;
@@ -286,7 +291,7 @@ public class TelecomServiceImpl {
         @Override
         public List<PhoneAccount> getAllPhoneAccounts() {
             try {
-                List<PhoneAccount> allPhoneAccounts = TelecomSystem.getInstance().getPhoneAccountRegistrar().getAllPhoneAccounts();
+                List<PhoneAccount> allPhoneAccounts = mCallsManager.getPhoneAccountRegistrar().getAllPhoneAccounts();
                 List<PhoneAccount> profilePhoneAccounts = new ArrayList<>(allPhoneAccounts.size());
                 for (PhoneAccount phoneAccount : profilePhoneAccounts) {
                     if (isVisibleToCaller(phoneAccount)) {
@@ -304,7 +309,7 @@ public class TelecomServiceImpl {
         public List<PhoneAccountHandle> getAllPhoneAccountHandles() {
             try {
                 return filterForAccountsVisibleToCaller(
-                        TelecomSystem.getInstance().getPhoneAccountRegistrar().getAllPhoneAccountHandles());
+                        mCallsManager.getPhoneAccountRegistrar().getAllPhoneAccountHandles());
             } catch (Exception e) {
                 Log.e(this, e, "getAllPhoneAccounts");
                 throw e;
@@ -314,7 +319,7 @@ public class TelecomServiceImpl {
         @Override
         public PhoneAccountHandle getSimCallManager() {
             try {
-                PhoneAccountHandle accountHandle = TelecomSystem.getInstance().getPhoneAccountRegistrar().getSimCallManager();
+                PhoneAccountHandle accountHandle = mCallsManager.getPhoneAccountRegistrar().getSimCallManager();
                 if (!isVisibleToCaller(accountHandle)) {
                     Log.w(this, "%s is not visible for the calling user", accountHandle);
                     return null;
@@ -331,7 +336,7 @@ public class TelecomServiceImpl {
             enforceModifyPermission();
 
             try {
-                TelecomSystem.getInstance().getPhoneAccountRegistrar().setSimCallManager(accountHandle);
+                mCallsManager.getPhoneAccountRegistrar().setSimCallManager(accountHandle);
             } catch (Exception e) {
                 Log.e(this, e, "setSimCallManager");
                 throw e;
@@ -344,7 +349,7 @@ public class TelecomServiceImpl {
             long token = Binder.clearCallingIdentity();
             try {
                 return filterForAccountsVisibleToCaller(
-                        TelecomSystem.getInstance().getPhoneAccountRegistrar().getConnectionManagerPhoneAccounts());
+                        mCallsManager.getPhoneAccountRegistrar().getConnectionManagerPhoneAccounts());
             } catch (Exception e) {
                 Log.e(this, e, "getSimCallManagers");
                 throw e;
@@ -372,7 +377,7 @@ public class TelecomServiceImpl {
                 }
                 enforceUserHandleMatchesCaller(account.getAccountHandle());
 
-                TelecomSystem.getInstance().getPhoneAccountRegistrar().registerPhoneAccount(account);
+                mPhoneAccountRegistrar.registerPhoneAccount(account);
 
                 // Broadcast an intent indicating the phone account which was registered.
                 long token = Binder.clearCallingIdentity();
@@ -395,7 +400,7 @@ public class TelecomServiceImpl {
                 enforcePhoneAccountModificationForPackage(
                         accountHandle.getComponentName().getPackageName());
                 enforceUserHandleMatchesCaller(accountHandle);
-                TelecomSystem.getInstance().getPhoneAccountRegistrar().unregisterPhoneAccount(accountHandle);
+                mCallsManager.getPhoneAccountRegistrar().unregisterPhoneAccount(accountHandle);
             } catch (Exception e) {
                 Log.e(this, e, "unregisterPhoneAccount %s", accountHandle);
                 throw e;
@@ -406,7 +411,7 @@ public class TelecomServiceImpl {
         public void clearAccounts(String packageName) {
             try {
                 enforcePhoneAccountModificationForPackage(packageName);
-                TelecomSystem.getInstance().getPhoneAccountRegistrar().clearAccounts(packageName, Binder.getCallingUserHandle());
+                mCallsManager.getPhoneAccountRegistrar().clearAccounts(packageName, Binder.getCallingUserHandle());
             } catch (Exception e) {
                 Log.e(this, e, "clearAccounts %s", packageName);
                 throw e;
@@ -424,7 +429,7 @@ public class TelecomServiceImpl {
                     Log.w(this, "%s is not visible for the calling user", accountHandle);
                     return false;
                 }
-                return TelecomSystem.getInstance().getPhoneAccountRegistrar().isVoiceMailNumber(accountHandle, number);
+                return mCallsManager.getPhoneAccountRegistrar().isVoiceMailNumber(accountHandle, number);
             } catch (Exception e) {
                 Log.e(this, e, "getSubscriptionIdForPhoneAccount");
                 throw e;
@@ -445,7 +450,7 @@ public class TelecomServiceImpl {
 
                 int subId = SubscriptionManager.getDefaultVoiceSubId();
                 if (accountHandle != null) {
-                    subId = TelecomSystem.getInstance().getPhoneAccountRegistrar().getSubscriptionIdForPhoneAccount(accountHandle);
+                    subId = mCallsManager.getPhoneAccountRegistrar().getSubscriptionIdForPhoneAccount(accountHandle);
                 }
                 return !TextUtils.isEmpty(getTelephonyManager().getVoiceMailNumber(subId));
             } catch (Exception e) {
@@ -502,7 +507,7 @@ public class TelecomServiceImpl {
             enforceReadPermission();
             // Do not use sendRequest() with this method since it could cause a deadlock with
             // audio service, which we call into from the main thread: AudioManager.setMode().
-            final int callState = TelecomSystem.getInstance().getCallsManager().getCallState();
+            final int callState = mCallsManager.getCallState();
             return callState == TelephonyManager.CALL_STATE_OFFHOOK
                     || callState == TelephonyManager.CALL_STATE_RINGING;
         }
@@ -513,7 +518,7 @@ public class TelecomServiceImpl {
         @Override
         public boolean isRinging() {
             enforceReadPermission();
-            return TelecomSystem.getInstance().getCallsManager().getCallState() == TelephonyManager.CALL_STATE_RINGING;
+            return mCallsManager.getCallState() == TelephonyManager.CALL_STATE_RINGING;
         }
 
         /**
@@ -521,7 +526,7 @@ public class TelecomServiceImpl {
          */
         @Override
         public int getCallState() {
-            return TelecomSystem.getInstance().getCallsManager().getCallState();
+            return mCallsManager.getCallState();
         }
 
         /**
@@ -596,7 +601,8 @@ public class TelecomServiceImpl {
             long token = Binder.clearCallingIdentity();
             boolean retval = false;
             try {
-                int subId = TelecomSystem.getInstance().getPhoneAccountRegistrar().getSubscriptionIdForPhoneAccount(accountHandle);
+                int subId = mCallsManager.getPhoneAccountRegistrar()
+                        .getSubscriptionIdForPhoneAccount(accountHandle);
                 retval = getTelephonyManager().handlePinMmiForSubscriber(subId, dialString);
             } finally {
                 Binder.restoreCallingIdentity(token);
@@ -621,7 +627,8 @@ public class TelecomServiceImpl {
             long token = Binder.clearCallingIdentity();
             String retval = "content://icc/adn/";
             try {
-                long subId = TelecomSystem.getInstance().getPhoneAccountRegistrar().getSubscriptionIdForPhoneAccount(accountHandle);
+                long subId = mCallsManager.getPhoneAccountRegistrar()
+                        .getSubscriptionIdForPhoneAccount(accountHandle);
                 retval = retval + "subId/" + subId;
             } finally {
                 Binder.restoreCallingIdentity(token);
@@ -723,15 +730,15 @@ public class TelecomServiceImpl {
             }
 
             final IndentingPrintWriter pw = new IndentingPrintWriter(writer, "  ");
-            if (TelecomSystem.getInstance().getCallsManager() != null) {
+            if (mCallsManager != null) {
                 pw.println("CallsManager: ");
                 pw.increaseIndent();
-                TelecomSystem.getInstance().getCallsManager().dump(pw);
+                mCallsManager.dump(pw);
                 pw.decreaseIndent();
 
                 pw.println("PhoneAccountRegistrar: ");
                 pw.increaseIndent();
-                TelecomSystem.getInstance().getPhoneAccountRegistrar().dump(pw);
+                mCallsManager.getPhoneAccountRegistrar().dump(pw);
                 pw.decreaseIndent();
             }
         }
@@ -746,7 +753,8 @@ public class TelecomServiceImpl {
             return false;
         }
 
-        return isVisibleToCaller(TelecomSystem.getInstance().getPhoneAccountRegistrar().getPhoneAccountInternal(accountHandle));
+        return isVisibleToCaller(mCallsManager.getPhoneAccountRegistrar()
+                .getPhoneAccountInternal(accountHandle));
     }
 
     private boolean isVisibleToCaller(PhoneAccount account) {
@@ -825,7 +833,7 @@ public class TelecomServiceImpl {
     }
 
     private void acceptRingingCallInternal() {
-        Call call = TelecomSystem.getInstance().getCallsManager().getFirstCallWithState(CallState.RINGING);
+        Call call = mCallsManager.getFirstCallWithState(CallState.RINGING);
         if (call != null) {
             call.answer(call.getVideoState());
         }
@@ -834,9 +842,9 @@ public class TelecomServiceImpl {
     private boolean endCallInternal() {
         // Always operate on the foreground call if one exists, otherwise get the first call in
         // priority order by call-state.
-        Call call = TelecomSystem.getInstance().getCallsManager().getForegroundCall();
+        Call call = mCallsManager.getForegroundCall();
         if (call == null) {
-            call = TelecomSystem.getInstance().getCallsManager().getFirstCallWithState(
+            call = mCallsManager.getFirstCallWithState(
                     CallState.ACTIVE,
                     CallState.DIALING,
                     CallState.RINGING,

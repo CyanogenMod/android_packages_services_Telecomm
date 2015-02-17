@@ -102,6 +102,7 @@ final class CreateConnectionProcessor {
     CreateConnectionProcessor(
             Call call, ConnectionServiceRepository repository, CreateConnectionResponse response,
             PhoneAccountRegistrar phoneAccountRegistrar, Context context) {
+        Log.v(this, "CreateConnectionProcessor created for Call = %s", call);
         mCall = call;
         mRepository = repository;
         mResponse = response;

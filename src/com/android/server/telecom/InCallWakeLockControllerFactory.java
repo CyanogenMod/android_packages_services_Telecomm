@@ -1,5 +1,5 @@
 /*
- * Copyright 2014, The Android Open Source Project
+ * Copyright 2015, The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,14 +16,16 @@
 
 package com.android.server.telecom;
 
+import android.content.Context;
+
 /**
- * Creates a notification for calls that the user missed (neither answered nor rejected).
+ * This is a TEMPORARY fix to make the {@link InCallWakeLockController} object injectable for
+ * testing. Class {@link InCallWakeLockController} itself is not testable because it grabs lots of
+ * special stuff from its {@code Context} that cannot be conveniently mocked.
+ *
+ * TODO: Replace with a better design.
  */
-public interface MissedCallNotifier extends CallsManager.CallsManagerListener {
+public interface InCallWakeLockControllerFactory {
 
-    void setCallsManager(CallsManager callsManager);
-
-    void clearMissedCalls();
-
-    void showMissedCallNotification(Call call);
+    InCallWakeLockController create(Context context, CallsManager callsManager);
 }
