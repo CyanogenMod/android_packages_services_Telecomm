@@ -1598,7 +1598,8 @@ public class Call implements CreateConnectionResponse {
     }
 
     public boolean getIsVoipAudioMode() {
-        return mIsVoipAudioMode;
+            return mIsVoipAudioMode ||((mHandle != null) ?
+                    (mHandle.getScheme() == PhoneAccount.SCHEME_SIP): false);
     }
 
     public void setIsVoipAudioMode(boolean audioModeIsVoip) {
