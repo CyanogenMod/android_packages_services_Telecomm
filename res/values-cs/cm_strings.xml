@@ -16,5 +16,19 @@
      limitations under the License.
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+  <string name="blacklist_title">Černá listina</string>
+  <string name="blacklist_summary_disabled">Vypnuto</string>
+  <string name="blacklist_summary">Příchozí volání z čísel, které jsou na černé listině budou blokovány</string>
+  <string name="blacklist_call_notification">Zablokovaný hovor od %s</string>
+  <string name="blacklist_call_notification_private_number">Zablokovaný hovor ze skrytého čísla</string>
+  <string name="blacklist_call_notification_unknown_number">Zablokovaný hovor z neznámého čísla %s</string>
+  <string name="blacklist_call_notification_multiple">Zablokovaných hovorů: <xliff:g id="count">%d</xliff:g></string>
+  <string name="blacklist_message_notification">Zablokovaná zpráva od %s</string>
+  <string name="blacklist_message_notification_private_number">Zablokovaná zpráva ze skrytého čísla</string>
+  <string name="blacklist_message_notification_unknown_number">Zablokovaná zpráva z neznámého čísla %s</string>
+  <string name="blacklist_message_notification_multiple">Blokovaných zpráv: <xliff:g id="count">%d</xliff:g></string>
+  <string name="blacklist_notification_list_private">Skryté</string>
+  <string name="unblock_number">Odblokovat</string>
   <string name="video_call_not_allowed_if_tty_enabled">Prosím zakažte TTY režim k uskutečnění video hovorů.</string>
+  <string name="select_account_dialog_title">Vyberte účet</string>
 </resources>
