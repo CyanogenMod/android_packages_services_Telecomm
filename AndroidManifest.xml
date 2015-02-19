@@ -200,6 +200,8 @@
                   android:process=":ui">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+                <action android:name="android.telecom.action.SHOW_RESPOND_VIA_SMS_SETTINGS" />
+                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
 
