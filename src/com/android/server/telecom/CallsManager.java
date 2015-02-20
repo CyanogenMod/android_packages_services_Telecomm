@@ -102,6 +102,7 @@ public final class CallsManager extends Call.ListenerBase {
     private static final int MAXIMUM_DSDA_LIVE_CALLS = 2;
     private static final int MAXIMUM_DSDA_HOLD_CALLS = 2;
     private static final int MAXIMUM_TOP_LEVEL_CALLS = 2;
+    private static final int MAXIMUM_DSDA_TOP_LEVEL_CALLS = 4;
 
     private static final int[] OUTGOING_CALL_STATES =
             {CallState.CONNECTING, CallState.DIALING};
@@ -1115,7 +1116,12 @@ public final class CallsManager extends Call.ListenerBase {
             // we could put InCallServices into a state where they are showing two calls but
             // also support add-call. Technically it's right, but overall looks better (UI-wise)
             // and acts better if we wait until the call is removed.
-            if (count >= MAXIMUM_TOP_LEVEL_CALLS) {
+            if (TelephonyManager.getDefault().getMultiSimConfiguration()
+                    == TelephonyManager.MultiSimVariants.DSDA) {
+                if (count >= MAXIMUM_DSDA_TOP_LEVEL_CALLS) {
+                    return false;
+                }
+            } else if (count >= MAXIMUM_TOP_LEVEL_CALLS) {
                 return false;
             }
 
