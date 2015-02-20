@@ -386,7 +386,7 @@ public class TestConnectionService extends ConnectionService {
         if (mCalls.isEmpty() && mMediaPlayer != null && mMediaPlayer.isPlaying()) {
             mMediaPlayer.stop();
             mMediaPlayer.release();
-            mMediaPlayer = createMediaPlayer();
+            mMediaPlayer = null;
         }
 
         updateConferenceable();
