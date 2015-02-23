@@ -1433,6 +1433,9 @@ public final class BluetoothPhoneService extends Service {
                         callsManager.answerCall(ringingCall, 0);
                     } else if (backgroundCall != null) {
                         callsManager.unholdCall(backgroundCall);
+                    } else if (activeCall != null && activeCall.can(PhoneCapabilities.HOLD)) {
+                        Log.i(TAG, "Only active call, put that to hold");
+                        callsManager.holdCall(activeCall);
                     }
                 }
                 status = true;
