@@ -191,7 +191,7 @@ final class Ringer extends CallsManagerListenerBase {
                 // ringtones should be available by the time this code executes. We can safely
                 // request the custom ringtone from the call and expect it to be current.
                 try {
-                    int phoneId = SubscriptionManager.getPhoneId(Long.valueOf(
+                    int phoneId = SubscriptionManager.getPhoneId(Integer.valueOf(
                             foregroundCall.getTargetPhoneAccount().getId()));
                     mRingtonePlayer.setPhoneId(phoneId);
                 } catch (NumberFormatException e) {

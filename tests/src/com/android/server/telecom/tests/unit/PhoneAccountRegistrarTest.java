@@ -203,7 +203,6 @@ public class PhoneAccountRegistrarTest extends AndroidTestCase {
                 .setAddress(Uri.parse("http://foo.com/" + idx))
                 .setSubscriptionAddress(Uri.parse("tel:555-000" + idx))
                 .setCapabilities(idx)
-                .setIconResId(idx)
                 .setShortDescription("desc" + idx)
                 .build();
     }

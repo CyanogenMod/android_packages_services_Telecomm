@@ -35,13 +35,13 @@ package org.codeaurora.btmultisim;
  * {@hide}
  */
 interface IBluetoothDsdaService {
-    void setCurrentSub(long sub);
+    void setCurrentSub(int sub);
     void phoneSubChanged();
     void handleMultiSimPreciseCallStateChange(int ForegroundCallState,
             int RingingCallState, String RingingNumber, int NumberType,
             int BackgroundCallState, int numHeldCallsonSub);
     void processQueryPhoneState();
-    int getTotalCallsOnSub(long subId);
+    int getTotalCallsOnSub(int subId);
     boolean isSwitchSubAllowed();
     void switchSub();
     boolean canDoCallSwap();

@@ -271,15 +271,15 @@ public final class PhoneAccountRegistrar {
                 Log.i(this, "setDefaultVoicePhoneAccount, only emergency account present ");
                 return;
             }
-            Long subId = SubscriptionManager.getDefaultVoiceSubId();
+            int subId = SubscriptionManager.getDefaultVoiceSubId();
             try {
-                subId = Long.parseLong(mState.defaultOutgoing.getId());
+                subId = Integer.parseInt(mState.defaultOutgoing.getId());
             } catch (NumberFormatException e) {
                 Log.w(this, " NumberFormatException " + e);
             }
             Log.i(this, "set voice default subId as  " + subId + " prmotp = " + voicePrompt);
             if (SubscriptionManager.getDefaultVoiceSubId() != subId) {
-                SubscriptionManager.setDefaultVoiceSubId(subId);
+                mSubscriptionManager.setDefaultVoiceSubId(subId);
             }
             if (voicePrompt == true) {
                 SubscriptionManager.setVoicePromptEnabled(false);
@@ -971,7 +971,6 @@ public final class PhoneAccountRegistrar {
                         .setAddress(address)
                         .setSubscriptionAddress(subscriptionAddress)
                         .setCapabilities(capabilities)
-                        .setIconResId(iconResId)
                         .setShortDescription(shortDescription)
                         .setSupportedUriSchemes(supportedUriSchemes)
                         .build();

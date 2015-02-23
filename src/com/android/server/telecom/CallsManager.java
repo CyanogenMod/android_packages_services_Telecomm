@@ -17,6 +17,7 @@
 package com.android.server.telecom;
 
 import android.content.Context;
+import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -38,7 +39,6 @@ import android.telecom.TelecomManager;
 import android.telephony.TelephonyManager;
 
 import com.android.internal.telephony.CallStateException;
-import com.android.internal.telephony.Connection;
 import com.android.internal.telephony.PhoneConstants;
 import com.android.internal.telephony.TelephonyProperties;
 import com.android.internal.telephony.util.BlacklistUtils;
@@ -659,7 +659,7 @@ public final class CallsManager extends Call.ListenerBase {
             if (activeCall != null && activeCall != call &&
                     (activeCall.isActive() ||
                     activeCall.getState() == CallState.DIALING)) {
-                if (0 == (activeCall.getConnectionCapabilities() & Connection.HOLD)) {
+                if (0 == (activeCall.getConnectionCapabilities() & Connection.CAPABILITY_HOLD)) {
                     // This call does not support hold.  If it is from a different connection
                     // service, then disconnect it, otherwise allow the connection service to
                     // figure out the right states.
@@ -1694,7 +1694,7 @@ public final class CallsManager extends Call.ListenerBase {
                 return true;
             }
             // Try to hold the live call before attempting the new outgoing call.
-            if (liveCall.can(PhoneCapabilities.HOLD)) {
+            if (liveCall.can(Connection.CAPABILITY_HOLD)) {
                 liveCall.hold();
                 return true;
             }

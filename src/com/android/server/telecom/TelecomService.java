@@ -63,7 +63,8 @@ public class TelecomService extends Service {
     public static final String SERVICE_INTERFACE = "android.telecom.ITelecomService";
 
     private static final String REGISTER_PROVIDER_OR_SUBSCRIPTION =
-            android.Manifest.permission.REGISTER_PROVIDER_OR_SUBSCRIPTION;
+              "com.android.server.telecom.permission.REGISTER_PROVIDER_OR_SUBSCRIPTION";
+//            android.Manifest.permission.REGISTER_PROVIDER_OR_SUBSCRIPTION;
     /** The context. */
     private Context mContext;
 
@@ -205,16 +206,17 @@ public class TelecomService extends Service {
             }
         }
 
-        public long getActiveSubscription() {
+        public int getActiveSubscription() {
             enforceReadPermission();
             String activeSub = mCallsManager.getActiveSubscription();
-            return (activeSub == null) ? SubscriptionManager.INVALID_SUB_ID :
-                    Long.parseLong(activeSub);
+            return (activeSub == null) ? SubscriptionManager.INVALID_SUBSCRIPTION_ID :
+                    Integer.parseInt(activeSub);
         }
 
-        public void switchToOtherActiveSub(long subId) {
+        @Override
+        public void switchToOtherActiveSub(int subId) {
             enforceModifyPermission();
-            String activeSub = (subId == SubscriptionManager.INVALID_SUB_ID)
+            String activeSub = (subId == SubscriptionManager.INVALID_SUBSCRIPTION_ID)
                    ? null : String.valueOf(subId);
             mCallsManager.switchToOtherActiveSub(activeSub, false);
         }
@@ -401,8 +403,8 @@ public class TelecomService extends Service {
                     /* FIXME_L-MR1_INTERNAL, uncomment below line, when relevant change
                      * is merged
                      */
-                    //enforceRegisterSimSubscriptionPermission();
-                    enforceRegisterProviderOrSubscriptionPermission();
+                    enforceRegisterSimSubscriptionPermission();
+//                    enforceRegisterProviderOrSubscriptionPermission();
                 }
                 if (account.hasCapabilities(PhoneAccount.CAPABILITY_CONNECTION_MANAGER)) {
                     enforceRegisterConnectionManagerPermission();

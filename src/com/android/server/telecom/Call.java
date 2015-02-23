@@ -406,7 +406,6 @@ final class Call implements CreateConnectionResponse {
                 getChildCalls().size(),
                 getParentCall() != null,
                 Connection.capabilitiesToString(getConnectionCapabilities()),
-                PhoneCapabilities.toString(getCallCapabilities()),
                 mIsActiveSub,
                 mTargetPhoneAccountHandle,
                 getCallSubstate());

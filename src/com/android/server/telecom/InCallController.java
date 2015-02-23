@@ -499,7 +499,7 @@ public final class InCallController extends CallsManagerListenerBase {
         }
 
         if (call.isRespondViaSmsCapable()) {
-            capabilities |= PhoneCapabilities.RESPOND_VIA_TEXT;
+            capabilities |= android.telecom.Call.Details.CAPABILITY_RESPOND_VIA_TEXT;
         }
 
         Uri handle = call.getHandlePresentation() == TelecomManager.PRESENTATION_ALLOWED ?
@@ -611,26 +611,5 @@ public final class InCallController extends CallsManagerListenerBase {
      */
     private static int removeCapability(int capabilities, int capability) {
         return capabilities & ~capability;
-    }
-
-    /**
-     * Dumps the state of the {@link InCallController}.
-     *
-     * @param pw The {@code IndentingPrintWriter} to write the state to.
-     */
-    public void dump(IndentingPrintWriter pw) {
-        pw.println("mInCallServices (InCalls registered):");
-        pw.increaseIndent();
-        for (ComponentName componentName : mInCallServices.keySet()) {
-            pw.println(componentName);
-        }
-        pw.decreaseIndent();
-
-        pw.println("mServiceConnections (InCalls bound):");
-        pw.increaseIndent();
-        for (ComponentName componentName : mServiceConnections.keySet()) {
-            pw.println(componentName);
-        }
-        pw.decreaseIndent();
     }
 }
