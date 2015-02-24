@@ -238,12 +238,5 @@
             android:theme="@style/Theme.Telecomm.Transparent"
             android:excludeFromRecents="true"/>
 
-        <service android:name=".TelecomService"
-                android:singleUser="true">
-            <intent-filter>
-                <android android:name="android.telecom.ITelecomService" />
-            </intent-filter>
-        </service>
-
     </application>
 </manifest>

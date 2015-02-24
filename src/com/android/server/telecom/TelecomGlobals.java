@@ -21,6 +21,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.os.ServiceManager;
 import android.os.UserHandle;
 
 /**
@@ -37,7 +38,7 @@ public final class TelecomGlobals {
     /**
      * The Telecom service implementation.
      */
-    private TelecomService mTelecomService;
+    private TelecomServiceImpl mTelecomService;
 
     /**
      * Missed call notifier. Exists here so that the instance can be shared with
@@ -75,18 +76,22 @@ public final class TelecomGlobals {
 
     void initialize(Context context) {
         if (mContext != null) {
-            Log.e(TAG, new Exception(), "Attempting to intialize TelecomGlobals a second time.");
+            Log.e(TAG, null, "Attempting to intialize TelecomGlobals a second time.");
             return;
         } else {
             Log.i(TAG, "TelecomGlobals initializing");
         }
-        mContext = context.getApplicationContext();
+        mContext = context;
 
         mMissedCallNotifier = new MissedCallNotifier(mContext);
         mPhoneAccountRegistrar = new PhoneAccountRegistrar(mContext);
 
         mCallsManager = new CallsManager(mContext, mMissedCallNotifier, mPhoneAccountRegistrar);
         CallsManager.initialize(mCallsManager);
+
+        mTelecomService = new TelecomServiceImpl(mMissedCallNotifier, mPhoneAccountRegistrar,
+                mCallsManager, mContext);
+        ServiceManager.addService(Context.TELECOM_SERVICE, mTelecomService);
 
         // Start the BluetoothPhoneService
         BluetoothPhoneService.start(mContext);
@@ -100,9 +105,5 @@ public final class TelecomGlobals {
 
     PhoneAccountRegistrar getPhoneAccountRegistrar() {
         return mPhoneAccountRegistrar;
-    }
-
-    CallsManager getCallsManager() {
-        return mCallsManager;
     }
 }
