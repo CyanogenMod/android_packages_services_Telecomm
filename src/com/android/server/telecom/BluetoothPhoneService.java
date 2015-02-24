@@ -881,11 +881,8 @@ public final class BluetoothPhoneService extends Service {
      * phone account for PhoneAccount.SCHEME_TEL.
      */
     private PhoneAccount getBestPhoneAccount() {
-        PhoneAccountRegistrar registry = TelecomGlobals.getInstance().getPhoneAccountRegistrar();
-        if (registry == null) {
-            return null;
-        }
-
+        TelecomApp app = (TelecomApp) getApplication();
+        PhoneAccountRegistrar registry = app.getPhoneAccountRegistrar();
         Call call = getCallsManager().getForegroundCall();
 
         PhoneAccount account = null;
