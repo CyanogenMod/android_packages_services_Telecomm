@@ -62,9 +62,6 @@ public class TelecomService extends Service {
     @SdkConstant(SdkConstant.SdkConstantType.SERVICE_ACTION)
     public static final String SERVICE_INTERFACE = "android.telecom.ITelecomService";
 
-    private static final String REGISTER_PROVIDER_OR_SUBSCRIPTION =
-            "com.android.server.telecom.permission.REGISTER_PROVIDER_OR_SUBSCRIPTION";
-
     /** The context. */
     private Context mContext;
 
@@ -186,8 +183,6 @@ public class TelecomService extends Service {
     class TelecomServiceImpl extends ITelecomService.Stub {
         @Override
         public PhoneAccountHandle getDefaultOutgoingPhoneAccount(String uriScheme) {
-            enforceReadPermission();
-            long token = Binder.clearCallingIdentity();
             try {
                 PhoneAccountHandle defaultOutgoingPhoneAccount =
                         mPhoneAccountRegistrar.getDefaultOutgoingPhoneAccount(uriScheme);
@@ -201,23 +196,7 @@ public class TelecomService extends Service {
             } catch (Exception e) {
                 Log.e(this, e, "getDefaultOutgoingPhoneAccount");
                 throw e;
-            } finally {
-                Binder.restoreCallingIdentity(token);
             }
-        }
-
-        public long getActiveSubscription() {
-            enforceReadPermission();
-            String activeSub = mCallsManager.getActiveSubscription();
-            return (activeSub == null) ? SubscriptionManager.INVALID_SUB_ID :
-                    Long.parseLong(activeSub);
-        }
-
-        public void switchToOtherActiveSub(long subId) {
-            enforceModifyPermission();
-            String activeSub = (subId == SubscriptionManager.INVALID_SUB_ID)
-                   ? null : String.valueOf(subId);
-            mCallsManager.switchToOtherActiveSub(activeSub, false);
         }
 
         @Override
@@ -251,31 +230,23 @@ public class TelecomService extends Service {
 
         @Override
         public List<PhoneAccountHandle> getCallCapablePhoneAccounts() {
-            enforceReadPermission();
-            long token = Binder.clearCallingIdentity();
             try {
                 return filterForAccountsVisibleToCaller(
                         mPhoneAccountRegistrar.getCallCapablePhoneAccounts());
             } catch (Exception e) {
                 Log.e(this, e, "getCallCapablePhoneAccounts");
                 throw e;
-            } finally {
-                Binder.restoreCallingIdentity(token);
             }
         }
 
         @Override
         public List<PhoneAccountHandle> getPhoneAccountsSupportingScheme(String uriScheme) {
-            enforceReadPermission();
-            long token = Binder.clearCallingIdentity();
             try {
                 return filterForAccountsVisibleToCaller(
                         mPhoneAccountRegistrar.getCallCapablePhoneAccounts(uriScheme));
             } catch (Exception e) {
                 Log.e(this, e, "getPhoneAccountsSupportingScheme %s", uriScheme);
                 throw e;
-            } finally {
-                Binder.restoreCallingIdentity(token);
             }
         }
 
@@ -297,7 +268,7 @@ public class TelecomService extends Service {
                     Log.w(this, "%s is not visible for the calling user", accountHandle);
                     return null;
                 }
-                return mPhoneAccountRegistrar.getPhoneAccount(accountHandle);
+                return mPhoneAccountRegistrar.getPhoneAccountInternal(accountHandle);
             } catch (Exception e) {
                 Log.e(this, e, "getPhoneAccount %s", accountHandle);
                 throw e;
@@ -372,16 +343,12 @@ public class TelecomService extends Service {
 
         @Override
         public List<PhoneAccountHandle> getSimCallManagers() {
-            enforceReadPermission();
-            long token = Binder.clearCallingIdentity();
             try {
                 return filterForAccountsVisibleToCaller(
                         mPhoneAccountRegistrar.getConnectionManagerPhoneAccounts());
             } catch (Exception e) {
                 Log.e(this, e, "getSimCallManagers");
                 throw e;
-            } finally {
-                Binder.restoreCallingIdentity(token);
             }
         }
 
@@ -390,30 +357,18 @@ public class TelecomService extends Service {
             try {
                 enforcePhoneAccountModificationForPackage(
                         account.getAccountHandle().getComponentName().getPackageName());
-
-                /* FIXME_L-MR1_INTERNAL, uncomment below line, when relevant change
-                 * is merged
-                 */
-                /* if (account.hasCapabilities(PhoneAccount.CAPABILITY_CALL_PROVIDER)) {
+                if (account.hasCapabilities(PhoneAccount.CAPABILITY_CALL_PROVIDER)) {
                     enforceRegisterCallProviderPermission();
-                }*/
-                if (account.hasCapabilities(PhoneAccount.CAPABILITY_CALL_PROVIDER) ||
-                        account.hasCapabilities(PhoneAccount.CAPABILITY_SIM_SUBSCRIPTION)) {
-                    /* FIXME_L-MR1_INTERNAL, uncomment below line, when relevant change
-                     * is merged
-                     */
-                    //enforceRegisterSimSubscriptionPermission();
-                    enforceRegisterProviderOrSubscriptionPermission();
+                }
+                if (account.hasCapabilities(PhoneAccount.CAPABILITY_SIM_SUBSCRIPTION)) {
+                    enforceRegisterSimSubscriptionPermission();
                 }
                 if (account.hasCapabilities(PhoneAccount.CAPABILITY_CONNECTION_MANAGER)) {
                     enforceRegisterConnectionManagerPermission();
                 }
-                /* FIXME_L-MR1_INTERNAL, uncomment below line, when relevant change
-                 * is merged
-                 */
-                /*if (account.hasCapabilities(PhoneAccount.CAPABILITY_MULTI_USER)) {
+                if (account.hasCapabilities(PhoneAccount.CAPABILITY_MULTI_USER)) {
                     enforceRegisterMultiUser();
-                }*/
+                }
                 enforceUserHandleMatchesCaller(account.getAccountHandle());
 
                 mPhoneAccountRegistrar.registerPhoneAccount(account);
@@ -440,7 +395,7 @@ public class TelecomService extends Service {
         public void clearAccounts(String packageName) {
             try {
                 enforcePhoneAccountModificationForPackage(packageName);
-                mPhoneAccountRegistrar.clearAccounts(packageName);
+                mPhoneAccountRegistrar.clearAccounts(packageName, Binder.getCallingUserHandle());
             } catch (Exception e) {
                 Log.e(this, e, "clearAccounts %s", packageName);
                 throw e;
@@ -450,10 +405,7 @@ public class TelecomService extends Service {
         /**
          * @see android.telecom.TelecomManager#isVoiceMailNumber
          */
-        /* FIXME_L-MR1_INTERNAL, uncomment below code, when relevant change
-         * is merged
-         */
-        /* @Override
+        @Override
         public boolean isVoiceMailNumber(PhoneAccountHandle accountHandle, String number) {
             enforceReadPermissionOrDefaultDialer();
             try {
@@ -466,12 +418,12 @@ public class TelecomService extends Service {
                 Log.e(this, e, "getSubscriptionIdForPhoneAccount");
                 throw e;
             }
-        }*/
+        }
 
         /**
          * @see android.telecom.TelecomManager#hasVoiceMailNumber
          */
-        /* @Override
+        @Override
         public boolean hasVoiceMailNumber(PhoneAccountHandle accountHandle) {
             enforceReadPermissionOrDefaultDialer();
             try {
@@ -489,7 +441,7 @@ public class TelecomService extends Service {
                 Log.e(this, e, "getSubscriptionIdForPhoneAccount");
                 throw e;
             }
-        }*/
+        }
 
         /**
          * @see android.telecom.TelecomManager#silenceRinger
@@ -600,10 +552,7 @@ public class TelecomService extends Service {
         /**
          * @see android.telecom.TelecomManager#handleMmi
          */
-        /* FIXME_L-MR1_INTERNAL, uncomment below code, when relevant change
-         * is merged
-         */
-        /* @Override
+        @Override
         public boolean handlePinMmiForPhoneAccount(PhoneAccountHandle accountHandle,
                 String dialString) {
             enforceModifyPermissionOrDefaultDialer();
@@ -624,12 +573,12 @@ public class TelecomService extends Service {
             }
 
             return retval;
-        }*/
+        }
 
         /**
          * @see android.telecom.TelecomManager#getAdnUriForPhoneAccount
          */
-        /* @Override
+        @Override
         public Uri getAdnUriForPhoneAccount(PhoneAccountHandle accountHandle) {
             enforceModifyPermissionOrDefaultDialer();
 
@@ -649,7 +598,7 @@ public class TelecomService extends Service {
             }
 
             return Uri.parse(retval);
-        }*/
+        }
 
         /**
          * @see android.telecom.TelecomManager#isTtySupported
@@ -713,7 +662,7 @@ public class TelecomService extends Service {
                 intent.putExtras(extras);
                 intent.putExtra(CallReceiver.KEY_IS_UNKNOWN_CALL, true);
                 intent.putExtra(TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE, phoneAccountHandle);
-                mContext.sendBroadcastAsUser(intent, UserHandle.OWNER);
+                mContext.sendBroadcastAsUser(intent, phoneAccountHandle.getUserHandle());
             } else {
                 Log.i(this, "Null phoneAccountHandle or not initiated by Telephony. Ignoring request"
                         + " to add new unknown call.");
@@ -726,21 +675,15 @@ public class TelecomService extends Service {
     //
 
     private boolean isVisibleToCaller(PhoneAccountHandle accountHandle) {
-       /* FIXME_L-MR1_INTERNAL, uncomment below code, when relevant change
-        * is merged
-        */
-       /* if (accountHandle == null) {
+        if (accountHandle == null) {
             return false;
-        }*/
+        }
 
-        return true; //isVisibleToCaller(mPhoneAccountRegistrar.getPhoneAccountInternal(accountHandle));
+        return isVisibleToCaller(mPhoneAccountRegistrar.getPhoneAccountInternal(accountHandle));
     }
 
     private boolean isVisibleToCaller(PhoneAccount account) {
-       /* FIXME_L-MR1_INTERNAL, uncomment below code, when relevant change
-        * is merged
-        */
-        /*if (account == null) {
+        if (account == null) {
             return false;
         }
 
@@ -764,9 +707,9 @@ public class TelecomService extends Service {
             // Otherwise, it has to be owned by the current caller's profile.
             profileUserHandles = new ArrayList<>(1);
             profileUserHandles.add(Binder.getCallingUserHandle());
-        }*/
+        }
 
-        return true; //profileUserHandles.contains(phoneAccountUserHandle);
+        return profileUserHandles.contains(phoneAccountUserHandle);
     }
 
     /**
@@ -885,11 +828,6 @@ public class TelecomService extends Service {
         enforcePermission(android.Manifest.permission.REGISTER_CALL_PROVIDER);
     }
 
-
-    private void enforceRegisterProviderOrSubscriptionPermission() {
-        enforcePermission(REGISTER_PROVIDER_OR_SUBSCRIPTION);
-    }
-
     private void enforceRegisterSimSubscriptionPermission() {
         enforcePermission(android.Manifest.permission.REGISTER_SIM_SUBSCRIPTION);
     }
@@ -917,12 +855,9 @@ public class TelecomService extends Service {
     }
 
     private void enforceUserHandleMatchesCaller(PhoneAccountHandle accountHandle) {
-        /* FIXME_L-MR1_INTERNAL, uncomment below code, when relevant change
-         * is merged
-         */
-        /* if (!Binder.getCallingUserHandle().equals(accountHandle.getUserHandle())) {
+        if (!Binder.getCallingUserHandle().equals(accountHandle.getUserHandle())) {
             throw new SecurityException("Calling UserHandle does not match PhoneAccountHandle's");
-        }*/
+        }
     }
 
     private void enforceFeature(String feature) {
@@ -1014,10 +949,7 @@ public class TelecomService extends Service {
 
             pw.println("mPhoneAccountRegistrar: ");
             pw.increaseIndent();
-            /* FIXME_L-MR1_INTERNAL, uncomment below code, when relevant change
-             * is merged
-             */
-            // mPhoneAccountRegistrar.dump(pw);
+            mPhoneAccountRegistrar.dump(pw);
             pw.decreaseIndent();
         }
     }
