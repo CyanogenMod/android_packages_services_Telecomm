@@ -684,6 +684,12 @@ public class TelecomService extends Service {
                         + " to add new unknown call.");
             }
         }
+
+        @Override
+        public long getActiveSubscription() { return 0; }
+
+        @Override
+        public void switchToOtherActiveSub(long subId) { }
     }
 
     //

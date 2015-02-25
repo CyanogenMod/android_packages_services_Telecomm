@@ -297,9 +297,9 @@ public final class BluetoothPhoneService extends Service {
                             PhoneAccountHandle ph = account.getAccountHandle();
                             if (ph != null) {
                                 String subId = ph.getId();
-                                Long sub = SubscriptionManager.getDefaultVoiceSubId();
+                                int sub = SubscriptionManager.getDefaultVoiceSubId();
                                 try {
-                                    sub = Long.parseLong(subId);
+                                    sub = Integer.parseInt(subId);
                                 } catch (NumberFormatException e){
                                     Log.w(this, " NumberFormatException " + e);
                                 }

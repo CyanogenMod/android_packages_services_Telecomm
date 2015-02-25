@@ -129,7 +129,7 @@ public class AccountSelection extends Activity {
             PhoneAccountHandle accountHandle = getItem(position);
             PhoneAccount account = mTelecomManager.getPhoneAccount(accountHandle);
             textView.setText(account.getLabel());
-            imageView.setImageDrawable(account.getIcon(mContext));
+            imageView.setImageDrawable(account.createIconDrawable(mContext));
             return rowView;
         }
 
