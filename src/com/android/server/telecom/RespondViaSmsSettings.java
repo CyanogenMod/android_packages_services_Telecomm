@@ -27,105 +27,98 @@ import android.preference.PreferenceActivity;
 import android.view.Menu;
 import android.view.MenuItem;
 
-// TODO: Needed for move to system service: import com.android.internal.R;
+// TODO: This class is newly copied into Telecom (com.android.server.telecom) from it previous
+// location in Telephony (com.android.phone). User's preferences stored in the old location
+// will be lost. We need code here to migrate KLP -> LMP settings values.
 
 /**
- * Helper class to manage the "Respond via SMS Message" feature for incoming calls.
+ * Settings activity to manage the responses available for the "Respond via SMS Message" feature to
+ * respond to incoming calls.
  */
-public class RespondViaSmsSettings {
-    // TODO: This class is newly copied into Telecom (com.android.server.telecom) from it previous
-    // location in Telephony (com.android.phone). User's preferences stored in the old location
-    // will be lost. We need code here to migrate KLP -> LMP settings values.
+public class RespondViaSmsSettings extends PreferenceActivity
+        implements Preference.OnPreferenceChangeListener {
+    @Override
+    protected void onCreate(Bundle icicle) {
+        super.onCreate(icicle);
+        Log.d(this, "Settings: onCreate()...");
 
-    /**
-     * Settings activity under "Call settings" to let you manage the
-     * canned responses; see respond_via_sms_settings.xml
-     */
-    public static class Settings extends PreferenceActivity
-            implements Preference.OnPreferenceChangeListener {
-        @Override
-        protected void onCreate(Bundle icicle) {
-            super.onCreate(icicle);
-            Log.d(this, "Settings: onCreate()...");
+        // This function guarantees that QuickResponses will be in our
+        // SharedPreferences with the proper values considering there may be
+        // old QuickResponses in Telephony pre L.
+        QuickResponseUtils.maybeMigrateLegacyQuickResponses(this);
 
-            // This function guarantees that QuickResponses will be in our
-            // SharedPreferences with the proper values considering there may be
-            // old QuickResponses in Telephony pre L.
-            QuickResponseUtils.maybeMigrateLegacyQuickResponses(this);
+        getPreferenceManager().setSharedPreferencesName(
+                QuickResponseUtils.SHARED_PREFERENCES_NAME);
 
-            getPreferenceManager().setSharedPreferencesName(
-                    QuickResponseUtils.SHARED_PREFERENCES_NAME);
+        // This preference screen is ultra-simple; it's just 4 plain
+        // <EditTextPreference>s, one for each of the 4 "canned responses".
+        //
+        // The only nontrivial thing we do here is copy the text value of
+        // each of those EditTextPreferences and use it as the preference's
+        // "title" as well, so that the user will immediately see all 4
+        // strings when they arrive here.
+        //
+        // Also, listen for change events (since we'll need to update the
+        // title any time the user edits one of the strings.)
 
-            // This preference screen is ultra-simple; it's just 4 plain
-            // <EditTextPreference>s, one for each of the 4 "canned responses".
-            //
-            // The only nontrivial thing we do here is copy the text value of
-            // each of those EditTextPreferences and use it as the preference's
-            // "title" as well, so that the user will immediately see all 4
-            // strings when they arrive here.
-            //
-            // Also, listen for change events (since we'll need to update the
-            // title any time the user edits one of the strings.)
+        addPreferencesFromResource(R.xml.respond_via_sms_settings);
 
-            addPreferencesFromResource(R.xml.respond_via_sms_settings);
+        EditTextPreference pref;
+        pref = (EditTextPreference) findPreference(
+                QuickResponseUtils.KEY_CANNED_RESPONSE_PREF_1);
+        pref.setTitle(pref.getText());
+        pref.setOnPreferenceChangeListener(this);
 
-            EditTextPreference pref;
-            pref = (EditTextPreference) findPreference(
-                    QuickResponseUtils.KEY_CANNED_RESPONSE_PREF_1);
-            pref.setTitle(pref.getText());
-            pref.setOnPreferenceChangeListener(this);
+        pref = (EditTextPreference) findPreference(
+                QuickResponseUtils.KEY_CANNED_RESPONSE_PREF_2);
+        pref.setTitle(pref.getText());
+        pref.setOnPreferenceChangeListener(this);
 
-            pref = (EditTextPreference) findPreference(
-                    QuickResponseUtils.KEY_CANNED_RESPONSE_PREF_2);
-            pref.setTitle(pref.getText());
-            pref.setOnPreferenceChangeListener(this);
+        pref = (EditTextPreference) findPreference(
+                QuickResponseUtils.KEY_CANNED_RESPONSE_PREF_3);
+        pref.setTitle(pref.getText());
+        pref.setOnPreferenceChangeListener(this);
 
-            pref = (EditTextPreference) findPreference(
-                    QuickResponseUtils.KEY_CANNED_RESPONSE_PREF_3);
-            pref.setTitle(pref.getText());
-            pref.setOnPreferenceChangeListener(this);
+        pref = (EditTextPreference) findPreference(
+                QuickResponseUtils.KEY_CANNED_RESPONSE_PREF_4);
+        pref.setTitle(pref.getText());
+        pref.setOnPreferenceChangeListener(this);
 
-            pref = (EditTextPreference) findPreference(
-                    QuickResponseUtils.KEY_CANNED_RESPONSE_PREF_4);
-            pref.setTitle(pref.getText());
-            pref.setOnPreferenceChangeListener(this);
-
-            ActionBar actionBar = getActionBar();
-            if (actionBar != null) {
-                // android.R.id.home will be triggered in onOptionsItemSelected()
-                actionBar.setDisplayHomeAsUpEnabled(true);
-            }
+        ActionBar actionBar = getActionBar();
+        if (actionBar != null) {
+            // android.R.id.home will be triggered in onOptionsItemSelected()
+            actionBar.setDisplayHomeAsUpEnabled(true);
         }
+    }
 
-        // Preference.OnPreferenceChangeListener implementation
-        @Override
-        public boolean onPreferenceChange(Preference preference, Object newValue) {
-            Log.d(this, "onPreferenceChange: key = %s", preference.getKey());
-            Log.d(this, "  preference = '%s'", preference);
-            Log.d(this, "  newValue = '%s'", newValue);
+    // Preference.OnPreferenceChangeListener implementation
+    @Override
+    public boolean onPreferenceChange(Preference preference, Object newValue) {
+        Log.d(this, "onPreferenceChange: key = %s", preference.getKey());
+        Log.d(this, "  preference = '%s'", preference);
+        Log.d(this, "  newValue = '%s'", newValue);
 
-            EditTextPreference pref = (EditTextPreference) preference;
+        EditTextPreference pref = (EditTextPreference) preference;
 
-            // Copy the new text over to the title, just like in onCreate().
-            // (Watch out: onPreferenceChange() is called *before* the
-            // Preference itself gets updated, so we need to use newValue here
-            // rather than pref.getText().)
-            pref.setTitle((String) newValue);
+        // Copy the new text over to the title, just like in onCreate().
+        // (Watch out: onPreferenceChange() is called *before* the
+        // Preference itself gets updated, so we need to use newValue here
+        // rather than pref.getText().)
+        pref.setTitle((String) newValue);
 
-            return true;  // means it's OK to update the state of the Preference with the new value
+        return true;  // means it's OK to update the state of the Preference with the new value
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        final int itemId = item.getItemId();
+        switch (itemId) {
+            case android.R.id.home:
+                goUpToTopLevelSetting(this);
+                return true;
+            default:
         }
-
-        @Override
-        public boolean onOptionsItemSelected(MenuItem item) {
-            final int itemId = item.getItemId();
-            switch (itemId) {
-                case android.R.id.home:
-                    goUpToTopLevelSetting(this);
-                    return true;
-                default:
-            }
-            return super.onOptionsItemSelected(item);
-        }
+        return super.onOptionsItemSelected(item);
     }
 
     /**

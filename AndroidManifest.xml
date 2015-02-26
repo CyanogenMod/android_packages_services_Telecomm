@@ -193,7 +193,7 @@
             </intent-filter>
         </receiver>
 
-        <activity android:name=".RespondViaSmsSettings$Settings"
+        <activity android:name=".RespondViaSmsSettings"
                   android:label="@string/respond_via_sms_setting_title"
                   android:configChanges="orientation|screenSize|keyboardHidden"
                   android:theme="@style/Theme.Telecom.DialerSettings"
