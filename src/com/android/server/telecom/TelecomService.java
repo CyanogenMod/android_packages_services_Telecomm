@@ -62,6 +62,9 @@ public class TelecomService extends Service {
     @SdkConstant(SdkConstant.SdkConstantType.SERVICE_ACTION)
     public static final String SERVICE_INTERFACE = "android.telecom.ITelecomService";
 
+    private static final String PERMISSION_PROCESS_PHONE_ACCOUNT_REGISTRATION =
+            "android.permission.PROCESS_PHONE_ACCOUNT_REGISTRATION";
+
     /** The context. */
     private Context mContext;
 
@@ -388,6 +391,16 @@ public class TelecomService extends Service {
                 enforceUserHandleMatchesCaller(account.getAccountHandle());
 
                 mPhoneAccountRegistrar.registerPhoneAccount(account);
+
+                // Broadcast an intent indicating the phone account which was registered.
+                long token = Binder.clearCallingIdentity();
+                Intent intent = new Intent(TelecomManager.ACTION_PHONE_ACCOUNT_REGISTERED);
+                intent.putExtra(TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE,
+                        account.getAccountHandle());
+                Log.i(this, "Sending phone-account intent as user");
+                sendBroadcastAsUser(intent, UserHandle.ALL,
+                        PERMISSION_PROCESS_PHONE_ACCOUNT_REGISTRATION);
+                Binder.restoreCallingIdentity(token);
             } catch (Exception e) {
                 Log.e(this, e, "registerPhoneAccount %s", account);
                 throw e;

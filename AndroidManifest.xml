@@ -38,6 +38,7 @@
     <uses-permission android:name="android.permission.BIND_INCALL_SERVICE" />
     <uses-permission android:name="android.permission.MODIFY_PHONE_STATE" />
     <uses-permission android:name="android.permission.BROADCAST_CALLLOG_INFO" />
+    <uses-permission android:name="android.permission.BROADCAST_PHONE_ACCOUNT_REGISTRATION" />
 
     <permission
             android:name="android.permission.BROADCAST_CALLLOG_INFO"
@@ -47,6 +48,16 @@
     <permission
             android:name="android.permission.PROCESS_CALLLOG_INFO"
             android:label="Register to handle the broadcasted call type/duration information"
+            android:protectionLevel="signature|system"/>
+
+    <permission
+            android:name="android.permission.BROADCAST_PHONE_ACCOUNT_REGISTRATION"
+            android:label="Broadcast phone account registration"
+            android:protectionLevel="signature|system"/>
+
+    <permission
+            android:name="android.permission.PROCESS_PHONE_ACCOUNT_REGISTRATION"
+            android:label="Process phone account registration"
             android:protectionLevel="signature|system"/>
 
     <!-- Declare which SDK level this application was built against. This is needed so that IDEs
