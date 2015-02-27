@@ -589,7 +589,7 @@ public final class InCallController extends CallsManagerListenerBase {
         int callCapabilities = 0;
         for (int i = 0; i < CONNECTION_TO_CALL_CAPABILITY.length; i += 2) {
             if ((CONNECTION_TO_CALL_CAPABILITY[i] & connectionCapabilities) != 0) {
-                callCapabilities &= CONNECTION_TO_CALL_CAPABILITY[i + 1];
+                callCapabilities |= CONNECTION_TO_CALL_CAPABILITY[i + 1];
             }
         }
         return callCapabilities;
