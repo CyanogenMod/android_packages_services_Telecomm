@@ -70,7 +70,7 @@ public class CallReceiver extends BroadcastReceiver {
             clientExtras = intent.getBundleExtra(TelecomManager.EXTRA_OUTGOING_CALL_EXTRAS);
         }
         if (clientExtras == null) {
-            clientExtras = Bundle.EMPTY;
+            clientExtras = new Bundle();
         }
 
         final boolean isDefaultDialer = intent.getBooleanExtra(KEY_IS_DEFAULT_DIALER, false);
