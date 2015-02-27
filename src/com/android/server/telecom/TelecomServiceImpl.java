@@ -54,6 +54,9 @@ import java.util.List;
  * Implementation of the ITelecom interface.
  */
 public class TelecomServiceImpl {
+    private static final String PERMISSION_PROCESS_PHONE_ACCOUNT_REGISTRATION =
+            "android.permission.PROCESS_PHONE_ACCOUNT_REGISTRATION";
+
     /** The context. */
     private Context mContext;
 
@@ -370,6 +373,16 @@ public class TelecomServiceImpl {
                 enforceUserHandleMatchesCaller(account.getAccountHandle());
 
                 TelecomSystem.getInstance().getPhoneAccountRegistrar().registerPhoneAccount(account);
+
+                // Broadcast an intent indicating the phone account which was registered.
+                long token = Binder.clearCallingIdentity();
+                Intent intent = new Intent(TelecomManager.ACTION_PHONE_ACCOUNT_REGISTERED);
+                intent.putExtra(TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE,
+                        account.getAccountHandle());
+                Log.i(this, "Sending phone-account intent as user");
+                sendBroadcastAsUser(intent, UserHandle.ALL,
+                        PERMISSION_PROCESS_PHONE_ACCOUNT_REGISTRATION);
+                Binder.restoreCallingIdentity(token);
             } catch (Exception e) {
                 Log.e(this, e, "registerPhoneAccount %s", account);
                 throw e;
