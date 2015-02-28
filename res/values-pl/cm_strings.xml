@@ -17,6 +17,18 @@
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
   <string name="blacklist_title">Czarna lista</string>
+  <string name="blacklist_summary_disabled">Wyłączona</string>
   <string name="blacklist_summary">Przychodzące wiadomości z numerów znajdujących się na czarnej liście będą blokowane</string>
   <string name="blacklist_call_notification">Zablokowano połączenie od %s</string>
+  <string name="blacklist_call_notification_private_number">Zablokowano połączenie z prywatnego numeru</string>
+  <string name="blacklist_call_notification_unknown_number">Zablokowano połączenie z nieznanego numeru %s</string>
+  <string name="blacklist_call_notification_multiple"><xliff:g id="count">%d</xliff:g> połączeń zostało zablokowanych</string>
+  <string name="blacklist_message_notification">Zablokowano wiadomość od %s</string>
+  <string name="blacklist_message_notification_private_number">Zablokowano wiadomość od numeru prywatnego</string>
+  <string name="blacklist_message_notification_unknown_number">Zablokowano wiadomość od nieznanego numeru %s</string>
+  <string name="blacklist_message_notification_multiple"><xliff:g id="count">%d</xliff:g> wiadomości zablokowano</string>
+  <string name="blacklist_notification_list_private">Prywatne</string>
+  <string name="unblock_number">Odblokuj</string>
+  <string name="video_call_not_allowed_if_tty_enabled">Proszę wyłącz tryb TTY, aby nawiązać połączenie wideo.</string>
+  <string name="select_account_dialog_title">Wybierz konto</string>
 </resources>
