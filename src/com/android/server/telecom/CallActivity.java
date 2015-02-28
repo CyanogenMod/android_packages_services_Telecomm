@@ -227,8 +227,8 @@ public class CallActivity extends Activity {
     /**
      * Trampolines the intent to the broadcast receiver that runs only as the primary user.
      */
-    private boolean sendBroadcastToReceiver(Intent intent) {
-        intent.putExtra(CallReceiver.KEY_IS_INCOMING_CALL, false);
+    private boolean sendBroadcastToReceiver(Intent intent, boolean incoming) {
+        intent.putExtra(CallReceiver.KEY_IS_INCOMING_CALL, incoming);
         intent.setFlags(Intent.FLAG_RECEIVER_FOREGROUND);
         intent.setClass(this, CallReceiver.class);
         Log.d(this, "Sending broadcast as user to CallReceiver");
