@@ -187,11 +187,7 @@ public class CallActivity extends Activity {
 
         intent.putExtra(CallReceiver.KEY_IS_DEFAULT_DIALER, isDefaultDialer());
 
-        if (UserHandle.myUserId() == UserHandle.USER_OWNER) {
-            CallReceiver.processOutgoingCallIntent(getApplicationContext(), intent);
-        } else {
-            sendBroadcastToReceiver(intent);
-        }
+        sendBroadcastToReceiver(intent, false /* isIncoming */);
     }
 
     private boolean isTtyModeEnabled() {
@@ -202,11 +198,7 @@ public class CallActivity extends Activity {
     }
 
     private void processIncomingCallIntent(Intent intent) {
-        if (UserHandle.myUserId() == UserHandle.USER_OWNER) {
-            CallReceiver.processIncomingCallIntent(intent);
-        } else {
-            sendBroadcastToReceiver(intent);
-        }
+        sendBroadcastToReceiver(intent, true /* isIncoming */);
     }
 
     private boolean isDefaultDialer() {
