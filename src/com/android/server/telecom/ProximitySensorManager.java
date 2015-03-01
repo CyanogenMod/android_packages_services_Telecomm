@@ -28,8 +28,12 @@ public class ProximitySensorManager extends CallsManagerListenerBase {
 
     private final PowerManager.WakeLock mProximityWakeLock;
 
+    private boolean mTapToWakeOldState;
+
     public ProximitySensorManager(Context context) {
         PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
+
+        mTapToWakeOldState = false;
 
         if (pm.isWakeLockLevelSupported(PowerManager.PROXIMITY_SCREEN_OFF_WAKE_LOCK)) {
             mProximityWakeLock = pm.newWakeLock(
@@ -66,6 +70,9 @@ public class ProximitySensorManager extends CallsManagerListenerBase {
             mProximityWakeLock.acquire();
             if (isTapToWakeSupported() && TapToWake.isEnabled()) {
                 TapToWake.setEnabled(false);
+                mTapToWakeOldState = true;
+            } else {
+                mTapToWakeOldState = false;
             }
         } else {
             Log.i(this, "Proximity wake lock already acquired");
@@ -81,7 +88,7 @@ public class ProximitySensorManager extends CallsManagerListenerBase {
             return;
         }
         if (mProximityWakeLock.isHeld()) {
-            if (isTapToWakeSupported() && !TapToWake.isEnabled()) {
+            if (isTapToWakeSupported() && !TapToWake.isEnabled() && mTapToWakeOldState) {
                 TapToWake.setEnabled(true);
             }
             Log.i(this, "Releasing proximity wake lock");
