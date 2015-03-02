@@ -131,6 +131,18 @@ final class CreateConnectionProcessor {
         attemptNextPhoneAccount();
     }
 
+    boolean hasMorePhoneAccounts() {
+        return mAttemptRecordIterator.hasNext();
+    }
+
+    void continueProcessingIfPossible(CreateConnectionResponse response,
+            DisconnectCause disconnectCause) {
+        Log.v(this, "continueProcessingIfPossible");
+        mResponse = response;
+        mLastErrorDisconnectCause = disconnectCause;
+        attemptNextPhoneAccount();
+    }
+
     void abort() {
         Log.v(this, "abort");
 
