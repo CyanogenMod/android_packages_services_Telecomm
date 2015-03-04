@@ -657,11 +657,16 @@ public class TelecomService extends Service {
         public void addNewIncomingCall(PhoneAccountHandle phoneAccountHandle, Bundle extras) {
             Log.i(this, "Adding new incoming call with phoneAccountHandle %s", phoneAccountHandle);
             if (phoneAccountHandle != null && phoneAccountHandle.getComponentName() != null) {
-                mAppOpsManager.checkPackage(
-                        Binder.getCallingUid(), phoneAccountHandle.getComponentName().getPackageName());
-
-                // Make sure it doesn't cross the UserHandle boundary
-                enforceUserHandleMatchesCaller(phoneAccountHandle);
+                // TODO(sail): Add unit tests for adding incoming calls from a SIM call manager.
+                if (isCallerSimCallManager() && TelephonyUtil.isPstnComponentName(
+                        phoneAccountHandle.getComponentName())) {
+                    Log.v(this, "Allowing call manager to add incoming call with PSTN handle");
+                } else {
+                    mAppOpsManager.checkPackage(Binder.getCallingUid(),
+                            phoneAccountHandle.getComponentName().getPackageName());
+                    // Make sure it doesn't cross the UserHandle boundary
+                    enforceUserHandleMatchesCaller(phoneAccountHandle);
+                }
 
                 Intent intent = new Intent(TelecomManager.ACTION_INCOMING_CALL);
                 intent.putExtra(TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE, phoneAccountHandle);
@@ -930,6 +935,19 @@ public class TelecomService extends Service {
             throw new UnsupportedOperationException(
                     "System does not support feature " + feature);
         }
+    }
+
+    private boolean isCallerSimCallManager() {
+        PhoneAccountHandle accountHandle = mPhoneAccountRegistrar.getSimCallManager();
+        if (accountHandle != null) {
+            try {
+                mAppOpsManager.checkPackage(
+                        Binder.getCallingUid(), accountHandle.getComponentName().getPackageName());
+                return true;
+            } catch (SecurityException e) {
+            }
+        }
+        return false;
     }
 
     private boolean isDefaultDialerCalling() {
