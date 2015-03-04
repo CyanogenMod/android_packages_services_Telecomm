@@ -615,6 +615,12 @@ public final class InCallController extends CallsManagerListenerBase {
 
         Connection.CAPABILITY_DISCONNECT_FROM_CONFERENCE,
         android.telecom.Call.Details.CAPABILITY_DISCONNECT_FROM_CONFERENCE,
+
+        Connection.CALL_TYPE_MODIFIABLE,
+        android.telecom.Call.Details.CALL_TYPE_MODIFIABLE,
+
+        Connection.ADD_PARTICIPANT,
+        android.telecom.Call.Details.ADD_PARTICIPANT,
     };
 
     private static int convertConnectionToCallCapabilities(int connectionCapabilities) {
