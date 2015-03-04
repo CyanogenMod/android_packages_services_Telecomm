@@ -467,7 +467,6 @@ public final class InCallController extends CallsManagerListenerBase {
     private ParcelableCall toParcelableCall(Call call, boolean includeVideoProvider) {
         String callId = mCallIdMapper.getCallId(call);
 
-        int state = call.getState();
         int capabilities = convertConnectionToCallCapabilities(call.getConnectionCapabilities());
 
         // If this is a single-SIM device, the "default SIM" will always be the only SIM.
@@ -487,6 +486,7 @@ public final class InCallController extends CallsManagerListenerBase {
                     capabilities, android.telecom.Call.Details.CAPABILITY_MUTE);
         }
 
+        int state = call.getState();
         if (state == CallState.DIALING) {
             capabilities = removeCapability(
                     capabilities, android.telecom.Call.Details.CAPABILITY_SUPPORTS_VT_LOCAL);
@@ -496,7 +496,6 @@ public final class InCallController extends CallsManagerListenerBase {
 
         int properties = call.isConference() ? CallProperties.CONFERENCE : 0;
 
-        int state = call.getState();
         if (state == CallState.ABORTED) {
             state = CallState.DISCONNECTED;
         }
@@ -605,60 +604,6 @@ public final class InCallController extends CallsManagerListenerBase {
         Connection.CAPABILITY_SUPPORTS_VT_REMOTE,
         android.telecom.Call.Details.CAPABILITY_SUPPORTS_VT_REMOTE,
 
-        Connection.CAPABILITY_VoLTE,
-        android.telecom.Call.Details.CAPABILITY_VoLTE,
-
-        Connection.CAPABILITY_VoWIFI,
-        android.telecom.Call.Details.CAPABILITY_VoWIFI,
-
-        Connection.CAPABILITY_SEPARATE_FROM_CONFERENCE,
-        android.telecom.Call.Details.CAPABILITY_SEPARATE_FROM_CONFERENCE,
-
-        Connection.CAPABILITY_DISCONNECT_FROM_CONFERENCE,
-        android.telecom.Call.Details.CAPABILITY_DISCONNECT_FROM_CONFERENCE,
-    };
-
-    private static int convertConnectionToCallCapabilities(int connectionCapabilities) {
-        int callCapabilities = 0;
-        for (int i = 0; i < CONNECTION_TO_CALL_CAPABILITY.length; i += 2) {
-            if ((CONNECTION_TO_CALL_CAPABILITY[i] & connectionCapabilities) != 0) {
-                callCapabilities |= CONNECTION_TO_CALL_CAPABILITY[i + 1];
-            }
-        }
-        return callCapabilities;
-    }
-
-    private static final int[] CONNECTION_TO_CALL_CAPABILITY = new int[] {
-        Connection.CAPABILITY_HOLD,
-        android.telecom.Call.Details.CAPABILITY_HOLD,
-
-        Connection.CAPABILITY_SUPPORT_HOLD,
-        android.telecom.Call.Details.CAPABILITY_SUPPORT_HOLD,
-
-        Connection.CAPABILITY_MERGE_CONFERENCE,
-        android.telecom.Call.Details.CAPABILITY_MERGE_CONFERENCE,
-
-        Connection.CAPABILITY_SWAP_CONFERENCE,
-        android.telecom.Call.Details.CAPABILITY_SWAP_CONFERENCE,
-
-        Connection.CAPABILITY_UNUSED,
-        android.telecom.Call.Details.CAPABILITY_UNUSED,
-
-        Connection.CAPABILITY_RESPOND_VIA_TEXT,
-        android.telecom.Call.Details.CAPABILITY_RESPOND_VIA_TEXT,
-
-        Connection.CAPABILITY_MUTE,
-        android.telecom.Call.Details.CAPABILITY_MUTE,
-
-        Connection.CAPABILITY_MANAGE_CONFERENCE,
-        android.telecom.Call.Details.CAPABILITY_MANAGE_CONFERENCE,
-
-        Connection.CAPABILITY_SUPPORTS_VT_LOCAL,
-        android.telecom.Call.Details.CAPABILITY_SUPPORTS_VT_LOCAL,
-
-        Connection.CAPABILITY_SUPPORTS_VT_REMOTE,
-        android.telecom.Call.Details.CAPABILITY_SUPPORTS_VT_REMOTE,
-
         Connection.CAPABILITY_HIGH_DEF_AUDIO,
         android.telecom.Call.Details.CAPABILITY_HIGH_DEF_AUDIO,
 
@@ -703,13 +648,6 @@ public final class InCallController extends CallsManagerListenerBase {
     private static int removeCapability(int capabilities, int capability) {
         return capabilities & ~capability;
 
-    }
-
-    /**
-     * Removes the specified capability from the set of capabilities bits and returns the new set.
-     */
-    private static int removeCapability(int capabilities, int capability) {
-        return capabilities & ~capability;
     }
 
     /**
