@@ -629,8 +629,6 @@ public final class BluetoothPhoneService extends Service {
                 callsManager.disconnectCall(activeCall);
                 if (ringingCall != null) {
                     callsManager.answerCall(ringingCall, ringingCall.getVideoState());
-                } else if (heldCall != null) {
-                    callsManager.unholdCall(heldCall);
                 }
                 return true;
             }
@@ -1401,8 +1399,6 @@ public final class BluetoothPhoneService extends Service {
                         callsManager.disconnectCall(activeCall);
                         if (ringingCall != null) {
                             callsManager.answerCall(ringingCall, 0);
-                        } else if (backgroundCall != null) {
-                            callsManager.unholdCall(backgroundCall);
                         }
                     }
                 }
