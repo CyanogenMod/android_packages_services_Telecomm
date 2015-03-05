@@ -118,6 +118,7 @@ public final class CallsManager extends Call.ListenerBase {
             new ConcurrentHashMap<CallsManagerListener, Boolean>(16, 0.9f, 1));
     private final HeadsetMediaButton mHeadsetMediaButton;
     private final WiredHeadsetManager mWiredHeadsetManager;
+    private final DockManager mDockManager;
     private final TtyManager mTtyManager;
     private final ProximitySensorManager mProximitySensorManager;
     private final PhoneStateBroadcaster mPhoneStateBroadcaster;
@@ -164,7 +165,9 @@ public final class CallsManager extends Call.ListenerBase {
         mMissedCallNotifier = missedCallNotifier;
         StatusBarNotifier statusBarNotifier = new StatusBarNotifier(context, this);
         mWiredHeadsetManager = new WiredHeadsetManager(context);
-        mCallAudioManager = new CallAudioManager(context, statusBarNotifier, mWiredHeadsetManager);
+        mDockManager = new DockManager(context);
+        mCallAudioManager = new CallAudioManager(
+                context, statusBarNotifier, mWiredHeadsetManager, mDockManager);
         InCallTonePlayer.Factory playerFactory = new InCallTonePlayer.Factory(mCallAudioManager);
         mRinger = new Ringer(mCallAudioManager, this, playerFactory, context);
         mHeadsetMediaButton = new HeadsetMediaButton(context, this);
@@ -592,8 +595,14 @@ public final class CallsManager extends Call.ListenerBase {
 
         call.setHandle(uriHandle);
         call.setGatewayInfo(gatewayInfo);
-        call.setStartWithSpeakerphoneOn(speakerphoneOn);
         call.setVideoState(videoState);
+
+        if (speakerphoneOn) {
+            Log.i(this, "%s Starting with speakerphone as requested", call);
+        } else {
+            Log.i(this, "%s Starting with speakerphone because car is docked.", call);
+        }
+        call.setStartWithSpeakerphoneOn(speakerphoneOn || mDockManager.isDocked());
 
         boolean isEmergencyCall = TelephonyUtil.shouldProcessAsEmergency(mContext,
                 call.getHandle());
