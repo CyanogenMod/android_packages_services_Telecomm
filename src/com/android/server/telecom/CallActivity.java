@@ -90,26 +90,7 @@ public class CallActivity extends Activity {
         if (Intent.ACTION_CALL.equals(action) ||
                 Intent.ACTION_CALL_PRIVILEGED.equals(action) ||
                 Intent.ACTION_CALL_EMERGENCY.equals(action)) {
-        boolean isAddParticipant = intent.getBooleanExtra(
-                TelephonyProperties.ADD_PARTICIPANT_KEY, false);
-        Log.d(this, "isAddparticipant = "+isAddParticipant);
-        if (isAddParticipant) {
-            String number = PhoneNumberUtils.getNumberFromIntent(intent, this);
-            boolean isConferenceUri = intent.getBooleanExtra(
-                    TelephonyProperties.EXTRA_DIAL_CONFERENCE_URI, false);
-            if (!isConferenceUri) {
-                number = PhoneNumberUtils.stripSeparators(number);
-            }
-            CallsManager callsManager = CallsManager.getInstance();
-            if (callsManager != null) {
-                callsManager.addParticipant(number);
-                callsManager.getInCallController().bringToForeground(false);
-            } else {
-                Log.w(this, "CallsManager is null, can't process add Participant");
-            }
-        } else {
             processOutgoingCallIntent(intent);
-        }
         }
     }
 
