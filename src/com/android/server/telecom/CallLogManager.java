@@ -146,7 +146,10 @@ final class CallLogManager extends CallsManagerListenerBase {
         final int presentation = getPresentation(call);
         final PhoneAccountHandle accountHandle = call.getTargetPhoneAccount();
 
-        int volteCapabilities = call.getConnectionCapabilities() & Connection.CAPABILITY_VoLTE;
+        // FIXME if any further issues
+        //int volteCapabilities = call.getConnectionCapabilities() & Connection.CAPABILITY_VoLTE;
+        int volteCapabilities = call.getConnectionCapabilities() &
+                Connection.CAPABILITY_HIGH_DEF_AUDIO;
         Log.d(TAG, "callCapabilities: " + call.getConnectionCapabilities()
                 + "volteCapability: " + volteCapabilities);
         if (volteCapabilities != 0){
