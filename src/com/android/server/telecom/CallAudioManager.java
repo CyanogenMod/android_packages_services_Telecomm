@@ -30,13 +30,14 @@ import java.util.Objects;
  * This class manages audio modes, streams and other properties.
  */
 final class CallAudioManager extends CallsManagerListenerBase
-        implements WiredHeadsetManager.Listener {
+        implements WiredHeadsetManager.Listener, DockManager.Listener {
     private static final int STREAM_NONE = -1;
 
     private final StatusBarNotifier mStatusBarNotifier;
     private final AudioManager mAudioManager;
     private final BluetoothManager mBluetoothManager;
     private final WiredHeadsetManager mWiredHeadsetManager;
+    private final DockManager mDockManager;
 
     private AudioState mAudioState;
     private int mAudioFocusStreamType;
@@ -46,12 +47,14 @@ final class CallAudioManager extends CallsManagerListenerBase
     private int mMostRecentlyUsedMode = AudioManager.MODE_IN_CALL;
 
     CallAudioManager(Context context, StatusBarNotifier statusBarNotifier,
-            WiredHeadsetManager wiredHeadsetManager) {
+            WiredHeadsetManager wiredHeadsetManager, DockManager DockManager) {
         mStatusBarNotifier = statusBarNotifier;
         mAudioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
         mBluetoothManager = new BluetoothManager(context, this);
         mWiredHeadsetManager = wiredHeadsetManager;
         mWiredHeadsetManager.addListener(this);
+        mDockManager = DockManager;
+        mDockManager.addListener(this);
 
         saveAudioState(getInitialAudioState(null));
         mAudioFocusStreamType = STREAM_NONE;
@@ -161,6 +164,27 @@ final class CallAudioManager extends CallsManagerListenerBase
         // We need to call this every time even if we do not change the route because the supported
         // routes changed either to include or not include WIRED_HEADSET.
         setSystemAudioState(mAudioState.isMuted(), newRoute, calculateSupportedRoutes());
+    }
+
+    @Override
+    public void onDockChanged(boolean isDocked) {
+        // This can happen even when there are no calls and we don't have focus.
+        if (!hasFocus()) {
+            return;
+        }
+
+        if (isDocked) {
+            // Device just docked, turn to speakerphone. Only do so if the route is currently
+            // earpiece so that we dont switch out of a BT headset or a wired headset.
+            if (mAudioState.route == AudioState.ROUTE_EARPIECE) {
+                setAudioRoute(AudioState.ROUTE_SPEAKER);
+            }
+        } else {
+            // Device just undocked, remove from speakerphone if possible.
+            if (mAudioState.route == AudioState.ROUTE_SPEAKER) {
+                setAudioRoute(AudioState.ROUTE_WIRED_OR_EARPIECE);
+            }
+        }
     }
 
     void toggleMute() {
