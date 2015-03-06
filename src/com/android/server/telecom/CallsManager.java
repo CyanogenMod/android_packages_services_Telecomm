@@ -975,7 +975,7 @@ public final class CallsManager extends Call.ListenerBase {
         return true;
     }
 
-    Call getRingingCall() {
+    public Call getRingingCall() {
         return getFirstCallWithState(CallState.RINGING);
     }
 

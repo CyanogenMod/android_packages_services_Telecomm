@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.android.server.telecom;
+package com.android.server.telecom.tests.unit;
 
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;

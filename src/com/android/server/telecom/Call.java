@@ -60,7 +60,7 @@ import java.util.concurrent.ConcurrentHashMap;
  *  from the time the call intent was received by Telecom (vs. the time the call was
  *  connected etc).
  */
-final class Call implements CreateConnectionResponse {
+public final class Call implements CreateConnectionResponse {
     /**
      * Listener for events on the call.
      */
