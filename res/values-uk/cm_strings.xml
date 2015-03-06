@@ -30,4 +30,5 @@
   <string name="blacklist_notification_list_private">Прихований номер</string>
   <string name="unblock_number">Розблокувати</string>
   <string name="video_call_not_allowed_if_tty_enabled">Будь-ласка, вимкніть режим TTY, щоб робити відео-дзвінки.</string>
+  <string name="select_account_dialog_title">Оберіть обліковий запис</string>
 </resources>
