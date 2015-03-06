@@ -380,7 +380,7 @@ public class TelecomServiceImpl {
                 intent.putExtra(TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE,
                         account.getAccountHandle());
                 Log.i(this, "Sending phone-account intent as user");
-                sendBroadcastAsUser(intent, UserHandle.ALL,
+                mContext.sendBroadcastAsUser(intent, UserHandle.ALL,
                         PERMISSION_PROCESS_PHONE_ACCOUNT_REGISTRATION);
                 Binder.restoreCallingIdentity(token);
             } catch (Exception e) {
