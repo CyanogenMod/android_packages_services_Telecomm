@@ -938,7 +938,8 @@ public class TelecomServiceImpl {
     }
 
     private boolean isCallerSimCallManager() {
-        PhoneAccountHandle accountHandle = mPhoneAccountRegistrar.getSimCallManager();
+        PhoneAccountHandle accountHandle = TelecomSystem.getInstance().getPhoneAccountRegistrar()
+                .getSimCallManager();
         if (accountHandle != null) {
             try {
                 mAppOpsManager.checkPackage(
