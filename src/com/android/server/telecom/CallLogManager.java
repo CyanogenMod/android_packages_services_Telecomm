@@ -140,7 +140,13 @@ final class CallLogManager extends CallsManagerListenerBase {
 
         Log.d(TAG, "logNumber set to: %s", Log.pii(logNumber));
 
-        final PhoneAccountHandle accountHandle = call.getTargetPhoneAccount();
+        final PhoneAccountHandle emergencyAccountHandle =
+                TelephonyUtil.getDefaultEmergencyPhoneAccount().getAccountHandle();
+
+        PhoneAccountHandle accountHandle = call.getTargetPhoneAccount();
+        if (emergencyAccountHandle.equals(accountHandle)) {
+            accountHandle = null;
+        }
 
         // TODO(vt): Once data usage is available, wire it up here.
         int callFeatures = getCallFeatures(call.getVideoStateHistory());
