@@ -113,7 +113,7 @@ public class CallReceiver extends BroadcastReceiver {
             clientExtras = intent.getBundleExtra(TelecomManager.EXTRA_INCOMING_CALL_EXTRAS);
         }
         if (clientExtras == null) {
-            clientExtras = Bundle.EMPTY;
+            clientExtras = new Bundle();
         }
 
         Log.d(TAG, "Processing incoming call from connection service [%s]",
