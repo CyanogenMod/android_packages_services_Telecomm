@@ -581,8 +581,20 @@ public final class InCallController extends CallsManagerListenerBase {
         Connection.CAPABILITY_MANAGE_CONFERENCE,
         android.telecom.Call.Details.CAPABILITY_MANAGE_CONFERENCE,
 
+        Connection.CAPABILITY_SUPPORTS_VT_LOCAL_RX,
+        android.telecom.Call.Details.CAPABILITY_SUPPORTS_VT_LOCAL_RX,
+
+        Connection.CAPABILITY_SUPPORTS_VT_LOCAL_TX,
+        android.telecom.Call.Details.CAPABILITY_SUPPORTS_VT_LOCAL_TX,
+
         Connection.CAPABILITY_SUPPORTS_VT_LOCAL,
         android.telecom.Call.Details.CAPABILITY_SUPPORTS_VT_LOCAL,
+
+        Connection.CAPABILITY_SUPPORTS_VT_REMOTE_RX,
+        android.telecom.Call.Details.CAPABILITY_SUPPORTS_VT_REMOTE_RX,
+
+        Connection.CAPABILITY_SUPPORTS_VT_REMOTE_TX,
+        android.telecom.Call.Details.CAPABILITY_SUPPORTS_VT_REMOTE_TX,
 
         Connection.CAPABILITY_SUPPORTS_VT_REMOTE,
         android.telecom.Call.Details.CAPABILITY_SUPPORTS_VT_REMOTE,
