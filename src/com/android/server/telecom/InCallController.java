@@ -600,7 +600,10 @@ public final class InCallController extends CallsManagerListenerBase {
         android.telecom.Call.Details.CAPABILITY_DISCONNECT_FROM_CONFERENCE,
 
         Connection.CAPABILITY_GENERIC_CONFERENCE,
-        android.telecom.Call.Details.CAPABILITY_GENERIC_CONFERENCE
+        android.telecom.Call.Details.CAPABILITY_GENERIC_CONFERENCE,
+
+        Connection.CAPABILITY_SHOW_CALLBACK_NUMBER,
+        android.telecom.Call.Details.CAPABILITY_SHOW_CALLBACK_NUMBER
     };
 
     private static int convertConnectionToCallCapabilities(int connectionCapabilities) {
