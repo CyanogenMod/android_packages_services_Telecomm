@@ -139,10 +139,12 @@ public final class InCallController extends CallsManagerListenerBase {
     private final ComponentName mInCallComponentName;
 
     private final Context mContext;
+    private final TelecomSystem.SyncRoot mLock;
     private final CallsManager mCallsManager;
 
-    public InCallController(Context context, CallsManager callsManager) {
+    public InCallController(Context context, TelecomSystem.SyncRoot lock, CallsManager callsManager) {
         mContext = context;
+        mLock = lock;
         mCallsManager = callsManager;
         Resources resources = mContext.getResources();
 
@@ -260,7 +262,6 @@ public final class InCallController extends CallsManagerListenerBase {
      * Unbinds an existing bound connection to the in-call app.
      */
     private void unbind() {
-        ThreadUtil.checkOnMainThread();
         Iterator<Map.Entry<ComponentName, InCallServiceConnection>> iterator =
             mServiceConnections.entrySet().iterator();
         while (iterator.hasNext()) {
@@ -278,7 +279,6 @@ public final class InCallController extends CallsManagerListenerBase {
      * @param call The newly added call that triggered the binding to the in-call services.
      */
     private void bind(Call call) {
-        ThreadUtil.checkOnMainThread();
         if (mInCallServices.isEmpty()) {
             PackageManager packageManager = mContext.getPackageManager();
             Intent serviceIntent = new Intent(InCallService.SERVICE_INTERFACE);
@@ -350,7 +350,6 @@ public final class InCallController extends CallsManagerListenerBase {
      * @param service The {@link IInCallService} implementation.
      */
     private void onConnected(ComponentName componentName, IBinder service) {
-        ThreadUtil.checkOnMainThread();
         Trace.beginSection("onConnected: " + componentName);
         Log.i(this, "onConnected to %s", componentName);
 
@@ -360,7 +359,8 @@ public final class InCallController extends CallsManagerListenerBase {
             inCallService.setInCallAdapter(
                     new InCallAdapter(
                             mCallsManager,
-                            mCallIdMapper));
+                            mCallIdMapper,
+                            mLock));
             mInCallServices.put(componentName, inCallService);
         } catch (RemoteException e) {
             Log.e(this, e, "Failed to set the in-call adapter.");
@@ -400,7 +400,6 @@ public final class InCallController extends CallsManagerListenerBase {
      */
     private void onDisconnected(ComponentName disconnectedComponent) {
         Log.i(this, "onDisconnected from %s", disconnectedComponent);
-        ThreadUtil.checkOnMainThread();
 
         if (mInCallServices.containsKey(disconnectedComponent)) {
             mInCallServices.remove(disconnectedComponent);

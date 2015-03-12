@@ -21,9 +21,12 @@ package com.android.server.telecom;
  */
 public interface MissedCallNotifier extends CallsManager.CallsManagerListener {
 
-    void setCallsManager(CallsManager callsManager);
-
     void clearMissedCalls();
 
     void showMissedCallNotification(Call call);
+
+    void updateOnStartup(
+            TelecomSystem.SyncRoot lock,
+            CallsManager callsManager,
+            ContactsAsyncHelper contactsAsyncHelper);
 }

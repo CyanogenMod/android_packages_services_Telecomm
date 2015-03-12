@@ -60,7 +60,7 @@ public final class TelephonyUtil {
         return pstnComponentName.equals(componentName);
     }
 
-    static boolean shouldProcessAsEmergency(Context context, Uri handle) {
+    public static boolean shouldProcessAsEmergency(Context context, Uri handle) {
         return handle != null && PhoneNumberUtils.isPotentialLocalEmergencyNumber(
                 context, handle.getSchemeSpecificPart());
     }

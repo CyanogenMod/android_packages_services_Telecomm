@@ -17,16 +17,16 @@ import android.telephony.PhoneNumberUtils;
 import android.widget.Toast;
 
 /**
- * Single point of entry for all outgoing and incoming calls. {@link UserCallIntentProcessor} serves
- * as a trampoline that captures call intents for individual users and forwards it to
- * the {@link CallIntentProcessor} which interacts with the rest of Telecom, both of which run only as
- * the primary user.
+ * Single point of entry for all outgoing and incoming calls.
+ * {@link com.android.server.telecom.components.UserCallIntentProcessor} serves as a trampoline that
+ * captures call intents for individual users and forwards it to the {@link CallIntentProcessor}
+ * which interacts with the rest of Telecom, both of which run only as the primary user.
  */
 public class CallIntentProcessor {
 
-    static final String KEY_IS_UNKNOWN_CALL = "is_unknown_call";
-    static final String KEY_IS_INCOMING_CALL = "is_incoming_call";
-    static final String KEY_IS_DEFAULT_DIALER = "is_default_dialer";
+    public static final String KEY_IS_UNKNOWN_CALL = "is_unknown_call";
+    public static final String KEY_IS_INCOMING_CALL = "is_incoming_call";
+    public static final String KEY_IS_DEFAULT_DIALER = "is_default_dialer";
 
     private final Context mContext;
     private final CallsManager mCallsManager;

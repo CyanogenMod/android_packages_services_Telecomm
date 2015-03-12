@@ -41,39 +41,54 @@ public class TelecomService extends Service implements TelecomSystem.Component {
     @Override
     public IBinder onBind(Intent intent) {
         Log.d(this, "onBind");
-        // We are guaranteed that the TelecomService will be started before any other
-        // components in this package because it is started and kept running by the system.
-        TelecomSystem.setInstance(
-                new TelecomSystem(
-                        this,
-                        new MissedCallNotifierImpl(getApplicationContext()),
-                        new HeadsetMediaButtonFactory() {
-                            @Override
-                            public HeadsetMediaButton create(Context context,
-                                    CallsManager callsManager) {
-                                return new HeadsetMediaButton(context, callsManager);
-                            }
-                        },
-                        new ProximitySensorManagerFactory() {
-                            @Override
-                            public ProximitySensorManager create(
-                                    Context context,
-                                    CallsManager callsManager) {
-                                return new ProximitySensorManager(context, callsManager);
-                            }
-                        },
-                        new InCallWakeLockControllerFactory() {
-                            @Override
-                            public InCallWakeLockController create(Context context,
-                                    CallsManager callsManager) {
-                                return new InCallWakeLockController(context, callsManager);
-                            }
-                        }));
-        // Start the BluetoothPhoneService
-        if (BluetoothAdapter.getDefaultAdapter() != null) {
-            startService(new Intent(this, BluetoothPhoneService.class));
+        initializeTelecomSystem(this);
+        synchronized (getTelecomSystem().getLock()) {
+            return getTelecomSystem().getTelecomServiceImpl().getBinder();
         }
-        return getTelecomSystem().getTelecomServiceImpl().getBinder();
+    }
+
+    /**
+     * This method is to be called by components (Activitys, Services, ...) to initialize the
+     * Telecom singleton. It should only be called on the main thread. As such, it is atomic
+     * and needs no synchronization -- it will either perform its initialization, after which
+     * the {@link TelecomSystem#getInstance()} will be initialized, or some other invocation of
+     * this method on the main thread will have happened strictly prior to it, and this method
+     * will be a benign no-op.
+     *
+     * @param context
+     */
+    static void initializeTelecomSystem(Context context) {
+        if (TelecomSystem.getInstance() == null) {
+            TelecomSystem.setInstance(
+                    new TelecomSystem(
+                            context,
+                            new MissedCallNotifierImpl(context.getApplicationContext()),
+                            new HeadsetMediaButtonFactory() {
+                                @Override
+                                public HeadsetMediaButton create(Context context,
+                                        CallsManager callsManager) {
+                                    return new HeadsetMediaButton(context, callsManager);
+                                }
+                            },
+                            new ProximitySensorManagerFactory() {
+                                @Override
+                                public ProximitySensorManager create(
+                                        Context context,
+                                        CallsManager callsManager) {
+                                    return new ProximitySensorManager(context, callsManager);
+                                }
+                            },
+                            new InCallWakeLockControllerFactory() {
+                                @Override
+                                public InCallWakeLockController create(Context context,
+                                        CallsManager callsManager) {
+                                    return new InCallWakeLockController(context, callsManager);
+                                }
+                            }));
+        }
+        if (BluetoothAdapter.getDefaultAdapter() != null) {
+            context.startService(new Intent(context, BluetoothPhoneService.class));
+        }
     }
 
     @Override

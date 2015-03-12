@@ -239,8 +239,6 @@ final class CallAudioManager extends CallsManagerListenerBase
      * @param isPlayingNew The status to set.
      */
     void setIsTonePlaying(boolean isPlayingNew) {
-        ThreadUtil.checkOnMainThread();
-
         if (mIsTonePlaying != isPlayingNew) {
             Log.v(this, "mIsTonePlaying %b -> %b.", mIsTonePlaying, isPlayingNew);
             mIsTonePlaying = isPlayingNew;

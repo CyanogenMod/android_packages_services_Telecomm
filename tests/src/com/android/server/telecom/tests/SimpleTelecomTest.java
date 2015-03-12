@@ -80,14 +80,10 @@ public class SimpleTelecomTest extends AndroidTestCase {
     ///////////////////////////////////////////////////////////////////////////
     // Telecom specific mock objects
 
-    @Mock
-    MissedCallNotifier mMissedCallNotifier;
-    @Mock
-    HeadsetMediaButtonFactory mHeadsetMediaButtonFactory;
-    @Mock
-    ProximitySensorManagerFactory mProximitySensorManagerFactory;
-    @Mock
-    InCallWakeLockControllerFactory mInCallWakeLockControllerFactory;
+    @Mock MissedCallNotifier mMissedCallNotifier;
+    @Mock HeadsetMediaButtonFactory mHeadsetMediaButtonFactory;
+    @Mock ProximitySensorManagerFactory mProximitySensorManagerFactory;
+    @Mock InCallWakeLockControllerFactory mInCallWakeLockControllerFactory;
     @Mock HeadsetMediaButton mHeadsetMediaButton;
     @Mock ProximitySensorManager mProximitySensorManager;
     @Mock InCallWakeLockController mInCallWakeLockController;
@@ -184,18 +180,13 @@ public class SimpleTelecomTest extends AndroidTestCase {
         when(mInCallService.queryLocalInterface(anyString()))
                 .thenReturn(mInCallService);
 
-        runOnMainThreadAndWait(new Runnable() {
-            @Override
-            public void run() {
-                mSystem = new TelecomSystem(
-                        mContextHolder.getTestDouble(),
-                        mMissedCallNotifier,
-                        mHeadsetMediaButtonFactory,
-                        mProximitySensorManagerFactory,
-                        mInCallWakeLockControllerFactory);
-                mSystem.getPhoneAccountRegistrar().registerPhoneAccount(mTestPhoneAccount);
-            }
-        });
+        mSystem = new TelecomSystem(
+                mContextHolder.getTestDouble(),
+                mMissedCallNotifier,
+                mHeadsetMediaButtonFactory,
+                mProximitySensorManagerFactory,
+                mInCallWakeLockControllerFactory);
+        mSystem.getPhoneAccountRegistrar().registerPhoneAccount(mTestPhoneAccount);
     }
 
     @Override
@@ -251,21 +242,16 @@ public class SimpleTelecomTest extends AndroidTestCase {
             }
         }).when(mInCallService).updateCall((ParcelableCall) any());
 
-        runOnMainThreadAndWait(new Runnable() {
-            @Override
-            public void run() {
-                // Start an outgoing phone call
-                String number = "650-555-1212";
-                Intent actionCallIntent = new Intent();
-                actionCallIntent.setData(Uri.parse("tel:" + number));
-                actionCallIntent.putExtra(Intent.EXTRA_PHONE_NUMBER, number);
-                actionCallIntent.putExtra(
-                        TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE,
-                        mTestPhoneAccount.getAccountHandle());
-                actionCallIntent.setAction(Intent.ACTION_CALL);
-                mSystem.getCallIntentProcessor().processIntent(actionCallIntent);
-            }
-        });
+        // Start an outgoing phone call
+        String number = "650-555-1212";
+        Intent actionCallIntent = new Intent();
+        actionCallIntent.setData(Uri.parse("tel:" + number));
+        actionCallIntent.putExtra(Intent.EXTRA_PHONE_NUMBER, number);
+        actionCallIntent.putExtra(
+                TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE,
+                mTestPhoneAccount.getAccountHandle());
+        actionCallIntent.setAction(Intent.ACTION_CALL);
+        mSystem.getCallIntentProcessor().processIntent(actionCallIntent);
 
         // Sanity check that the in-call adapter is now set
         assertNotNull(mIInCallAdapter);
@@ -297,28 +283,18 @@ public class SimpleTelecomTest extends AndroidTestCase {
                 anyBoolean());
 
         // Pass on the new outgoing call Intent
-        runOnMainThreadAndWait(new Runnable() {
-            @Override
-            public void run() {
-                // Set a dummy PendingResult so the BroadcastReceiver agrees to accept onReceive()
-                mNewOutgoingCallReceiver.setPendingResult(
-                        new BroadcastReceiver.PendingResult(0, "", null, 0, true, false, null, 0));
-                mNewOutgoingCallReceiver.setResultData(
-                        mNewOutgoingCallIntent.getStringExtra(Intent.EXTRA_PHONE_NUMBER));
-                mNewOutgoingCallReceiver.onReceive(
-                        mContextHolder.getTestDouble(),
-                        mNewOutgoingCallIntent);
-            }
-        });
+        // Set a dummy PendingResult so the BroadcastReceiver agrees to accept onReceive()
+        mNewOutgoingCallReceiver.setPendingResult(
+                new BroadcastReceiver.PendingResult(0, "", null, 0, true, false, null, 0));
+        mNewOutgoingCallReceiver.setResultData(
+                mNewOutgoingCallIntent.getStringExtra(Intent.EXTRA_PHONE_NUMBER));
+        mNewOutgoingCallReceiver.onReceive(
+                mContextHolder.getTestDouble(),
+                mNewOutgoingCallIntent);
 
-        runOnMainThreadAndWait(new Runnable() {
-            @Override
-            public void run() {
-                assertNotNull(mConnectionServiceAdapter);
-                assertNotNull(mConnectionRequest);
-                assertNotNull(mConnectionId);
-            }
-        });
+        assertNotNull(mConnectionServiceAdapter);
+        assertNotNull(mConnectionRequest);
+        assertNotNull(mConnectionId);
 
         mConnectionServiceAdapter.handleCreateConnectionComplete(
                 mConnectionId,
@@ -341,76 +317,28 @@ public class SimpleTelecomTest extends AndroidTestCase {
         mConnectionServiceAdapter.setDialing(mConnectionId);
         mConnectionServiceAdapter.setActive(mConnectionId);
 
-        runOnMainThreadAndWait(new Runnable() {
-            @Override
-            public void run() {
-                assertNotNull(mParcelableCall);
-                assertEquals(CallState.ACTIVE, mParcelableCall.getState());
-            }
-        });
+        assertNotNull(mParcelableCall);
+        assertEquals(CallState.ACTIVE, mParcelableCall.getState());
 
-        runOnMainThreadAndWait(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    mIInCallAdapter.disconnectCall(mParcelableCall.getId());
-                } catch (RemoteException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-        });
+        try {
+            mIInCallAdapter.disconnectCall(mParcelableCall.getId());
+        } catch (RemoteException e) {
+            throw new RuntimeException(e);
+        }
 
-        runOnMainThreadAndWait(new Runnable() {
-            @Override
-            public void run() {
-                assertNotNull(mParcelableCall);
-                assertEquals(CallState.ACTIVE, mParcelableCall.getState());
-                try {
-                    verify(mConnectionService).disconnect(mConnectionId);
-                } catch (RemoteException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-        });
+        assertNotNull(mParcelableCall);
+        assertEquals(CallState.ACTIVE, mParcelableCall.getState());
+        try {
+            verify(mConnectionService).disconnect(mConnectionId);
+        } catch (RemoteException e) {
+            throw new RuntimeException(e);
+        }
 
         mConnectionServiceAdapter.setDisconnected(
                 mConnectionId,
                 new DisconnectCause(DisconnectCause.LOCAL));
 
-        runOnMainThreadAndWait(new Runnable() {
-            @Override
-            public void run() {
-                assertEquals(CallState.DISCONNECTED, mParcelableCall.getState());
-            }
-        });
-    }
-
-    private void runOnMainThreadAndWait(Runnable task) {
-        runOn(mMainLooper, task);
-    }
-
-    private void runOnTestThreadAndWait(Runnable task) {
-        runOn(mTestLooper, task);
-    }
-
-    private  void runOn(Looper looper, final Runnable task) {
-        final Object lock = new Object();
-        synchronized (lock) {
-            new Handler(looper).post(new Runnable() {
-                @Override
-                public void run() {
-                    task.run();
-                    synchronized (lock) {
-                        lock.notifyAll();
-                    }
-                }
-            });
-            try {
-                lock.wait();
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-        }
+        assertEquals(CallState.DISCONNECTED, mParcelableCall.getState());
     }
 
     private String exceptionToString(Throwable t) {

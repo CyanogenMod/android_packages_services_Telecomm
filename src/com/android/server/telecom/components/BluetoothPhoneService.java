@@ -30,7 +30,9 @@ public final class BluetoothPhoneService extends Service implements TelecomSyste
 
     @Override
     public IBinder onBind(Intent intent) {
-        return getTelecomSystem().getBluetoothPhoneServiceImpl().getBinder();
+        synchronized (getTelecomSystem().getLock()) {
+            return getTelecomSystem().getBluetoothPhoneServiceImpl().getBinder();
+        }
     }
 
     @Override

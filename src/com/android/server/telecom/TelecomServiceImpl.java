@@ -57,364 +57,284 @@ public class TelecomServiceImpl {
     private static final String PERMISSION_PROCESS_PHONE_ACCOUNT_REGISTRATION =
             "android.permission.PROCESS_PHONE_ACCOUNT_REGISTRATION";
 
-    /** The context. */
-    private Context mContext;
-
-    /**
-     * A request object for use with {@link MainThreadHandler}. Requesters should wait() on the
-     * request after sending. The main thread will notify the request when it is complete.
-     */
-    private static final class MainThreadRequest {
-        /** The result of the request that is run on the main thread */
-        public Object result;
-        /** Object that can be used to store non-integer arguments */
-        public Object arg;
-    }
-
-    /**
-     * A handler that processes messages on the main thread. Since many of the method calls are not
-     * thread safe this is needed to shuttle the requests from the inbound binder threads to the
-     * main thread.
-     */
-    private final class MainThreadHandler extends Handler {
-        @Override
-        public void handleMessage(Message msg) {
-            if (msg.obj instanceof MainThreadRequest) {
-                MainThreadRequest request = (MainThreadRequest) msg.obj;
-                Object result = null;
-                switch (msg.what) {
-                    case MSG_SILENCE_RINGER:
-                        mCallsManager.getRinger().silence();
-                        break;
-                    case MSG_SHOW_CALL_SCREEN:
-                        mCallsManager.getInCallController().bringToForeground(msg.arg1 == 1);
-                        break;
-                    case MSG_END_CALL:
-                        result = endCallInternal();
-                        break;
-                    case MSG_ACCEPT_RINGING_CALL:
-                        acceptRingingCallInternal();
-                        break;
-                    case MSG_CANCEL_MISSED_CALLS_NOTIFICATION:
-                        mCallsManager.getMissedCallNotifier().clearMissedCalls();
-                        break;
-                    case MSG_IS_TTY_SUPPORTED:
-                        result = mCallsManager.isTtySupported();
-                        break;
-                    case MSG_GET_CURRENT_TTY_MODE:
-                        result = mCallsManager.getCurrentTtyMode();
-                        break;
-                    case MSG_NEW_INCOMING_CALL:
-                        if (request.arg == null || !(request.arg instanceof Intent)) {
-                            Log.w(this, "Invalid new incoming call request");
-                            break;
-                        }
-                        CallIntentProcessor.processIncomingCallIntent(
-                                mCallsManager,
-                                (Intent) request.arg);
-                        break;
-                }
-
-                if (result != null) {
-                    request.result = result;
-                    synchronized(request) {
-                        request.notifyAll();
-                    }
-                }
-            }
-        }
-    }
-
-    private static final String TAG = com.android.server.telecom.TelecomServiceImpl.class.getSimpleName();
-
-    private static final String SERVICE_NAME = "telecom";
-
-    private static final int MSG_SILENCE_RINGER = 1;
-    private static final int MSG_SHOW_CALL_SCREEN = 2;
-    private static final int MSG_END_CALL = 3;
-    private static final int MSG_ACCEPT_RINGING_CALL = 4;
-    private static final int MSG_CANCEL_MISSED_CALLS_NOTIFICATION = 5;
-    private static final int MSG_IS_TTY_SUPPORTED = 6;
-    private static final int MSG_GET_CURRENT_TTY_MODE = 7;
-    private static final int MSG_NEW_INCOMING_CALL = 8;
-
-    private final MainThreadHandler mMainThreadHandler = new MainThreadHandler();
-
-    private final AppOpsManager mAppOpsManager;
-    private final UserManager mUserManager;
-    private final PackageManager mPackageManager;
-    private final TelecomBinderImpl mBinderImpl;
-    private final CallsManager mCallsManager;
-    private final PhoneAccountRegistrar mPhoneAccountRegistrar;
-
-    public TelecomServiceImpl(
-            Context context,
-            CallsManager callsManager,
-            PhoneAccountRegistrar phoneAccountRegistrar) {
-        mContext = context;
-        mAppOpsManager = (AppOpsManager) mContext.getSystemService(Context.APP_OPS_SERVICE);
-        mBinderImpl = new TelecomBinderImpl();
-
-        mUserManager = (UserManager) mContext.getSystemService(Context.USER_SERVICE);
-        mPackageManager = mContext.getPackageManager();
-
-        mCallsManager = callsManager;
-        mPhoneAccountRegistrar = phoneAccountRegistrar;
-    }
-
-    public IBinder getBinder() {
-        return mBinderImpl;
-    }
-
-    /**
-     * Implementation of the ITelecomService interface.
-     * TODO: Reorganize this inner class to top of file.
-     */
-    class TelecomBinderImpl extends ITelecomService.Stub {
+    private final ITelecomService.Stub mBinderImpl = new ITelecomService.Stub() {
         @Override
         public PhoneAccountHandle getDefaultOutgoingPhoneAccount(String uriScheme) {
-            enforceReadPermission();
-            long token = Binder.clearCallingIdentity();
-            try {
-                PhoneAccountHandle defaultOutgoingPhoneAccount =
-                        mCallsManager.getPhoneAccountRegistrar().getDefaultOutgoingPhoneAccount(uriScheme);
-                // Make sure that the calling user can see this phone account.
-                if (defaultOutgoingPhoneAccount != null
-                        && !isVisibleToCaller(defaultOutgoingPhoneAccount)) {
-                    Log.w(this, "No account found for the calling user");
-                    return null;
+            synchronized (mLock) {
+                enforceReadPermission();
+                long token = Binder.clearCallingIdentity();
+                try {
+                    PhoneAccountHandle defaultOutgoingPhoneAccount =
+                            mPhoneAccountRegistrar.getDefaultOutgoingPhoneAccount(uriScheme);
+                    // Make sure that the calling user can see this phone account.
+                    if (defaultOutgoingPhoneAccount != null
+                            && !isVisibleToCaller(defaultOutgoingPhoneAccount)) {
+                        Log.w(this, "No account found for the calling user");
+                        return null;
+                    }
+                    return defaultOutgoingPhoneAccount;
+                } catch (Exception e) {
+                    Log.e(this, e, "getDefaultOutgoingPhoneAccount");
+                    throw e;
+                } finally {
+                    Binder.restoreCallingIdentity(token);
                 }
-                return defaultOutgoingPhoneAccount;
-            } catch (Exception e) {
-                Log.e(this, e, "getDefaultOutgoingPhoneAccount");
-                throw e;
-            } finally {
-                Binder.restoreCallingIdentity(token);
             }
         }
 
         @Override
         public PhoneAccountHandle getUserSelectedOutgoingPhoneAccount() {
-            try {
-                PhoneAccountHandle userSelectedOutgoingPhoneAccount =
-                        mCallsManager.getPhoneAccountRegistrar().getUserSelectedOutgoingPhoneAccount();
-                // Make sure that the calling user can see this phone account.
-                if (!isVisibleToCaller(userSelectedOutgoingPhoneAccount)) {
-                    Log.w(this, "No account found for the calling user");
-                    return null;
+            synchronized (mLock) {
+                try {
+                    PhoneAccountHandle userSelectedOutgoingPhoneAccount =
+                            mPhoneAccountRegistrar.getUserSelectedOutgoingPhoneAccount();
+                    // Make sure that the calling user can see this phone account.
+                    if (!isVisibleToCaller(userSelectedOutgoingPhoneAccount)) {
+                        Log.w(this, "No account found for the calling user");
+                        return null;
+                    }
+                    return userSelectedOutgoingPhoneAccount;
+                } catch (Exception e) {
+                    Log.e(this, e, "getUserSelectedOutgoingPhoneAccount");
+                    throw e;
                 }
-                return userSelectedOutgoingPhoneAccount;
-            } catch (Exception e) {
-                Log.e(this, e, "getUserSelectedOutgoingPhoneAccount");
-                throw e;
             }
         }
 
         @Override
         public void setUserSelectedOutgoingPhoneAccount(PhoneAccountHandle accountHandle) {
-            enforceModifyPermission();
-
-            try {
-                mCallsManager.getPhoneAccountRegistrar().setUserSelectedOutgoingPhoneAccount(accountHandle);
-            } catch (Exception e) {
-                Log.e(this, e, "setUserSelectedOutgoingPhoneAccount");
-                throw e;
+            synchronized (mLock) {
+                enforceModifyPermission();
+                try {
+                    mPhoneAccountRegistrar.setUserSelectedOutgoingPhoneAccount(accountHandle);
+                } catch (Exception e) {
+                    Log.e(this, e, "setUserSelectedOutgoingPhoneAccount");
+                    throw e;
+                }
             }
         }
 
         @Override
         public List<PhoneAccountHandle> getCallCapablePhoneAccounts() {
-            enforceReadPermission();
-            long token = Binder.clearCallingIdentity();
-            try {
-                return filterForAccountsVisibleToCaller(
-                        mCallsManager.getPhoneAccountRegistrar().getCallCapablePhoneAccounts());
-            } catch (Exception e) {
-                Log.e(this, e, "getCallCapablePhoneAccounts");
-                throw e;
-            } finally {
-                Binder.restoreCallingIdentity(token);
+            synchronized (mLock) {
+                enforceReadPermission();
+                long token = Binder.clearCallingIdentity();
+                try {
+                    return filterForAccountsVisibleToCaller(
+                            mPhoneAccountRegistrar.getCallCapablePhoneAccounts());
+                } catch (Exception e) {
+                    Log.e(this, e, "getCallCapablePhoneAccounts");
+                    throw e;
+                } finally {
+                    Binder.restoreCallingIdentity(token);
+                }
             }
         }
 
         @Override
         public List<PhoneAccountHandle> getPhoneAccountsSupportingScheme(String uriScheme) {
-            enforceReadPermission();
-            long token = Binder.clearCallingIdentity();
-            try {
-                return filterForAccountsVisibleToCaller(
-                        mCallsManager.getPhoneAccountRegistrar().getCallCapablePhoneAccounts(uriScheme));
-            } catch (Exception e) {
-                Log.e(this, e, "getPhoneAccountsSupportingScheme %s", uriScheme);
-                throw e;
-            } finally {
-                Binder.restoreCallingIdentity(token);
+            synchronized (mLock) {
+                enforceReadPermission();
+                long token = Binder.clearCallingIdentity();
+                try {
+                    return filterForAccountsVisibleToCaller(
+                            mPhoneAccountRegistrar.getCallCapablePhoneAccounts(uriScheme));
+                } catch (Exception e) {
+                    Log.e(this, e, "getPhoneAccountsSupportingScheme %s", uriScheme);
+                    throw e;
+                } finally {
+                    Binder.restoreCallingIdentity(token);
+                }
             }
         }
 
         @Override
         public List<PhoneAccountHandle> getPhoneAccountsForPackage(String packageName) {
-            try {
-                return filterForAccountsVisibleToCaller(
-                        mCallsManager.getPhoneAccountRegistrar().getPhoneAccountsForPackage(packageName));
-            } catch (Exception e) {
-                Log.e(this, e, "getPhoneAccountsForPackage %s", packageName);
-                throw e;
+            synchronized (mLock) {
+                try {
+                    return filterForAccountsVisibleToCaller(
+                            mPhoneAccountRegistrar.getPhoneAccountsForPackage(packageName));
+                } catch (Exception e) {
+                    Log.e(this, e, "getPhoneAccountsForPackage %s", packageName);
+                    throw e;
+                }
             }
         }
 
         @Override
         public PhoneAccount getPhoneAccount(PhoneAccountHandle accountHandle) {
-            try {
-                if (!isVisibleToCaller(accountHandle)) {
-                    Log.w(this, "%s is not visible for the calling user", accountHandle);
-                    return null;
+            synchronized (mLock) {
+                try {
+                    if (!isVisibleToCaller(accountHandle)) {
+                        Log.w(this, "%s is not visible for the calling user", accountHandle);
+                        return null;
+                    }
+                    return mPhoneAccountRegistrar.getPhoneAccountInternal(accountHandle);
+                } catch (Exception e) {
+                    Log.e(this, e, "getPhoneAccount %s", accountHandle);
+                    throw e;
                 }
-                return mCallsManager.getPhoneAccountRegistrar().getPhoneAccountInternal(accountHandle);
-            } catch (Exception e) {
-                Log.e(this, e, "getPhoneAccount %s", accountHandle);
-                throw e;
             }
         }
 
         @Override
         public int getAllPhoneAccountsCount() {
-            try {
-                // This list is pre-filtered for the calling user.
-                return getAllPhoneAccounts().size();
-            } catch (Exception e) {
-                Log.e(this, e, "getAllPhoneAccountsCount");
-                throw e;
+            synchronized (mLock) {
+                try {
+                    // This list is pre-filtered for the calling user.
+                    return getAllPhoneAccounts().size();
+                } catch (Exception e) {
+                    Log.e(this, e, "getAllPhoneAccountsCount");
+                    throw e;
+                }
             }
         }
 
         @Override
         public List<PhoneAccount> getAllPhoneAccounts() {
-            try {
-                List<PhoneAccount> allPhoneAccounts = mCallsManager.getPhoneAccountRegistrar().getAllPhoneAccounts();
-                List<PhoneAccount> profilePhoneAccounts = new ArrayList<>(allPhoneAccounts.size());
-                for (PhoneAccount phoneAccount : profilePhoneAccounts) {
-                    if (isVisibleToCaller(phoneAccount)) {
-                        profilePhoneAccounts.add(phoneAccount);
+            synchronized (mLock) {
+                try {
+                    List<PhoneAccount> allPhoneAccounts = mPhoneAccountRegistrar
+                            .getAllPhoneAccounts();
+                    List<PhoneAccount> profilePhoneAccounts = new ArrayList<>(
+                            allPhoneAccounts.size());
+                    for (PhoneAccount phoneAccount : profilePhoneAccounts) {
+                        if (isVisibleToCaller(phoneAccount)) {
+                            profilePhoneAccounts.add(phoneAccount);
+                        }
                     }
+                    return profilePhoneAccounts;
+                } catch (Exception e) {
+                    Log.e(this, e, "getAllPhoneAccounts");
+                    throw e;
                 }
-                return profilePhoneAccounts;
-            } catch (Exception e) {
-                Log.e(this, e, "getAllPhoneAccounts");
-                throw e;
             }
         }
 
         @Override
         public List<PhoneAccountHandle> getAllPhoneAccountHandles() {
-            try {
-                return filterForAccountsVisibleToCaller(
-                        mCallsManager.getPhoneAccountRegistrar().getAllPhoneAccountHandles());
-            } catch (Exception e) {
-                Log.e(this, e, "getAllPhoneAccounts");
-                throw e;
+            synchronized (mLock) {
+                try {
+                    return filterForAccountsVisibleToCaller(
+                            mPhoneAccountRegistrar.getAllPhoneAccountHandles());
+                } catch (Exception e) {
+                    Log.e(this, e, "getAllPhoneAccounts");
+                    throw e;
+                }
             }
         }
 
         @Override
         public PhoneAccountHandle getSimCallManager() {
-            try {
-                PhoneAccountHandle accountHandle = mCallsManager.getPhoneAccountRegistrar().getSimCallManager();
-                if (!isVisibleToCaller(accountHandle)) {
-                    Log.w(this, "%s is not visible for the calling user", accountHandle);
-                    return null;
+            synchronized (mLock) {
+                try {
+                    PhoneAccountHandle accountHandle = mPhoneAccountRegistrar.getSimCallManager();
+                    if (!isVisibleToCaller(accountHandle)) {
+                        Log.w(this, "%s is not visible for the calling user", accountHandle);
+                        return null;
+                    }
+                    return accountHandle;
+                } catch (Exception e) {
+                    Log.e(this, e, "getSimCallManager");
+                    throw e;
                 }
-                return accountHandle;
-            } catch (Exception e) {
-                Log.e(this, e, "getSimCallManager");
-                throw e;
             }
         }
 
         @Override
         public void setSimCallManager(PhoneAccountHandle accountHandle) {
-            enforceModifyPermission();
-
-            try {
-                mCallsManager.getPhoneAccountRegistrar().setSimCallManager(accountHandle);
-            } catch (Exception e) {
-                Log.e(this, e, "setSimCallManager");
-                throw e;
+            synchronized (mLock) {
+                enforceModifyPermission();
+                try {
+                    mPhoneAccountRegistrar.setSimCallManager(accountHandle);
+                } catch (Exception e) {
+                    Log.e(this, e, "setSimCallManager");
+                    throw e;
+                }
             }
         }
 
         @Override
         public List<PhoneAccountHandle> getSimCallManagers() {
-            enforceReadPermission();
-            long token = Binder.clearCallingIdentity();
-            try {
-                return filterForAccountsVisibleToCaller(
-                        mCallsManager.getPhoneAccountRegistrar().getConnectionManagerPhoneAccounts());
-            } catch (Exception e) {
-                Log.e(this, e, "getSimCallManagers");
-                throw e;
-            } finally {
-                Binder.restoreCallingIdentity(token);
+            synchronized (mLock) {
+                enforceReadPermission();
+                long token = Binder.clearCallingIdentity();
+                try {
+                    return filterForAccountsVisibleToCaller(
+                            mPhoneAccountRegistrar.getConnectionManagerPhoneAccounts());
+                } catch (Exception e) {
+                    Log.e(this, e, "getSimCallManagers");
+                    throw e;
+                } finally {
+                    Binder.restoreCallingIdentity(token);
+                }
             }
         }
 
         @Override
         public void registerPhoneAccount(PhoneAccount account) {
-            try {
-                enforcePhoneAccountModificationForPackage(
-                        account.getAccountHandle().getComponentName().getPackageName());
-                if (account.hasCapabilities(PhoneAccount.CAPABILITY_CALL_PROVIDER)) {
-                    enforceRegisterCallProviderPermission();
-                }
-                if (account.hasCapabilities(PhoneAccount.CAPABILITY_SIM_SUBSCRIPTION)) {
-                    enforceRegisterSimSubscriptionPermission();
-                }
-                if (account.hasCapabilities(PhoneAccount.CAPABILITY_CONNECTION_MANAGER)) {
-                    enforceRegisterConnectionManagerPermission();
-                }
-                if (account.hasCapabilities(PhoneAccount.CAPABILITY_MULTI_USER)) {
-                    enforceRegisterMultiUser();
-                }
-                enforceUserHandleMatchesCaller(account.getAccountHandle());
+            synchronized (mLock) {
+                try {
+                    enforcePhoneAccountModificationForPackage(
+                            account.getAccountHandle().getComponentName().getPackageName());
+                    if (account.hasCapabilities(PhoneAccount.CAPABILITY_CALL_PROVIDER)) {
+                        enforceRegisterCallProviderPermission();
+                    }
+                    if (account.hasCapabilities(PhoneAccount.CAPABILITY_SIM_SUBSCRIPTION)) {
+                        enforceRegisterSimSubscriptionPermission();
+                    }
+                    if (account.hasCapabilities(PhoneAccount.CAPABILITY_CONNECTION_MANAGER)) {
+                        enforceRegisterConnectionManagerPermission();
+                    }
+                    if (account.hasCapabilities(PhoneAccount.CAPABILITY_MULTI_USER)) {
+                        enforceRegisterMultiUser();
+                    }
+                    enforceUserHandleMatchesCaller(account.getAccountHandle());
 
-                mPhoneAccountRegistrar.registerPhoneAccount(account);
+                    mPhoneAccountRegistrar.registerPhoneAccount(account);
 
-                // Broadcast an intent indicating the phone account which was registered.
-                long token = Binder.clearCallingIdentity();
-                Intent intent = new Intent(TelecomManager.ACTION_PHONE_ACCOUNT_REGISTERED);
-                intent.putExtra(TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE,
-                        account.getAccountHandle());
-                Log.i(this, "Sending phone-account intent as user");
-                mContext.sendBroadcastAsUser(intent, UserHandle.ALL,
-                        PERMISSION_PROCESS_PHONE_ACCOUNT_REGISTRATION);
-                Binder.restoreCallingIdentity(token);
-            } catch (Exception e) {
-                Log.e(this, e, "registerPhoneAccount %s", account);
-                throw e;
+                    // Broadcast an intent indicating the phone account which was registered.
+                    long token = Binder.clearCallingIdentity();
+                    Intent intent = new Intent(TelecomManager.ACTION_PHONE_ACCOUNT_REGISTERED);
+                    intent.putExtra(TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE,
+                            account.getAccountHandle());
+                    Log.i(this, "Sending phone-account intent as user");
+                    mContext.sendBroadcastAsUser(intent, UserHandle.ALL,
+                            PERMISSION_PROCESS_PHONE_ACCOUNT_REGISTRATION);
+                    Binder.restoreCallingIdentity(token);
+                } catch (Exception e) {
+                    Log.e(this, e, "registerPhoneAccount %s", account);
+                    throw e;
+                }
             }
         }
 
         @Override
         public void unregisterPhoneAccount(PhoneAccountHandle accountHandle) {
-            try {
-                enforcePhoneAccountModificationForPackage(
-                        accountHandle.getComponentName().getPackageName());
-                enforceUserHandleMatchesCaller(accountHandle);
-                mCallsManager.getPhoneAccountRegistrar().unregisterPhoneAccount(accountHandle);
-            } catch (Exception e) {
-                Log.e(this, e, "unregisterPhoneAccount %s", accountHandle);
-                throw e;
+            synchronized (mLock) {
+                try {
+                    enforcePhoneAccountModificationForPackage(
+                            accountHandle.getComponentName().getPackageName());
+                    enforceUserHandleMatchesCaller(accountHandle);
+                    mPhoneAccountRegistrar.unregisterPhoneAccount(accountHandle);
+                } catch (Exception e) {
+                    Log.e(this, e, "unregisterPhoneAccount %s", accountHandle);
+                    throw e;
+                }
             }
         }
 
         @Override
         public void clearAccounts(String packageName) {
-            try {
-                enforcePhoneAccountModificationForPackage(packageName);
-                mCallsManager.getPhoneAccountRegistrar().clearAccounts(packageName, Binder.getCallingUserHandle());
-            } catch (Exception e) {
-                Log.e(this, e, "clearAccounts %s", packageName);
-                throw e;
+            synchronized (mLock) {
+                try {
+                    enforcePhoneAccountModificationForPackage(packageName);
+                    mPhoneAccountRegistrar
+                            .clearAccounts(packageName, Binder.getCallingUserHandle());
+                } catch (Exception e) {
+                    Log.e(this, e, "clearAccounts %s", packageName);
+                    throw e;
+                }
             }
         }
 
@@ -423,16 +343,18 @@ public class TelecomServiceImpl {
          */
         @Override
         public boolean isVoiceMailNumber(PhoneAccountHandle accountHandle, String number) {
-            enforceReadPermissionOrDefaultDialer();
-            try {
-                if (!isVisibleToCaller(accountHandle)) {
-                    Log.w(this, "%s is not visible for the calling user", accountHandle);
-                    return false;
+            synchronized (mLock) {
+                enforceReadPermissionOrDefaultDialer();
+                try {
+                    if (!isVisibleToCaller(accountHandle)) {
+                        Log.w(this, "%s is not visible for the calling user", accountHandle);
+                        return false;
+                    }
+                    return mPhoneAccountRegistrar.isVoiceMailNumber(accountHandle, number);
+                } catch (Exception e) {
+                    Log.e(this, e, "getSubscriptionIdForPhoneAccount");
+                    throw e;
                 }
-                return mCallsManager.getPhoneAccountRegistrar().isVoiceMailNumber(accountHandle, number);
-            } catch (Exception e) {
-                Log.e(this, e, "getSubscriptionIdForPhoneAccount");
-                throw e;
             }
         }
 
@@ -441,21 +363,24 @@ public class TelecomServiceImpl {
          */
         @Override
         public boolean hasVoiceMailNumber(PhoneAccountHandle accountHandle) {
-            enforceReadPermissionOrDefaultDialer();
-            try {
-                if (!isVisibleToCaller(accountHandle)) {
-                    Log.w(this, "%s is not visible for the calling user", accountHandle);
-                    return false;
-                }
+            synchronized (mLock) {
+                enforceReadPermissionOrDefaultDialer();
+                try {
+                    if (!isVisibleToCaller(accountHandle)) {
+                        Log.w(this, "%s is not visible for the calling user", accountHandle);
+                        return false;
+                    }
 
-                int subId = SubscriptionManager.getDefaultVoiceSubId();
-                if (accountHandle != null) {
-                    subId = mCallsManager.getPhoneAccountRegistrar().getSubscriptionIdForPhoneAccount(accountHandle);
+                    int subId = SubscriptionManager.getDefaultVoiceSubId();
+                    if (accountHandle != null) {
+                        subId = mPhoneAccountRegistrar
+                                .getSubscriptionIdForPhoneAccount(accountHandle);
+                    }
+                    return !TextUtils.isEmpty(getTelephonyManager().getVoiceMailNumber(subId));
+                } catch (Exception e) {
+                    Log.e(this, e, "getSubscriptionIdForPhoneAccount");
+                    throw e;
                 }
-                return !TextUtils.isEmpty(getTelephonyManager().getVoiceMailNumber(subId));
-            } catch (Exception e) {
-                Log.e(this, e, "getSubscriptionIdForPhoneAccount");
-                throw e;
             }
         }
 
@@ -465,16 +390,19 @@ public class TelecomServiceImpl {
         @Override
         public String getLine1Number(PhoneAccountHandle accountHandle) {
             enforceReadPermissionOrDefaultDialer();
-            try {
-                if (!isVisibleToCaller(accountHandle)) {
-                    Log.w(this, "%s is not visible for the calling user", accountHandle);
-                    return null;
+            synchronized (mLock) {
+                try {
+                    if (!isVisibleToCaller(accountHandle)) {
+                        Log.w(this, "%s is not visible for the calling user", accountHandle);
+                        return null;
+                    }
+                    int subId =
+                            mPhoneAccountRegistrar.getSubscriptionIdForPhoneAccount(accountHandle);
+                    return getTelephonyManager().getLine1NumberForSubscriber(subId);
+                } catch (Exception e) {
+                    Log.e(this, e, "getSubscriptionIdForPhoneAccount");
+                    throw e;
                 }
-                int subId = TelecomSystem.getInstance().getPhoneAccountRegistrar().getSubscriptionIdForPhoneAccount(accountHandle);
-                return getTelephonyManager().getLine1NumberForSubscriber(subId);
-            } catch (Exception e) {
-                Log.e(this, e, "getSubscriptionIdForPhoneAccount");
-                throw e;
             }
         }
 
@@ -483,9 +411,10 @@ public class TelecomServiceImpl {
          */
         @Override
         public void silenceRinger() {
-            Log.d(this, "silenceRinger");
-            enforceModifyPermission();
-            sendRequestAsync(MSG_SILENCE_RINGER, 0);
+            synchronized (mLock) {
+                enforceModifyPermission();
+                mCallsManager.getRinger().silence();
+            }
         }
 
         /**
@@ -493,6 +422,7 @@ public class TelecomServiceImpl {
          */
         @Override
         public ComponentName getDefaultPhoneApp() {
+            // No need to synchronize
             Resources resources = mContext.getResources();
             return new ComponentName(
                     resources.getString(R.string.ui_default_package),
@@ -504,12 +434,12 @@ public class TelecomServiceImpl {
          */
         @Override
         public boolean isInCall() {
-            enforceReadPermission();
-            // Do not use sendRequest() with this method since it could cause a deadlock with
-            // audio service, which we call into from the main thread: AudioManager.setMode().
-            final int callState = mCallsManager.getCallState();
-            return callState == TelephonyManager.CALL_STATE_OFFHOOK
-                    || callState == TelephonyManager.CALL_STATE_RINGING;
+            synchronized (mLock) {
+                enforceReadPermission();
+                final int callState = mCallsManager.getCallState();
+                return callState == TelephonyManager.CALL_STATE_OFFHOOK
+                        || callState == TelephonyManager.CALL_STATE_RINGING;
+            }
         }
 
         /**
@@ -517,8 +447,10 @@ public class TelecomServiceImpl {
          */
         @Override
         public boolean isRinging() {
-            enforceReadPermission();
-            return mCallsManager.getCallState() == TelephonyManager.CALL_STATE_RINGING;
+            synchronized (mLock) {
+                enforceReadPermission();
+                return mCallsManager.getCallState() == TelephonyManager.CALL_STATE_RINGING;
+            }
         }
 
         /**
@@ -526,7 +458,9 @@ public class TelecomServiceImpl {
          */
         @Override
         public int getCallState() {
-            return mCallsManager.getCallState();
+            synchronized (mLock) {
+                return mCallsManager.getCallState();
+            }
         }
 
         /**
@@ -534,8 +468,10 @@ public class TelecomServiceImpl {
          */
         @Override
         public boolean endCall() {
-            enforceModifyPermission();
-            return (boolean) sendRequest(MSG_END_CALL);
+            synchronized (mLock) {
+                enforceModifyPermission();
+                return endCallInternal();
+            }
         }
 
         /**
@@ -543,8 +479,10 @@ public class TelecomServiceImpl {
          */
         @Override
         public void acceptRingingCall() {
-            enforceModifyPermission();
-            sendRequestAsync(MSG_ACCEPT_RINGING_CALL, 0);
+            synchronized (mLock) {
+                enforceModifyPermission();
+                acceptRingingCallInternal();
+            }
         }
 
         /**
@@ -552,8 +490,10 @@ public class TelecomServiceImpl {
          */
         @Override
         public void showInCallScreen(boolean showDialpad) {
-            enforceReadPermissionOrDefaultDialer();
-            sendRequestAsync(MSG_SHOW_CALL_SCREEN, showDialpad ? 1 : 0);
+            synchronized (mLock) {
+                enforceReadPermissionOrDefaultDialer();
+                mCallsManager.getInCallController().bringToForeground(showDialpad);
+            }
         }
 
         /**
@@ -561,8 +501,10 @@ public class TelecomServiceImpl {
          */
         @Override
         public void cancelMissedCallsNotification() {
-            enforceModifyPermissionOrDefaultDialer();
-            sendRequestAsync(MSG_CANCEL_MISSED_CALLS_NOTIFICATION, 0);
+            synchronized (mLock) {
+                enforceModifyPermissionOrDefaultDialer();
+                mCallsManager.getMissedCallNotifier().clearMissedCalls();
+            }
         }
 
         /**
@@ -570,45 +512,50 @@ public class TelecomServiceImpl {
          */
         @Override
         public boolean handlePinMmi(String dialString) {
-            enforceModifyPermissionOrDefaultDialer();
+            synchronized (mLock) {
+                enforceModifyPermissionOrDefaultDialer();
 
-            // Switch identity so that TelephonyManager checks Telecom's permissions instead.
-            long token = Binder.clearCallingIdentity();
-            boolean retval = false;
-            try {
-                retval = getTelephonyManager().handlePinMmi(dialString);
-            } finally {
-                Binder.restoreCallingIdentity(token);
+                // Switch identity so that TelephonyManager checks Telecom's permissions instead.
+                long token = Binder.clearCallingIdentity();
+                boolean retval = false;
+                try {
+                    retval = getTelephonyManager().handlePinMmi(dialString);
+                } finally {
+                    Binder.restoreCallingIdentity(token);
+                }
+
+                return retval;
             }
-
-            return retval;
         }
 
         /**
          * @see android.telecom.TelecomManager#handleMmi
          */
         @Override
-        public boolean handlePinMmiForPhoneAccount(PhoneAccountHandle accountHandle,
+        public boolean handlePinMmiForPhoneAccount(
+                PhoneAccountHandle accountHandle,
                 String dialString) {
-            enforceModifyPermissionOrDefaultDialer();
+            synchronized (mLock) {
+                enforceModifyPermissionOrDefaultDialer();
 
-            if (!isVisibleToCaller(accountHandle)) {
-                Log.w(this, "%s is not visible for the calling user", accountHandle);
-                return false;
+                if (!isVisibleToCaller(accountHandle)) {
+                    Log.w(this, "%s is not visible for the calling user", accountHandle);
+                    return false;
+                }
+
+                // Switch identity so that TelephonyManager checks Telecom's permissions instead.
+                long token = Binder.clearCallingIdentity();
+                boolean retval = false;
+                try {
+                    int subId = mPhoneAccountRegistrar
+                            .getSubscriptionIdForPhoneAccount(accountHandle);
+                    retval = getTelephonyManager().handlePinMmiForSubscriber(subId, dialString);
+                } finally {
+                    Binder.restoreCallingIdentity(token);
+                }
+
+                return retval;
             }
-
-            // Switch identity so that TelephonyManager checks Telecom's permissions instead.
-            long token = Binder.clearCallingIdentity();
-            boolean retval = false;
-            try {
-                int subId = mCallsManager.getPhoneAccountRegistrar()
-                        .getSubscriptionIdForPhoneAccount(accountHandle);
-                retval = getTelephonyManager().handlePinMmiForSubscriber(subId, dialString);
-            } finally {
-                Binder.restoreCallingIdentity(token);
-            }
-
-            return retval;
         }
 
         /**
@@ -616,25 +563,27 @@ public class TelecomServiceImpl {
          */
         @Override
         public Uri getAdnUriForPhoneAccount(PhoneAccountHandle accountHandle) {
-            enforceModifyPermissionOrDefaultDialer();
+            synchronized (mLock) {
+                enforceModifyPermissionOrDefaultDialer();
 
-            if (!isVisibleToCaller(accountHandle)) {
-                Log.w(this, "%s is not visible for the calling user", accountHandle);
-                return null;
+                if (!isVisibleToCaller(accountHandle)) {
+                    Log.w(this, "%s is not visible for the calling user", accountHandle);
+                    return null;
+                }
+
+                // Switch identity so that TelephonyManager checks Telecom's permissions instead.
+                long token = Binder.clearCallingIdentity();
+                String retval = "content://icc/adn/";
+                try {
+                    long subId = mPhoneAccountRegistrar
+                            .getSubscriptionIdForPhoneAccount(accountHandle);
+                    retval = retval + "subId/" + subId;
+                } finally {
+                    Binder.restoreCallingIdentity(token);
+                }
+
+                return Uri.parse(retval);
             }
-
-            // Switch identity so that TelephonyManager checks Telecom's permissions instead.
-            long token = Binder.clearCallingIdentity();
-            String retval = "content://icc/adn/";
-            try {
-                long subId = mCallsManager.getPhoneAccountRegistrar()
-                        .getSubscriptionIdForPhoneAccount(accountHandle);
-                retval = retval + "subId/" + subId;
-            } finally {
-                Binder.restoreCallingIdentity(token);
-            }
-
-            return Uri.parse(retval);
         }
 
         /**
@@ -642,8 +591,10 @@ public class TelecomServiceImpl {
          */
         @Override
         public boolean isTtySupported() {
-            enforceReadPermission();
-            return (boolean) sendRequest(MSG_IS_TTY_SUPPORTED);
+            synchronized (mLock) {
+                enforceReadPermission();
+                return mCallsManager.isTtySupported();
+            }
         }
 
         /**
@@ -651,8 +602,10 @@ public class TelecomServiceImpl {
          */
         @Override
         public int getCurrentTtyMode() {
-            enforceReadPermission();
-            return (int) sendRequest(MSG_GET_CURRENT_TTY_MODE);
+            synchronized (mLock) {
+                enforceReadPermission();
+                return mCallsManager.getCurrentTtyMode();
+            }
         }
 
         /**
@@ -660,28 +613,28 @@ public class TelecomServiceImpl {
          */
         @Override
         public void addNewIncomingCall(PhoneAccountHandle phoneAccountHandle, Bundle extras) {
-            Log.i(this, "Adding new incoming call with phoneAccountHandle %s", phoneAccountHandle);
-            if (phoneAccountHandle != null && phoneAccountHandle.getComponentName() != null) {
-                // TODO(sail): Add unit tests for adding incoming calls from a SIM call manager.
-                if (isCallerSimCallManager() && TelephonyUtil.isPstnComponentName(
-                        phoneAccountHandle.getComponentName())) {
-                    Log.v(this, "Allowing call manager to add incoming call with PSTN handle");
-                } else {
-                    mAppOpsManager.checkPackage(Binder.getCallingUid(),
+            synchronized (mLock) {
+                Log.i(this, "Adding new incoming call with phoneAccountHandle %s",
+                        phoneAccountHandle);
+                if (phoneAccountHandle != null && phoneAccountHandle.getComponentName() != null) {
+                    mAppOpsManager.checkPackage(
+                            Binder.getCallingUid(),
                             phoneAccountHandle.getComponentName().getPackageName());
+
                     // Make sure it doesn't cross the UserHandle boundary
                     enforceUserHandleMatchesCaller(phoneAccountHandle);
-                }
 
-                Intent intent = new Intent(TelecomManager.ACTION_INCOMING_CALL);
-                intent.putExtra(TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE, phoneAccountHandle);
-                intent.putExtra(CallIntentProcessor.KEY_IS_INCOMING_CALL, true);
-                if (extras != null) {
-                    intent.putExtra(TelecomManager.EXTRA_INCOMING_CALL_EXTRAS, extras);
+                    Intent intent = new Intent(TelecomManager.ACTION_INCOMING_CALL);
+                    intent.putExtra(TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE, phoneAccountHandle);
+                    intent.putExtra(CallIntentProcessor.KEY_IS_INCOMING_CALL, true);
+                    if (extras != null) {
+                        intent.putExtra(TelecomManager.EXTRA_INCOMING_CALL_EXTRAS, extras);
+                    }
+                    CallIntentProcessor.processIncomingCallIntent(mCallsManager, intent);
+                } else {
+                    Log.w(this,
+                            "Null phoneAccountHandle. Ignoring request to add new incoming call");
                 }
-                sendRequestAsync(MSG_NEW_INCOMING_CALL, 0, intent);
-            } else {
-                Log.w(this, "Null phoneAccountHandle. Ignoring request to add new incoming call");
             }
         }
 
@@ -690,24 +643,28 @@ public class TelecomServiceImpl {
          */
         @Override
         public void addNewUnknownCall(PhoneAccountHandle phoneAccountHandle, Bundle extras) {
-            if (phoneAccountHandle != null && phoneAccountHandle.getComponentName() != null &&
-                    TelephonyUtil.isPstnComponentName(phoneAccountHandle.getComponentName())) {
-                mAppOpsManager.checkPackage(
-                        Binder.getCallingUid(), phoneAccountHandle.getComponentName().getPackageName());
+            synchronized (mLock) {
+                if (phoneAccountHandle != null && phoneAccountHandle.getComponentName() != null &&
+                        TelephonyUtil.isPstnComponentName(phoneAccountHandle.getComponentName())) {
+                    mAppOpsManager.checkPackage(
+                            Binder.getCallingUid(),
+                            phoneAccountHandle.getComponentName().getPackageName());
 
-                // Make sure it doesn't cross the UserHandle boundary
-                enforceUserHandleMatchesCaller(phoneAccountHandle);
+                    // Make sure it doesn't cross the UserHandle boundary
+                    enforceUserHandleMatchesCaller(phoneAccountHandle);
 
-                Intent intent = new Intent(TelecomManager.ACTION_NEW_UNKNOWN_CALL);
-                intent.setClass(mContext, CallIntentProcessor.class);
-                intent.setFlags(Intent.FLAG_RECEIVER_FOREGROUND);
-                intent.putExtras(extras);
-                intent.putExtra(CallIntentProcessor.KEY_IS_UNKNOWN_CALL, true);
-                intent.putExtra(TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE, phoneAccountHandle);
-                mContext.sendBroadcastAsUser(intent, phoneAccountHandle.getUserHandle());
-            } else {
-                Log.i(this, "Null phoneAccountHandle or not initiated by Telephony. Ignoring request"
-                        + " to add new unknown call.");
+                    Intent intent = new Intent(TelecomManager.ACTION_NEW_UNKNOWN_CALL);
+                    intent.setClass(mContext, CallIntentProcessor.class);
+                    intent.setFlags(Intent.FLAG_RECEIVER_FOREGROUND);
+                    intent.putExtras(extras);
+                    intent.putExtra(CallIntentProcessor.KEY_IS_UNKNOWN_CALL, true);
+                    intent.putExtra(TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE, phoneAccountHandle);
+                    mContext.sendBroadcastAsUser(intent, phoneAccountHandle.getUserHandle());
+                } else {
+                    Log.i(this,
+                            "Null phoneAccountHandle or not initiated by Telephony. " +
+                            "Ignoring request to add new unknown call.");
+                }
             }
         }
 
@@ -738,10 +695,38 @@ public class TelecomServiceImpl {
 
                 pw.println("PhoneAccountRegistrar: ");
                 pw.increaseIndent();
-                mCallsManager.getPhoneAccountRegistrar().dump(pw);
+                mPhoneAccountRegistrar.dump(pw);
                 pw.decreaseIndent();
             }
         }
+    };
+
+    private Context mContext;
+    private AppOpsManager mAppOpsManager;
+    private UserManager mUserManager;
+    private PackageManager mPackageManager;
+    private CallsManager mCallsManager;
+    private final PhoneAccountRegistrar mPhoneAccountRegistrar;
+    private final TelecomSystem.SyncRoot mLock;
+
+    public TelecomServiceImpl(
+            Context context,
+            CallsManager callsManager,
+            PhoneAccountRegistrar phoneAccountRegistrar,
+            TelecomSystem.SyncRoot lock) {
+        mContext = context;
+        mAppOpsManager = (AppOpsManager) mContext.getSystemService(Context.APP_OPS_SERVICE);
+
+        mUserManager = (UserManager) mContext.getSystemService(Context.USER_SERVICE);
+        mPackageManager = mContext.getPackageManager();
+
+        mCallsManager = callsManager;
+        mLock = lock;
+        mPhoneAccountRegistrar = phoneAccountRegistrar;
+    }
+
+    public IBinder getBinder() {
+        return mBinderImpl;
     }
 
     //
@@ -753,7 +738,7 @@ public class TelecomServiceImpl {
             return false;
         }
 
-        return isVisibleToCaller(mCallsManager.getPhoneAccountRegistrar()
+        return isVisibleToCaller(mPhoneAccountRegistrar
                 .getPhoneAccountInternal(accountHandle));
     }
 
@@ -982,42 +967,5 @@ public class TelecomServiceImpl {
 
     private TelephonyManager getTelephonyManager() {
         return (TelephonyManager)mContext.getSystemService(Context.TELEPHONY_SERVICE);
-    }
-
-    private MainThreadRequest sendRequestAsync(int command, int arg1) {
-        return sendRequestAsync(command, arg1, null);
-    }
-
-    private MainThreadRequest sendRequestAsync(int command, int arg1, Object arg) {
-        MainThreadRequest request = new MainThreadRequest();
-        request.arg = arg;
-        mMainThreadHandler.obtainMessage(command, arg1, 0, request).sendToTarget();
-        return request;
-    }
-
-    /**
-     * Posts the specified command to be executed on the main thread, waits for the request to
-     * complete, and returns the result.
-     */
-    private Object sendRequest(int command) {
-        if (Looper.myLooper() == mMainThreadHandler.getLooper()) {
-            MainThreadRequest request = new MainThreadRequest();
-            mMainThreadHandler.handleMessage(mMainThreadHandler.obtainMessage(command, request));
-            return request.result;
-        } else {
-            MainThreadRequest request = sendRequestAsync(command, 0);
-
-            // Wait for the request to complete
-            synchronized (request) {
-                while (request.result == null) {
-                    try {
-                        request.wait();
-                    } catch (InterruptedException e) {
-                        // Do nothing, go back and wait until the request is complete
-                    }
-                }
-            }
-            return request.result;
-        }
     }
 }

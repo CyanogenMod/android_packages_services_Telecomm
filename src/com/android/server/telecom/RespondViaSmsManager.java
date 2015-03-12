@@ -41,32 +41,15 @@ import java.util.List;
  * Helper class to manage the "Respond via Message" feature for incoming calls.
  */
 public class RespondViaSmsManager extends CallsManagerListenerBase {
-    private static final int MSG_CANNED_TEXT_MESSAGES_READY = 1;
     private static final int MSG_SHOW_SENT_TOAST = 2;
 
     private final CallsManager mCallsManager;
+    private final TelecomSystem.SyncRoot mLock;
 
     private final Handler mHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
             switch (msg.what) {
-                case MSG_CANNED_TEXT_MESSAGES_READY: {
-                    SomeArgs args = (SomeArgs) msg.obj;
-                    try {
-                        Response<Void, List<String>> response =
-                                (Response<Void, List<String>>) args.arg1;
-                        List<String> textMessages =
-                                (List<String>) args.arg2;
-                        if (textMessages != null) {
-                            response.onResult(null, textMessages);
-                        } else {
-                            response.onError(null, 0, null);
-                        }
-                    } finally {
-                        args.recycle();
-                    }
-                    break;
-                }
                 case MSG_SHOW_SENT_TOAST: {
                     SomeArgs args = (SomeArgs) msg.obj;
                     try {
@@ -82,8 +65,9 @@ public class RespondViaSmsManager extends CallsManagerListenerBase {
         }
     };
 
-    public RespondViaSmsManager(CallsManager callsManager) {
+    public RespondViaSmsManager(CallsManager callsManager, TelecomSystem.SyncRoot lock) {
         mCallsManager = callsManager;
+        mLock = lock;
     }
 
     /**
@@ -132,10 +116,9 @@ public class RespondViaSmsManager extends CallsManagerListenerBase {
                         "loadCannedResponses() completed, found responses: %s",
                         textMessages.toString());
 
-                SomeArgs args = SomeArgs.obtain();
-                args.arg1 = response;
-                args.arg2 = textMessages;
-                mHandler.obtainMessage(MSG_CANNED_TEXT_MESSAGES_READY, args).sendToTarget();
+                synchronized (mLock) {
+                    response.onResult(null, textMessages);
+                }
             }
         }.start();
     }

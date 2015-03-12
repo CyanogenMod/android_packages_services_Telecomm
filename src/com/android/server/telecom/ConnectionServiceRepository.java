@@ -33,22 +33,27 @@ final class ConnectionServiceRepository {
             new HashMap<>();
     private final PhoneAccountRegistrar mPhoneAccountRegistrar;
     private final Context mContext;
+    private final TelecomSystem.SyncRoot mLock;
     private final CallsManager mCallsManager;
 
     private final ServiceBinder.Listener<ConnectionServiceWrapper> mUnbindListener =
             new ServiceBinder.Listener<ConnectionServiceWrapper>() {
                 @Override
                 public void onUnbind(ConnectionServiceWrapper service) {
-                    mServiceCache.remove(service.getComponentName());
+                    synchronized (mLock) {
+                        mServiceCache.remove(service.getComponentName());
+                    }
                 }
             };
 
     ConnectionServiceRepository(
             PhoneAccountRegistrar phoneAccountRegistrar,
             Context context,
+            TelecomSystem.SyncRoot lock,
             CallsManager callsManager) {
         mPhoneAccountRegistrar = phoneAccountRegistrar;
         mContext = context;
+        mLock = lock;
         mCallsManager = callsManager;
     }
 
@@ -62,6 +67,7 @@ final class ConnectionServiceRepository {
                     mPhoneAccountRegistrar,
                     mCallsManager,
                     mContext,
+                    mLock,
                     userHandle);
             service.addListener(mUnbindListener);
             mServiceCache.put(cacheKey, service);

@@ -300,6 +300,7 @@ final public class Call implements CreateConnectionResponse {
     private boolean mIsVoipAudioMode;
     private StatusHints mStatusHints;
     private final ConnectionServiceRepository mRepository;
+    private final ContactsAsyncHelper mContactsAsyncHelper;
     private final Context mContext;
     private final CallsManager mCallsManager;
 
@@ -331,6 +332,7 @@ final public class Call implements CreateConnectionResponse {
             Context context,
             CallsManager callsManager,
             ConnectionServiceRepository repository,
+            ContactsAsyncHelper contactsAsyncHelper,
             Uri handle,
             GatewayInfo gatewayInfo,
             PhoneAccountHandle connectionManagerPhoneAccountHandle,
@@ -341,6 +343,7 @@ final public class Call implements CreateConnectionResponse {
         mContext = context;
         mCallsManager = callsManager;
         mRepository = repository;
+        mContactsAsyncHelper = contactsAsyncHelper;
         setHandle(handle);
         setHandle(handle, TelecomManager.PRESENTATION_ALLOWED);
         mGatewayInfo = gatewayInfo;
@@ -370,6 +373,7 @@ final public class Call implements CreateConnectionResponse {
             Context context,
             CallsManager callsManager,
             ConnectionServiceRepository repository,
+            ContactsAsyncHelper contactsAsyncHelper,
             Uri handle,
             GatewayInfo gatewayInfo,
             PhoneAccountHandle connectionManagerPhoneAccountHandle,
@@ -377,7 +381,7 @@ final public class Call implements CreateConnectionResponse {
             boolean isIncoming,
             boolean isConference,
             long connectTimeMillis) {
-        this(context, callsManager, repository, handle, gatewayInfo,
+        this(context, callsManager, repository, contactsAsyncHelper, handle, gatewayInfo,
                 connectionManagerPhoneAccountHandle, targetPhoneAccountHandle, isIncoming,
                 isConference);
 
@@ -1277,7 +1281,7 @@ final public class Call implements CreateConnectionResponse {
             if (mCallerInfo.contactDisplayPhotoUri != null) {
                 Log.d(this, "Searching person uri %s for call %s",
                         mCallerInfo.contactDisplayPhotoUri, this);
-                ContactsAsyncHelper.startObtainPhotoAsync(
+                mContactsAsyncHelper.startObtainPhotoAsync(
                         token,
                         mContext,
                         mCallerInfo.contactDisplayPhotoUri,

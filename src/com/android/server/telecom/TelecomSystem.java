@@ -16,6 +16,8 @@
 
 package com.android.server.telecom;
 
+import com.android.internal.annotations.VisibleForTesting;
+
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -41,11 +43,20 @@ public final class TelecomSystem {
         TelecomSystem getTelecomSystem();
     }
 
+
+    /**
+     * Tagging interface for the object used for synchronizing multi-threaded operations in
+     * the Telecom system.
+     */
+    public interface SyncRoot {
+    }
+
     private static final IntentFilter USER_SWITCHED_FILTER =
             new IntentFilter(Intent.ACTION_USER_SWITCHED);
 
     private static TelecomSystem INSTANCE = null;
 
+    private final SyncRoot mLock = new SyncRoot() { };
     private final MissedCallNotifier mMissedCallNotifier;
     private final PhoneAccountRegistrar mPhoneAccountRegistrar;
     private final CallsManager mCallsManager;
@@ -55,6 +66,7 @@ public final class TelecomSystem {
     private final CallIntentProcessor mCallIntentProcessor;
     private final TelecomBroadcastIntentProcessor mTelecomBroadcastIntentProcessor;
     private final TelecomServiceImpl mTelecomServiceImpl;
+    private final ContactsAsyncHelper mContactsAsyncHelper;
 
     private final BroadcastReceiver mUserSwitchedReceiver = new BroadcastReceiver() {
         @Override
@@ -87,44 +99,34 @@ public final class TelecomSystem {
 
         mMissedCallNotifier = missedCallNotifier;
         mPhoneAccountRegistrar = new PhoneAccountRegistrar(mContext);
+        mContactsAsyncHelper = new ContactsAsyncHelper(mLock);
 
         mCallsManager = new CallsManager(
                 mContext,
+                mLock,
+                mContactsAsyncHelper,
                 mMissedCallNotifier,
                 mPhoneAccountRegistrar,
                 headsetMediaButtonFactory,
                 proximitySensorManagerFactory,
                 inCallWakeLockControllerFactory);
 
-        mRespondViaSmsManager = new RespondViaSmsManager(mCallsManager);
+        mRespondViaSmsManager = new RespondViaSmsManager(mCallsManager, mLock);
         mCallsManager.setRespondViaSmsManager(mRespondViaSmsManager);
 
-        mMissedCallNotifier.setCallsManager(mCallsManager);
-
         mContext.registerReceiver(mUserSwitchedReceiver, USER_SWITCHED_FILTER);
-        mBluetoothPhoneServiceImpl =
-                new BluetoothPhoneServiceImpl(mContext, mCallsManager, mPhoneAccountRegistrar);
+        mBluetoothPhoneServiceImpl = new BluetoothPhoneServiceImpl(
+                mContext, mLock, mCallsManager, mPhoneAccountRegistrar);
         mCallIntentProcessor = new CallIntentProcessor(mContext, mCallsManager);
         mTelecomBroadcastIntentProcessor = new TelecomBroadcastIntentProcessor(
                 mContext, mCallsManager);
-        mTelecomServiceImpl =
-                new TelecomServiceImpl(mContext, mCallsManager, mPhoneAccountRegistrar);
+        mTelecomServiceImpl = new TelecomServiceImpl(
+                mContext, mCallsManager, mPhoneAccountRegistrar, mLock);
     }
 
-    public MissedCallNotifier getMissedCallNotifier() {
-        return mMissedCallNotifier;
-    }
-
+    @VisibleForTesting
     public PhoneAccountRegistrar getPhoneAccountRegistrar() {
         return mPhoneAccountRegistrar;
-    }
-
-    public CallsManager getCallsManager() {
-        return mCallsManager;
-    }
-
-    public RespondViaSmsManager getRespondViaSmsManager() {
-        return mRespondViaSmsManager;
     }
 
     public BluetoothPhoneServiceImpl getBluetoothPhoneServiceImpl() {
@@ -141,5 +143,9 @@ public final class TelecomSystem {
 
     public TelecomServiceImpl getTelecomServiceImpl() {
         return mTelecomServiceImpl;
+    }
+
+    public Object getLock() {
+        return mLock;
     }
 }

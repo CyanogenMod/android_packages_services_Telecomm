@@ -20,10 +20,12 @@ import com.android.server.telecom.Call;
 import com.android.server.telecom.CallsManager;
 import com.android.server.telecom.CallsManagerListenerBase;
 import com.android.server.telecom.Constants;
-import com.android.server.telecom.MissedCallNotifier;
+import com.android.server.telecom.ContactsAsyncHelper;
 import com.android.server.telecom.Log;
+import com.android.server.telecom.MissedCallNotifier;
 import com.android.server.telecom.R;
 import com.android.server.telecom.TelecomBroadcastIntentProcessor;
+import com.android.server.telecom.TelecomSystem;
 
 import android.app.Notification;
 import android.app.NotificationManager;
@@ -61,8 +63,7 @@ import android.text.TextUtils;
  *     direct reference to the CallsManager. Try to make this class simply handle the UI
  *     and Android-framework entanglements of missed call notification.
  */
-public class MissedCallNotifierImpl extends CallsManagerListenerBase implements
-        MissedCallNotifier {
+public class MissedCallNotifierImpl extends CallsManagerListenerBase implements MissedCallNotifier {
 
     private static final String[] CALL_LOG_PROJECTION = new String[] {
         Calls._ID,
@@ -83,7 +84,6 @@ public class MissedCallNotifierImpl extends CallsManagerListenerBase implements
     private static final int MISSED_CALL_NOTIFICATION_ID = 1;
 
     private final Context mContext;
-    private CallsManager mCallsManager;
     private final NotificationManager mNotificationManager;
 
     // Used to track the number of missed calls.
@@ -93,12 +93,6 @@ public class MissedCallNotifierImpl extends CallsManagerListenerBase implements
         mContext = context;
         mNotificationManager =
                 (NotificationManager) mContext.getSystemService(Context.NOTIFICATION_SERVICE);
-
-        updateOnStartup();
-    }
-
-    public void setCallsManager(CallsManager callsManager) {
-        this.mCallsManager = callsManager;
     }
 
     /** {@inheritDoc} */
@@ -300,7 +294,11 @@ public class MissedCallNotifierImpl extends CallsManagerListenerBase implements
     /**
      * Adds the missed call notification on startup if there are unread missed calls.
      */
-    private void updateOnStartup() {
+    @Override
+    public void updateOnStartup(
+            final TelecomSystem.SyncRoot lock,
+            final CallsManager callsManager,
+            final ContactsAsyncHelper contactsAsyncHelper) {
         Log.d(this, "updateOnStartup()...");
 
         // instantiate query handler
@@ -327,28 +325,33 @@ public class MissedCallNotifierImpl extends CallsManagerListenerBase implements
                                                 handleString, null);
                             }
 
-                            // Convert the data to a call object
-                            Call call = new Call(mContext, mCallsManager,
-                                    null, null, null, null, null, true,
-                                    false);
-                            call.setDisconnectCause(new DisconnectCause(DisconnectCause.MISSED));
-                            call.setState(CallState.DISCONNECTED);
-                            call.setCreationTimeMillis(date);
+                            synchronized (lock) {
 
-                            // Listen for the update to the caller information before posting the
-                            // notification so that we have the contact info and photo.
-                            call.addListener(new Call.ListenerBase() {
-                                @Override
-                                public void onCallerInfoChanged(Call call) {
-                                    call.removeListener(this);  // No longer need to listen to call
-                                                                // changes after the contact info
-                                                                // is retrieved.
-                                    showMissedCallNotification(call);
-                                }
-                            });
-                            // Set the handle here because that is what triggers the contact info
-                            // query.
-                            call.setHandle(handle, presentation);
+                                // Convert the data to a call object
+                                Call call = new Call(mContext, callsManager,
+                                        null, contactsAsyncHelper, null, null, null, null, true,
+                                        false);
+                                call.setDisconnectCause(
+                                        new DisconnectCause(DisconnectCause.MISSED));
+                                call.setState(CallState.DISCONNECTED);
+                                call.setCreationTimeMillis(date);
+
+                                // Listen for the update to the caller information before posting
+                                // the notification so that we have the contact info and photo.
+                                call.addListener(new Call.ListenerBase() {
+                                    @Override
+                                    public void onCallerInfoChanged(Call call) {
+                                        call.removeListener(
+                                                this);  // No longer need to listen to call
+                                        // changes after the contact info
+                                        // is retrieved.
+                                        showMissedCallNotification(call);
+                                    }
+                                });
+                                // Set the handle here because that is what triggers the contact
+                                // info query.
+                                call.setHandle(handle, presentation);
+                            }
                         }
                     } finally {
                         cursor.close();
