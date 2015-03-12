@@ -259,7 +259,6 @@ public class PhoneAccountRegistrarTest extends AndroidTestCase {
             assertEquals(a.getSubscriptionAddress(), b.getSubscriptionAddress());
             assertEquals(a.getCapabilities(), b.getCapabilities());
             assertEquals(a.getIconResId(), b.getIconResId());
-            assertEquals(a.getColor(), b.getColor());
             assertEquals(a.getLabel(), b.getLabel());
             assertEquals(a.getShortDescription(), b.getShortDescription());
             assertEquals(a.getSupportedUriSchemes(), b.getSupportedUriSchemes());
