@@ -103,7 +103,8 @@ class NewOutgoingCallIntentBroadcaster {
             // Once the NEW_OUTGOING_CALL broadcast is finished, the resultData is used as the
             // actual number to call. (If null, no call will be placed.)
             String resultNumber = getResultData();
-            Log.v(this, "- got number from resultData: %s", Log.pii(resultNumber));
+            Log.i(this, "Received new-outgoing-call-broadcast for %s with data %s", mCall,
+                    Log.pii(resultNumber));
 
             boolean endEarly = false;
             if (resultNumber == null) {
@@ -253,6 +254,7 @@ class NewOutgoingCallIntentBroadcaster {
             // initiate the call again because of the presence of the EXTRA_ALREADY_CALLED extra.
         }
 
+        Log.i(this, "Sending NewOutgoingCallBroadcast for %s", mCall);
         broadcastIntent(intent, number, !callImmediately);
         return DisconnectCause.NOT_DISCONNECTED;
     }
