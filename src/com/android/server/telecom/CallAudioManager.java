@@ -45,6 +45,7 @@ final class CallAudioManager extends CallsManagerListenerBase
     private boolean mIsTonePlaying;
     private boolean mWasSpeakerOn;
     private int mMostRecentlyUsedMode = AudioManager.MODE_IN_CALL;
+    private Call mCallToSpeedUpMTAudio = null;
 
     CallAudioManager(Context context, StatusBarNotifier statusBarNotifier,
             WiredHeadsetManager wiredHeadsetManager, DockManager DockManager) {
@@ -109,6 +110,12 @@ final class CallAudioManager extends CallsManagerListenerBase
         }
 
         setSystemAudioState(false /* isMute */, route, mAudioState.getSupportedRouteMask());
+
+        if (call.can(android.telecom.Call.Details.CAPABILITY_SPEED_UP_MT_AUDIO)) {
+            Log.v(this, "Speed up audio setup for IMS MT call.");
+            mCallToSpeedUpMTAudio = call;
+            updateAudioStreamAndMode();
+        }
     }
 
     @Override
@@ -306,6 +313,10 @@ final class CallAudioManager extends CallsManagerListenerBase
         boolean wasNotVoiceCall = mAudioFocusStreamType != AudioManager.STREAM_VOICE_CALL;
         updateAudioStreamAndMode();
 
+        if (call != null && call.getState() == CallState.ACTIVE &&
+                            call == mCallToSpeedUpMTAudio) {
+            mCallToSpeedUpMTAudio = null;
+        }
         // If we transition from not voice call to voice call, we need to set an initial state.
         if (wasNotVoiceCall && mAudioFocusStreamType == AudioManager.STREAM_VOICE_CALL) {
             setInitialAudioState(call, true /* force */);
@@ -386,7 +397,11 @@ final class CallAudioManager extends CallsManagerListenerBase
             Call foregroundCall = getForegroundCall();
             Call waitingForAccountSelectionCall = TelecomSystem.getInstance().getCallsManager()
                     .getFirstCallWithState(CallState.PRE_DIAL_WAIT);
-            if (foregroundCall != null && waitingForAccountSelectionCall == null) {
+            Call call = TelecomSystem.getInstance().getCallsManager().getForegroundCall();
+            if (foregroundCall == null && call != null && call == mCallToSpeedUpMTAudio) {
+                requestAudioFocusAndSetMode(AudioManager.STREAM_VOICE_CALL,
+                                                         AudioManager.MODE_IN_CALL);
+            } else if (foregroundCall != null && waitingForAccountSelectionCall == null) {
                 // In the case where there is a call that is waiting for account selection,
                 // this will fall back to abandonAudioFocus() below, which temporarily exits
                 // the in-call audio mode. This is to allow TalkBack to speak the "Call with"
