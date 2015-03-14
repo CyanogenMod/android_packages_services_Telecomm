@@ -495,8 +495,6 @@ public final class CallsManager extends Call.ListenerBase {
         List<PhoneAccountHandle> accounts =
                 mPhoneAccountRegistrar.getCallCapablePhoneAccounts(scheme);
 
-        Log.v(this, "startOutgoingCall found accounts = " + accounts);
-
         // Only dial with the requested phoneAccount if it is still valid. Otherwise treat this call
         // as if a phoneAccount was not specified (does the default behavior instead).
         // Note: We will not attempt to dial with a requested phoneAccount if it is disabled.
