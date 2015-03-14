@@ -1059,7 +1059,10 @@ public final class CallsManager extends Call.ListenerBase {
         if (service != null) {
             for (Call call : mCalls) {
                 if (call.getConnectionService() == service) {
-                    markCallAsDisconnected(call, new DisconnectCause(DisconnectCause.ERROR));
+                    if (call.getState() != CallState.DISCONNECTED) {
+                        markCallAsDisconnected(call, new DisconnectCause(DisconnectCause.ERROR));
+                    }
+                    markCallAsRemoved(call);
                 }
             }
         }
