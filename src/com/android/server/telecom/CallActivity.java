@@ -180,10 +180,6 @@ public class CallActivity extends Activity {
                 TelecomManager.TTY_MODE_OFF) != TelecomManager.TTY_MODE_OFF);
     }
 
-    private void processIncomingCallIntent(Intent intent) {
-        sendBroadcastToReceiver(intent, true /* isIncoming */);
-    }
-
     private boolean isDefaultDialer() {
         final String packageName = getCallingPackage();
         if (TextUtils.isEmpty(packageName)) {
