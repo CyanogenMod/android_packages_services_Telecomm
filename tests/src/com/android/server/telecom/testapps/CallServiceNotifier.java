@@ -24,6 +24,9 @@ import android.app.PendingIntent;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Color;
 import android.net.Uri;
 import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
@@ -100,26 +103,28 @@ public class CallServiceNotifier {
         telecomManager.clearAccounts();
 
         telecomManager.registerPhoneAccount(PhoneAccount.builder(
-                        new PhoneAccountHandle(
-                                new ComponentName(context, TestConnectionService.class),
-                                CALL_PROVIDER_ID),
-                        "TelecomTestApp Call Provider")
+                new PhoneAccountHandle(
+                        new ComponentName(context, TestConnectionService.class),
+                        CALL_PROVIDER_ID),
+                "TelecomTestApp Call Provider")
                 .setAddress(Uri.parse("tel:555-TEST"))
                 .setSubscriptionAddress(Uri.parse("tel:555-TEST"))
                 .setCapabilities(PhoneAccount.CAPABILITY_CALL_PROVIDER)
+                .setIcon(context, R.drawable.stat_sys_phone_call, Color.RED)
                 .setShortDescription("a short description for the call provider")
                 .setSupportedUriSchemes(Arrays.asList("tel"))
                 .build());
 
         telecomManager.registerPhoneAccount(PhoneAccount.builder(
-                        new PhoneAccountHandle(
-                                new ComponentName(context, TestConnectionService.class),
-                                SIM_SUBSCRIPTION_ID),
-                        "TelecomTestApp SIM Subscription")
+                new PhoneAccountHandle(
+                        new ComponentName(context, TestConnectionService.class),
+                        SIM_SUBSCRIPTION_ID),
+                "TelecomTestApp SIM Subscription")
                 .setAddress(Uri.parse("tel:555-TSIM"))
                 .setSubscriptionAddress(Uri.parse("tel:555-TSIM"))
                 .setCapabilities(PhoneAccount.CAPABILITY_CALL_PROVIDER |
-                    PhoneAccount.CAPABILITY_SIM_SUBSCRIPTION)
+                        PhoneAccount.CAPABILITY_SIM_SUBSCRIPTION)
+                .setIcon(context, R.drawable.stat_sys_phone_call, Color.GREEN)
                 .setShortDescription("a short description for the sim subscription")
                 .build());
 
@@ -131,6 +136,7 @@ public class CallServiceNotifier {
                 .setAddress(Uri.parse("tel:555-CMGR"))
                 .setSubscriptionAddress(Uri.parse("tel:555-CMGR"))
                 .setCapabilities(PhoneAccount.CAPABILITY_CONNECTION_MANAGER)
+                .setIcon(context, R.drawable.stat_sys_phone_call, Color.BLUE)
                 .setShortDescription("a short description for the connection manager")
                 .build());
     }
