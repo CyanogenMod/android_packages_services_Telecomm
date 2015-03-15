@@ -545,6 +545,8 @@ public final class CallsManager extends Call.ListenerBase {
         if (needsAccountSelection) {
             // This is the state where the user is expected to select an account
             call.setState(CallState.PRE_DIAL_WAIT);
+            // Create our own instance to modify (since extras may be Bundle.EMPTY)
+            extras = new Bundle(extras);
             extras.putParcelableList(android.telecom.Call.AVAILABLE_PHONE_ACCOUNTS, accounts);
         } else {
             call.setState(CallState.CONNECTING);
