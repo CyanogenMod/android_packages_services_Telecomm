@@ -468,7 +468,7 @@ public final class CallsManager extends Call.ListenerBase {
         boolean isAddParticipant = ((extras != null) && (extras.getBoolean(
                 TelephonyProperties.ADD_PARTICIPANT_KEY, false)));
         if (isAddParticipant) {
-            addParticipant(handle.toString());
+            addParticipant(handle.getSchemeSpecificPart());
             mInCallController.bringToForeground(false);
             return null;
         }
