@@ -57,9 +57,6 @@ public class TelecomServiceImpl {
     private static final String PERMISSION_PROCESS_PHONE_ACCOUNT_REGISTRATION =
             "android.permission.PROCESS_PHONE_ACCOUNT_REGISTRATION";
 
-    private static final String PERMISSION_PROCESS_PHONE_ACCOUNT_REGISTRATION =
-            "android.permission.PROCESS_PHONE_ACCOUNT_REGISTRATION";
-
     /** The context. */
     private Context mContext;
 
