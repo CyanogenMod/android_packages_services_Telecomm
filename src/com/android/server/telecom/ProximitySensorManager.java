@@ -41,7 +41,7 @@ public class ProximitySensorManager extends CallsManagerListenerBase {
 
     @Override
     public void onCallRemoved(Call call) {
-        if (CallsManager.getInstance().getCalls().isEmpty()) {
+        if (TelecomSystem.getInstance().getCallsManager().getCalls().isEmpty()) {
             Log.i(this, "All calls removed, resetting proximity sensor to default state");
             turnOff(true);
         }
@@ -52,7 +52,7 @@ public class ProximitySensorManager extends CallsManagerListenerBase {
      * Turn the proximity sensor on.
      */
     void turnOn() {
-        if (CallsManager.getInstance().getCalls().isEmpty()) {
+        if (TelecomSystem.getInstance().getCallsManager().getCalls().isEmpty()) {
             Log.w(this, "Asking to turn on prox sensor without a call? I don't think so.");
             return;
         }

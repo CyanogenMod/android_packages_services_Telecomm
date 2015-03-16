@@ -16,7 +16,6 @@
 
 package com.android.server.telecom;
 
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.os.UserHandle;
@@ -25,7 +24,7 @@ import android.os.UserHandle;
  * Handles miscellaneous Telecom broadcast intents. This should be visible from outside, but
  * should not be in the "exported" state.
  */
-public final class TelecomBroadcastReceiver extends BroadcastReceiver {
+public final class TelecomBroadcastIntentProcessor {
     /** The action used to send SMS response for the missed call notification. */
     static final String ACTION_SEND_SMS_FROM_NOTIFICATION =
             "com.android.server.telecom.ACTION_SEND_SMS_FROM_NOTIFICATION";
@@ -38,35 +37,40 @@ public final class TelecomBroadcastReceiver extends BroadcastReceiver {
     static final String ACTION_CLEAR_MISSED_CALLS =
             "com.android.server.telecom.ACTION_CLEAR_MISSED_CALLS";
 
-    /** {@inheritDoc} */
-    @Override
-    public void onReceive(Context context, Intent intent) {
+    private final Context mContext;
+
+    public TelecomBroadcastIntentProcessor(Context context) {
+        mContext = context;
+    }
+
+    public void processIntent(Intent intent) {
         String action = intent.getAction();
 
         Log.v(this, "Action received: %s.", action);
 
-        MissedCallNotifier missedCallNotifier = CallsManager.getInstance().getMissedCallNotifier();
+        MissedCallNotifier missedCallNotifier = TelecomSystem.getInstance()
+                .getCallsManager().getMissedCallNotifier();
 
         // Send an SMS from the missed call notification.
         if (ACTION_SEND_SMS_FROM_NOTIFICATION.equals(action)) {
             // Close the notification shade and the notification itself.
-            closeSystemDialogs(context);
+            closeSystemDialogs(mContext);
             missedCallNotifier.clearMissedCalls();
 
             Intent callIntent = new Intent(Intent.ACTION_SENDTO, intent.getData());
             callIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            context.startActivity(callIntent);
+            mContext.startActivity(callIntent);
 
         // Call back recent caller from the missed call notification.
         } else if (ACTION_CALL_BACK_FROM_NOTIFICATION.equals(action)) {
             // Close the notification shade and the notification itself.
-            closeSystemDialogs(context);
+            closeSystemDialogs(mContext);
             missedCallNotifier.clearMissedCalls();
 
             Intent callIntent = new Intent(Intent.ACTION_CALL_PRIVILEGED, intent.getData());
             callIntent.setFlags(
                     Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS);
-            context.startActivity(callIntent);
+            mContext.startActivity(callIntent);
 
         // Clear the missed call notification and call log entries.
         } else if (ACTION_CLEAR_MISSED_CALLS.equals(action)) {

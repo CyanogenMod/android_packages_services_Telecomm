@@ -157,7 +157,7 @@ class NewOutgoingCallIntentBroadcaster {
      * - CALL_PRIVILEGED (intent launched by system apps e.g. system Dialer, voice Dialer)
      * - CALL_EMERGENCY (intent launched by lock screen emergency dialer)
      *
-     * @return {@link CallActivity#OUTGOING_CALL_SUCCEEDED} if the call succeeded, and an
+     * @return {@link UserCallIntentProcessor#OUTGOING_CALL_SUCCEEDED} if the call succeeded, and an
      *         appropriate {@link DisconnectCause} if the call did not, describing why it failed.
      */
     int processIntent() {

@@ -81,7 +81,7 @@ final class CallAudioManager extends CallsManagerListenerBase
     public void onCallRemoved(Call call) {
         // If we didn't already have focus, there's nothing to do.
         if (hasFocus()) {
-            if (CallsManager.getInstance().getCalls().isEmpty()) {
+            if (TelecomSystem.getInstance().getCallsManager().getCalls().isEmpty()) {
                 Log.v(this, "all calls removed, reseting system audio to default state");
                 setInitialAudioState(null, false /* force */);
                 mWasSpeakerOn = false;
@@ -102,7 +102,7 @@ final class CallAudioManager extends CallsManagerListenerBase
         // We do two things:
         // (1) If this is the first call, then we can to turn on bluetooth if available.
         // (2) Unmute the audio for the new incoming call.
-        boolean isOnlyCall = CallsManager.getInstance().getCalls().size() == 1;
+        boolean isOnlyCall = TelecomSystem.getInstance().getCallsManager().getCalls().size() == 1;
         if (isOnlyCall && mBluetoothManager.isBluetoothAvailable()) {
             mBluetoothManager.connectBluetoothAudio();
             route = AudioState.ROUTE_BLUETOOTH;
@@ -199,7 +199,7 @@ final class CallAudioManager extends CallsManagerListenerBase
         Log.v(this, "mute, shouldMute: %b", shouldMute);
 
         // Don't mute if there are any emergency calls.
-        if (CallsManager.getInstance().hasEmergencyCall()) {
+        if (TelecomSystem.getInstance().getCallsManager().hasEmergencyCall()) {
             shouldMute = false;
             Log.v(this, "ignoring mute for emergency call");
         }
@@ -349,7 +349,8 @@ final class CallAudioManager extends CallsManagerListenerBase
         }
 
         if (!oldAudioState.equals(mAudioState)) {
-            CallsManager.getInstance().onAudioStateChanged(oldAudioState, mAudioState);
+            TelecomSystem.getInstance().getCallsManager()
+                    .onAudioStateChanged(oldAudioState, mAudioState);
             updateAudioForForegroundCall();
         }
     }
@@ -383,8 +384,8 @@ final class CallAudioManager extends CallsManagerListenerBase
             requestAudioFocusAndSetMode(AudioManager.STREAM_RING, AudioManager.MODE_RINGTONE);
         } else {
             Call foregroundCall = getForegroundCall();
-            Call waitingForAccountSelectionCall =
-                    CallsManager.getInstance().getFirstCallWithState(CallState.PRE_DIAL_WAIT);
+            Call waitingForAccountSelectionCall = TelecomSystem.getInstance().getCallsManager()
+                    .getFirstCallWithState(CallState.PRE_DIAL_WAIT);
             if (foregroundCall != null && waitingForAccountSelectionCall == null) {
                 // In the case where there is a call that is waiting for account selection,
                 // this will fall back to abandonAudioFocus() below, which temporarily exits
@@ -527,7 +528,7 @@ final class CallAudioManager extends CallsManagerListenerBase
     }
 
     private void updateAudioForForegroundCall() {
-        Call call = CallsManager.getInstance().getForegroundCall();
+        Call call = TelecomSystem.getInstance().getCallsManager().getForegroundCall();
         if (call != null && call.getConnectionService() != null) {
             call.getConnectionService().onAudioStateChanged(call, mAudioState);
         }
@@ -537,7 +538,7 @@ final class CallAudioManager extends CallsManagerListenerBase
      * Returns the current foreground call in order to properly set the audio mode.
      */
     private Call getForegroundCall() {
-        Call call = CallsManager.getInstance().getForegroundCall();
+        Call call = TelecomSystem.getInstance().getCallsManager().getForegroundCall();
 
         // We ignore any foreground call that is in the ringing state because we deal with ringing
         // calls exclusively through the mIsRinging variable set by {@link Ringer}.
@@ -549,7 +550,7 @@ final class CallAudioManager extends CallsManagerListenerBase
     }
 
     private boolean hasRingingForegroundCall() {
-        Call call = CallsManager.getInstance().getForegroundCall();
+        Call call = TelecomSystem.getInstance().getCallsManager().getForegroundCall();
         return call != null && call.getState() == CallState.RINGING;
     }
 

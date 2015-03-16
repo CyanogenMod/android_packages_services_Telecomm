@@ -38,6 +38,7 @@ import android.telecom.VideoProfile;
 import android.telephony.PhoneNumberUtils;
 import android.text.TextUtils;
 
+import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.telecom.IVideoProvider;
 import com.android.internal.telephony.CallerInfo;
 import com.android.internal.telephony.CallerInfoAsyncQuery;
@@ -60,7 +61,8 @@ import java.util.concurrent.ConcurrentHashMap;
  *  from the time the call intent was received by Telecom (vs. the time the call was
  *  connected etc).
  */
-public final class Call implements CreateConnectionResponse {
+@VisibleForTesting
+final public class Call implements CreateConnectionResponse {
     /**
      * Listener for events on the call.
      */
@@ -299,6 +301,7 @@ public final class Call implements CreateConnectionResponse {
     private StatusHints mStatusHints;
     private final ConnectionServiceRepository mRepository;
     private final Context mContext;
+    private final CallsManager mCallsManager;
 
     private boolean mWasConferencePreviouslyMerged = false;
 
@@ -326,6 +329,7 @@ public final class Call implements CreateConnectionResponse {
      */
     Call(
             Context context,
+            CallsManager callsManager,
             ConnectionServiceRepository repository,
             Uri handle,
             GatewayInfo gatewayInfo,
@@ -335,6 +339,7 @@ public final class Call implements CreateConnectionResponse {
             boolean isConference) {
         mState = isConference ? CallState.ACTIVE : CallState.NEW;
         mContext = context;
+        mCallsManager = callsManager;
         mRepository = repository;
         setHandle(handle);
         setHandle(handle, TelecomManager.PRESENTATION_ALLOWED);
@@ -363,6 +368,7 @@ public final class Call implements CreateConnectionResponse {
      */
     Call(
             Context context,
+            CallsManager callsManager,
             ConnectionServiceRepository repository,
             Uri handle,
             GatewayInfo gatewayInfo,
@@ -371,8 +377,9 @@ public final class Call implements CreateConnectionResponse {
             boolean isIncoming,
             boolean isConference,
             long connectTimeMillis) {
-        this(context, repository, handle, gatewayInfo, connectionManagerPhoneAccountHandle,
-                targetPhoneAccountHandle, isIncoming, isConference);
+        this(context, callsManager, repository, handle, gatewayInfo,
+                connectionManagerPhoneAccountHandle, targetPhoneAccountHandle, isIncoming,
+                isConference);
 
         mConnectTimeMillis = connectTimeMillis;
     }
@@ -820,7 +827,7 @@ public final class Call implements CreateConnectionResponse {
     public void handleCreateConnectionFailure(DisconnectCause disconnectCause) {
         clearConnectionService();
         setDisconnectCause(disconnectCause);
-        CallsManager.getInstance().markCallAsDisconnected(this, disconnectCause);
+        mCallsManager.markCallAsDisconnected(this, disconnectCause);
 
         if (mIsUnknown) {
             for (Listener listener : mListeners) {
@@ -1314,7 +1321,7 @@ public final class Call implements CreateConnectionResponse {
         if (mIsIncoming && isRespondViaSmsCapable() && !mCannedSmsResponsesLoadingStarted) {
             Log.d(this, "maybeLoadCannedSmsResponses: starting task to load messages");
             mCannedSmsResponsesLoadingStarted = true;
-            RespondViaSmsManager.getInstance().loadCannedTextMessages(
+            TelecomSystem.getInstance().getRespondViaSmsManager().loadCannedTextMessages(
                     new Response<Void, List<String>>() {
                         @Override
                         public void onResult(Void request, List<String>... result) {

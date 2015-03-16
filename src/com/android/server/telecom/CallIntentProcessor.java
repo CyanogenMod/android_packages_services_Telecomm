@@ -1,6 +1,7 @@
 package com.android.server.telecom;
 
-import android.content.BroadcastReceiver;
+import com.android.server.telecom.components.ErrorDialogActivity;
+
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
@@ -16,40 +17,49 @@ import android.telephony.PhoneNumberUtils;
 import android.widget.Toast;
 
 /**
- * Single point of entry for all outgoing and incoming calls. {@link CallActivity} serves as a
- * trampoline activity that captures call intents for individual users and forwards it to
- * the {@link CallReceiver} which interacts with the rest of Telecom, both of which run only as
+ * Single point of entry for all outgoing and incoming calls. {@link UserCallIntentProcessor} serves
+ * as a trampoline that captures call intents for individual users and forwards it to
+ * the {@link CallIntentProcessor} which interacts with the rest of Telecom, both of which run only as
  * the primary user.
  */
-public class CallReceiver extends BroadcastReceiver {
-    private static final String TAG = CallReceiver.class.getName();
+public class CallIntentProcessor {
 
     static final String KEY_IS_UNKNOWN_CALL = "is_unknown_call";
     static final String KEY_IS_INCOMING_CALL = "is_incoming_call";
-    static final String KEY_IS_DEFAULT_DIALER =
-            "is_default_dialer";
+    static final String KEY_IS_DEFAULT_DIALER = "is_default_dialer";
 
-    @Override
-    public void onReceive(Context context, Intent intent) {
+    private final Context mContext;
+    private final CallsManager mCallsManager;
+
+    public CallIntentProcessor(Context context, CallsManager callsManager) {
+        this.mContext = context;
+        this.mCallsManager = callsManager;
+    }
+
+    public void processIntent(Intent intent) {
         final boolean isUnknownCall = intent.getBooleanExtra(KEY_IS_UNKNOWN_CALL, false);
         Log.i(this, "onReceive - isUnknownCall: %s", isUnknownCall);
 
         Trace.beginSection("processNewCallCallIntent");
         if (isUnknownCall) {
-            processUnknownCallIntent(intent);
+            processUnknownCallIntent(mCallsManager, intent);
         } else {
-            processOutgoingCallIntent(context, intent);
+            processOutgoingCallIntent(mContext, mCallsManager, intent);
         }
         Trace.endSection();
     }
+
 
     /**
      * Processes CALL, CALL_PRIVILEGED, and CALL_EMERGENCY intents.
      *
      * @param intent Call intent containing data about the handle to call.
      */
-    static void processOutgoingCallIntent(Context context, Intent intent) {
-        if (shouldPreventDuplicateVideoCall(context, intent)) {
+    static void processOutgoingCallIntent(
+            Context context,
+            CallsManager callsManager,
+            Intent intent) {
+        if (shouldPreventDuplicateVideoCall(context, callsManager, intent)) {
             return;
         }
 
@@ -70,13 +80,13 @@ public class CallReceiver extends BroadcastReceiver {
             clientExtras = intent.getBundleExtra(TelecomManager.EXTRA_OUTGOING_CALL_EXTRAS);
         }
         if (clientExtras == null) {
-            clientExtras = new Bundle();
+            clientExtras = Bundle.EMPTY;
         }
 
         final boolean isDefaultDialer = intent.getBooleanExtra(KEY_IS_DEFAULT_DIALER, false);
 
         // Send to CallsManager to ensure the InCallUI gets kicked off before the broadcast returns
-        Call call = getCallsManager().startOutgoingCall(handle, phoneAccountHandle, clientExtras);
+        Call call = callsManager.startOutgoingCall(handle, phoneAccountHandle, clientExtras);
 
         if (call != null) {
             // Asynchronous calls should not usually be made inside a BroadcastReceiver because once
@@ -85,7 +95,7 @@ public class CallReceiver extends BroadcastReceiver {
             // process will be running throughout the duration of the phone call and should never
             // be killed.
             NewOutgoingCallIntentBroadcaster broadcaster = new NewOutgoingCallIntentBroadcaster(
-                    context, getCallsManager(), call, intent, isDefaultDialer);
+                    context, callsManager, call, intent, isDefaultDialer);
             final int result = broadcaster.processIntent();
             final boolean success = result == DisconnectCause.NOT_DISCONNECTED;
 
@@ -95,16 +105,18 @@ public class CallReceiver extends BroadcastReceiver {
         }
     }
 
-    static void processIncomingCallIntent(Intent intent) {
+    static void processIncomingCallIntent(CallsManager callsManager, Intent intent) {
         PhoneAccountHandle phoneAccountHandle = intent.getParcelableExtra(
                 TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE);
 
         if (phoneAccountHandle == null) {
-            Log.w(TAG, "Rejecting incoming call due to null phone account");
+            Log.w(CallIntentProcessor.class,
+                    "Rejecting incoming call due to null phone account");
             return;
         }
         if (phoneAccountHandle.getComponentName() == null) {
-            Log.w(TAG, "Rejecting incoming call due to null component name");
+            Log.w(CallIntentProcessor.class,
+                    "Rejecting incoming call due to null component name");
             return;
         }
 
@@ -113,32 +125,29 @@ public class CallReceiver extends BroadcastReceiver {
             clientExtras = intent.getBundleExtra(TelecomManager.EXTRA_INCOMING_CALL_EXTRAS);
         }
         if (clientExtras == null) {
-            clientExtras = new Bundle();
+            clientExtras = Bundle.EMPTY;
         }
 
-        Log.d(TAG, "Processing incoming call from connection service [%s]",
+        Log.d(CallIntentProcessor.class,
+                "Processing incoming call from connection service [%s]",
                 phoneAccountHandle.getComponentName());
-        getCallsManager().processIncomingCallIntent(phoneAccountHandle, clientExtras);
+        callsManager.processIncomingCallIntent(phoneAccountHandle, clientExtras);
     }
 
-    private void processUnknownCallIntent(Intent intent) {
+    private static void processUnknownCallIntent(CallsManager callsManager, Intent intent) {
         PhoneAccountHandle phoneAccountHandle = intent.getParcelableExtra(
                 TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE);
 
         if (phoneAccountHandle == null) {
-            Log.w(this, "Rejecting unknown call due to null phone account");
+            Log.w(CallIntentProcessor.class, "Rejecting unknown call due to null phone account");
             return;
         }
         if (phoneAccountHandle.getComponentName() == null) {
-            Log.w(this, "Rejecting unknown call due to null component name");
+            Log.w(CallIntentProcessor.class, "Rejecting unknown call due to null component name");
             return;
         }
 
-        getCallsManager().addNewUnknownCall(phoneAccountHandle, intent.getExtras());
-    }
-
-    static CallsManager getCallsManager() {
-        return CallsManager.getInstance();
+        callsManager.addNewUnknownCall(phoneAccountHandle, intent.getExtras());
     }
 
     private static void disconnectCallAndShowErrorDialog(
@@ -167,11 +176,14 @@ public class CallReceiver extends BroadcastReceiver {
      * @return {@code true} if the outgoing call is a video call and should be prevented from going
      *     out, {@code false} otherwise.
      */
-    private static boolean shouldPreventDuplicateVideoCall(Context context, Intent intent) {
+    private static boolean shouldPreventDuplicateVideoCall(
+            Context context,
+            CallsManager callsManager,
+            Intent intent) {
         int intentVideoState = intent.getIntExtra(TelecomManager.EXTRA_START_CALL_WITH_VIDEO_STATE,
                 VideoProfile.VideoState.AUDIO_ONLY);
         if (intentVideoState == VideoProfile.VideoState.AUDIO_ONLY
-                || !getCallsManager().hasVideoCall()) {
+                || !callsManager.hasVideoCall()) {
             return false;
         } else {
             // Display an error toast to the user.

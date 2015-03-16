@@ -27,6 +27,7 @@ import android.content.pm.UserInfo;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
+import android.os.Binder;
 import android.os.Process;
 import android.os.UserHandle;
 import android.os.UserManager;
@@ -65,6 +66,7 @@ import java.lang.Integer;
 import java.lang.SecurityException;
 import java.lang.String;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
@@ -298,8 +300,16 @@ public final class PhoneAccountRegistrar {
                 mContext.getResources().getString(R.string.default_connection_manager_component);
         if (!TextUtils.isEmpty(defaultConnectionMgr)) {
             ComponentName componentName = ComponentName.unflattenFromString(defaultConnectionMgr);
+            if (componentName == null) {
+                return null;
+            }
+
             // Make sure that the component can be resolved.
             List<ResolveInfo> resolveInfos = resolveComponent(componentName, null);
+            if (resolveInfos.isEmpty()) {
+                resolveInfos = resolveComponent(componentName, Binder.getCallingUserHandle());
+            }
+
             if (!resolveInfos.isEmpty()) {
                 // See if there is registered PhoneAccount by this component.
                 List<PhoneAccountHandle> handles = getAllPhoneAccountHandles();
@@ -381,16 +391,23 @@ public final class PhoneAccountRegistrar {
             return true;
         }
 
+        if (phoneAccountUserHandle.equals(Binder.getCallingUserHandle())) {
+            return true;
+        }
+
         // Unlike in TelecomServiceImpl, we only care about *profiles* here. We want to make sure
         // that we don't resolve PhoneAccount across *users*, but resolving across *profiles* is
         // fine.
-        List<UserInfo> profileUsers = mUserManager.getProfiles(mCurrentUserHandle.getIdentifier());
-
-        for (UserInfo profileInfo : profileUsers) {
-            if (profileInfo.getUserHandle().equals(phoneAccountUserHandle)) {
-                return true;
+        if (UserHandle.getCallingUserId() == UserHandle.USER_OWNER) {
+            List<UserInfo> profileUsers =
+                    mUserManager.getProfiles(mCurrentUserHandle.getIdentifier());
+            for (UserInfo profileInfo : profileUsers) {
+                if (profileInfo.getUserHandle().equals(phoneAccountUserHandle)) {
+                    return true;
+                }
             }
         }
+
         return false;
     }
 
@@ -404,10 +421,15 @@ public final class PhoneAccountRegistrar {
         PackageManager pm = mContext.getPackageManager();
         Intent intent = new Intent(ConnectionService.SERVICE_INTERFACE);
         intent.setComponent(componentName);
-        if (userHandle != null) {
-            return pm.queryIntentServicesAsUser(intent, 0, userHandle.getIdentifier());
-        } else {
-            return pm.queryIntentServices(intent, 0);
+        try {
+            if (userHandle != null) {
+                return pm.queryIntentServicesAsUser(intent, 0, userHandle.getIdentifier());
+            } else {
+                return pm.queryIntentServices(intent, 0);
+            }
+        } catch (SecurityException e) {
+            Log.v(this, "%s is not visible for the calling user", componentName);
+            return Collections.EMPTY_LIST;
         }
     }
 
@@ -614,17 +636,19 @@ public final class PhoneAccountRegistrar {
      * @return {@code True} if the phone account has permission.
      */
     public boolean phoneAccountHasPermission(PhoneAccountHandle phoneAccountHandle) {
-        PackageManager packageManager = mContext.getPackageManager();
-        try {
-            ServiceInfo serviceInfo = packageManager.getServiceInfo(
-                    phoneAccountHandle.getComponentName(), 0);
-
-            return serviceInfo.permission != null &&
-                    serviceInfo.permission.equals(Manifest.permission.BIND_CONNECTION_SERVICE);
-        } catch (PackageManager.NameNotFoundException e) {
-            Log.w(this, "Name not found %s", e);
+        List<ResolveInfo> resolveInfos = resolveComponent(phoneAccountHandle);
+        if (resolveInfos.isEmpty()) {
+            Log.w(this, "phoneAccount %s not found", phoneAccountHandle.getComponentName());
             return false;
         }
+        for (ResolveInfo resolveInfo : resolveInfos) {
+            ServiceInfo serviceInfo = resolveInfo.serviceInfo;
+            if (serviceInfo == null || !Objects.equals(serviceInfo.permission,
+                    Manifest.permission.BIND_CONNECTION_SERVICE)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////

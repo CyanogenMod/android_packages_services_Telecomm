@@ -14,7 +14,9 @@
  * limitations under the License
  */
 
-package com.android.server.telecom;
+package com.android.server.telecom.components;
+
+import com.android.server.telecom.PhoneAccountRegistrar;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
