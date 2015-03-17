@@ -281,7 +281,8 @@ public class TestConnectionService extends ConnectionService {
                     handle.getSchemeSpecificPart() + "..", ""),
                     originalRequest.getExtras(),
                     originalRequest.getVideoState());
-
+            connection.setVideoState(originalRequest.getVideoState());
+            maybeAddVideoProvider(connection);
             addCall(connection);
             connection.startOutgoing();
 
@@ -312,20 +313,14 @@ public class TestConnectionService extends ConnectionService {
             Uri address = providedHandle == null ?
                     Uri.fromParts(PhoneAccount.SCHEME_TEL, getDummyNumber(isVideoCall), null)
                     : providedHandle;
-            if (isVideoCall) {
-                TestVideoProvider testVideoCallProvider =
-                        new TestVideoProvider(getApplicationContext());
-                connection.setVideoProvider(testVideoCallProvider);
-
-                // Keep reference to original so we can clean up the media players later.
-                connection.setTestVideoCallProvider(testVideoCallProvider);
-            }
 
             int videoState = isVideoCall ?
                     VideoProfile.VideoState.BIDIRECTIONAL :
                     VideoProfile.VideoState.AUDIO_ONLY;
             connection.setVideoState(videoState);
             connection.setAddress(address, TelecomManager.PRESENTATION_ALLOWED);
+
+            maybeAddVideoProvider(connection);
 
             addCall(connection);
 
@@ -364,6 +359,17 @@ public class TestConnectionService extends ConnectionService {
         } else {
             return Connection.createFailedConnection(new DisconnectCause(DisconnectCause.ERROR,
                     "Invalid inputs: " + accountHandle + " " + componentName));
+        }
+    }
+
+    private void maybeAddVideoProvider(TestConnection connection) {
+        if (connection.getVideoState() == VideoProfile.VideoState.BIDIRECTIONAL) {
+            TestVideoProvider testVideoCallProvider =
+                    new TestVideoProvider(getApplicationContext());
+            connection.setVideoProvider(testVideoCallProvider);
+
+            // Keep reference to original so we can clean up the media players later.
+            connection.setTestVideoCallProvider(testVideoCallProvider);
         }
     }
 
