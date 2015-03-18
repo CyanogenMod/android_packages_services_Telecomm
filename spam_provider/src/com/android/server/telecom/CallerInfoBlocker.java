@@ -1,0 +1,25 @@
+package com.android.server.telecom;
+
+import android.content.Context;
+
+/**
+ * Listens for call updates and records whether calls should be blocked based on
+ * caller info results.  Can also hang up calls while they are ringing, in case
+ * they could not be blocked in time.
+ */
+public class CallerInfoBlocker extends CallsManagerListenerBase {
+
+    public CallerInfoBlocker(Context context) {
+    }
+
+    public synchronized void setSpam(String number) {
+    }
+
+    public synchronized boolean shouldBlock(String number) {
+        return false;
+    }
+
+    @Override
+    public void onProcessIncomingCall(final Call call) {
+    }
+}
