@@ -85,6 +85,7 @@ public final class CallsManager extends Call.ListenerBase {
         void onVideoStateChanged(Call call);
         void onCallSubstateChanged(Call call);
         void onCanAddCallChanged(boolean canAddCall);
+        void onProcessIncomingCall(Call call);
     }
 
     /**
@@ -138,6 +139,7 @@ public final class CallsManager extends Call.ListenerBase {
     private final PhoneAccountRegistrar mPhoneAccountRegistrar;
     private final MissedCallNotifier mMissedCallNotifier;
     private final BlacklistCallNotifier mBlacklistCallNotifier;
+    private final SpamBlocker mCallerInfoBlocker;
     private final Set<Call> mLocallyDisconnectingCalls = new HashSet<>();
 
     private boolean mCanAddCall = true;
@@ -202,6 +204,7 @@ public final class CallsManager extends Call.ListenerBase {
         mDtmfLocalTonePlayer = new DtmfLocalTonePlayer(context);
         mConnectionServiceRepository = new ConnectionServiceRepository(mPhoneAccountRegistrar,
                 context);
+        mCallerInfoBlocker = new SpamBlocker(context);
 
         mListeners.add(statusBarNotifier);
         mListeners.add(mCallLogManager);
@@ -216,6 +219,7 @@ public final class CallsManager extends Call.ListenerBase {
         mListeners.add(mHeadsetMediaButton);
         mListeners.add(RespondViaSmsManager.getInstance());
         mListeners.add(mProximitySensorManager);
+        mListeners.add(mCallerInfoBlocker);
     }
 
     @Override
@@ -249,6 +253,12 @@ public final class CallsManager extends Call.ListenerBase {
         Log.d(this, "onSuccessfulIncomingCall");
 
         if (isCallBlacklisted(incomingCall)) {
+            mCallLogManager.logCall(incomingCall, Calls.BLACKLIST_TYPE);
+            incomingCall.setDisconnectCause(
+                    new DisconnectCause(android.telephony.DisconnectCause.CALL_BLACKLISTED));
+        } else if (mCallerInfoBlocker.shouldBlock(incomingCall.getNumber())) {
+            // TODO: show notification for blocked spam calls
+            // TODO: add unique call type for spam
             mCallLogManager.logCall(incomingCall, Calls.BLACKLIST_TYPE);
             incomingCall.setDisconnectCause(
                     new DisconnectCause(android.telephony.DisconnectCause.CALL_BLACKLISTED));
@@ -407,6 +417,9 @@ public final class CallsManager extends Call.ListenerBase {
         call.setExtras(extras);
         // TODO: Move this to be a part of addCall()
         call.addListener(this);
+        for (CallsManagerListener listener : mListeners) {
+            listener.onProcessIncomingCall(call);
+        }
         call.startCreateConnection(mPhoneAccountRegistrar);
     }
 
