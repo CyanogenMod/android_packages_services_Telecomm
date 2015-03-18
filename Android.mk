@@ -21,6 +21,10 @@ LOCAL_PROGUARD_ENABLED := optimization
 # Workaround for "local variable type mismatch" error.
 LOCAL_DX_FLAGS += --no-locals
 
+TELECOMM_SPAM_FILTER ?= $(LOCAL_PATH)/spam_filter
+
+include $(TELECOMM_SPAM_FILTER)/Android.mk
+
 include $(BUILD_PACKAGE)
 
 # Build the test package.
