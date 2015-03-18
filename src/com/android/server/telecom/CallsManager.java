@@ -86,6 +86,7 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
         void onCanAddCallChanged(boolean canAddCall);
         void onSessionModifyRequestReceived(Call call, VideoProfile videoProfile);
         void onMergeFailed(Call call);
+        void onProcessIncomingCall(Call call);
     }
 
     private static final String TAG = "CallsManager";
@@ -143,6 +144,7 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
     private final PhoneAccountRegistrar mPhoneAccountRegistrar;
     private final MissedCallNotifier mMissedCallNotifier;
     private final BlacklistCallNotifier mBlacklistCallNotifier;
+    private final CallInfoProvider mCallInfoProvider;
     private final Set<Call> mLocallyDisconnectingCalls = new HashSet<>();
     private final Set<Call> mPendingCallsToDisconnect = new HashSet<>();
     /* Handler tied to thread in which CallManager was initialized. */
@@ -186,7 +188,8 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
             HeadsetMediaButtonFactory headsetMediaButtonFactory,
             ProximitySensorManagerFactory proximitySensorManagerFactory,
             InCallWakeLockControllerFactory inCallWakeLockControllerFactory,
-            BlacklistCallNotifier blacklistCallNotifier) {
+            BlacklistCallNotifier blacklistCallNotifier,
+            CallInfoProvider callInfoProvider) {
         mContext = context;
         mLock = lock;
         mContactsAsyncHelper = contactsAsyncHelper;
@@ -212,6 +215,8 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
         mConnectionServiceRepository =
                 new ConnectionServiceRepository(mPhoneAccountRegistrar, mContext, mLock, this);
         mInCallWakeLockController = inCallWakeLockControllerFactory.create(context, this);
+        
+        mCallInfoProvider = callInfoProvider;
 
         mListeners.add(statusBarNotifier);
         mListeners.add(mCallLogManager);
@@ -225,6 +230,8 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
         mListeners.add(mDtmfLocalTonePlayer);
         mListeners.add(mHeadsetMediaButton);
         mListeners.add(mProximitySensorManager);
+
+        mListeners.add(mCallInfoProvider);
 
         mMissedCallNotifier.updateOnStartup(
                 mLock, this, mContactsAsyncHelper, mCallerInfoAsyncQueryFactory);
@@ -273,6 +280,12 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
         Log.d(this, "onSuccessfulIncomingCall");
 
         if (isCallBlacklisted(incomingCall)) {
+            mCallLogManager.logCall(incomingCall, Calls.BLACKLIST_TYPE);
+            incomingCall.setDisconnectCause(
+                    new DisconnectCause(android.telephony.DisconnectCause.CALL_BLACKLISTED));
+        } else if (mCallInfoProvider.shouldBlock(incomingCall.getNumber())) {
+            // TODO: show notification for blocked spam calls
+            // TODO: add unique call type for spam
             mCallLogManager.logCall(incomingCall, Calls.BLACKLIST_TYPE);
             incomingCall.setDisconnectCause(
                     new DisconnectCause(android.telephony.DisconnectCause.CALL_BLACKLISTED));
@@ -547,6 +560,9 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
         call.setIntentExtras(extras);
         // TODO: Move this to be a part of addCall()
         call.addListener(this);
+        for (CallsManagerListener listener : mListeners) {
+            listener.onProcessIncomingCall(call);
+        }
         call.startCreateConnection(mPhoneAccountRegistrar);
     }
 

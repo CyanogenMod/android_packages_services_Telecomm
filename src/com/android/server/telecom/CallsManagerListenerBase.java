@@ -88,4 +88,8 @@ public class CallsManagerListenerBase implements CallsManager.CallsManagerListen
     @Override
     public void onMergeFailed(Call call) {
     }
+
+    @Override
+    public void onProcessIncomingCall(Call call) {
+    }
 }

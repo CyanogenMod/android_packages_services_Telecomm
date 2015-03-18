@@ -17,6 +17,10 @@ LOCAL_PRIVILEGED_MODULE := true
 
 LOCAL_PROGUARD_FLAG_FILES := proguard.flags
 
+TELECOMM_CALLINFO_PROVIDER ?= $(LOCAL_PATH)/callinfo_provider
+
+include $(TELECOMM_CALLINFO_PROVIDER)/provider.mk
+
 include $(BUILD_PACKAGE)
 
 # Build the test package.
