@@ -452,6 +452,7 @@ final class CallAudioManager extends CallsManagerListenerBase
             Log.v(this, "abandoning audio focus");
             mAudioManager.abandonAudioFocusForCall();
             mAudioFocusStreamType = STREAM_NONE;
+            mCallToSpeedUpMTAudio = null;
         }
     }
 
