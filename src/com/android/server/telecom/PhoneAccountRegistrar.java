@@ -213,7 +213,7 @@ public final class PhoneAccountRegistrar {
     }
 
     PhoneAccountHandle getUserSelectedVoicePhoneAccount() {
-        long voiceSubId = SubscriptionManager.getDefaultVoiceSubId();
+        int voiceSubId = SubscriptionManager.getDefaultVoiceSubId();
         boolean isVoicePrompt = SubscriptionManager.isVoicePromptEnabled();
         PhoneAccountHandle prefPhoneAccount = null;
 
@@ -228,9 +228,9 @@ public final class PhoneAccountRegistrar {
                    Log.i(this, "getUserSelVoicePhoneAccount, emergency account ");
                    return mState.accounts.get(i).getAccountHandle();
                 }
-                long subId = voiceSubId;
+                int subId = voiceSubId;
                 try {
-                    subId = Long.parseLong(id);
+                    subId = Integer.parseInt(id);
                 } catch (NumberFormatException e) {
                     Log.w(this, " NumberFormatException " + e);
                 }
