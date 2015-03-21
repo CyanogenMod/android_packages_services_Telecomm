@@ -80,13 +80,14 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
     private static final int MSG_SET_CALLER_DISPLAY_NAME = 18;
     private static final int MSG_SET_VIDEO_STATE = 19;
     private static final int MSG_SET_CONFERENCEABLE_CONNECTIONS = 20;
-    private static final int MSG_SET_EXTRAS = 21;
-    private static final int MSG_SET_DISCONNECTED_WITH_SUPP_NOTIFICATION = 22;
-    private static final int MSG_SET_PHONE_ACCOUNT = 23;
-    private static final int MSG_SET_CALL_SUBSTATE = 24;
-    private static final int MSG_ADD_EXISTING_CONNECTION = 25;
-    private static final int MSG_SET_CALL_PROPERTIES = 26;
-    private static final int MSG_RESET_CDMA_CONNECT_TIME = 27;
+    private static final int MSG_ADD_EXISTING_CONNECTION = 21;
+    private static final int MSG_ON_POST_DIAL_CHAR = 22;
+    private static final int MSG_SET_EXTRAS = 23;
+    private static final int MSG_SET_DISCONNECTED_WITH_SUPP_NOTIFICATION = 24;
+    private static final int MSG_SET_PHONE_ACCOUNT = 25;
+    private static final int MSG_SET_CALL_SUBSTATE = 26;
+    private static final int MSG_SET_CALL_PROPERTIES = 27;
+    private static final int MSG_RESET_CDMA_CONNECT_TIME = 28;
 
     private final Handler mHandler = new Handler() {
         @Override
@@ -279,6 +280,21 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                             call.onPostDialWait(remaining);
                         } else {
                             //Log.w(this, "onPostDialWait, unknown call id: %s", args.arg1);
+                        }
+                    } finally {
+                        args.recycle();
+                    }
+                    break;
+                }
+                case MSG_ON_POST_DIAL_CHAR: {
+                    SomeArgs args = (SomeArgs) msg.obj;
+                    try {
+                        call = mCallIdMapper.getCall(args.arg1);
+                        if (call != null) {
+                            char nextChar = (char) args.argi1;
+                            call.onPostDialChar(nextChar);
+                        } else {
+                            //Log.w(this, "onPostDialChar, unknown call id: %s", args.arg1);
                         }
                     } finally {
                         args.recycle();
@@ -569,6 +585,17 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
                 args.arg1 = callId;
                 args.arg2 = remaining;
                 mHandler.obtainMessage(MSG_ON_POST_DIAL_WAIT, args).sendToTarget();
+            }
+        }
+
+        @Override
+        public void onPostDialChar(String callId, char nextChar) throws RemoteException {
+            logIncoming("onPostDialChar %s %s", callId, nextChar);
+            if (mCallIdMapper.isValidCallId(callId)) {
+                SomeArgs args = SomeArgs.obtain();
+                args.arg1 = callId;
+                args.argi1 = nextChar;
+                mHandler.obtainMessage(MSG_ON_POST_DIAL_CHAR, args).sendToTarget();
             }
         }
 
