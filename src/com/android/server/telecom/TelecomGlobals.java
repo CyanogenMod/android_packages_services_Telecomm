@@ -89,7 +89,7 @@ public final class TelecomGlobals {
         mContext = context.getApplicationContext();
 
         mMissedCallNotifier = new MissedCallNotifier(mContext);
-        mBlacklistCallNotifier = new BlacklistCallNotifier(this);
+        mBlacklistCallNotifier = new BlacklistCallNotifier(mContext);
         mPhoneAccountRegistrar = new PhoneAccountRegistrar(mContext);
 
         mCallsManager = new CallsManager(mContext, mMissedCallNotifier,
