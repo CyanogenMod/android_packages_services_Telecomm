@@ -63,7 +63,7 @@ import java.util.concurrent.ConcurrentHashMap;
  *  connected etc).
  */
 @VisibleForTesting
-final public class Call implements CreateConnectionResponse {
+public class Call implements CreateConnectionResponse {
     /**
      * Listener for events on the call.
      */

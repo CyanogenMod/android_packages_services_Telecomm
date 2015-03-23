@@ -14,14 +14,17 @@
  * limitations under the License.
  */
 
-package com.android.server.telecom.tests.unit;
+package com.android.server.telecom.tests;
 
-import android.os.UserHandle;
+import android.annotation.TargetApi;
+import android.os.Binder;
+
+import com.android.internal.telecom.IConnectionService;
 import com.android.internal.util.FastXmlSerializer;
 import com.android.server.telecom.Log;
 import com.android.server.telecom.PhoneAccountRegistrar;
-import com.android.server.telecom.tests.R;
 
+import org.mockito.Mockito;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlSerializer;
 
@@ -33,7 +36,6 @@ import android.net.Uri;
 import android.os.Parcel;
 import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
-import android.test.AndroidTestCase;
 import android.util.Xml;
 
 import java.io.BufferedInputStream;
@@ -43,21 +45,34 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.util.Arrays;
 
-public class PhoneAccountRegistrarTest extends AndroidTestCase {
+public class PhoneAccountRegistrarTest extends TelecomTestCase {
 
     private static final int MAX_VERSION = Integer.MAX_VALUE;
-    private static final String FILE_NAME = "phone-account-registrar-test.xml";
+    private static final String FILE_NAME = "phone-account-registrar-test-1223.xml";
     private PhoneAccountRegistrar mRegistrar;
 
     @Override
-    public void setUp() {
-        mRegistrar = new PhoneAccountRegistrar(getContext(), FILE_NAME);
+    public void setUp() throws Exception {
+        super.setUp();
+        mComponentContextFixture = new ComponentContextFixture();
+        new File(
+                mComponentContextFixture.getTestDouble().getApplicationContext().getFilesDir(),
+                FILE_NAME)
+                .delete();
+        mRegistrar = new PhoneAccountRegistrar(
+                mComponentContextFixture.getTestDouble().getApplicationContext(),
+                FILE_NAME);
     }
 
     @Override
-    public void tearDown() {
+    public void tearDown() throws Exception {
         mRegistrar = null;
-        new File(getContext().getFilesDir(), FILE_NAME).delete();
+        mComponentContextFixture = null;
+        new File(
+                mComponentContextFixture.getTestDouble().getApplicationContext().getFilesDir(),
+                FILE_NAME)
+                .delete();
+        super.tearDown();
     }
 
     public void testPhoneAccountHandle() throws Exception {
@@ -93,6 +108,11 @@ public class PhoneAccountRegistrarTest extends AndroidTestCase {
 
     public void testAccounts() throws Exception {
         int i = 0;
+
+        mComponentContextFixture.addConnectionService(
+                makeQuickConnectionServiceComponentName(),
+                Mockito.mock(IConnectionService.class));
+
         mRegistrar.registerPhoneAccount(makeQuickAccountBuilder("id" + i, i++)
                 .setCapabilities(PhoneAccount.CAPABILITY_CONNECTION_MANAGER
                         | PhoneAccount.CAPABILITY_CALL_PROVIDER)
@@ -116,6 +136,10 @@ public class PhoneAccountRegistrarTest extends AndroidTestCase {
     }
 
     public void testSimCallManager() throws Exception {
+        mComponentContextFixture.addConnectionService(
+                makeQuickConnectionServiceComponentName(),
+                Mockito.mock(IConnectionService.class));
+
         PhoneAccountHandle simManager = makeQuickAccountHandle("sim_mgr");
         PhoneAccount simManagerAccount = new PhoneAccount.Builder(simManager, "sim_mgr")
                 .setCapabilities(PhoneAccount.CAPABILITY_CALL_PROVIDER
@@ -150,7 +174,11 @@ public class PhoneAccountRegistrarTest extends AndroidTestCase {
         assertNull(mRegistrar.getSimCallManager());
     }
 
-    public void testDefaultOutgoing() {
+    public void testDefaultOutgoing() throws Exception {
+        mComponentContextFixture.addConnectionService(
+                makeQuickConnectionServiceComponentName(),
+                Mockito.mock(IConnectionService.class));
+
         // By default, there is no default outgoing account (nothing has been registered)
         assertNull(mRegistrar.getDefaultOutgoingPhoneAccount(PhoneAccount.SCHEME_TEL));
 
@@ -221,14 +249,17 @@ public class PhoneAccountRegistrarTest extends AndroidTestCase {
                         .build());
     }
 
+    private static ComponentName makeQuickConnectionServiceComponentName() {
+        return new ComponentName(
+                "com.android.server.telecom.tests",
+                "com.android.server.telecom.tests.MockConnectionService");
+    }
+
     private static PhoneAccountHandle makeQuickAccountHandle(String id) {
         return new PhoneAccountHandle(
-                new ComponentName(
-                        "com.android.server.telecom.tests",
-                        "com.android.server.telecom.tests.MockConnectionService"
-                ),
+                makeQuickConnectionServiceComponentName(),
                 id,
-                new UserHandle(5));
+                Binder.getCallingUserHandle());
     }
 
     private PhoneAccount.Builder makeQuickAccountBuilder(String id, int idx) {

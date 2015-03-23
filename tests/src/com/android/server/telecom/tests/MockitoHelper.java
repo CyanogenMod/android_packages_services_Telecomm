@@ -16,18 +16,21 @@
 
 package com.android.server.telecom.tests;
 
+import com.android.server.telecom.Log;
+
+import android.annotation.TargetApi;
 import android.content.Context;
-import android.util.Log;
+import android.os.Looper;
 
 /**
  * Helper for Mockito-based test cases.
  */
 public final class MockitoHelper {
-    private static final String TAG = "MockitoHelper";
     private static final String DEXCACHE = "dexmaker.dexcache";
 
-    private ClassLoader mOriginalClassLoader;
-    private Thread mContextThread;
+    private Thread mRequestThread;
+    private ClassLoader mRequestThreadOriginalClassLoader;
+    private ClassLoader mMainThreadOriginalClassLoader;
 
     /**
      * Creates a new helper, which in turn will set the context classloader so
@@ -37,21 +40,35 @@ public final class MockitoHelper {
      */
     public void setUp(Context context, Class<?> packageClass) throws Exception {
         // makes a copy of the context classloader
-        mContextThread = Thread.currentThread();
-        mOriginalClassLoader = mContextThread.getContextClassLoader();
+        mRequestThread = Thread.currentThread();
+        mRequestThreadOriginalClassLoader = mRequestThread.getContextClassLoader();
+        mMainThreadOriginalClassLoader = Looper.getMainLooper().getThread().getContextClassLoader();
+
         ClassLoader newClassLoader = packageClass.getClassLoader();
-        Log.v(TAG, "Changing context classloader from " + mOriginalClassLoader
-                + " to " + newClassLoader);
-        mContextThread.setContextClassLoader(newClassLoader);
-        System.setProperty(DEXCACHE, context.getCacheDir().toString());
+
+        Log.v(this, "Changing context classloader for thread %s from %s to %s",
+                mRequestThread.getName(),
+                mRequestThreadOriginalClassLoader,
+                newClassLoader);
+        mRequestThread.setContextClassLoader(newClassLoader);
+
+        Log.v(this, "Changing context classloader for MAIN thread from %s to %s",
+                mMainThreadOriginalClassLoader,
+                newClassLoader);
+        Looper.getMainLooper().getThread().setContextClassLoader(newClassLoader);
+
+        String dexCache = context.getCacheDir().toString();
+        Log.v(this, "Setting property %s to %s", DEXCACHE, dexCache);
+        System.setProperty(DEXCACHE, dexCache);
     }
 
     /**
      * Restores the context classloader to the previous value.
      */
     public void tearDown() throws Exception {
-        Log.v(TAG, "Restoring context classloader to " + mOriginalClassLoader);
-        mContextThread.setContextClassLoader(mOriginalClassLoader);
+        Log.v(this, "Restoring context classloaders");
+        mRequestThread.setContextClassLoader(mRequestThreadOriginalClassLoader);
+        Log.v(this, "Clearing property %s", DEXCACHE);
         System.clearProperty(DEXCACHE);
     }
 }

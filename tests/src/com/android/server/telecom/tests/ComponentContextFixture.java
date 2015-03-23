@@ -21,12 +21,15 @@ import com.google.common.collect.Multimap;
 
 import com.android.internal.telecom.IConnectionService;
 import com.android.internal.telecom.IInCallService;
+import com.android.server.telecom.Log;
 
-import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
+import android.annotation.TargetApi;
+import android.app.AppOpsManager;
+import android.app.NotificationManager;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.ContentResolver;
@@ -41,8 +44,11 @@ import android.content.pm.ServiceInfo;
 import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.media.AudioManager;
+import android.os.Bundle;
+import android.os.Handler;
 import android.os.IInterface;
 import android.os.UserHandle;
+import android.os.UserManager;
 import android.telecom.ConnectionService;
 import android.telecom.InCallService;
 import android.telecom.PhoneAccount;
@@ -57,10 +63,13 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
 /**
@@ -70,7 +79,7 @@ import static org.mockito.Mockito.when;
  * The {@link Context} created by this object is "hollow" but its {@code applicationContext}
  * property points to an application context implementing all the nontrivial functionality.
  */
-public class ComponentContextHolder implements TestDoubleHolder<Context> {
+public class ComponentContextFixture implements TestFixture<Context> {
 
     public class TestApplicationContext extends MockContext {
         @Override
@@ -132,9 +141,20 @@ public class ComponentContextHolder implements TestDoubleHolder<Context> {
                     return mAudioManager;
                 case Context.TELEPHONY_SERVICE:
                     return mTelephonyManager;
+                case Context.APP_OPS_SERVICE:
+                    return mAppOpsManager;
+                case Context.NOTIFICATION_SERVICE:
+                    return mNotificationManager;
+                case Context.USER_SERVICE:
+                    return mUserManager;
                 default:
                     return null;
             }
+        }
+
+        @Override
+        public int getUserId() {
+            return 0;
         }
 
         @Override
@@ -149,20 +169,22 @@ public class ComponentContextHolder implements TestDoubleHolder<Context> {
 
         @Override
         public ContentResolver getContentResolver() {
-            return new ContentResolver(this) {
+            return new ContentResolver(mApplicationContextSpy) {
                 @Override
                 protected IContentProvider acquireProvider(Context c, String name) {
-                    return null;
+                    Log.i(this, "acquireProvider %s", name);
+                    return mock(IContentProvider.class);
                 }
 
                 @Override
                 public boolean releaseProvider(IContentProvider icp) {
-                    return false;
+                    return true;
                 }
 
                 @Override
                 protected IContentProvider acquireUnstableProvider(Context c, String name) {
-                    return null;
+                    Log.i(this, "acquireUnstableProvider %s", name);
+                    return mock(IContentProvider.class);
                 }
 
                 @Override
@@ -172,7 +194,6 @@ public class ComponentContextHolder implements TestDoubleHolder<Context> {
 
                 @Override
                 public void unstableProviderDied(IContentProvider icp) {
-
                 }
             };
         }
@@ -191,6 +212,19 @@ public class ComponentContextHolder implements TestDoubleHolder<Context> {
         @Override
         public void sendBroadcast(Intent intent, String receiverPermission) {
             // TODO -- need to ensure this is captured
+        }
+
+        @Override
+        public void sendOrderedBroadcastAsUser(Intent intent, UserHandle user,
+                String receiverPermission, BroadcastReceiver resultReceiver, Handler scheduler,
+                int initialCode, String initialData, Bundle initialExtras) {
+            // TODO -- need to ensure this is captured
+        }
+
+        @Override
+        public Context createPackageContextAsUser(String packageName, int flags, UserHandle user)
+                throws PackageManager.NameNotFoundException {
+            return this;
         }
     };
 
@@ -215,14 +249,17 @@ public class ComponentContextHolder implements TestDoubleHolder<Context> {
     // We then create a spy on the application context allowing standard Mockito-style
     // when(...) logic to be used to add specific little responses where needed.
 
-    private final Context mApplicationContextSpy = Mockito.spy(mApplicationContext);
-    private final PackageManager mPackageManager = Mockito.mock(PackageManager.class);
-    private final AudioManager mAudioManager = Mockito.mock(AudioManager.class);
-    private final TelephonyManager mTelephonyManager = Mockito.mock(TelephonyManager.class);
-    private final Resources mResources = Mockito.mock(Resources.class);
+    private final Context mApplicationContextSpy = spy(mApplicationContext);
+    private final PackageManager mPackageManager = mock(PackageManager.class);
+    private final AudioManager mAudioManager = mock(AudioManager.class);
+    private final TelephonyManager mTelephonyManager = mock(TelephonyManager.class);
+    private final AppOpsManager mAppOpsManager = mock(AppOpsManager.class);
+    private final NotificationManager mNotificationManager = mock(NotificationManager.class);
+    private final UserManager mUserManager = mock(UserManager.class);
+    private final Resources mResources = mock(Resources.class);
     private final Configuration mResourceConfiguration = new Configuration();
 
-    public ComponentContextHolder() {
+    public ComponentContextFixture() {
         MockitoAnnotations.initMocks(this);
         when(mResources.getConfiguration()).thenReturn(mResourceConfiguration);
         mResourceConfiguration.setLocale(Locale.TAIWAN);
@@ -249,6 +286,24 @@ public class ComponentContextHolder implements TestDoubleHolder<Context> {
         }).when(mPackageManager).queryIntentServicesAsUser((Intent) any(), anyInt(), anyInt());
 
         when(mTelephonyManager.getSubIdForPhoneAccount((PhoneAccount) any())).thenReturn(1);
+
+        doAnswer(new Answer<Void>(){
+            @Override
+            public Void answer(InvocationOnMock invocation) throws Throwable {
+                return null;
+            }
+        }).when(mAppOpsManager).checkPackage(anyInt(), anyString());
+
+        when(mNotificationManager.matchesCallFilter(any(Bundle.class))).thenReturn(true);
+
+        when(mUserManager.getSerialNumberForUser(any(UserHandle.class))).thenReturn(-1L);
+
+        try {
+            when(mApplicationContextSpy.getFilesDir())
+                    .thenReturn(new File(File.createTempFile("foo", "bar").getParent()));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
