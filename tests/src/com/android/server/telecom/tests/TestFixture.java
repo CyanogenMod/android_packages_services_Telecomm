@@ -17,14 +17,16 @@
 package com.android.server.telecom.tests;
 
 /**
- * An object that provides a control interface for configuring a test double.
- *
- * TODO: Come up with a better name for this.
+ * An object that provides supporting methods, fields, and other functionality for configuring
+ * and inspecting the results of operations on a test double (mock, fake or stub). The test double
+ * is an object of type {@code T}.
  */
-public interface TestDoubleHolder <T> {
+public interface TestFixture<T> {
 
     /**
-     * Obtain the actual test double provided by this holder.
+     * Obtain the actual test double provided by this holder. It is a requirement of this API
+     * that the test double as returned from this method be a Mockito mock or spy, so that a test
+     * can use Mockito APIs to directly instrument its behavior where needed.
      *
      * @return the test double.
      */

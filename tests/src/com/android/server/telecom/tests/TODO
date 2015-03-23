@@ -1,0 +1,3 @@
+* Implement acquireProvider("settings")
+* Implement acquireUnstableProvider("com.android.contacts")
+* ComponentContextFixture to have "setUp/tearDown" to check for things like un-released providers

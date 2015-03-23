@@ -34,7 +34,8 @@ import com.android.internal.annotations.VisibleForTesting;
 public class Log {
 
     // Generic tag for all In Call logging
-    private static String TAG = "Telecom";
+    @VisibleForTesting
+    public static String TAG = "Telecom";
 
     public static final boolean FORCE_LOGGING = false; /* STOP SHIP if true */
     public static final boolean SYSTRACE_DEBUG = false; /* STOP SHIP if true */

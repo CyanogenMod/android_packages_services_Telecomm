@@ -27,10 +27,7 @@ import android.content.res.Resources;
 import android.net.Uri;
 import android.os.Binder;
 import android.os.Bundle;
-import android.os.Handler;
 import android.os.IBinder;
-import android.os.Looper;
-import android.os.Message;
 import android.os.UserHandle;
 import android.os.UserManager;
 import android.telecom.CallState;
@@ -725,7 +722,7 @@ public class TelecomServiceImpl {
         mPhoneAccountRegistrar = phoneAccountRegistrar;
     }
 
-    public IBinder getBinder() {
+    public ITelecomService.Stub getBinder() {
         return mBinderImpl;
     }
 

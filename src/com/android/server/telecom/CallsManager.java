@@ -56,7 +56,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * access from other packages specifically refraining from passing the CallsManager instance
  * beyond the com.android.server.telecom package boundary.
  */
-public final class CallsManager extends Call.ListenerBase {
+@VisibleForTesting
+public class CallsManager extends Call.ListenerBase {
 
     // TODO: Consider renaming this CallsManagerPlugin.
     interface CallsManagerListener {
