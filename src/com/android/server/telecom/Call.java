@@ -94,7 +94,7 @@ final public class Call implements CreateConnectionResponse {
         boolean onCanceledViaNewOutgoingCallBroadcast(Call call);
     }
 
-    abstract static class ListenerBase implements Listener {
+    public abstract static class ListenerBase implements Listener {
         @Override
         public void onSuccessfulOutgoingCall(Call call, int callState) {}
         @Override
@@ -300,6 +300,7 @@ final public class Call implements CreateConnectionResponse {
     private boolean mIsVoipAudioMode;
     private StatusHints mStatusHints;
     private final ConnectionServiceRepository mRepository;
+    private final ContactsAsyncHelper mContactsAsyncHelper;
     private final Context mContext;
     private final CallsManager mCallsManager;
 
@@ -327,10 +328,11 @@ final public class Call implements CreateConnectionResponse {
      *         one that was registered with the {@link PhoneAccount#CAPABILITY_CALL_PROVIDER} flag.
      * @param isIncoming True if this is an incoming call.
      */
-    Call(
+    public Call(
             Context context,
             CallsManager callsManager,
             ConnectionServiceRepository repository,
+            ContactsAsyncHelper contactsAsyncHelper,
             Uri handle,
             GatewayInfo gatewayInfo,
             PhoneAccountHandle connectionManagerPhoneAccountHandle,
@@ -341,6 +343,7 @@ final public class Call implements CreateConnectionResponse {
         mContext = context;
         mCallsManager = callsManager;
         mRepository = repository;
+        mContactsAsyncHelper = contactsAsyncHelper;
         setHandle(handle);
         setHandle(handle, TelecomManager.PRESENTATION_ALLOWED);
         mGatewayInfo = gatewayInfo;
@@ -370,6 +373,7 @@ final public class Call implements CreateConnectionResponse {
             Context context,
             CallsManager callsManager,
             ConnectionServiceRepository repository,
+            ContactsAsyncHelper contactsAsyncHelper,
             Uri handle,
             GatewayInfo gatewayInfo,
             PhoneAccountHandle connectionManagerPhoneAccountHandle,
@@ -377,18 +381,18 @@ final public class Call implements CreateConnectionResponse {
             boolean isIncoming,
             boolean isConference,
             long connectTimeMillis) {
-        this(context, callsManager, repository, handle, gatewayInfo,
+        this(context, callsManager, repository, contactsAsyncHelper, handle, gatewayInfo,
                 connectionManagerPhoneAccountHandle, targetPhoneAccountHandle, isIncoming,
                 isConference);
 
         mConnectTimeMillis = connectTimeMillis;
     }
 
-    void addListener(Listener listener) {
+    public void addListener(Listener listener) {
         mListeners.add(listener);
     }
 
-    void removeListener(Listener listener) {
+    public void removeListener(Listener listener) {
         if (listener != null) {
             mListeners.remove(listener);
         }
@@ -445,7 +449,7 @@ final public class Call implements CreateConnectionResponse {
      * misbehave and they do this very often. The result is that we do not enforce state transitions
      * and instead keep the code resilient to unexpected state changes.
      */
-    void setState(int newState) {
+    public void setState(int newState) {
         if (mState != newState) {
             Log.v(this, "setState %s -> %s", mState, newState);
 
@@ -491,7 +495,7 @@ final public class Call implements CreateConnectionResponse {
         return mIsConference;
     }
 
-    Uri getHandle() {
+    public Uri getHandle() {
         return mHandle;
     }
 
@@ -504,7 +508,7 @@ final public class Call implements CreateConnectionResponse {
         setHandle(handle, TelecomManager.PRESENTATION_ALLOWED);
     }
 
-    void setHandle(Uri handle, int presentation) {
+    public void setHandle(Uri handle, int presentation) {
         if (!Objects.equals(handle, mHandle) || presentation != mHandlePresentation) {
             mHandlePresentation = presentation;
             if (mHandlePresentation == TelecomManager.PRESENTATION_RESTRICTED ||
@@ -548,15 +552,15 @@ final public class Call implements CreateConnectionResponse {
         }
     }
 
-    String getName() {
+    public String getName() {
         return mCallerInfo == null ? null : mCallerInfo.name;
     }
 
-    Bitmap getPhotoIcon() {
+    public Bitmap getPhotoIcon() {
         return mCallerInfo == null ? null : mCallerInfo.cachedPhotoIcon;
     }
 
-    Drawable getPhoto() {
+    public Drawable getPhoto() {
         return mCallerInfo == null ? null : mCallerInfo.cachedPhoto;
     }
 
@@ -564,13 +568,13 @@ final public class Call implements CreateConnectionResponse {
      * @param disconnectCause The reason for the disconnection, represented by
      *         {@link android.telecom.DisconnectCause}.
      */
-    void setDisconnectCause(DisconnectCause disconnectCause) {
+    public void setDisconnectCause(DisconnectCause disconnectCause) {
         // TODO: Consider combining this method with a setDisconnected() method that is totally
         // separate from setState.
         mDisconnectCause = disconnectCause;
     }
 
-    DisconnectCause getDisconnectCause() {
+    public DisconnectCause getDisconnectCause() {
         return mDisconnectCause;
     }
 
@@ -655,11 +659,11 @@ final public class Call implements CreateConnectionResponse {
      * @return The time when this call object was created and added to the set of pending outgoing
      *     calls.
      */
-    long getCreationTimeMillis() {
+    public long getCreationTimeMillis() {
         return mCreationTimeMillis;
     }
 
-    void setCreationTimeMillis(long time) {
+    public void setCreationTimeMillis(long time) {
         mCreationTimeMillis = time;
     }
 
@@ -1277,7 +1281,7 @@ final public class Call implements CreateConnectionResponse {
             if (mCallerInfo.contactDisplayPhotoUri != null) {
                 Log.d(this, "Searching person uri %s for call %s",
                         mCallerInfo.contactDisplayPhotoUri, this);
-                ContactsAsyncHelper.startObtainPhotoAsync(
+                mContactsAsyncHelper.startObtainPhotoAsync(
                         token,
                         mContext,
                         mCallerInfo.contactDisplayPhotoUri,
@@ -1321,7 +1325,7 @@ final public class Call implements CreateConnectionResponse {
         if (mIsIncoming && isRespondViaSmsCapable() && !mCannedSmsResponsesLoadingStarted) {
             Log.d(this, "maybeLoadCannedSmsResponses: starting task to load messages");
             mCannedSmsResponsesLoadingStarted = true;
-            TelecomSystem.getInstance().getRespondViaSmsManager().loadCannedTextMessages(
+            mCallsManager.getRespondViaSmsManager().loadCannedTextMessages(
                     new Response<Void, List<String>>() {
                         @Override
                         public void onResult(Void request, List<String>... result) {

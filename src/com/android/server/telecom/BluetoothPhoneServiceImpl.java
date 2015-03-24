@@ -25,10 +25,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.net.Uri;
-import android.os.Handler;
 import android.os.IBinder;
-import android.os.Looper;
-import android.os.Message;
 import android.os.RemoteException;
 import android.telecom.CallState;
 import android.telecom.Connection;
@@ -49,36 +46,8 @@ import java.util.Map;
  * and accepts call-related commands to perform on behalf of the BT device.
  */
 public final class BluetoothPhoneServiceImpl {
-    /**
-     * Request object for performing synchronous requests to the main thread.
-     */
-    private static class MainThreadRequest {
-        private static final Object RESULT_NOT_SET = new Object();
-        Object result = RESULT_NOT_SET;
-        int param;
-
-        MainThreadRequest(int param) {
-            this.param = param;
-        }
-
-        void setResult(Object value) {
-            result = value;
-            synchronized (this) {
-                notifyAll();
-            }
-        }
-    }
 
     private static final String TAG = "BluetoothPhoneService";
-
-    private static final int MSG_ANSWER_CALL = 1;
-    private static final int MSG_HANGUP_CALL = 2;
-    private static final int MSG_SEND_DTMF = 3;
-    private static final int MSG_PROCESS_CHLD = 4;
-    private static final int MSG_GET_NETWORK_OPERATOR = 5;
-    private static final int MSG_LIST_CURRENT_CALLS = 6;
-    private static final int MSG_QUERY_PHONE_STATE = 7;
-    private static final int MSG_GET_SUBSCRIBER_NUMBER = 8;
 
     // match up with bthf_call_state_t of bt_hf.h
     private static final int CALL_STATE_ACTIVE = 0;
@@ -113,202 +82,138 @@ public final class BluetoothPhoneServiceImpl {
     private final IBluetoothHeadsetPhone.Stub mBinder = new IBluetoothHeadsetPhone.Stub() {
         @Override
         public boolean answerCall() throws RemoteException {
-            enforceModifyPermission();
-            Log.i(TAG, "BT - answering call");
-            return sendSynchronousRequest(MSG_ANSWER_CALL);
+            synchronized (mLock) {
+                enforceModifyPermission();
+                Log.i(TAG, "BT - answering call");
+                Call call = mCallsManager.getRingingCall();
+                if (call != null) {
+                    mCallsManager.answerCall(call, 0);
+                    return true;
+                }
+                return false;
+            }
         }
 
         @Override
         public boolean hangupCall() throws RemoteException {
-            enforceModifyPermission();
-            Log.i(TAG, "BT - hanging up call");
-            return sendSynchronousRequest(MSG_HANGUP_CALL);
+            synchronized (mLock) {
+                enforceModifyPermission();
+                Log.i(TAG, "BT - hanging up call");
+                Call call = mCallsManager.getForegroundCall();
+                if (call != null) {
+                    mCallsManager.disconnectCall(call);
+                    return true;
+                }
+                return false;
+            }
         }
 
         @Override
         public boolean sendDtmf(int dtmf) throws RemoteException {
-            enforceModifyPermission();
-            Log.i(TAG, "BT - sendDtmf %c", Log.DEBUG ? dtmf : '.');
-            return sendSynchronousRequest(MSG_SEND_DTMF, dtmf);
+            synchronized (mLock) {
+                enforceModifyPermission();
+                Log.i(TAG, "BT - sendDtmf %c", Log.DEBUG ? dtmf : '.');
+                Call call = mCallsManager.getForegroundCall();
+                if (call != null) {
+                    // TODO: Consider making this a queue instead of starting/stopping
+                    // in quick succession.
+                    mCallsManager.playDtmfTone(call, (char) dtmf);
+                    mCallsManager.stopDtmfTone(call);
+                    return true;
+                }
+                return false;
+            }
         }
 
         @Override
         public String getNetworkOperator() throws RemoteException {
-            Log.i(TAG, "getNetworkOperator");
-            enforceModifyPermission();
-            return sendSynchronousRequest(MSG_GET_NETWORK_OPERATOR);
+            synchronized (mLock) {
+                enforceModifyPermission();
+                Log.i(TAG, "getNetworkOperator");
+                PhoneAccount account = getBestPhoneAccount();
+                if (account != null) {
+                    return account.getLabel().toString();
+                } else {
+                    // Finally, just get the network name from telephony.
+                    return TelephonyManager.from(mContext)
+                            .getNetworkOperatorName();
+                }
+            }
         }
 
         @Override
         public String getSubscriberNumber() throws RemoteException {
-            Log.i(TAG, "getSubscriberNumber");
-            enforceModifyPermission();
-            return sendSynchronousRequest(MSG_GET_SUBSCRIBER_NUMBER);
+            synchronized (mLock) {
+                enforceModifyPermission();
+                Log.i(TAG, "getSubscriberNumber");
+                String address = null;
+                PhoneAccount account = getBestPhoneAccount();
+                if (account != null) {
+                    Uri addressUri = account.getAddress();
+                    if (addressUri != null) {
+                        address = addressUri.getSchemeSpecificPart();
+                    }
+                }
+                if (TextUtils.isEmpty(address)) {
+                    address = TelephonyManager.from(mContext).getLine1Number();
+                }
+                return address;
+            }
         }
 
         @Override
         public boolean listCurrentCalls() throws RemoteException {
-            // only log if it is after we recently updated the headset state or else it can clog
-            // the android log since this can be queried every second.
-            boolean logQuery = mHeadsetUpdatedRecently;
-            mHeadsetUpdatedRecently = false;
+            synchronized (mLock) {
+                enforceModifyPermission();
+                // only log if it is after we recently updated the headset state or else it can clog
+                // the android log since this can be queried every second.
+                boolean logQuery = mHeadsetUpdatedRecently;
+                mHeadsetUpdatedRecently = false;
 
-            if (logQuery) {
-                Log.i(TAG, "listcurrentCalls");
+                if (logQuery) {
+                    Log.i(TAG, "listcurrentCalls");
+                }
+
+                sendListOfCalls(logQuery);
+                return true;
             }
-            enforceModifyPermission();
-            return sendSynchronousRequest(MSG_LIST_CURRENT_CALLS, logQuery ? 1 : 0);
         }
 
         @Override
         public boolean queryPhoneState() throws RemoteException {
-            Log.i(TAG, "queryPhoneState");
-            enforceModifyPermission();
-            return sendSynchronousRequest(MSG_QUERY_PHONE_STATE);
+            synchronized (mLock) {
+                enforceModifyPermission();
+                Log.i(TAG, "queryPhoneState");
+                updateHeadsetWithCallState(true /* force */);
+                return true;
+            }
         }
 
         @Override
         public boolean processChld(int chld) throws RemoteException {
-            Log.i(TAG, "processChld %d", chld);
-            enforceModifyPermission();
-            return sendSynchronousRequest(MSG_PROCESS_CHLD, chld);
+            synchronized (mLock) {
+                enforceModifyPermission();
+                Log.i(TAG, "processChld %d", chld);
+                return BluetoothPhoneServiceImpl.this.processChld(chld);
+            }
         }
 
         @Override
         public void updateBtHandsfreeAfterRadioTechnologyChange() throws RemoteException {
-            Log.d(TAG, "RAT change");
+            Log.d(TAG, "RAT change - deprecated");
             // deprecated
         }
 
         @Override
         public void cdmaSetSecondCallState(boolean state) throws RemoteException {
-            Log.d(TAG, "cdma 1");
+            Log.d(TAG, "cdma 1 - deprecated");
             // deprecated
         }
 
         @Override
         public void cdmaSwapSecondCallState() throws RemoteException {
-            Log.d(TAG, "cdma 2");
+            Log.d(TAG, "cdma 2 - deprecated");
             // deprecated
-        }
-    };
-
-    /**
-     * Main-thread handler for BT commands.  Since telecom logic runs on a single thread, commands
-     * that are sent to it from the headset need to be moved over to the main thread before
-     * executing. This handler exists for that reason.
-     */
-    private final Handler mHandler = new Handler() {
-        @Override
-        public void handleMessage(Message msg) {
-            MainThreadRequest request = msg.obj instanceof MainThreadRequest ?
-                    (MainThreadRequest) msg.obj : null;
-            CallsManager callsManager = mCallsManager;
-            Call call = null;
-
-            Log.d(TAG, "handleMessage(%d) w/ param %s",
-                    msg.what, request == null ? null : request.param);
-
-            switch (msg.what) {
-                case MSG_ANSWER_CALL:
-                    try {
-                        call = callsManager.getRingingCall();
-                        if (call != null) {
-                            mCallsManager.answerCall(call, 0);
-                        }
-                    } finally {
-                        request.setResult(call != null);
-                    }
-                    break;
-
-                case MSG_HANGUP_CALL:
-                    try {
-                        call = callsManager.getForegroundCall();
-                        if (call != null) {
-                            callsManager.disconnectCall(call);
-                        }
-                    } finally {
-                        request.setResult(call != null);
-                    }
-                    break;
-
-                case MSG_SEND_DTMF:
-                    try {
-                        call = callsManager.getForegroundCall();
-                        if (call != null) {
-                            // TODO: Consider making this a queue instead of starting/stopping
-                            // in quick succession.
-                            callsManager.playDtmfTone(call, (char) request.param);
-                            callsManager.stopDtmfTone(call);
-                        }
-                    } finally {
-                        request.setResult(call != null);
-                    }
-                    break;
-
-                case MSG_PROCESS_CHLD:
-                    Boolean result = false;
-                    try {
-                        result = processChld(request.param);
-                    } finally {
-                        request.setResult(result);
-                    }
-                    break;
-
-                case MSG_GET_SUBSCRIBER_NUMBER:
-                    String address = null;
-                    try {
-                        PhoneAccount account = getBestPhoneAccount();
-                        if (account != null) {
-                            Uri addressUri = account.getAddress();
-                            if (addressUri != null) {
-                                address = addressUri.getSchemeSpecificPart();
-                            }
-                        }
-
-                        if (TextUtils.isEmpty(address)) {
-                            address = TelephonyManager.from(mContext)
-                                    .getLine1Number();
-                        }
-                    } finally {
-                        request.setResult(address);
-                    }
-                    break;
-
-                case MSG_GET_NETWORK_OPERATOR:
-                    String label = null;
-                    try {
-                        PhoneAccount account = getBestPhoneAccount();
-                        if (account != null) {
-                            label = account.getLabel().toString();
-                        } else {
-                            // Finally, just get the network name from telephony.
-                            label = TelephonyManager.from(mContext)
-                                    .getNetworkOperatorName();
-                        }
-                    } finally {
-                        request.setResult(label);
-                    }
-                    break;
-
-                case MSG_LIST_CURRENT_CALLS:
-                    try {
-                        sendListOfCalls(request.param == 1);
-                    } finally {
-                        request.setResult(true);
-                    }
-                    break;
-
-                case MSG_QUERY_PHONE_STATE:
-                    try {
-                        updateHeadsetWithCallState(true /* force */);
-                    } finally {
-                        if (request != null) {
-                            request.setResult(true);
-                        }
-                    }
-                    break;
-            }
         }
     };
 
@@ -399,12 +304,16 @@ public final class BluetoothPhoneServiceImpl {
             new BluetoothProfile.ServiceListener() {
         @Override
         public void onServiceConnected(int profile, BluetoothProfile proxy) {
-            mBluetoothHeadset = (BluetoothHeadset) proxy;
+            synchronized (mLock) {
+                mBluetoothHeadset = (BluetoothHeadset) proxy;
+            }
         }
 
         @Override
         public void onServiceDisconnected(int profile) {
-            mBluetoothHeadset = null;
+            synchronized (mLock) {
+                mBluetoothHeadset = null;
+            }
         }
     };
 
@@ -414,10 +323,17 @@ public final class BluetoothPhoneServiceImpl {
     private final BroadcastReceiver mBluetoothAdapterReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            int state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR);
-            Log.d(TAG, "Bluetooth Adapter state: %d", state);
-            if (state == BluetoothAdapter.STATE_ON) {
-                mHandler.sendEmptyMessage(MSG_QUERY_PHONE_STATE);
+            synchronized (mLock) {
+                int state = intent
+                        .getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR);
+                Log.d(TAG, "Bluetooth Adapter state: %d", state);
+                if (state == BluetoothAdapter.STATE_ON) {
+                    try {
+                        mBinder.queryPhoneState();
+                    } catch (RemoteException e) {
+                        // Remote exception not expected
+                    }
+                }
             }
         }
     };
@@ -430,9 +346,10 @@ public final class BluetoothPhoneServiceImpl {
 
     private boolean mHeadsetUpdatedRecently = false;
 
-    private Context mContext;
-    private CallsManager mCallsManager;
-    private PhoneAccountRegistrar mPhoneAccountRegistrar;
+    private final Context mContext;
+    private final TelecomSystem.SyncRoot mLock;
+    private final CallsManager mCallsManager;
+    private final PhoneAccountRegistrar mPhoneAccountRegistrar;
 
     public IBinder getBinder() {
         return mBinder;
@@ -440,11 +357,13 @@ public final class BluetoothPhoneServiceImpl {
 
     public BluetoothPhoneServiceImpl(
             Context context,
+            TelecomSystem.SyncRoot lock,
             CallsManager callsManager,
             PhoneAccountRegistrar phoneAccountRegistrar) {
         Log.d(this, "onCreate");
 
         mContext = context;
+        mLock = lock;
         mCallsManager = callsManager;
         mPhoneAccountRegistrar = phoneAccountRegistrar;
 
@@ -463,29 +382,28 @@ public final class BluetoothPhoneServiceImpl {
     }
 
     private boolean processChld(int chld) {
-        CallsManager callsManager = mCallsManager;
-        Call activeCall = callsManager.getActiveCall();
-        Call ringingCall = callsManager.getRingingCall();
-        Call heldCall = callsManager.getHeldCall();
+        Call activeCall = mCallsManager.getActiveCall();
+        Call ringingCall = mCallsManager.getRingingCall();
+        Call heldCall = mCallsManager.getHeldCall();
 
         // TODO: Keeping as Log.i for now.  Move to Log.d after L release if BT proves stable.
         Log.i(TAG, "Active: %s\nRinging: %s\nHeld: %s", activeCall, ringingCall, heldCall);
 
         if (chld == CHLD_TYPE_RELEASEHELD) {
             if (ringingCall != null) {
-                callsManager.rejectCall(ringingCall, false, null);
+                mCallsManager.rejectCall(ringingCall, false, null);
                 return true;
             } else if (heldCall != null) {
-                callsManager.disconnectCall(heldCall);
+                mCallsManager.disconnectCall(heldCall);
                 return true;
             }
         } else if (chld == CHLD_TYPE_RELEASEACTIVE_ACCEPTHELD) {
             if (activeCall != null) {
-                callsManager.disconnectCall(activeCall);
+                mCallsManager.disconnectCall(activeCall);
                 if (ringingCall != null) {
-                    callsManager.answerCall(ringingCall, 0);
+                    mCallsManager.answerCall(ringingCall, 0);
                 } else if (heldCall != null) {
-                    callsManager.unholdCall(heldCall);
+                    mCallsManager.unholdCall(heldCall);
                 }
                 return true;
             }
@@ -494,15 +412,15 @@ public final class BluetoothPhoneServiceImpl {
                 activeCall.swapConference();
                 return true;
             } else if (ringingCall != null) {
-                callsManager.answerCall(ringingCall, 0);
+                mCallsManager.answerCall(ringingCall, 0);
                 return true;
             } else if (heldCall != null) {
                 // CallsManager will hold any active calls when unhold() is called on a
                 // currently-held call.
-                callsManager.unholdCall(heldCall);
+                mCallsManager.unholdCall(heldCall);
                 return true;
             } else if (activeCall != null && activeCall.can(Connection.CAPABILITY_HOLD)) {
-                callsManager.holdCall(activeCall);
+                mCallsManager.holdCall(activeCall);
                 return true;
             }
         } else if (chld == CHLD_TYPE_ADDHELDTOCONF) {
@@ -513,7 +431,7 @@ public final class BluetoothPhoneServiceImpl {
                 } else {
                     List<Call> conferenceable = activeCall.getConferenceableCalls();
                     if (!conferenceable.isEmpty()) {
-                        callsManager.conference(activeCall, conferenceable.get(0));
+                        mCallsManager.conference(activeCall, conferenceable.get(0));
                         return true;
                    }
                 }
@@ -525,35 +443,6 @@ public final class BluetoothPhoneServiceImpl {
     private void enforceModifyPermission() {
         mContext.enforceCallingOrSelfPermission(
                 android.Manifest.permission.MODIFY_PHONE_STATE, null);
-    }
-
-    private <T> T sendSynchronousRequest(int message) {
-        return sendSynchronousRequest(message, 0);
-    }
-
-    private <T> T sendSynchronousRequest(int message, int param) {
-        if (Looper.myLooper() == mHandler.getLooper()) {
-            Log.w(TAG, "This method will deadlock if called from the main thread.");
-        }
-
-        MainThreadRequest request = new MainThreadRequest(param);
-        mHandler.obtainMessage(message, request).sendToTarget();
-        synchronized (request) {
-            while (request.result == MainThreadRequest.RESULT_NOT_SET) {
-                try {
-                    request.wait();
-                } catch (InterruptedException e) {
-                    // Do nothing, go back and wait until the request is complete.
-                    Log.e(TAG, e, "InterruptedException");
-                }
-            }
-        }
-        if (request.result != null) {
-            @SuppressWarnings("unchecked")
-            T retval = (T) request.result;
-            return retval;
-        }
-        return null;
     }
 
     private void sendListOfCalls(boolean shouldLog) {
@@ -670,9 +559,9 @@ public final class BluetoothPhoneServiceImpl {
      */
     private void updateHeadsetWithCallState(boolean force) {
         CallsManager callsManager = mCallsManager;
-        Call activeCall = callsManager.getActiveCall();
-        Call ringingCall = callsManager.getRingingCall();
-        Call heldCall = callsManager.getHeldCall();
+        Call activeCall = mCallsManager.getActiveCall();
+        Call ringingCall = mCallsManager.getRingingCall();
+        Call heldCall = mCallsManager.getHeldCall();
 
         int bluetoothCallState = getBluetoothCallStateForUpdate();
 
@@ -689,7 +578,7 @@ public final class BluetoothPhoneServiceImpl {
         }
 
         int numActiveCalls = activeCall == null ? 0 : 1;
-        int numHeldCalls = callsManager.getNumHeldCalls();
+        int numHeldCalls = mCallsManager.getNumHeldCalls();
 
         // For conference calls which support swapping the active call within the conference
         // (namely CDMA calls) we need to expose that as a held call in order for the BT device
@@ -783,8 +672,8 @@ public final class BluetoothPhoneServiceImpl {
 
     private int getBluetoothCallStateForUpdate() {
         CallsManager callsManager = mCallsManager;
-        Call ringingCall = callsManager.getRingingCall();
-        Call dialingCall = callsManager.getDialingCall();
+        Call ringingCall = mCallsManager.getRingingCall();
+        Call dialingCall = mCallsManager.getDialingCall();
 
         //
         // !! WARNING !!

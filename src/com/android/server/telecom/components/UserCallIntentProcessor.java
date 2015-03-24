@@ -14,9 +14,12 @@
  * limitations under the License.
  */
 
-package com.android.server.telecom;
+package com.android.server.telecom.components;
 
-import com.android.server.telecom.components.PrimaryCallReceiver;
+import com.android.server.telecom.CallIntentProcessor;
+import com.android.server.telecom.Log;
+import com.android.server.telecom.R;
+import com.android.server.telecom.TelephonyUtil;
 
 import android.content.ComponentName;
 import android.content.Context;

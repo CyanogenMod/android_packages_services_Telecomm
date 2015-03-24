@@ -106,6 +106,7 @@ public final class CallsManager extends Call.ListenerBase {
     private final DtmfLocalTonePlayer mDtmfLocalTonePlayer;
     private final InCallController mInCallController;
     private final CallAudioManager mCallAudioManager;
+    private RespondViaSmsManager mRespondViaSmsManager;
     private final Ringer mRinger;
     private final InCallWakeLockController mInCallWakeLockController;
     // For this set initial table size to 16 because we add 13 listeners in
@@ -120,6 +121,8 @@ public final class CallsManager extends Call.ListenerBase {
     private final PhoneStateBroadcaster mPhoneStateBroadcaster;
     private final CallLogManager mCallLogManager;
     private final Context mContext;
+    private final TelecomSystem.SyncRoot mLock;
+    private final ContactsAsyncHelper mContactsAsyncHelper;
     private final PhoneAccountRegistrar mPhoneAccountRegistrar;
     private final MissedCallNotifier mMissedCallNotifier;
     private final Set<Call> mLocallyDisconnectingCalls = new HashSet<>();
@@ -140,29 +143,37 @@ public final class CallsManager extends Call.ListenerBase {
     /**
      * Initializes the required Telecom components.
      */
-     CallsManager(Context context, MissedCallNotifier missedCallNotifier,
-             PhoneAccountRegistrar phoneAccountRegistrar,
-             RespondViaSmsManager respondViaSmsManager) {
+    CallsManager(
+            Context context,
+            TelecomSystem.SyncRoot lock,
+            ContactsAsyncHelper contactsAsyncHelper,
+            MissedCallNotifier missedCallNotifier,
+            PhoneAccountRegistrar phoneAccountRegistrar,
+            HeadsetMediaButtonFactory headsetMediaButtonFactory,
+            ProximitySensorManagerFactory proximitySensorManagerFactory,
+            InCallWakeLockControllerFactory inCallWakeLockControllerFactory) {
         mContext = context;
+        mLock = lock;
+        mContactsAsyncHelper = contactsAsyncHelper;
         mPhoneAccountRegistrar = phoneAccountRegistrar;
         mMissedCallNotifier = missedCallNotifier;
         StatusBarNotifier statusBarNotifier = new StatusBarNotifier(context, this);
         mWiredHeadsetManager = new WiredHeadsetManager(context);
         mDockManager = new DockManager(context);
         mCallAudioManager = new CallAudioManager(
-                context, statusBarNotifier, mWiredHeadsetManager, mDockManager);
+                context, statusBarNotifier, mWiredHeadsetManager, this);
         InCallTonePlayer.Factory playerFactory = new InCallTonePlayer.Factory(mCallAudioManager);
         mRinger = new Ringer(mCallAudioManager, this, playerFactory, context);
-        mHeadsetMediaButton = new HeadsetMediaButton(context, this);
+        mHeadsetMediaButton = headsetMediaButtonFactory.create(context, this);
         mTtyManager = new TtyManager(context, mWiredHeadsetManager);
-        mProximitySensorManager = new ProximitySensorManager(context);
-        mPhoneStateBroadcaster = new PhoneStateBroadcaster();
+        mProximitySensorManager = proximitySensorManagerFactory.create(context, this);
+        mPhoneStateBroadcaster = new PhoneStateBroadcaster(this);
         mCallLogManager = new CallLogManager(context);
-        mInCallController = new InCallController(context);
+        mInCallController = new InCallController(context, mLock, this);
         mDtmfLocalTonePlayer = new DtmfLocalTonePlayer(context);
-        mConnectionServiceRepository = new ConnectionServiceRepository(mPhoneAccountRegistrar,
-                context);
-        mInCallWakeLockController = new InCallWakeLockController(context, this);
+        mConnectionServiceRepository =
+                new ConnectionServiceRepository(mPhoneAccountRegistrar, mContext, mLock, this);
+        mInCallWakeLockController = inCallWakeLockControllerFactory.create(context, this);
 
         mListeners.add(statusBarNotifier);
         mListeners.add(mCallLogManager);
@@ -175,8 +186,21 @@ public final class CallsManager extends Call.ListenerBase {
         mListeners.add(missedCallNotifier);
         mListeners.add(mDtmfLocalTonePlayer);
         mListeners.add(mHeadsetMediaButton);
-        mListeners.add(respondViaSmsManager);
         mListeners.add(mProximitySensorManager);
+
+        mMissedCallNotifier.updateOnStartup(mLock, this, mContactsAsyncHelper);
+    }
+
+    public void setRespondViaSmsManager(RespondViaSmsManager respondViaSmsManager) {
+        if (mRespondViaSmsManager != null) {
+            mListeners.remove(mRespondViaSmsManager);
+        }
+        mRespondViaSmsManager = respondViaSmsManager;
+        mListeners.add(respondViaSmsManager);
+    }
+
+    public RespondViaSmsManager getRespondViaSmsManager() {
+        return mRespondViaSmsManager;
     }
 
     @Override
@@ -264,11 +288,14 @@ public final class CallsManager extends Call.ListenerBase {
 
             mDtmfLocalTonePlayer.playTone(call, nextChar);
 
+            // TODO: Create a LockedRunnable class that does the synchronization automatically.
             mStopTone = new Runnable() {
                 @Override
                 public void run() {
-                    // Set a timeout to stop the tone in case there isn't another tone to follow.
-                    mDtmfLocalTonePlayer.stopTone(call);
+                    synchronized (mLock) {
+                        // Set a timeout to stop the tone in case there isn't another tone to follow.
+                        mDtmfLocalTonePlayer.stopTone(call);
+                    }
                 }
             };
             mHandler.postDelayed(
@@ -325,9 +352,11 @@ public final class CallsManager extends Call.ListenerBase {
         mHandler.postDelayed(new Runnable() {
             @Override
             public void run() {
-                if (mPendingCallsToDisconnect.remove(call)) {
-                    Log.i(this, "Delayed disconnection of call: %s", call);
-                    call.disconnect();
+                synchronized (mLock) {
+                    if (mPendingCallsToDisconnect.remove(call)) {
+                        Log.i(this, "Delayed disconnection of call: %s", call);
+                        call.disconnect();
+                    }
                 }
             }
         }, Timeouts.getNewOutgoingCallCancelMillis(mContext.getContentResolver()));
@@ -403,6 +432,7 @@ public final class CallsManager extends Call.ListenerBase {
                 mContext,
                 this,
                 mConnectionServiceRepository,
+                mContactsAsyncHelper,
                 handle,
                 null /* gatewayInfo */,
                 null /* connectionManagerPhoneAccount */,
@@ -423,6 +453,7 @@ public final class CallsManager extends Call.ListenerBase {
                 mContext,
                 this,
                 mConnectionServiceRepository,
+                mContactsAsyncHelper,
                 handle,
                 null /* gatewayInfo */,
                 null /* connectionManagerPhoneAccount */,
@@ -460,6 +491,7 @@ public final class CallsManager extends Call.ListenerBase {
                 mContext,
                 this,
                 mConnectionServiceRepository,
+                mContactsAsyncHelper,
                 handle,
                 null /* gatewayInfo */,
                 null /* connectionManagerPhoneAccount */,
@@ -1048,6 +1080,7 @@ public final class CallsManager extends Call.ListenerBase {
                 mContext,
                 this,
                 mConnectionServiceRepository,
+                mContactsAsyncHelper,
                 null /* handle */,
                 null /* gatewayInfo */,
                 null /* connectionManagerPhoneAccount */,
@@ -1395,6 +1428,7 @@ public final class CallsManager extends Call.ListenerBase {
                 mContext,
                 this,
                 mConnectionServiceRepository,
+                mContactsAsyncHelper,
                 connection.getHandle() /* handle */,
                 null /* gatewayInfo */,
                 null /* connectionManagerPhoneAccount */,

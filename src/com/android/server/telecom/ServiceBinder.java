@@ -21,8 +21,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.IBinder;
-import android.os.IInterface;
-import android.os.Process;
 import android.os.UserHandle;
 import android.text.TextUtils;
 import android.util.ArraySet;
@@ -66,7 +64,6 @@ abstract class ServiceBinder {
          * @param callback The callback to notify of the binding's success or failure.
          */
         void bind(BindCallback callback) {
-            ThreadUtil.checkOnMainThread();
             Log.d(ServiceBinder.this, "bind()");
 
             // Reset any abort request if we're asked to bind again.
@@ -107,36 +104,42 @@ abstract class ServiceBinder {
     private final class ServiceBinderConnection implements ServiceConnection {
         @Override
         public void onServiceConnected(ComponentName componentName, IBinder binder) {
-            ThreadUtil.checkOnMainThread();
-            Log.i(this, "Service bound %s", componentName);
+            synchronized (mLock) {
+                Log.i(this, "Service bound %s", componentName);
 
-            // Unbind request was queued so unbind immediately.
-            if (mIsBindingAborted) {
-                clearAbort();
-                logServiceDisconnected("onServiceConnected");
-                mContext.unbindService(this);
-                handleFailedConnection();
-                return;
+                // Unbind request was queued so unbind immediately.
+                if (mIsBindingAborted) {
+                    clearAbort();
+                    logServiceDisconnected("onServiceConnected");
+                    mContext.unbindService(this);
+                    handleFailedConnection();
+                    return;
+                }
+
+                mServiceConnection = this;
+                setBinder(binder);
+                handleSuccessfulConnection();
             }
-
-            mServiceConnection = this;
-            setBinder(binder);
-            handleSuccessfulConnection();
         }
 
         @Override
         public void onServiceDisconnected(ComponentName componentName) {
-            logServiceDisconnected("onServiceDisconnected");
+            synchronized (mLock) {
+                logServiceDisconnected("onServiceDisconnected");
 
-            mServiceConnection = null;
-            clearAbort();
+                mServiceConnection = null;
+                clearAbort();
 
-            handleServiceDisconnected();
+                handleServiceDisconnected();
+            }
         }
     }
 
     /** The application context. */
     private final Context mContext;
+
+    /** The Telecom lock object. */
+    protected final TelecomSystem.SyncRoot mLock;
 
     /** The intent action to use when binding through {@link Context#bindService}. */
     private final String mServiceAction;
@@ -182,11 +185,12 @@ abstract class ServiceBinder {
      * @param userHandle The {@link UserHandle} to use for binding.
      */
     protected ServiceBinder(String serviceAction, ComponentName componentName, Context context,
-            UserHandle userHandle) {
+            TelecomSystem.SyncRoot lock, UserHandle userHandle) {
         Preconditions.checkState(!TextUtils.isEmpty(serviceAction));
         Preconditions.checkNotNull(componentName);
 
         mContext = context;
+        mLock = lock;
         mServiceAction = serviceAction;
         mComponentName = componentName;
         mUserHandle = userHandle;
@@ -221,8 +225,6 @@ abstract class ServiceBinder {
      * Unbinds from the service if already bound, no-op otherwise.
      */
     final void unbind() {
-        ThreadUtil.checkOnMainThread();
-
         if (mServiceConnection == null) {
             // We're not yet bound, so queue up an abort request.
             mIsBindingAborted = true;

@@ -222,8 +222,6 @@ public final class InCallTonePlayer extends Thread {
     }
 
     void startTone() {
-        ThreadUtil.checkOnMainThread();
-
         sTonesPlaying++;
         if (sTonesPlaying == 1) {
             mCallAudioManager.setIsTonePlaying(true);

@@ -18,7 +18,7 @@ package com.android.server.telecom.components;
 
 import com.android.server.telecom.CallIntentProcessor;
 import com.android.server.telecom.Log;
-import com.android.server.telecom.UserCallIntentProcessor;
+import com.android.server.telecom.TelecomSystem;
 
 import android.app.Activity;
 import android.content.Intent;
@@ -41,10 +41,10 @@ import android.telecom.TelecomManager;
  * {@link TelecomManager#getDefaultPhoneApp()} will also be granted the ability to
  * make emergency outgoing calls using the CALL action. In order to do this, it must call
  * startActivityForResult on the CALL intent to allow its package name to be passed to
- * {@link UserCallActivity}. Calling startActivity will continue to work on all non-emergency numbers
- * just like it did pre-L.
+ * {@link UserCallActivity}. Calling startActivity will continue to work on all non-emergency
+ * numbers just like it did pre-L.
  */
-public class UserCallActivity extends Activity {
+public class UserCallActivity extends Activity implements TelecomSystem.Component {
 
     @Override
     protected void onCreate(Bundle bundle) {
@@ -66,5 +66,10 @@ public class UserCallActivity extends Activity {
                 intent.setAction(Intent.ACTION_CALL);
             }
         }
+    }
+
+    @Override
+    public TelecomSystem getTelecomSystem() {
+        return TelecomSystem.getInstance();
     }
 }

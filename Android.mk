@@ -12,7 +12,7 @@ LOCAL_PACKAGE_NAME := Telecom
 LOCAL_CERTIFICATE := platform
 LOCAL_PRIVILEGED_MODULE := true
 
-LOCAL_PROGUARD_FLAGS := $(proguard.flags)
+LOCAL_PROGUARD_FLAG_FILES := proguard.flags
 
 include $(BUILD_PACKAGE)
 

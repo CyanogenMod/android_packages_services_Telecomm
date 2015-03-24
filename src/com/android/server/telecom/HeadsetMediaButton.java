@@ -25,7 +25,7 @@ import android.view.KeyEvent;
 /**
  * Static class to handle listening to the headset media buttons.
  */
-final class HeadsetMediaButton extends CallsManagerListenerBase {
+public class HeadsetMediaButton extends CallsManagerListenerBase {
 
     // Types of media button presses
     static final int SHORT_PRESS = 1;
@@ -54,7 +54,7 @@ final class HeadsetMediaButton extends CallsManagerListenerBase {
 
     private final MediaSession mSession;
 
-    HeadsetMediaButton(Context context, CallsManager callsManager) {
+    public HeadsetMediaButton(Context context, CallsManager callsManager) {
         mCallsManager = callsManager;
 
         // Create a MediaSession but don't enable it yet. This is a

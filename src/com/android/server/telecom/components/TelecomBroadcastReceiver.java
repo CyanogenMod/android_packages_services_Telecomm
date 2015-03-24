@@ -32,7 +32,9 @@ public final class TelecomBroadcastReceiver
     /** {@inheritDoc} */
     @Override
     public void onReceive(Context context, Intent intent) {
-        getTelecomSystem().getTelecomBroadcastIntentProcessor().processIntent(intent);
+        synchronized (getTelecomSystem().getLock()) {
+            getTelecomSystem().getTelecomBroadcastIntentProcessor().processIntent(intent);
+        }
     }
 
     @Override

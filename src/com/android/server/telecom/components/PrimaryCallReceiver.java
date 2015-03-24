@@ -1,7 +1,6 @@
 package com.android.server.telecom.components;
 
 import com.android.server.telecom.TelecomSystem;
-import com.android.server.telecom.UserCallIntentProcessor;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -17,7 +16,9 @@ public class PrimaryCallReceiver extends BroadcastReceiver implements TelecomSys
 
     @Override
     public void onReceive(Context context, Intent intent) {
-        getTelecomSystem().getCallIntentProcessor().processIntent(intent);
+        synchronized (getTelecomSystem().getLock()) {
+            getTelecomSystem().getCallIntentProcessor().processIntent(intent);
+        }
     }
 
     @Override

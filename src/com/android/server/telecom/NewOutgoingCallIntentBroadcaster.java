@@ -16,6 +16,8 @@
 
 package com.android.server.telecom;
 
+import com.android.server.telecom.components.UserCallIntentProcessor;
+
 import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -157,8 +159,8 @@ class NewOutgoingCallIntentBroadcaster {
      * - CALL_PRIVILEGED (intent launched by system apps e.g. system Dialer, voice Dialer)
      * - CALL_EMERGENCY (intent launched by lock screen emergency dialer)
      *
-     * @return {@link UserCallIntentProcessor#OUTGOING_CALL_SUCCEEDED} if the call succeeded, and an
-     *         appropriate {@link DisconnectCause} if the call did not, describing why it failed.
+     * @return {@link DisconnectCause#NOT_DISCONNECTED} if the call succeeded, and an appropriate
+     *         {@link DisconnectCause} if the call did not, describing why it failed.
      */
     int processIntent() {
         Log.v(this, "Processing call intent in OutgoingCallIntentBroadcaster.");

@@ -20,27 +20,25 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.UserHandle;
 
-/**
- * Handles miscellaneous Telecom broadcast intents. This should be visible from outside, but
- * should not be in the "exported" state.
- */
 public final class TelecomBroadcastIntentProcessor {
     /** The action used to send SMS response for the missed call notification. */
-    static final String ACTION_SEND_SMS_FROM_NOTIFICATION =
+    public static final String ACTION_SEND_SMS_FROM_NOTIFICATION =
             "com.android.server.telecom.ACTION_SEND_SMS_FROM_NOTIFICATION";
 
     /** The action used to call a handle back for the missed call notification. */
-    static final String ACTION_CALL_BACK_FROM_NOTIFICATION =
+    public static final String ACTION_CALL_BACK_FROM_NOTIFICATION =
             "com.android.server.telecom.ACTION_CALL_BACK_FROM_NOTIFICATION";
 
     /** The action used to clear missed calls. */
-    static final String ACTION_CLEAR_MISSED_CALLS =
+    public static final String ACTION_CLEAR_MISSED_CALLS =
             "com.android.server.telecom.ACTION_CLEAR_MISSED_CALLS";
 
     private final Context mContext;
+    private final CallsManager mCallsManager;
 
-    public TelecomBroadcastIntentProcessor(Context context) {
+    public TelecomBroadcastIntentProcessor(Context context, CallsManager callsManager) {
         mContext = context;
+        mCallsManager = callsManager;
     }
 
     public void processIntent(Intent intent) {
@@ -48,8 +46,7 @@ public final class TelecomBroadcastIntentProcessor {
 
         Log.v(this, "Action received: %s.", action);
 
-        MissedCallNotifier missedCallNotifier = TelecomSystem.getInstance()
-                .getCallsManager().getMissedCallNotifier();
+        MissedCallNotifier missedCallNotifier = mCallsManager.getMissedCallNotifier();
 
         // Send an SMS from the missed call notification.
         if (ACTION_SEND_SMS_FROM_NOTIFICATION.equals(action)) {

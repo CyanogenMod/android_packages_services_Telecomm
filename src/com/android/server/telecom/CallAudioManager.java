@@ -38,6 +38,7 @@ final class CallAudioManager extends CallsManagerListenerBase
     private final BluetoothManager mBluetoothManager;
     private final WiredHeadsetManager mWiredHeadsetManager;
     private final DockManager mDockManager;
+    private final CallsManager mCallsManager;
 
     private AudioState mAudioState;
     private int mAudioFocusStreamType;
@@ -47,12 +48,17 @@ final class CallAudioManager extends CallsManagerListenerBase
     private int mMostRecentlyUsedMode = AudioManager.MODE_IN_CALL;
     private Call mCallToSpeedUpMTAudio = null;
 
-    CallAudioManager(Context context, StatusBarNotifier statusBarNotifier,
-            WiredHeadsetManager wiredHeadsetManager, DockManager DockManager) {
+    CallAudioManager(
+            Context context,
+            StatusBarNotifier statusBarNotifier,
+            WiredHeadsetManager wiredHeadsetManager,
+            CallsManager callsManager) {
         mStatusBarNotifier = statusBarNotifier;
         mAudioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
         mBluetoothManager = new BluetoothManager(context, this);
         mWiredHeadsetManager = wiredHeadsetManager;
+        mCallsManager = callsManager;
+
         mWiredHeadsetManager.addListener(this);
         mDockManager = DockManager;
         mDockManager.addListener(this);
@@ -82,7 +88,7 @@ final class CallAudioManager extends CallsManagerListenerBase
     public void onCallRemoved(Call call) {
         // If we didn't already have focus, there's nothing to do.
         if (hasFocus()) {
-            if (TelecomSystem.getInstance().getCallsManager().getCalls().isEmpty()) {
+            if (mCallsManager.getCalls().isEmpty()) {
                 Log.v(this, "all calls removed, reseting system audio to default state");
                 setInitialAudioState(null, false /* force */);
                 mWasSpeakerOn = false;
@@ -103,7 +109,7 @@ final class CallAudioManager extends CallsManagerListenerBase
         // We do two things:
         // (1) If this is the first call, then we can to turn on bluetooth if available.
         // (2) Unmute the audio for the new incoming call.
-        boolean isOnlyCall = TelecomSystem.getInstance().getCallsManager().getCalls().size() == 1;
+        boolean isOnlyCall = mCallsManager.getCalls().size() == 1;
         if (isOnlyCall && mBluetoothManager.isBluetoothAvailable()) {
             mBluetoothManager.connectBluetoothAudio();
             route = AudioState.ROUTE_BLUETOOTH;
@@ -206,7 +212,7 @@ final class CallAudioManager extends CallsManagerListenerBase
         Log.v(this, "mute, shouldMute: %b", shouldMute);
 
         // Don't mute if there are any emergency calls.
-        if (TelecomSystem.getInstance().getCallsManager().hasEmergencyCall()) {
+        if (mCallsManager.hasEmergencyCall()) {
             shouldMute = false;
             Log.v(this, "ignoring mute for emergency call");
         }
@@ -264,8 +270,6 @@ final class CallAudioManager extends CallsManagerListenerBase
      * @param isPlayingNew The status to set.
      */
     void setIsTonePlaying(boolean isPlayingNew) {
-        ThreadUtil.checkOnMainThread();
-
         if (mIsTonePlaying != isPlayingNew) {
             Log.v(this, "mIsTonePlaying %b -> %b.", mIsTonePlaying, isPlayingNew);
             mIsTonePlaying = isPlayingNew;
@@ -360,7 +364,7 @@ final class CallAudioManager extends CallsManagerListenerBase
         }
 
         if (!oldAudioState.equals(mAudioState)) {
-            TelecomSystem.getInstance().getCallsManager()
+            mCallsManager
                     .onAudioStateChanged(oldAudioState, mAudioState);
             updateAudioForForegroundCall();
         }
@@ -395,9 +399,9 @@ final class CallAudioManager extends CallsManagerListenerBase
             requestAudioFocusAndSetMode(AudioManager.STREAM_RING, AudioManager.MODE_RINGTONE);
         } else {
             Call foregroundCall = getForegroundCall();
-            Call waitingForAccountSelectionCall = TelecomSystem.getInstance().getCallsManager()
+            Call waitingForAccountSelectionCall = mCallsManager
                     .getFirstCallWithState(CallState.PRE_DIAL_WAIT);
-            Call call = TelecomSystem.getInstance().getCallsManager().getForegroundCall();
+            Call call = mCallsManager.getForegroundCall();
             if (foregroundCall == null && call != null && call == mCallToSpeedUpMTAudio) {
                 requestAudioFocusAndSetMode(AudioManager.STREAM_VOICE_CALL,
                                                          AudioManager.MODE_IN_CALL);
@@ -544,7 +548,7 @@ final class CallAudioManager extends CallsManagerListenerBase
     }
 
     private void updateAudioForForegroundCall() {
-        Call call = TelecomSystem.getInstance().getCallsManager().getForegroundCall();
+        Call call = mCallsManager.getForegroundCall();
         if (call != null && call.getConnectionService() != null) {
             call.getConnectionService().onAudioStateChanged(call, mAudioState);
         }
@@ -554,7 +558,7 @@ final class CallAudioManager extends CallsManagerListenerBase
      * Returns the current foreground call in order to properly set the audio mode.
      */
     private Call getForegroundCall() {
-        Call call = TelecomSystem.getInstance().getCallsManager().getForegroundCall();
+        Call call = mCallsManager.getForegroundCall();
 
         // We ignore any foreground call that is in the ringing state because we deal with ringing
         // calls exclusively through the mIsRinging variable set by {@link Ringer}.
@@ -566,7 +570,7 @@ final class CallAudioManager extends CallsManagerListenerBase
     }
 
     private boolean hasRingingForegroundCall() {
-        Call call = TelecomSystem.getInstance().getCallsManager().getForegroundCall();
+        Call call = mCallsManager.getForegroundCall();
         return call != null && call.getState() == CallState.RINGING;
     }
 
