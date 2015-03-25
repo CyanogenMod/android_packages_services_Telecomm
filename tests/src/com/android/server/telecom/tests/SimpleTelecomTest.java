@@ -285,7 +285,16 @@ public class SimpleTelecomTest extends AndroidTestCase {
         // Pass on the new outgoing call Intent
         // Set a dummy PendingResult so the BroadcastReceiver agrees to accept onReceive()
         mNewOutgoingCallReceiver.setPendingResult(
-                new BroadcastReceiver.PendingResult(0, "", null, 0, true, false, null, 0));
+                new BroadcastReceiver.PendingResult(
+                        0, /* resultCode*/
+                        "", /* resultData */
+                        null, /* resultExtras */
+                        0, /* type */
+                        false, /* ordered */
+                        false, /* sticky */
+                        null, /* token */
+                        0, /* userId */
+                        0)); /* flags */
         mNewOutgoingCallReceiver.setResultData(
                 mNewOutgoingCallIntent.getStringExtra(Intent.EXTRA_PHONE_NUMBER));
         mNewOutgoingCallReceiver.onReceive(

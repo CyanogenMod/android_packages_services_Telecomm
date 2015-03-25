@@ -161,7 +161,7 @@ public final class CallsManager extends Call.ListenerBase {
         mWiredHeadsetManager = new WiredHeadsetManager(context);
         mDockManager = new DockManager(context);
         mCallAudioManager = new CallAudioManager(
-                context, statusBarNotifier, mWiredHeadsetManager, this);
+                context, statusBarNotifier, mWiredHeadsetManager, mDockManager, this);
         InCallTonePlayer.Factory playerFactory = new InCallTonePlayer.Factory(mCallAudioManager);
         mRinger = new Ringer(mCallAudioManager, this, playerFactory, context);
         mHeadsetMediaButton = headsetMediaButtonFactory.create(context, this);

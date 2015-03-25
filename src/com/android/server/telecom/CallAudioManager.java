@@ -52,6 +52,7 @@ final class CallAudioManager extends CallsManagerListenerBase
             Context context,
             StatusBarNotifier statusBarNotifier,
             WiredHeadsetManager wiredHeadsetManager,
+            DockManager dockManager,
             CallsManager callsManager) {
         mStatusBarNotifier = statusBarNotifier;
         mAudioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
@@ -60,7 +61,7 @@ final class CallAudioManager extends CallsManagerListenerBase
         mCallsManager = callsManager;
 
         mWiredHeadsetManager.addListener(this);
-        mDockManager = DockManager;
+        mDockManager = dockManager;
         mDockManager.addListener(this);
 
         saveAudioState(getInitialAudioState(null));
