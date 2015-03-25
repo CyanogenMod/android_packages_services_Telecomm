@@ -504,8 +504,15 @@ public final class CallsManager extends Call.ListenerBase {
 
         boolean isAddParticipant = ((extras != null) && (extras.getBoolean(
                 TelephonyProperties.ADD_PARTICIPANT_KEY, false)));
+        boolean isSkipSchemaOrConfUri = ((extras != null) && (extras.getBoolean(
+                TelephonyProperties.EXTRA_SKIP_SCHEMA_PARSING, false) ||
+                extras.getBoolean(TelephonyProperties.EXTRA_DIAL_CONFERENCE_URI, false)));
         if (isAddParticipant) {
-            addParticipant(handle.getSchemeSpecificPart());
+            String number = handle.getSchemeSpecificPart();
+            if (!isSkipSchemaOrConfUri) {
+                number = PhoneNumberUtils.stripSeparators(number);
+            }
+            addParticipant(number);
             mInCallController.bringToForeground(false);
             return null;
         }
@@ -521,10 +528,6 @@ public final class CallsManager extends Call.ListenerBase {
                 null /* phoneAccountHandle */,
                 false /* isIncoming */,
                 false /* isConference */);
-
-        boolean isSkipSchemaOrConfUri = ((extras != null) && (extras.getBoolean(
-                TelephonyProperties.EXTRA_SKIP_SCHEMA_PARSING, false) ||
-                extras.getBoolean(TelephonyProperties.EXTRA_DIAL_CONFERENCE_URI, false)));
 
         // Force tel scheme for ims conf uri/skip schema calls to avoid selection of sip accounts
         String scheme = (isSkipSchemaOrConfUri? PhoneAccount.SCHEME_TEL: handle.getScheme());
