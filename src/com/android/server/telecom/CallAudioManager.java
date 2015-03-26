@@ -18,6 +18,7 @@ package com.android.server.telecom;
 
 import android.content.Context;
 import android.media.AudioManager;
+import android.os.Binder;
 import android.telecom.AudioState;
 import android.telecom.CallState;
 
@@ -443,8 +444,13 @@ final class CallAudioManager extends CallsManagerListenerBase
         // it a hint about the purpose of our focus.
         if (mAudioFocusStreamType != stream) {
             Log.v(this, "requesting audio focus for stream: %d", stream);
-            mAudioManager.requestAudioFocusForCall(stream,
-                    AudioManager.AUDIOFOCUS_GAIN_TRANSIENT);
+            long token = Binder.clearCallingIdentity();
+            try {
+                mAudioManager.requestAudioFocusForCall(stream,
+                        AudioManager.AUDIOFOCUS_GAIN_TRANSIENT);
+            } finally {
+                Binder.restoreCallingIdentity(token);
+            }
         }
         mAudioFocusStreamType = stream;
 
