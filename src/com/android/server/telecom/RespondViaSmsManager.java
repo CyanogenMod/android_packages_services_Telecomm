@@ -28,6 +28,7 @@ import android.content.SharedPreferences;
 import android.content.res.Resources;
 import android.net.Uri;
 import android.os.Handler;
+import android.os.Looper;
 import android.os.Message;
 import android.telecom.Response;
 import android.telephony.SubscriptionManager;
@@ -46,7 +47,7 @@ public class RespondViaSmsManager extends CallsManagerListenerBase {
     private final CallsManager mCallsManager;
     private final TelecomSystem.SyncRoot mLock;
 
-    private final Handler mHandler = new Handler() {
+    private final Handler mHandler = new Handler(Looper.getMainLooper()) {
         @Override
         public void handleMessage(Message msg) {
             switch (msg.what) {

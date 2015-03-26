@@ -20,6 +20,7 @@ import android.content.Context;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Handler;
+import android.os.Looper;
 import android.telecom.CallState;
 import android.telecom.PhoneAccountHandle;
 import android.telephony.TelephonyManager;
@@ -37,7 +38,7 @@ final class CreateConnectionTimeout extends PhoneStateListener implements Runnab
     private final PhoneAccountRegistrar mPhoneAccountRegistrar;
     private final ConnectionServiceWrapper mConnectionService;
     private final Call mCall;
-    private final Handler mHandler = new Handler();
+    private final Handler mHandler = new Handler(Looper.getMainLooper());
     private boolean mIsRegistered;
     private boolean mIsCallTimedOut;
 
