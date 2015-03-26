@@ -27,12 +27,9 @@ import android.telecom.Conference;
 import android.telecom.Connection;
 import android.telecom.DisconnectCause;
 import android.telecom.PhoneAccount;
-import android.telecom.PhoneCapabilities;
 import android.telecom.ConnectionRequest;
 import android.telecom.ConnectionService;
 import android.telecom.PhoneAccountHandle;
-import android.telecom.RemoteConnection;
-import android.telecom.StatusHints;
 import android.telecom.TelecomManager;
 import android.telecom.VideoProfile;
 import android.util.Log;
@@ -77,11 +74,11 @@ public class TestConnectionService extends ConnectionService {
 
         public TestConference(Connection a, Connection b) {
             super(null);
-            setCapabilities(
-                    PhoneCapabilities.SUPPORT_HOLD |
-                    PhoneCapabilities.HOLD |
-                    PhoneCapabilities.MUTE |
-                    PhoneCapabilities.MANAGE_CONFERENCE);
+            setConnectionCapabilities(
+                    Connection.CAPABILITY_SUPPORT_HOLD |
+                    Connection.CAPABILITY_HOLD |
+                    Connection.CAPABILITY_MUTE |
+                    Connection.CAPABILITY_MANAGE_CONFERENCE);
             addConnection(a);
             addConnection(b);
 
@@ -137,12 +134,12 @@ public class TestConnectionService extends ConnectionService {
         TestConnection(boolean isIncoming) {
             mIsIncoming = isIncoming;
             // Assume all calls are video capable.
-            int capabilities = getCallCapabilities();
-            capabilities |= PhoneCapabilities.SUPPORTS_VT_LOCAL;
-            capabilities |= PhoneCapabilities.MUTE;
-            capabilities |= PhoneCapabilities.SUPPORT_HOLD;
-            capabilities |= PhoneCapabilities.HOLD;
-            setCallCapabilities(capabilities);
+            int capabilities = getConnectionCapabilities();
+            capabilities |= CAPABILITY_SUPPORTS_VT_LOCAL;
+            capabilities |= CAPABILITY_MUTE;
+            capabilities |= CAPABILITY_SUPPORT_HOLD;
+            capabilities |= CAPABILITY_HOLD;
+            setConnectionCapabilities(capabilities);
         }
 
         void startOutgoing() {

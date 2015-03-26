@@ -90,26 +90,7 @@ public class CallActivity extends Activity {
         if (Intent.ACTION_CALL.equals(action) ||
                 Intent.ACTION_CALL_PRIVILEGED.equals(action) ||
                 Intent.ACTION_CALL_EMERGENCY.equals(action)) {
-        boolean isAddParticipant = intent.getBooleanExtra(
-                TelephonyProperties.ADD_PARTICIPANT_KEY, false);
-        Log.d(this, "isAddparticipant = "+isAddParticipant);
-        if (isAddParticipant) {
-            String number = PhoneNumberUtils.getNumberFromIntent(intent, this);
-            boolean isConferenceUri = intent.getBooleanExtra(
-                    TelephonyProperties.EXTRA_DIAL_CONFERENCE_URI, false);
-            if (!isConferenceUri) {
-                number = PhoneNumberUtils.stripSeparators(number);
-            }
-            CallsManager callsManager = CallsManager.getInstance();
-            if (callsManager != null) {
-                callsManager.addParticipant(number);
-                callsManager.getInCallController().bringToForeground(false);
-            } else {
-                Log.w(this, "CallsManager is null, can't process add Participant");
-            }
-        } else {
             processOutgoingCallIntent(intent);
-        }
         } else if (TelecomManager.ACTION_INCOMING_CALL.equals(action)) {
             processIncomingCallIntent(intent);
         }
@@ -189,11 +170,7 @@ public class CallActivity extends Activity {
 
         intent.putExtra(CallReceiver.KEY_IS_DEFAULT_DIALER, isDefaultDialer());
 
-        if (UserHandle.myUserId() == UserHandle.USER_OWNER) {
-            CallReceiver.processOutgoingCallIntent(getApplicationContext(), intent);
-        } else {
-            sendBroadcastToReceiver(intent, false /* isIncoming */);
-        }
+        sendBroadcastToReceiver(intent, false /* isIncoming */);
     }
 
     private boolean isTtyModeEnabled() {
@@ -204,11 +181,7 @@ public class CallActivity extends Activity {
     }
 
     private void processIncomingCallIntent(Intent intent) {
-        if (UserHandle.myUserId() == UserHandle.USER_OWNER) {
-            CallReceiver.processIncomingCallIntent(intent);
-        } else {
-            sendBroadcastToReceiver(intent, true /* isIncoming */);
-        }
+        sendBroadcastToReceiver(intent, true /* isIncoming */);
     }
 
     private boolean isDefaultDialer() {

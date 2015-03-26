@@ -32,9 +32,9 @@ import android.os.UserHandle;
 import android.telecom.AudioState;
 import android.telecom.CallProperties;
 import android.telecom.CallState;
+import android.telecom.Connection;
 import android.telecom.InCallService;
 import android.telecom.ParcelableCall;
-import android.telecom.PhoneCapabilities;
 import android.telecom.TelecomManager;
 import android.util.ArrayMap;
 
@@ -74,7 +74,7 @@ public final class InCallController extends CallsManagerListenerBase {
 
     private final Call.Listener mCallListener = new Call.ListenerBase() {
         @Override
-        public void onCallCapabilitiesChanged(Call call) {
+        public void onConnectionCapabilitiesChanged(Call call) {
             updateCall(call);
         }
 
@@ -455,11 +455,12 @@ public final class InCallController extends CallsManagerListenerBase {
     private ParcelableCall toParcelableCall(Call call, boolean includeVideoProvider) {
         String callId = mCallIdMapper.getCallId(call);
 
-        int capabilities = call.getCallCapabilities();
+        int capabilities = convertConnectionToCallCapabilities(call.getConnectionCapabilities());
 
         // Disable mute and add call for emergency calls.
         if (call.isEmergencyCall()) {
-            capabilities &= ~PhoneCapabilities.MUTE;
+            capabilities &= capabilities = removeCapability(
+                    capabilities, android.telecom.Call.Details.CAPABILITY_MUTE);
         }
 
         int properties = call.getCallProperties();
@@ -486,17 +487,19 @@ public final class InCallController extends CallsManagerListenerBase {
         List<Call> childCalls = call.getChildCalls();
         List<String> childCallIds = new ArrayList<>();
         if (!childCalls.isEmpty()) {
-            connectTimeMillis = Long.MAX_VALUE;
+            long childConnectTimeMillis = Long.MAX_VALUE;
             for (Call child : childCalls) {
                 if (child.getConnectTimeMillis() > 0) {
-                    connectTimeMillis = Math.min(child.getConnectTimeMillis(), connectTimeMillis);
+                    childConnectTimeMillis = Math.min(child.getConnectTimeMillis(),
+                            childConnectTimeMillis);
                 }
                 childCallIds.add(mCallIdMapper.getCallId(child));
             }
+            connectTimeMillis = Math.min(connectTimeMillis, childConnectTimeMillis);
         }
 
         if (call.isRespondViaSmsCapable()) {
-            capabilities |= PhoneCapabilities.RESPOND_VIA_TEXT;
+            capabilities |= android.telecom.Call.Details.CAPABILITY_RESPOND_VIA_TEXT;
         }
 
         Uri handle = call.getHandlePresentation() == TelecomManager.PRESENTATION_ALLOWED ?
@@ -538,6 +541,66 @@ public final class InCallController extends CallsManagerListenerBase {
                 call.getCallSubstate());
     }
 
+    private static final int[] CONNECTION_TO_CALL_CAPABILITY = new int[] {
+        Connection.CAPABILITY_HOLD,
+        android.telecom.Call.Details.CAPABILITY_HOLD,
+
+        Connection.CAPABILITY_SUPPORT_HOLD,
+        android.telecom.Call.Details.CAPABILITY_SUPPORT_HOLD,
+
+        Connection.CAPABILITY_MERGE_CONFERENCE,
+        android.telecom.Call.Details.CAPABILITY_MERGE_CONFERENCE,
+
+        Connection.CAPABILITY_SWAP_CONFERENCE,
+        android.telecom.Call.Details.CAPABILITY_SWAP_CONFERENCE,
+
+        Connection.CAPABILITY_UNUSED,
+        android.telecom.Call.Details.CAPABILITY_UNUSED,
+
+        Connection.CAPABILITY_RESPOND_VIA_TEXT,
+        android.telecom.Call.Details.CAPABILITY_RESPOND_VIA_TEXT,
+
+        Connection.CAPABILITY_MUTE,
+        android.telecom.Call.Details.CAPABILITY_MUTE,
+
+        Connection.CAPABILITY_MANAGE_CONFERENCE,
+        android.telecom.Call.Details.CAPABILITY_MANAGE_CONFERENCE,
+
+        Connection.CAPABILITY_SUPPORTS_VT_LOCAL,
+        android.telecom.Call.Details.CAPABILITY_SUPPORTS_VT_LOCAL,
+
+        Connection.CAPABILITY_SUPPORTS_VT_REMOTE,
+        android.telecom.Call.Details.CAPABILITY_SUPPORTS_VT_REMOTE,
+
+        Connection.CAPABILITY_HIGH_DEF_AUDIO,
+        android.telecom.Call.Details.CAPABILITY_HIGH_DEF_AUDIO,
+
+        Connection.CAPABILITY_VoWIFI,
+        android.telecom.Call.Details.CAPABILITY_VoWIFI,
+
+        Connection.CAPABILITY_SEPARATE_FROM_CONFERENCE,
+        android.telecom.Call.Details.CAPABILITY_SEPARATE_FROM_CONFERENCE,
+
+        Connection.CAPABILITY_DISCONNECT_FROM_CONFERENCE,
+        android.telecom.Call.Details.CAPABILITY_DISCONNECT_FROM_CONFERENCE,
+
+        Connection.CALL_TYPE_MODIFIABLE,
+        android.telecom.Call.Details.CALL_TYPE_MODIFIABLE,
+
+        Connection.ADD_PARTICIPANT,
+        android.telecom.Call.Details.ADD_PARTICIPANT,
+    };
+
+    private static int convertConnectionToCallCapabilities(int connectionCapabilities) {
+        int callCapabilities = 0;
+        for (int i = 0; i < CONNECTION_TO_CALL_CAPABILITY.length; i += 2) {
+            if ((CONNECTION_TO_CALL_CAPABILITY[i] & connectionCapabilities) != 0) {
+                callCapabilities |= CONNECTION_TO_CALL_CAPABILITY[i + 1];
+            }
+        }
+        return callCapabilities;
+    }
+
     /**
      * Adds the call to the list of calls tracked by the {@link InCallController}.
      * @param call The call to add.
@@ -547,5 +610,12 @@ public final class InCallController extends CallsManagerListenerBase {
             mCallIdMapper.addCall(call);
             call.addListener(mCallListener);
         }
+    }
+
+    /**
+     * Removes the specified capability from the set of capabilities bits and returns the new set.
+     */
+    private static int removeCapability(int capabilities, int capability) {
+        return capabilities & ~capability;
     }
 }

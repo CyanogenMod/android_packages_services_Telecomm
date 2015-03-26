@@ -30,7 +30,6 @@ import android.telecom.GatewayInfo;
 import android.telecom.ParcelableConnection;
 import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
-import android.telecom.PhoneCapabilities;
 import android.telecom.Response;
 import android.telecom.StatusHints;
 import android.telecom.TelecomManager;
@@ -74,7 +73,7 @@ final class Call implements CreateConnectionResponse {
         void onFailedUnknownCall(Call call);
         void onRingbackRequested(Call call, boolean ringbackRequested);
         void onPostDialWait(Call call, String remaining);
-        void onCallCapabilitiesChanged(Call call);
+        void onConnectionCapabilitiesChanged(Call call);
         void onCallPropertiesChanged(Call call);
         void onParentChanged(Call call);
         void onChildrenChanged(Call call);
@@ -111,7 +110,7 @@ final class Call implements CreateConnectionResponse {
         @Override
         public void onPostDialWait(Call call, String remaining) {}
         @Override
-        public void onCallCapabilitiesChanged(Call call) {}
+        public void onConnectionCapabilitiesChanged(Call call) {}
         @Override
         public void onCallPropertiesChanged(Call call) {}
         @Override
@@ -279,7 +278,7 @@ final class Call implements CreateConnectionResponse {
     /** Whether direct-to-voicemail query is pending. */
     private boolean mDirectToVoicemailQueryPending;
 
-    private int mCallCapabilities;
+    private int mConnectionCapabilities;
     private int mCallProperties;
 
     private boolean mIsConference = false;
@@ -349,6 +348,37 @@ final class Call implements CreateConnectionResponse {
         maybeLoadCannedSmsResponses();
     }
 
+     /**
+     * Persists the specified parameters and initializes the new instance.
+     *
+     * @param context The context.
+     * @param repository The connection service repository.
+     * @param handle The handle to dial.
+     * @param gatewayInfo Gateway information to use for the call.
+     * @param connectionManagerPhoneAccountHandle Account to use for the service managing the call.
+     *         This account must be one that was registered with the
+     *         {@link PhoneAccount#CAPABILITY_CONNECTION_MANAGER} flag.
+     * @param targetPhoneAccountHandle Account information to use for the call. This account must be
+     *         one that was registered with the {@link PhoneAccount#CAPABILITY_CALL_PROVIDER} flag.
+     * @param isIncoming True if this is an incoming call.
+     * @param connectTimeMillis The connection time of the call.
+     */
+    Call(
+            Context context,
+            ConnectionServiceRepository repository,
+            Uri handle,
+            GatewayInfo gatewayInfo,
+            PhoneAccountHandle connectionManagerPhoneAccountHandle,
+            PhoneAccountHandle targetPhoneAccountHandle,
+            boolean isIncoming,
+            boolean isConference,
+            long oldConnectTimeMillis) {
+        this(context, repository, handle, gatewayInfo, connectionManagerPhoneAccountHandle,
+                targetPhoneAccountHandle, isIncoming, isConference);
+
+        mConnectTimeMillis = oldConnectTimeMillis;
+    }
+
     void addListener(Listener listener) {
         mListeners.add(listener);
     }
@@ -375,7 +405,7 @@ final class Call implements CreateConnectionResponse {
                 getVideoState(),
                 getChildCalls().size(),
                 getParentCall() != null,
-                PhoneCapabilities.toString(getCallCapabilities()),
+                Connection.capabilitiesToString(getConnectionCapabilities()),
                 mIsActiveSub,
                 mTargetPhoneAccountHandle,
                 getCallSubstate());
@@ -588,20 +618,21 @@ final class Call implements CreateConnectionResponse {
         mConnectTimeMillis = connectTimeMillis;
     }
 
-    int getCallCapabilities() {
-        return mCallCapabilities;
+    int getConnectionCapabilities() {
+        return mConnectionCapabilities;
     }
 
-    void setCallCapabilities(int callCapabilities) {
-        setCallCapabilities(callCapabilities, false /* forceUpdate */);
+    void setConnectionCapabilities(int connectionCapabilities) {
+        setConnectionCapabilities(connectionCapabilities, false /* forceUpdate */);
     }
 
-    void setCallCapabilities(int callCapabilities, boolean forceUpdate) {
-        Log.v(this, "setCallCapabilities: %s", PhoneCapabilities.toString(callCapabilities));
-        if (forceUpdate || mCallCapabilities != callCapabilities) {
-           mCallCapabilities = callCapabilities;
+    void setConnectionCapabilities(int connectionCapabilities, boolean forceUpdate) {
+        Log.v(this, "setConnectionCapabilities: %s", Connection.capabilitiesToString(
+                connectionCapabilities));
+        if (forceUpdate || mConnectionCapabilities != connectionCapabilities) {
+           mConnectionCapabilities = connectionCapabilities;
             for (Listener l : mListeners) {
-                l.onCallCapabilitiesChanged(this);
+                l.onConnectionCapabilitiesChanged(this);
             }
         }
     }
@@ -723,7 +754,7 @@ final class Call implements CreateConnectionResponse {
         setHandle(connection.getHandle(), connection.getHandlePresentation());
         setCallerDisplayName(
                 connection.getCallerDisplayName(), connection.getCallerDisplayNamePresentation());
-        setCallCapabilities(connection.getCapabilities());
+        setConnectionCapabilities(connection.getConnectionCapabilities());
         setCallProperties(connection.getProperties());
         setVideoProvider(connection.getVideoProvider());
         setVideoState(connection.getVideoState());
@@ -1007,7 +1038,7 @@ final class Call implements CreateConnectionResponse {
     void mergeConference() {
         if (mConnectionService == null) {
             Log.w(this, "merging conference calls without a connection service.");
-        } else if (can(PhoneCapabilities.MERGE_CONFERENCE)) {
+        } else if (can(Connection.CAPABILITY_MERGE_CONFERENCE)) {
             mConnectionService.mergeConference(this);
             mWasConferencePreviouslyMerged = true;
         }
@@ -1016,7 +1047,7 @@ final class Call implements CreateConnectionResponse {
     void swapConference() {
         if (mConnectionService == null) {
             Log.w(this, "swapping conference calls without a connection service.");
-        } else if (can(PhoneCapabilities.SWAP_CONFERENCE)) {
+        } else if (can(Connection.CAPABILITY_SWAP_CONFERENCE)) {
             mConnectionService.swapConference(this);
             switch (mChildCalls.size()) {
                 case 1:
@@ -1074,7 +1105,7 @@ final class Call implements CreateConnectionResponse {
     }
 
     boolean can(int capability) {
-        return (mCallCapabilities & capability) == capability;
+        return (mConnectionCapabilities & capability) == capability;
     }
 
     private void addChildCall(Call call) {

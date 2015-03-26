@@ -107,7 +107,6 @@ public class CallServiceNotifier {
                 .setAddress(Uri.parse("tel:555-TEST"))
                 .setSubscriptionAddress(Uri.parse("tel:555-TEST"))
                 .setCapabilities(PhoneAccount.CAPABILITY_CALL_PROVIDER)
-                .setIconResId(R.drawable.stat_sys_phone_call)
                 .setShortDescription("a short description for the call provider")
                 .setSupportedUriSchemes(Arrays.asList("tel"))
                 .build());
@@ -121,7 +120,6 @@ public class CallServiceNotifier {
                 .setSubscriptionAddress(Uri.parse("tel:555-TSIM"))
                 .setCapabilities(PhoneAccount.CAPABILITY_CALL_PROVIDER |
                     PhoneAccount.CAPABILITY_SIM_SUBSCRIPTION)
-                .setIconResId(R.drawable.stat_sys_phone_call)
                 .setShortDescription("a short description for the sim subscription")
                 .build());
 
@@ -133,7 +131,6 @@ public class CallServiceNotifier {
                 .setAddress(Uri.parse("tel:555-CMGR"))
                 .setSubscriptionAddress(Uri.parse("tel:555-CMGR"))
                 .setCapabilities(PhoneAccount.CAPABILITY_CONNECTION_MANAGER)
-                .setIconResId(R.drawable.stat_sys_phone_call)
                 .setShortDescription("a short description for the connection manager")
                 .build());
     }

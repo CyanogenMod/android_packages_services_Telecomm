@@ -18,8 +18,6 @@ package com.android.server.telecom;
 
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageManager;
-import android.content.pm.ResolveInfo;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -29,18 +27,18 @@ import android.os.SystemProperties;
 import android.provider.CallLog.Calls;
 import android.telecom.AudioState;
 import android.telecom.CallState;
+import android.telecom.Connection;
 import android.telecom.DisconnectCause;
 import android.telecom.GatewayInfo;
+import android.telecom.Conference;
 import android.telecom.ParcelableConference;
 import android.telecom.ParcelableConnection;
 import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
-import android.telecom.PhoneCapabilities;
 import android.telecom.TelecomManager;
 import android.telephony.TelephonyManager;
 
 import com.android.internal.telephony.CallStateException;
-import com.android.internal.telephony.Connection;
 import com.android.internal.telephony.PhoneConstants;
 import com.android.internal.telephony.TelephonyProperties;
 import com.android.internal.telephony.util.BlacklistUtils;
@@ -91,7 +89,7 @@ public final class CallsManager extends Call.ListenerBase {
     /**
      * Singleton instance of the {@link CallsManager}, initialized from {@link TelecomService}.
      */
-    private static CallsManager INSTANCE = null;
+    private static CallsManager sInstance = null;
 
     private static final String TAG = "CallsManager";
 
@@ -167,7 +165,7 @@ public final class CallsManager extends Call.ListenerBase {
 
     /** Singleton accessor. */
     static CallsManager getInstance() {
-        return INSTANCE;
+        return sInstance;
     }
 
     /**
@@ -176,7 +174,7 @@ public final class CallsManager extends Call.ListenerBase {
      * @param instance The instance to set.
      */
     static void initialize(CallsManager instance) {
-        INSTANCE = instance;
+        sInstance = instance;
     }
 
     /**
@@ -466,6 +464,15 @@ public final class CallsManager extends Call.ListenerBase {
      * @param extras The optional extras Bundle passed with the intent used for the incoming call.
      */
     Call startOutgoingCall(Uri handle, PhoneAccountHandle phoneAccountHandle, Bundle extras) {
+
+        boolean isAddParticipant = ((extras != null) && (extras.getBoolean(
+                TelephonyProperties.ADD_PARTICIPANT_KEY, false)));
+        if (isAddParticipant) {
+            addParticipant(handle.toString());
+            mInCallController.bringToForeground(false);
+            return null;
+        }
+
         // Create a call with original handle. The handle may be changed when the call is attached
         // to a connection service, but in most cases will remain the same.
         Call call = new Call(
@@ -660,8 +667,8 @@ public final class CallsManager extends Call.ListenerBase {
             // STATE_DIALING, put it on hold before answering the call.
             if (activeCall != null && activeCall != call &&
                     (activeCall.isActive() ||
-                     activeCall.getState() == CallState.DIALING)) {
-                if (0 == (activeCall.getCallCapabilities() & PhoneCapabilities.HOLD)) {
+                    activeCall.getState() == CallState.DIALING)) {
+                if (0 == (activeCall.getConnectionCapabilities() & Connection.CAPABILITY_HOLD)) {
                     // This call does not support hold.  If it is from a different connection
                     // service, then disconnect it, otherwise allow the connection service to
                     // figure out the right states.
@@ -1000,13 +1007,6 @@ public final class CallsManager extends Call.ListenerBase {
                 manageMSimInCallTones(false);
             }
         }
-
-        removeCall(call);
-        if (!hasAnyCalls()) {
-            updateLchStatus(null);
-            setActiveSubscription(null);
-            manageMSimInCallTones(false);
-        }
     }
 
     private String IsAnySubInLch() {
@@ -1024,6 +1024,11 @@ public final class CallsManager extends Call.ListenerBase {
      */
     void markCallAsRemoved(Call call) {
         removeCall(call);
+        if (!hasAnyCalls()) {
+            updateLchStatus(null);
+            setActiveSubscription(null);
+            manageMSimInCallTones(false);
+        }
         if (mLocallyDisconnectingCalls.contains(call)) {
             mLocallyDisconnectingCalls.remove(call);
             if (mForegroundCall != null && mForegroundCall.getState() == CallState.ON_HOLD) {
@@ -1269,6 +1274,7 @@ public final class CallsManager extends Call.ListenerBase {
     Call createConferenceCall(
             PhoneAccountHandle phoneAccount,
             ParcelableConference parcelableConference) {
+        long oldConnectTime = parcelableConference.getConnectTimeMillis();
         Call call = new Call(
                 mContext,
                 mConnectionServiceRepository,
@@ -1277,13 +1283,14 @@ public final class CallsManager extends Call.ListenerBase {
                 null /* connectionManagerPhoneAccount */,
                 phoneAccount,
                 false /* isIncoming */,
-                true /* isConference */);
+                true /* isConference */,
+                oldConnectTime);
 
         setCallState(call, Call.getStateFromConnectionState(parcelableConference.getState()));
-        if (call.getState() == CallState.ACTIVE) {
+        if (oldConnectTime == 0 && call.getState() == CallState.ACTIVE) {
             call.setConnectTimeMillis(System.currentTimeMillis());
         }
-        call.setCallCapabilities(parcelableConference.getCapabilities());
+        call.setConnectionCapabilities(parcelableConference.getConnectionCapabilities());
         call.setVideoState(parcelableConference.getVideoState());
         call.setVideoProvider(parcelableConference.getVideoProvider());
 
@@ -1658,7 +1665,7 @@ public final class CallsManager extends Call.ListenerBase {
             }
 
             // Try to hold the live call before attempting the new outgoing call.
-            if (liveCall.can(PhoneCapabilities.HOLD)) {
+            if (liveCall.can(Connection.CAPABILITY_HOLD)) {
                 liveCall.hold();
                 return true;
             }
@@ -1696,7 +1703,7 @@ public final class CallsManager extends Call.ListenerBase {
                 return true;
             }
             // Try to hold the live call before attempting the new outgoing call.
-            if (liveCall.can(PhoneCapabilities.HOLD)) {
+            if (liveCall.can(Connection.CAPABILITY_HOLD)) {
                 liveCall.hold();
                 return true;
             }
@@ -1739,7 +1746,7 @@ public final class CallsManager extends Call.ListenerBase {
         } else {
             call.setConnectTimeMillis(System.currentTimeMillis());
         }
-        call.setCallCapabilities(connection.getCapabilities());
+        call.setConnectionCapabilities(connection.getConnectionCapabilities());
         call.setCallerDisplayName(connection.getCallerDisplayName(),
                 connection.getCallerDisplayNamePresentation());
 

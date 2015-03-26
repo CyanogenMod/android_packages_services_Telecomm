@@ -28,6 +28,7 @@ import android.telecom.ConnectionService;
 import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
 import android.telecom.TelecomManager;
+import android.telephony.PhoneNumberUtils;
 import android.content.ComponentName;
 import android.content.Context;
 import android.net.Uri;
@@ -92,6 +93,7 @@ public final class PhoneAccountRegistrar {
     private final List<Listener> mListeners = new CopyOnWriteArrayList<>();
     private final AtomicFile mAtomicFile;
     private final Context mContext;
+    private final SubscriptionManager mSubscriptionManager;
     private State mState;
 
     public PhoneAccountRegistrar(Context context) {
@@ -112,7 +114,27 @@ public final class PhoneAccountRegistrar {
 
         mState = new State();
         mContext = context;
+        mSubscriptionManager = SubscriptionManager.from(mContext);
         read();
+    }
+
+    /**
+     * Retrieves the subscription id for a given phone account if it exists. Subscription ids
+     * apply only to PSTN/SIM card phone accounts so all other accounts should not have a
+     * subscription id.
+     * @param accountHandle The handle for the phone account for which to retrieve the
+     * subscription id.
+     * @return The value of the subscription id or -1 if it does not exist or is not valid.
+     */
+    public int getSubscriptionIdForPhoneAccount(PhoneAccountHandle accountHandle) {
+        PhoneAccount account = getPhoneAccount(accountHandle);
+        if (account == null || !account.hasCapabilities(PhoneAccount.CAPABILITY_SIM_SUBSCRIPTION) ||
+                !TextUtils.isDigitsOnly(accountHandle.getId())) {
+            // Since no decimals or negative numbers can be valid subscription ids, only a string of
+            // numbers can be subscription id
+            return SubscriptionManager.INVALID_SUBSCRIPTION_ID;
+        }
+        return Integer.parseInt(accountHandle.getId());
     }
 
     /**
@@ -249,15 +271,15 @@ public final class PhoneAccountRegistrar {
                 Log.i(this, "setDefaultVoicePhoneAccount, only emergency account present ");
                 return;
             }
-            Long subId = SubscriptionManager.getDefaultVoiceSubId();
+            int subId = SubscriptionManager.getDefaultVoiceSubId();
             try {
-                subId = Long.parseLong(mState.defaultOutgoing.getId());
+                subId = Integer.parseInt(mState.defaultOutgoing.getId());
             } catch (NumberFormatException e) {
                 Log.w(this, " NumberFormatException " + e);
             }
             Log.i(this, "set voice default subId as  " + subId + " prmotp = " + voicePrompt);
             if (SubscriptionManager.getDefaultVoiceSubId() != subId) {
-                SubscriptionManager.setDefaultVoiceSubId(subId);
+                mSubscriptionManager.setDefaultVoiceSubId(subId);
             }
             if (voicePrompt == true) {
                 SubscriptionManager.setVoicePromptEnabled(false);
@@ -484,6 +506,11 @@ public final class PhoneAccountRegistrar {
             write();
             fireAccountsChanged();
         }
+    }
+
+    public boolean isVoiceMailNumber(PhoneAccountHandle accountHandle, String number) {
+        int subId = getSubscriptionIdForPhoneAccount(accountHandle);
+        return PhoneNumberUtils.isVoiceMailNumber(subId, number);
     }
 
     public void addListener(Listener l) {
@@ -944,7 +971,6 @@ public final class PhoneAccountRegistrar {
                         .setAddress(address)
                         .setSubscriptionAddress(subscriptionAddress)
                         .setCapabilities(capabilities)
-                        .setIconResId(iconResId)
                         .setShortDescription(shortDescription)
                         .setSupportedUriSchemes(supportedUriSchemes)
                         .build();

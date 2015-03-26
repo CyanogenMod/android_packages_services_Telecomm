@@ -23,6 +23,7 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.provider.CallLog.Calls;
 import android.telecom.CallState;
+import android.telecom.Connection;
 import android.telecom.DisconnectCause;
 import android.telecom.PhoneAccountHandle;
 import android.telecom.VideoProfile;
@@ -145,8 +146,11 @@ final class CallLogManager extends CallsManagerListenerBase {
         final int presentation = getPresentation(call);
         final PhoneAccountHandle accountHandle = call.getTargetPhoneAccount();
 
-        int volteCapabilities = call.getCallCapabilities() & PhoneCapabilities.VoLTE;
-        Log.d(TAG, "callCapabilities: " + call.getCallCapabilities()
+        // FIXME if any further issues
+        //int volteCapabilities = call.getConnectionCapabilities() & Connection.CAPABILITY_VoLTE;
+        int volteCapabilities = call.getConnectionCapabilities() &
+                Connection.CAPABILITY_HIGH_DEF_AUDIO;
+        Log.d(TAG, "callCapabilities: " + call.getConnectionCapabilities()
                 + "volteCapability: " + volteCapabilities);
         if (volteCapabilities != 0){
             switch (callLogType) {
