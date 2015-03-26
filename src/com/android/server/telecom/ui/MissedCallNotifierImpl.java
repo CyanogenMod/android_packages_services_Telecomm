@@ -41,6 +41,7 @@ import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Binder;
 import android.os.UserHandle;
 import android.provider.CallLog.Calls;
 import android.telecom.CallState;
@@ -195,15 +196,25 @@ public class MissedCallNotifierImpl extends CallsManagerListenerBase implements 
         configureLedOnNotification(notification);
 
         Log.i(this, "Adding missed call notification for %s.", call);
-        mNotificationManager.notifyAsUser(
-                null /* tag */ , MISSED_CALL_NOTIFICATION_ID, notification, UserHandle.CURRENT);
+        long token = Binder.clearCallingIdentity();
+        try {
+            mNotificationManager.notifyAsUser(
+                    null /* tag */, MISSED_CALL_NOTIFICATION_ID, notification, UserHandle.CURRENT);
+        } finally {
+            Binder.restoreCallingIdentity(token);
+        }
     }
 
     /** Cancels the "missed call" notification. */
     private void cancelMissedCallNotification() {
         // Reset the number of missed calls to 0.
         mMissedCallCount = 0;
-        mNotificationManager.cancel(MISSED_CALL_NOTIFICATION_ID);
+        long token = Binder.clearCallingIdentity();
+        try {
+            mNotificationManager.cancel(MISSED_CALL_NOTIFICATION_ID);
+        } finally {
+            Binder.restoreCallingIdentity(token);
+        }
     }
 
     /**
