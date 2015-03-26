@@ -295,7 +295,8 @@ class NewOutgoingCallIntentBroadcaster {
                 broadcastIntent,
                 UserHandle.CURRENT,
                 PERMISSION,
-                receiverRequired ? new NewOutgoingCallBroadcastIntentReceiver() : null,
+                (receiverRequired && (mCall.getTargetPhoneAccount() != null)) ?
+                        new NewOutgoingCallBroadcastIntentReceiver() : null,
                 null,  // scheduler
                 Activity.RESULT_OK,  // initialCode
                 number,  // initialData: initial value for the result data (number to be modified)
