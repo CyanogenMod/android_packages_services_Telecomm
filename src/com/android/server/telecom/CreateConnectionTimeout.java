@@ -44,6 +44,7 @@ final class CreateConnectionTimeout extends PhoneStateListener implements Runnab
 
     CreateConnectionTimeout(Context context, PhoneAccountRegistrar phoneAccountRegistrar,
             ConnectionServiceWrapper service, Call call) {
+        super(Looper.getMainLooper());
         mContext = context;
         mPhoneAccountRegistrar = phoneAccountRegistrar;
         mConnectionService = service;

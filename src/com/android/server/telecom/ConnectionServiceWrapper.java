@@ -19,6 +19,7 @@ package com.android.server.telecom;
 import android.content.ComponentName;
 import android.content.Context;
 import android.net.Uri;
+import android.os.Binder;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.RemoteException;
@@ -66,360 +67,472 @@ final class ConnectionServiceWrapper extends ServiceBinder {
                 String callId,
                 ConnectionRequest request,
                 ParcelableConnection connection) {
-            synchronized (mLock) {
-                logIncoming("handleCreateConnectionComplete %s", callId);
-                if (mCallIdMapper.isValidCallId(callId)) {
-                    ConnectionServiceWrapper.this
-                            .handleCreateConnectionComplete(callId, request, connection);
+            long token = Binder.clearCallingIdentity();
+            try {
+                synchronized (mLock) {
+                    logIncoming("handleCreateConnectionComplete %s", callId);
+                    if (mCallIdMapper.isValidCallId(callId)) {
+                        ConnectionServiceWrapper.this
+                                .handleCreateConnectionComplete(callId, request, connection);
+                    }
                 }
+            } finally {
+                Binder.restoreCallingIdentity(token);
             }
         }
 
         @Override
         public void setActive(String callId) {
-            synchronized (mLock) {
-                logIncoming("setActive %s", callId);
-                if (mCallIdMapper.isValidCallId(callId) || mCallIdMapper
-                        .isValidConferenceId(callId)) {
-                    Call call = mCallIdMapper.getCall(callId);
-                    if (call != null) {
-                        mCallsManager.markCallAsActive(call);
-                    } else {
-                        //Log.w(this, "setActive, unknown call id: %s", msg.obj);
+            long token = Binder.clearCallingIdentity();
+            try {
+                synchronized (mLock) {
+                    logIncoming("setActive %s", callId);
+                    if (mCallIdMapper.isValidCallId(callId) || mCallIdMapper
+                            .isValidConferenceId(callId)) {
+                        Call call = mCallIdMapper.getCall(callId);
+                        if (call != null) {
+                            mCallsManager.markCallAsActive(call);
+                        } else {
+                            // Log.w(this, "setActive, unknown call id: %s", msg.obj);
+                        }
                     }
                 }
+            } finally {
+                Binder.restoreCallingIdentity(token);
             }
         }
 
         @Override
         public void setRinging(String callId) {
-            synchronized (mLock) {
-                logIncoming("setRinging %s", callId);
-                if (mCallIdMapper.isValidCallId(callId)) {
-                    Call call = mCallIdMapper.getCall(callId);
-                    if (call != null) {
-                        mCallsManager.markCallAsRinging(call);
-                    } else {
-                        //Log.w(this, "setRinging, unknown call id: %s", msg.obj);
+            long token = Binder.clearCallingIdentity();
+            try {
+                synchronized (mLock) {
+                    logIncoming("setRinging %s", callId);
+                    if (mCallIdMapper.isValidCallId(callId)) {
+                        Call call = mCallIdMapper.getCall(callId);
+                        if (call != null) {
+                            mCallsManager.markCallAsRinging(call);
+                        } else {
+                            // Log.w(this, "setRinging, unknown call id: %s", msg.obj);
+                        }
                     }
                 }
+            } finally {
+                Binder.restoreCallingIdentity(token);
             }
         }
 
         @Override
         public void setVideoProvider(String callId, IVideoProvider videoProvider) {
-            synchronized (mLock) {
-                logIncoming("setVideoProvider %s", callId);
-                if (mCallIdMapper.isValidCallId(callId)) {
-                    Call call = mCallIdMapper.getCall(callId);
-                    if (call != null) {
-                        call.setVideoProvider(videoProvider);
+            long token = Binder.clearCallingIdentity();
+            try {
+                synchronized (mLock) {
+                    logIncoming("setVideoProvider %s", callId);
+                    if (mCallIdMapper.isValidCallId(callId)) {
+                        Call call = mCallIdMapper.getCall(callId);
+                        if (call != null) {
+                            call.setVideoProvider(videoProvider);
+                        }
                     }
                 }
+            } finally {
+                Binder.restoreCallingIdentity(token);
             }
         }
 
         @Override
         public void setDialing(String callId) {
-            synchronized (mLock) {
-                logIncoming("setDialing %s", callId);
-                if (mCallIdMapper.isValidCallId(callId)) {
-                    Call call = mCallIdMapper.getCall(callId);
-                    if (call != null) {
-                        mCallsManager.markCallAsDialing(call);
-                    } else {
-                        //Log.w(this, "setDialing, unknown call id: %s", msg.obj);
+            long token = Binder.clearCallingIdentity();
+            try {
+                synchronized (mLock) {
+                    logIncoming("setDialing %s", callId);
+                    if (mCallIdMapper.isValidCallId(callId)) {
+                        Call call = mCallIdMapper.getCall(callId);
+                        if (call != null) {
+                            mCallsManager.markCallAsDialing(call);
+                        } else {
+                            // Log.w(this, "setDialing, unknown call id: %s", msg.obj);
+                        }
                     }
                 }
+            } finally {
+                Binder.restoreCallingIdentity(token);
             }
         }
 
         @Override
         public void setDisconnected(String callId, DisconnectCause disconnectCause) {
-            synchronized (mLock) {
-                logIncoming("setDisconnected %s %s", callId, disconnectCause);
-                if (mCallIdMapper.isValidCallId(callId) || mCallIdMapper
-                        .isValidConferenceId(callId)) {
-                    Call call = mCallIdMapper.getCall(callId);
-                    Log.d(this, "disconnect call %s %s", disconnectCause, call);
-                    if (call != null) {
-                        mCallsManager.markCallAsDisconnected(call, disconnectCause);
-                    } else {
-                        //Log.w(this, "setDisconnected, unknown call id: %s", args.arg1);
+            long token = Binder.clearCallingIdentity();
+            try {
+                synchronized (mLock) {
+                    logIncoming("setDisconnected %s %s", callId, disconnectCause);
+                    if (mCallIdMapper.isValidCallId(callId) || mCallIdMapper
+                            .isValidConferenceId(callId)) {
+                        Call call = mCallIdMapper.getCall(callId);
+                        Log.d(this, "disconnect call %s %s", disconnectCause, call);
+                        if (call != null) {
+                            mCallsManager.markCallAsDisconnected(call, disconnectCause);
+                        } else {
+                            // Log.w(this, "setDisconnected, unknown call id: %s", args.arg1);
+                        }
                     }
                 }
+            } finally {
+                Binder.restoreCallingIdentity(token);
             }
         }
 
         @Override
         public void setOnHold(String callId) {
-            synchronized (mLock) {
-                logIncoming("setOnHold %s", callId);
-                if (mCallIdMapper.isValidCallId(callId) || mCallIdMapper
-                        .isValidConferenceId(callId)) {
-                    Call call = mCallIdMapper.getCall(callId);
-                    if (call != null) {
-                        mCallsManager.markCallAsOnHold(call);
-                    } else {
-                        //Log.w(this, "setOnHold, unknown call id: %s", msg.obj);
+            long token = Binder.clearCallingIdentity();
+            try {
+                synchronized (mLock) {
+                    logIncoming("setOnHold %s", callId);
+                    if (mCallIdMapper.isValidCallId(callId) || mCallIdMapper
+                            .isValidConferenceId(callId)) {
+                        Call call = mCallIdMapper.getCall(callId);
+                        if (call != null) {
+                            mCallsManager.markCallAsOnHold(call);
+                        } else {
+                            // Log.w(this, "setOnHold, unknown call id: %s", msg.obj);
+                        }
                     }
                 }
+            } finally {
+                Binder.restoreCallingIdentity(token);
             }
         }
 
         @Override
         public void setRingbackRequested(String callId, boolean ringback) {
-            synchronized (mLock) {
-                logIncoming("setRingbackRequested %s %b", callId, ringback);
-                if (mCallIdMapper.isValidCallId(callId)) {
-                    Call call = mCallIdMapper.getCall(callId);
-                    if (call != null) {
-                        call.setRingbackRequested(ringback);
-                    } else {
-                        //Log.w(this, "setRingback, unknown call id: %s", args.arg1);
+            long token = Binder.clearCallingIdentity();
+            try {
+                synchronized (mLock) {
+                    logIncoming("setRingbackRequested %s %b", callId, ringback);
+                    if (mCallIdMapper.isValidCallId(callId)) {
+                        Call call = mCallIdMapper.getCall(callId);
+                        if (call != null) {
+                            call.setRingbackRequested(ringback);
+                        } else {
+                            // Log.w(this, "setRingback, unknown call id: %s", args.arg1);
+                        }
                     }
                 }
+            } finally {
+                Binder.restoreCallingIdentity(token);
             }
         }
 
         @Override
         public void removeCall(String callId) {
-            synchronized (mLock) {
-                logIncoming("removeCall %s", callId);
-                if (mCallIdMapper.isValidCallId(callId) || mCallIdMapper
-                        .isValidConferenceId(callId)) {
-                    Call call = mCallIdMapper.getCall(callId);
-                    if (call != null) {
-                        if (call.isAlive()) {
-                            mCallsManager.markCallAsDisconnected(
-                                    call, new DisconnectCause(DisconnectCause.REMOTE));
-                        } else {
-                            mCallsManager.markCallAsRemoved(call);
+            long token = Binder.clearCallingIdentity();
+            try {
+                synchronized (mLock) {
+                    logIncoming("removeCall %s", callId);
+                    if (mCallIdMapper.isValidCallId(callId) || mCallIdMapper
+                            .isValidConferenceId(callId)) {
+                        Call call = mCallIdMapper.getCall(callId);
+                        if (call != null) {
+                            if (call.isAlive()) {
+                                mCallsManager.markCallAsDisconnected(
+                                        call, new DisconnectCause(DisconnectCause.REMOTE));
+                            } else {
+                                mCallsManager.markCallAsRemoved(call);
+                            }
                         }
                     }
                 }
+            } finally {
+                Binder.restoreCallingIdentity(token);
             }
         }
 
         @Override
         public void setConnectionCapabilities(String callId, int connectionCapabilities) {
-            synchronized (mLock) {
-                logIncoming("setConnectionCapabilities %s %d", callId, connectionCapabilities);
-                if (mCallIdMapper.isValidCallId(callId) || mCallIdMapper
-                        .isValidConferenceId(callId)) {
-                    Call call = mCallIdMapper.getCall(callId);
-                    if (call != null) {
-                        call.setConnectionCapabilities(connectionCapabilities);
-                    } else {
-                        //Log.w(ConnectionServiceWrapper.this,
-                        //      "setConnectionCapabilities, unknown call id: %s", msg.obj);
+            long token = Binder.clearCallingIdentity();
+            try {
+                synchronized (mLock) {
+                    logIncoming("setConnectionCapabilities %s %d", callId, connectionCapabilities);
+                    if (mCallIdMapper.isValidCallId(callId) || mCallIdMapper
+                            .isValidConferenceId(callId)) {
+                        Call call = mCallIdMapper.getCall(callId);
+                        if (call != null) {
+                            call.setConnectionCapabilities(connectionCapabilities);
+                        } else {
+                            // Log.w(ConnectionServiceWrapper.this,
+                            // "setConnectionCapabilities, unknown call id: %s", msg.obj);
+                        }
                     }
                 }
+            } finally {
+                Binder.restoreCallingIdentity(token);
             }
         }
 
         @Override
         public void setIsConferenced(String callId, String conferenceCallId) {
-            synchronized (mLock) {
-                logIncoming("setIsConferenced %s %s", callId, conferenceCallId);
-                Call childCall = mCallIdMapper.getCall(callId);
-                if (childCall != null) {
-                    if (conferenceCallId == null) {
-                        Log.d(this, "unsetting parent: %s", conferenceCallId);
-                        childCall.setParentCall(null);
+            long token = Binder.clearCallingIdentity();
+            try {
+                synchronized (mLock) {
+                    logIncoming("setIsConferenced %s %s", callId, conferenceCallId);
+                    Call childCall = mCallIdMapper.getCall(callId);
+                    if (childCall != null) {
+                        if (conferenceCallId == null) {
+                            Log.d(this, "unsetting parent: %s", conferenceCallId);
+                            childCall.setParentCall(null);
+                        } else {
+                            Call conferenceCall = mCallIdMapper.getCall(conferenceCallId);
+                            childCall.setParentCall(conferenceCall);
+                        }
                     } else {
-                        Call conferenceCall = mCallIdMapper.getCall(conferenceCallId);
-                        childCall.setParentCall(conferenceCall);
+                        // Log.w(this, "setIsConferenced, unknown call id: %s", args.arg1);
                     }
-                } else {
-                    //Log.w(this, "setIsConferenced, unknown call id: %s", args.arg1);
                 }
+            } finally {
+                Binder.restoreCallingIdentity(token);
             }
         }
 
         @Override
         public void addConferenceCall(String callId, ParcelableConference parcelableConference) {
-            synchronized (mLock) {
-                if (mCallIdMapper.getCall(callId) != null) {
-                    Log.w(this, "Attempting to add a conference call using an existing " +
-                            "call id %s", callId);
-                    return;
-                }
+            long token = Binder.clearCallingIdentity();
+            try {
+                synchronized (mLock) {
+                    if (mCallIdMapper.getCall(callId) != null) {
+                        Log.w(this, "Attempting to add a conference call using an existing " +
+                                "call id %s", callId);
+                        return;
+                    }
 
-                // Make sure that there's at least one valid call. For remote connections
-                // we'll get a add conference msg from both the remote connection service
-                // and from the real connection service.
-                boolean hasValidCalls = false;
-                for (String connId : parcelableConference.getConnectionIds()) {
-                    if (mCallIdMapper.getCall(connId) != null) {
-                        hasValidCalls = true;
+                    // Make sure that there's at least one valid call. For remote connections
+                    // we'll get a add conference msg from both the remote connection service
+                    // and from the real connection service.
+                    boolean hasValidCalls = false;
+                    for (String connId : parcelableConference.getConnectionIds()) {
+                        if (mCallIdMapper.getCall(connId) != null) {
+                            hasValidCalls = true;
+                        }
+                    }
+                    // But don't bail out if the connection count is 0, because that is a valid
+                    // IMS conference state.
+                    if (!hasValidCalls && parcelableConference.getConnectionIds().size() > 0) {
+                        Log.d(this, "Attempting to add a conference with no valid calls");
+                        return;
+                    }
+
+                    // need to create a new Call
+                    PhoneAccountHandle phAcc = null;
+                    if (parcelableConference != null &&
+                            parcelableConference.getPhoneAccount() != null) {
+                        phAcc = parcelableConference.getPhoneAccount();
+                    }
+                    Call conferenceCall = mCallsManager.createConferenceCall(
+                            phAcc, parcelableConference);
+                    mCallIdMapper.addCall(conferenceCall, callId);
+                    conferenceCall.setConnectionService(ConnectionServiceWrapper.this);
+
+                    Log.d(this, "adding children to conference %s phAcc %s",
+                            parcelableConference.getConnectionIds(), phAcc);
+                    for (String connId : parcelableConference.getConnectionIds()) {
+                        Call childCall = mCallIdMapper.getCall(connId);
+                        Log.d(this, "found child: %s", connId);
+                        if (childCall != null) {
+                            childCall.setParentCall(conferenceCall);
+                        }
                     }
                 }
-                // But don't bail out if the connection count is 0, because that is a valid
-                // IMS conference state.
-                if (!hasValidCalls && parcelableConference.getConnectionIds().size() > 0) {
-                    Log.d(this, "Attempting to add a conference with no valid calls");
-                    return;
-                }
-
-                // need to create a new Call
-                PhoneAccountHandle phAcc = null;
-                if (parcelableConference != null &&
-                        parcelableConference.getPhoneAccount() != null) {
-                    phAcc = parcelableConference.getPhoneAccount();
-                }
-                Call conferenceCall = mCallsManager.createConferenceCall(
-                        phAcc, parcelableConference);
-                mCallIdMapper.addCall(conferenceCall, callId);
-                conferenceCall.setConnectionService(ConnectionServiceWrapper.this);
-
-                Log.d(this, "adding children to conference %s phAcc %s",
-                        parcelableConference.getConnectionIds(), phAcc);
-                for (String connId : parcelableConference.getConnectionIds()) {
-                    Call childCall = mCallIdMapper.getCall(connId);
-                    Log.d(this, "found child: %s", connId);
-                    if (childCall != null) {
-                        childCall.setParentCall(conferenceCall);
-                    }
-                }
+            } finally {
+                Binder.restoreCallingIdentity(token);
             }
         }
 
         @Override
         public void onPostDialWait(String callId, String remaining) throws RemoteException {
-            synchronized (mLock) {
-                logIncoming("onPostDialWait %s %s", callId, remaining);
-                if (mCallIdMapper.isValidCallId(callId)) {
-                    Call call = mCallIdMapper.getCall(callId);
-                    if (call != null) {
-                        call.onPostDialWait(remaining);
-                    } else {
-                        //Log.w(this, "onPostDialWait, unknown call id: %s", args.arg1);
+            long token = Binder.clearCallingIdentity();
+            try {
+                synchronized (mLock) {
+                    logIncoming("onPostDialWait %s %s", callId, remaining);
+                    if (mCallIdMapper.isValidCallId(callId)) {
+                        Call call = mCallIdMapper.getCall(callId);
+                        if (call != null) {
+                            call.onPostDialWait(remaining);
+                        } else {
+                            // Log.w(this, "onPostDialWait, unknown call id: %s", args.arg1);
+                        }
                     }
                 }
+            } finally {
+                Binder.restoreCallingIdentity(token);
             }
         }
 
         @Override
         public void onPostDialChar(String callId, char nextChar) throws RemoteException {
-            synchronized (mLock) {
-                logIncoming("onPostDialChar %s %s", callId, nextChar);
-                if (mCallIdMapper.isValidCallId(callId)) {
-                    Call call = mCallIdMapper.getCall(callId);
-                    if (call != null) {
-                        call.onPostDialChar(nextChar);
-                    } else {
-                        //Log.w(this, "onPostDialChar, unknown call id: %s", args.arg1);
+            long token = Binder.clearCallingIdentity();
+            try {
+                synchronized (mLock) {
+                    logIncoming("onPostDialChar %s %s", callId, nextChar);
+                    if (mCallIdMapper.isValidCallId(callId)) {
+                        Call call = mCallIdMapper.getCall(callId);
+                        if (call != null) {
+                            call.onPostDialChar(nextChar);
+                        } else {
+                            // Log.w(this, "onPostDialChar, unknown call id: %s", args.arg1);
+                        }
                     }
                 }
+            } finally {
+                Binder.restoreCallingIdentity(token);
             }
         }
 
         @Override
         public void queryRemoteConnectionServices(RemoteServiceCallback callback) {
-            synchronized (mLock) {
-                logIncoming("queryRemoteConnectionServices %s", callback);
-                ConnectionServiceWrapper.this.queryRemoteConnectionServices(callback);
+            long token = Binder.clearCallingIdentity();
+            try {
+                synchronized (mLock) {
+                    logIncoming("queryRemoteConnectionServices %s", callback);
+                    ConnectionServiceWrapper.this.queryRemoteConnectionServices(callback);
+                }
+            } finally {
+                Binder.restoreCallingIdentity(token);
             }
         }
 
         @Override
         public void setVideoState(String callId, int videoState) {
-            synchronized (mLock) {
-                logIncoming("setVideoState %s %d", callId, videoState);
-                if (mCallIdMapper.isValidCallId(callId)) {
-                    Call call = mCallIdMapper.getCall(callId);
-                    if (call != null) {
-                        call.setVideoState(videoState);
+            long token = Binder.clearCallingIdentity();
+            try {
+                synchronized (mLock) {
+                    logIncoming("setVideoState %s %d", callId, videoState);
+                    if (mCallIdMapper.isValidCallId(callId)) {
+                        Call call = mCallIdMapper.getCall(callId);
+                        if (call != null) {
+                            call.setVideoState(videoState);
+                        }
                     }
                 }
+            } finally {
+                Binder.restoreCallingIdentity(token);
             }
         }
 
         @Override
         public void setIsVoipAudioMode(String callId, boolean isVoip) {
-            synchronized (mLock) {
-                logIncoming("setIsVoipAudioMode %s %b", callId, isVoip);
-                if (mCallIdMapper.isValidCallId(callId)) {
-                    Call call = mCallIdMapper.getCall(callId);
-                    if (call != null) {
-                        call.setIsVoipAudioMode(isVoip);
+            long token = Binder.clearCallingIdentity();
+            try {
+                synchronized (mLock) {
+                    logIncoming("setIsVoipAudioMode %s %b", callId, isVoip);
+                    if (mCallIdMapper.isValidCallId(callId)) {
+                        Call call = mCallIdMapper.getCall(callId);
+                        if (call != null) {
+                            call.setIsVoipAudioMode(isVoip);
+                        }
                     }
                 }
+            } finally {
+                Binder.restoreCallingIdentity(token);
             }
         }
 
         @Override
         public void setStatusHints(String callId, StatusHints statusHints) {
-            synchronized (mLock) {
-                logIncoming("setStatusHints %s %s", callId, statusHints);
-                if (mCallIdMapper.isValidCallId(callId)) {
-                    Call call = mCallIdMapper.getCall(callId);
-                    if (call != null) {
-                        call.setStatusHints(statusHints);
+            long token = Binder.clearCallingIdentity();
+            try {
+                synchronized (mLock) {
+                    logIncoming("setStatusHints %s %s", callId, statusHints);
+                    if (mCallIdMapper.isValidCallId(callId)) {
+                        Call call = mCallIdMapper.getCall(callId);
+                        if (call != null) {
+                            call.setStatusHints(statusHints);
+                        }
                     }
                 }
+            } finally {
+                Binder.restoreCallingIdentity(token);
             }
         }
 
         @Override
         public void setAddress(String callId, Uri address, int presentation) {
-            synchronized (mLock) {
-                logIncoming("setAddress %s %s %d", callId, address, presentation);
-                if (mCallIdMapper.isValidCallId(callId)) {
-                    Call call = mCallIdMapper.getCall(callId);
-                    if (call != null) {
-                        call.setHandle(address, presentation);
+            long token = Binder.clearCallingIdentity();
+            try {
+                synchronized (mLock) {
+                    logIncoming("setAddress %s %s %d", callId, address, presentation);
+                    if (mCallIdMapper.isValidCallId(callId)) {
+                        Call call = mCallIdMapper.getCall(callId);
+                        if (call != null) {
+                            call.setHandle(address, presentation);
+                        }
                     }
                 }
+            } finally {
+                Binder.restoreCallingIdentity(token);
             }
         }
 
         @Override
         public void setCallerDisplayName(
                 String callId, String callerDisplayName, int presentation) {
-            synchronized (mLock) {
-                logIncoming("setCallerDisplayName %s %s %d", callId, callerDisplayName, presentation);
-                if (mCallIdMapper.isValidCallId(callId)) {
-                    Call call = mCallIdMapper.getCall(callId);
-                    if (call != null) {
-                        call.setCallerDisplayName(callerDisplayName, presentation);
+            long token = Binder.clearCallingIdentity();
+            try {
+                synchronized (mLock) {
+                    logIncoming("setCallerDisplayName %s %s %d", callId, callerDisplayName,
+                            presentation);
+                    if (mCallIdMapper.isValidCallId(callId)) {
+                        Call call = mCallIdMapper.getCall(callId);
+                        if (call != null) {
+                            call.setCallerDisplayName(callerDisplayName, presentation);
+                        }
                     }
                 }
+            } finally {
+                Binder.restoreCallingIdentity(token);
             }
         }
 
         @Override
         public void setConferenceableConnections(
                 String callId, List<String> conferenceableCallIds) {
-            synchronized (mLock) {
-                logIncoming("setConferenceableConnections %s %s", callId, conferenceableCallIds);
-                if (mCallIdMapper.isValidCallId(callId) ||
-                        mCallIdMapper.isValidConferenceId(callId)) {
-                    Call call = mCallIdMapper.getCall(callId);
-                    if (call != null ){
-                        List<Call> conferenceableCalls =
-                                new ArrayList<>(conferenceableCallIds.size());
-                        for (String otherId : conferenceableCallIds) {
-                            Call otherCall = mCallIdMapper.getCall(otherId);
-                            if (otherCall != null && otherCall != call) {
-                                conferenceableCalls.add(otherCall);
+            long token = Binder.clearCallingIdentity();
+            try {
+                synchronized (mLock) {
+                    logIncoming("setConferenceableConnections %s %s", callId,
+                            conferenceableCallIds);
+                    if (mCallIdMapper.isValidCallId(callId) ||
+                            mCallIdMapper.isValidConferenceId(callId)) {
+                        Call call = mCallIdMapper.getCall(callId);
+                        if (call != null) {
+                            List<Call> conferenceableCalls =
+                                    new ArrayList<>(conferenceableCallIds.size());
+                            for (String otherId : conferenceableCallIds) {
+                                Call otherCall = mCallIdMapper.getCall(otherId);
+                                if (otherCall != null && otherCall != call) {
+                                    conferenceableCalls.add(otherCall);
+                                }
                             }
+                            call.setConferenceableCalls(conferenceableCalls);
                         }
-                        call.setConferenceableCalls(conferenceableCalls);
                     }
                 }
+            } finally {
+                Binder.restoreCallingIdentity(token);
             }
         }
 
         @Override
         public void addExistingConnection(String callId, ParcelableConnection connection) {
-            synchronized (mLock) {
-                logIncoming("addExistingConnection  %s %s", callId, connection);
-                Call existingCall = mCallsManager
-                        .createCallForExistingConnection(callId, connection);
-                mCallIdMapper.addCall(existingCall, callId);
-                existingCall.setConnectionService(ConnectionServiceWrapper.this);
+            long token = Binder.clearCallingIdentity();
+            try {
+                synchronized (mLock) {
+                    logIncoming("addExistingConnection  %s %s", callId, connection);
+                    Call existingCall = mCallsManager
+                            .createCallForExistingConnection(callId, connection);
+                    mCallIdMapper.addCall(existingCall, callId);
+                    existingCall.setConnectionService(ConnectionServiceWrapper.this);
+                }
+            } finally {
+                Binder.restoreCallingIdentity(token);
             }
         }
     }
@@ -428,7 +541,7 @@ final class ConnectionServiceWrapper extends ServiceBinder {
     private final CallIdMapper mCallIdMapper = new CallIdMapper("ConnectionService");
     private final Map<String, CreateConnectionResponse> mPendingResponses = new HashMap<>();
 
-    private Binder mBinder = new Binder();
+    private Binder2 mBinder = new Binder2();
     private IConnectionService mServiceInterface;
     private final ConnectionServiceRepository mConnectionServiceRepository;
     private final PhoneAccountRegistrar mPhoneAccountRegistrar;
