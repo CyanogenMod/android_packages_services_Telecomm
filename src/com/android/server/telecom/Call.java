@@ -1248,18 +1248,23 @@ final public class Call implements CreateConnectionResponse {
      * Looks up contact information based on the current handle.
      */
     private void startCallerInfoLookup() {
-        String number = mHandle == null ? null : mHandle.getSchemeSpecificPart();
+        final String number = mHandle == null ? null : mHandle.getSchemeSpecificPart();
 
         mQueryToken++;  // Updated so that previous queries can no longer set the information.
         mCallerInfo = null;
         if (!TextUtils.isEmpty(number)) {
             Log.v(this, "Looking up information for: %s.", Log.piiHandle(number));
-            CallerInfoAsyncQuery.startQuery(
-                    mQueryToken,
-                    mContext,
-                    number,
-                    sCallerInfoQueryListener,
-                    this);
+            mHandler.post(new Runnable() {
+                @Override
+                public void run() {
+                    CallerInfoAsyncQuery.startQuery(
+                            mQueryToken,
+                            mContext,
+                            number,
+                            sCallerInfoQueryListener,
+                            Call.this);
+                }
+            });
         }
     }
 
