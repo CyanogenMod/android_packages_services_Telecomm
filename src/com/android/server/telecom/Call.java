@@ -22,6 +22,7 @@ import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.os.Trace;
 import android.provider.ContactsContract.Contacts;
 import android.telecom.CallState;
@@ -175,7 +176,9 @@ final public class Call implements CreateConnectionResponse {
     private final Runnable mDirectToVoicemailRunnable = new Runnable() {
         @Override
         public void run() {
-            processDirectToVoicemail();
+            synchronized (mLock) {
+                processDirectToVoicemail();
+            }
         }
     };
 
@@ -209,7 +212,7 @@ final public class Call implements CreateConnectionResponse {
 
     private PhoneAccountHandle mTargetPhoneAccountHandle;
 
-    private final Handler mHandler = new Handler();
+    private final Handler mHandler = new Handler(Looper.getMainLooper());
 
     private final List<Call> mConferenceableCalls = new ArrayList<>();
 
@@ -303,6 +306,7 @@ final public class Call implements CreateConnectionResponse {
     private final ContactsAsyncHelper mContactsAsyncHelper;
     private final Context mContext;
     private final CallsManager mCallsManager;
+    private final TelecomSystem.SyncRoot mLock;
 
     private boolean mWasConferencePreviouslyMerged = false;
 
@@ -331,6 +335,7 @@ final public class Call implements CreateConnectionResponse {
     public Call(
             Context context,
             CallsManager callsManager,
+            TelecomSystem.SyncRoot lock,
             ConnectionServiceRepository repository,
             ContactsAsyncHelper contactsAsyncHelper,
             Uri handle,
@@ -342,6 +347,7 @@ final public class Call implements CreateConnectionResponse {
         mState = isConference ? CallState.ACTIVE : CallState.NEW;
         mContext = context;
         mCallsManager = callsManager;
+        mLock = lock;
         mRepository = repository;
         mContactsAsyncHelper = contactsAsyncHelper;
         setHandle(handle);
@@ -372,6 +378,7 @@ final public class Call implements CreateConnectionResponse {
     Call(
             Context context,
             CallsManager callsManager,
+            TelecomSystem.SyncRoot lock,
             ConnectionServiceRepository repository,
             ContactsAsyncHelper contactsAsyncHelper,
             Uri handle,
@@ -381,7 +388,7 @@ final public class Call implements CreateConnectionResponse {
             boolean isIncoming,
             boolean isConference,
             long connectTimeMillis) {
-        this(context, callsManager, repository, contactsAsyncHelper, handle, gatewayInfo,
+        this(context, callsManager, lock, repository, contactsAsyncHelper, handle, gatewayInfo,
                 connectionManagerPhoneAccountHandle, targetPhoneAccountHandle, isIncoming,
                 isConference);
 

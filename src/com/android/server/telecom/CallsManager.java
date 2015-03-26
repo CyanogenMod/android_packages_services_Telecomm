@@ -20,6 +20,7 @@ import android.content.Context;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.os.Trace;
 import android.provider.CallLog.Calls;
 import android.telecom.AudioState;
@@ -127,7 +128,7 @@ public final class CallsManager extends Call.ListenerBase {
     private final Set<Call> mLocallyDisconnectingCalls = new HashSet<>();
     private final Set<Call> mPendingCallsToDisconnect = new HashSet<>();
     /* Handler tied to thread in which CallManager was initialized. */
-    private final Handler mHandler = new Handler();
+    private final Handler mHandler = new Handler(Looper.getMainLooper());
 
     private boolean mCanAddCall = true;
 
@@ -429,6 +430,7 @@ public final class CallsManager extends Call.ListenerBase {
         Call call = new Call(
                 mContext,
                 this,
+                mLock,
                 mConnectionServiceRepository,
                 mContactsAsyncHelper,
                 handle,
@@ -450,6 +452,7 @@ public final class CallsManager extends Call.ListenerBase {
         Call call = new Call(
                 mContext,
                 this,
+                mLock,
                 mConnectionServiceRepository,
                 mContactsAsyncHelper,
                 handle,
@@ -488,6 +491,7 @@ public final class CallsManager extends Call.ListenerBase {
         return new Call(
                 mContext,
                 this,
+                mLock,
                 mConnectionServiceRepository,
                 mContactsAsyncHelper,
                 handle,
@@ -1071,6 +1075,7 @@ public final class CallsManager extends Call.ListenerBase {
         Call call = new Call(
                 mContext,
                 this,
+                mLock,
                 mConnectionServiceRepository,
                 mContactsAsyncHelper,
                 null /* handle */,
@@ -1419,6 +1424,7 @@ public final class CallsManager extends Call.ListenerBase {
         Call call = new Call(
                 mContext,
                 this,
+                mLock,
                 mConnectionServiceRepository,
                 mContactsAsyncHelper,
                 connection.getHandle() /* handle */,
