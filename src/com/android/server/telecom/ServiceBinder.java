@@ -56,7 +56,7 @@ abstract class ServiceBinder {
     /**
      * Helper class to perform on-demand binding.
      */
-    final class Binder {
+    final class Binder2 {
         /**
          * Performs an asynchronous bind to the service (only if not already bound) and executes the
          * specified callback.
