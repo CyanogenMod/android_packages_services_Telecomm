@@ -16,12 +16,16 @@
 
 package com.android.server.telecom.testapps;
 
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
+import android.support.v4.content.LocalBroadcastManager;
 import android.telecom.AudioState;
 import android.telecom.Conference;
 import android.telecom.Connection;
@@ -131,6 +135,15 @@ public class TestConnectionService extends ConnectionService {
         /** Used to cleanup camera and media when done with connection. */
         private TestVideoProvider mTestVideoCallProvider;
 
+        private BroadcastReceiver mHangupReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                setDisconnected(new DisconnectCause(DisconnectCause.MISSED));
+                destroyCall(TestConnection.this);
+                destroy();
+            }
+        };
+
         TestConnection(boolean isIncoming) {
             mIsIncoming = isIncoming;
             // Assume all calls are video capable.
@@ -140,6 +153,9 @@ public class TestConnectionService extends ConnectionService {
             capabilities |= CAPABILITY_SUPPORT_HOLD;
             capabilities |= CAPABILITY_HOLD;
             setConnectionCapabilities(capabilities);
+
+            LocalBroadcastManager.getInstance(getApplicationContext()).registerReceiver(
+                    mHangupReceiver, new IntentFilter(TestCallActivity.ACTION_HANGUP_CALLS));
         }
 
         void startOutgoing() {
@@ -214,6 +230,11 @@ public class TestConnectionService extends ConnectionService {
 
         public void setTestVideoCallProvider(TestVideoProvider testVideoCallProvider) {
             mTestVideoCallProvider = testVideoCallProvider;
+        }
+
+        public void cleanup() {
+            LocalBroadcastManager.getInstance(getApplicationContext()).unregisterReceiver(
+                    mHangupReceiver);
         }
 
         /**
@@ -383,6 +404,7 @@ public class TestConnectionService extends ConnectionService {
     }
 
     private void destroyCall(TestConnection connection) {
+        connection.cleanup();
         mCalls.remove(connection);
 
         // Ensure any playing media and camera resources are released.

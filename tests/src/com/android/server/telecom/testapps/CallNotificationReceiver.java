@@ -22,6 +22,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
+import android.support.v4.content.LocalBroadcastManager;
 import android.telecom.CallState;
 import android.telecom.PhoneAccountHandle;
 import android.telecom.TelecomManager;
@@ -104,5 +105,11 @@ public class CallNotificationReceiver extends BroadcastReceiver {
         }
 
         TelecomManager.from(context).addNewUnknownCall(phoneAccount, extras);
+    }
+
+    public static void hangupCalls(Context context) {
+        Log.i(TAG, "Hanging up all calls");
+        LocalBroadcastManager.getInstance(context).sendBroadcast(
+                new Intent(TestCallActivity.ACTION_HANGUP_CALLS));
     }
 }

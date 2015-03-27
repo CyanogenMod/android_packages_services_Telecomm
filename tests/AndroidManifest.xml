@@ -75,6 +75,10 @@
                 <data android:scheme="tel" />
                 <data android:scheme="sip" />
             </intent-filter>
+            <intent-filter>
+                <action android:name="android.telecom.testapps.ACTION_HANGUP_CALLS" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
         </activity>
 
         <receiver android:name="com.android.server.telecom.testapps.CallNotificationReceiver"
