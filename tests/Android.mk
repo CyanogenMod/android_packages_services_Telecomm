@@ -39,6 +39,7 @@ LOCAL_AAPT_FLAGS := \
     --extra-packages com.android.server.telecom
 
 LOCAL_PACKAGE_NAME := TelecomUnitTests
+
 LOCAL_CERTIFICATE := platform
 
 LOCAL_MODULE_TAGS := tests

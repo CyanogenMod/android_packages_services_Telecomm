@@ -42,6 +42,12 @@ public class TestCallActivity extends Activity {
     public static final String ACTION_NEW_UNKNOWN_CALL =
             "android.telecom.testapps.ACTION_NEW_UNKNOWN_CALL";
 
+    /*
+     * Hang up any test incoming calls, to simulate the user missing a call.
+     */
+    public static final String ACTION_HANGUP_CALLS =
+            "android.telecom.testapps.ACTION_HANGUP_CALLS";
+
     @Override
     protected void onCreate(Bundle icicle) {
         super.onCreate(icicle);
@@ -52,6 +58,8 @@ public class TestCallActivity extends Activity {
             CallNotificationReceiver.sendIncomingCallIntent(this, data, false);
         } else if (ACTION_NEW_UNKNOWN_CALL.equals(action) && data != null) {
             CallNotificationReceiver.addNewUnknownCall(this, data, intent.getExtras());
+        } else if (ACTION_HANGUP_CALLS.equals(action)) {
+            CallNotificationReceiver.hangupCalls(this);
         } else {
             CallServiceNotifier.getInstance().updateNotification(this);
         }
