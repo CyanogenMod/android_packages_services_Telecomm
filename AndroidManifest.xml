@@ -135,6 +135,7 @@
             </intent-filter>
             <intent-filter android:priority="1000">
                 <action android:name="android.intent.action.CALL_PRIVILEGED" />
+                <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="vnd.android.cursor.item/phone" />
                 <data android:mimeType="vnd.android.cursor.item/phone_v2" />
                 <data android:mimeType="vnd.android.cursor.item/person" />
