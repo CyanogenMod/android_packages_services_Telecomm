@@ -28,6 +28,7 @@ import android.content.IntentFilter;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 import android.os.Message;
 import android.os.RemoteException;
 import android.telecom.CallState;
@@ -56,7 +57,8 @@ public final class BluetoothPhoneService extends Service {
      * Request object for performing synchronous requests to the main thread.
      */
     private static class MainThreadRequest {
-        Object result;
+        private static final Object RESULT_NOT_SET = new Object();
+        Object result = RESULT_NOT_SET;
         int param;
 
         MainThreadRequest(int param) {
@@ -569,14 +571,19 @@ public final class BluetoothPhoneService extends Service {
     }
 
     private <T> T sendSynchronousRequest(int message, int param) {
+        if (Looper.myLooper() == mHandler.getLooper()) {
+            Log.w(TAG, "This method will deadlock if called from the main thread.");
+        }
+
         MainThreadRequest request = new MainThreadRequest(param);
         mHandler.obtainMessage(message, request).sendToTarget();
         synchronized (request) {
-            while (request.result == null) {
+            while (request.result == MainThreadRequest.RESULT_NOT_SET) {
                 try {
                     request.wait();
                 } catch (InterruptedException e) {
                     // Do nothing, go back and wait until the request is complete.
+                    Log.e(TAG, e, "InterruptedException");
                 }
             }
         }
@@ -723,6 +730,7 @@ public final class BluetoothPhoneService extends Service {
         int numActiveCalls = activeCall == null ? 0 : 1;
         int numHeldCalls = callsManager.getNumHeldCalls();
         boolean callsSwitched = (numHeldCalls == 2);
+
         // For conference calls which support swapping the active call within the conference
         // (namely CDMA calls) we need to expose that as a held call in order for the BT device
         // to show "swap" and "merge" functionality.

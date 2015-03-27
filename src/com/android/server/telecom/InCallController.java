@@ -28,6 +28,7 @@ import android.content.res.Resources;
 import android.net.Uri;
 import android.os.IBinder;
 import android.os.RemoteException;
+import android.os.Trace;
 import android.os.UserHandle;
 import android.telecom.AudioState;
 import android.telecom.CallProperties;
@@ -42,9 +43,8 @@ import android.util.ArrayMap;
 import com.android.internal.telecom.IInCallService;
 import com.android.internal.util.IndentingPrintWriter;
 
-import com.google.common.collect.ImmutableCollection;
-
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -364,7 +364,7 @@ public final class InCallController extends CallsManagerListenerBase {
      */
     private void onConnected(ComponentName componentName, IBinder service) {
         ThreadUtil.checkOnMainThread();
-
+        Trace.beginSection("onConnected: " + componentName);
         Log.i(this, "onConnected to %s", componentName);
 
         IInCallService inCallService = IInCallService.Stub.asInterface(service);
@@ -375,11 +375,12 @@ public final class InCallController extends CallsManagerListenerBase {
             mInCallServices.put(componentName, inCallService);
         } catch (RemoteException e) {
             Log.e(this, e, "Failed to set the in-call adapter.");
+            Trace.endSection();
             return;
         }
 
         // Upon successful connection, send the state of the world to the service.
-        ImmutableCollection<Call> calls = CallsManager.getInstance().getCalls();
+        Collection<Call> calls = CallsManager.getInstance().getCalls();
         if (!calls.isEmpty()) {
             Log.i(this, "Adding %s calls to InCallService after onConnected: %s", calls.size(),
                     componentName);
@@ -395,9 +396,11 @@ public final class InCallController extends CallsManagerListenerBase {
                 }
             }
             onAudioStateChanged(null, CallsManager.getInstance().getAudioState());
+            onCanAddCallChanged(CallsManager.getInstance().canAddCall());
         } else {
             unbind();
         }
+        Trace.endSection();
     }
 
     /**
@@ -451,7 +454,6 @@ public final class InCallController extends CallsManagerListenerBase {
                 IInCallService inCallService = entry.getValue();
                 ParcelableCall parcelableCall = toParcelableCall(call,
                         componentName.equals(mInCallComponentName) /* includeVideoProvider */);
-
                 Log.v(this, "updateCall %s ==> %s", call, parcelableCall);
                 try {
                     inCallService.updateCall(parcelableCall);
@@ -472,6 +474,7 @@ public final class InCallController extends CallsManagerListenerBase {
     private ParcelableCall toParcelableCall(Call call, boolean includeVideoProvider) {
         String callId = mCallIdMapper.getCallId(call);
 
+        int state = call.getState();
         int capabilities = convertConnectionToCallCapabilities(call.getConnectionCapabilities());
 
         // If this is a single-SIM device, the "default SIM" will always be the only SIM.
@@ -491,7 +494,6 @@ public final class InCallController extends CallsManagerListenerBase {
                     capabilities, android.telecom.Call.Details.CAPABILITY_MUTE);
         }
 
-        int state = call.getState();
         if (state == CallState.DIALING) {
             capabilities = removeCapability(
                     capabilities, android.telecom.Call.Details.CAPABILITY_SUPPORTS_VT_LOCAL);
@@ -660,7 +662,6 @@ public final class InCallController extends CallsManagerListenerBase {
      */
     private static int removeCapability(int capabilities, int capability) {
         return capabilities & ~capability;
-
     }
 
     /**

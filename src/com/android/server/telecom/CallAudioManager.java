@@ -100,9 +100,6 @@ final class CallAudioManager extends CallsManagerListenerBase
     public void onIncomingCallAnswered(Call call) {
         int route = mAudioState.getRoute();
 
-        // BT stack will connect audio upon receiving active call state.
-        // We unmute the audio for the new incoming call.
-
         // We do two things:
         // (1) If this is the first call, then we can to turn on bluetooth if available.
         // (2) Unmute the audio for the new incoming call.
@@ -388,9 +385,17 @@ final class CallAudioManager extends CallsManagerListenerBase
         if (mIsRinging && !mSpeedUpAudioForMtCall) {
             requestAudioFocusAndSetMode(AudioManager.STREAM_RING, AudioManager.MODE_RINGTONE);
         } else {
-            Call call = getForegroundCall();
-            if (call != null) {
-                int mode = call.getIsVoipAudioMode() ?
+            Call foregroundCall = getForegroundCall();
+            Call waitingForAccountSelectionCall =
+                    CallsManager.getInstance().getFirstCallWithState(CallState.PRE_DIAL_WAIT);
+            if (foregroundCall != null && waitingForAccountSelectionCall == null) {
+                // In the case where there is a call that is waiting for account selection,
+                // this will fall back to abandonAudioFocus() below, which temporarily exits
+                // the in-call audio mode. This is to allow TalkBack to speak the "Call with"
+                // dialog information at media volume as opposed to through the earpiece.
+                // Once exiting the "Call with" dialog, the audio focus will return to an in-call
+                // audio mode when this method (updateAudioStreamAndMode) is called again.
+                int mode = foregroundCall.getIsVoipAudioMode() ?
                         AudioManager.MODE_IN_COMMUNICATION : AudioManager.MODE_IN_CALL;
                 requestAudioFocusAndSetMode(AudioManager.STREAM_VOICE_CALL, mode);
             } else if (mIsTonePlaying) {
@@ -412,7 +417,8 @@ final class CallAudioManager extends CallsManagerListenerBase
     }
 
     private void requestAudioFocusAndSetMode(int stream, int mode) {
-        Log.i(this, "requestAudioFocusAndSetMode, stream: %d -> %d", mAudioFocusStreamType, stream);
+        Log.i(this, "requestAudioFocusAndSetMode, stream: %d -> %d, mode: %d",
+                mAudioFocusStreamType, stream, mode);
         Preconditions.checkState(stream != STREAM_NONE);
 
         // Even if we already have focus, if the stream is different we update audio manager to give
@@ -543,6 +549,7 @@ final class CallAudioManager extends CallsManagerListenerBase
         if (call != null && call.getState() == CallState.RINGING && !mSpeedUpAudioForMtCall ) {
             call = null;
         }
+
         return call;
     }
 

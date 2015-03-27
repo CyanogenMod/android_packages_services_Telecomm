@@ -53,11 +53,11 @@
          can check for incompatible APIs. -->
     <uses-sdk android:minSdkVersion="19" />
 
-    <application android:persistent="true"
-            android:label="@string/telecommAppLabel"
+    <application android:label="@string/telecommAppLabel"
             android:icon="@mipmap/ic_launcher_phone"
             android:allowBackup="false"
-            android:supportsRtl="true">
+            android:supportsRtl="true"
+            android:process="system">
 
         <!-- CALL vs CALL_PRIVILEGED vs CALL_EMERGENCY
              We have three different intents through which a call can be initiated each with its
@@ -200,6 +200,7 @@
         <activity android:name=".RespondViaSmsSettings$Settings"
                   android:label="@string/respond_via_sms_setting_title"
                   android:configChanges="orientation|screenSize|keyboardHidden"
+                  android:theme="@style/Theme.Telecom.DialerSettings"
                   android:process=":ui">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -230,6 +231,14 @@
         <activity android:name="AccountSelection"
             android:theme="@style/Theme.Telecomm.Transparent"
             android:excludeFromRecents="true"/>
+
+        <service android:name=".TelecomService"
+                android:singleUser="true"
+                android:process="system">
+            <intent-filter>
+                <android android:name="android.telecom.ITelecomService" />
+            </intent-filter>
+        </service>
 
         <service android:name=".TelecomService"
                 android:singleUser="true"

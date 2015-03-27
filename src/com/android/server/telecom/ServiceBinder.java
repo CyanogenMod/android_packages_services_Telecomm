@@ -24,11 +24,10 @@ import android.os.IBinder;
 import android.os.IInterface;
 import android.os.Process;
 import android.os.UserHandle;
+import android.text.TextUtils;
+import android.util.ArraySet;
 
 import com.android.internal.util.Preconditions;
-import com.google.common.base.Strings;
-
-import com.google.common.collect.Sets;
 
 import java.util.Collections;
 import java.util.Set;
@@ -146,7 +145,7 @@ abstract class ServiceBinder<ServiceInterface extends IInterface> {
     private final ComponentName mComponentName;
 
     /** The set of callbacks waiting for notification of the binding's success or failure. */
-    private final Set<BindCallback> mCallbacks = Sets.newHashSet();
+    private final Set<BindCallback> mCallbacks = new ArraySet<>();
 
     /** Used to bind and unbind from the service. */
     private ServiceConnection mServiceConnection;
@@ -184,7 +183,7 @@ abstract class ServiceBinder<ServiceInterface extends IInterface> {
      */
     protected ServiceBinder(String serviceAction, ComponentName componentName, Context context,
             UserHandle userHandle) {
-        Preconditions.checkState(!Strings.isNullOrEmpty(serviceAction));
+        Preconditions.checkState(!TextUtils.isEmpty(serviceAction));
         Preconditions.checkNotNull(componentName);
 
         mContext = context;

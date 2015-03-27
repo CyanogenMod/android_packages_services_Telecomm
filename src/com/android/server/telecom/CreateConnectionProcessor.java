@@ -240,6 +240,10 @@ final class CreateConnectionProcessor {
     }
 
     private boolean shouldSetConnectionManager() {
+        if (!mShouldUseConnectionManager) {
+            return false;
+        }
+
         if (mAttemptRecords.size() == 0) {
             return false;
         }
@@ -373,12 +377,44 @@ final class CreateConnectionProcessor {
             }
         }
 
+        private boolean shouldFallbackToNoConnectionManager(DisconnectCause cause) {
+            PhoneAccountHandle handle = mCall.getConnectionManagerPhoneAccount();
+            if (handle == null || !handle.equals(mPhoneAccountRegistrar.getSimCallManager())) {
+                return false;
+            }
+
+            ConnectionServiceWrapper connectionManager = mCall.getConnectionService();
+            if (connectionManager == null) {
+                return false;
+            }
+
+            if (cause.getCode() == DisconnectCause.CONNECTION_MANAGER_NOT_SUPPORTED) {
+                Log.d(CreateConnectionProcessor.this, "Connection manager declined to handle the "
+                        + "call, falling back to not using a connection manager");
+                return true;
+            }
+
+            if (!connectionManager.isServiceValid("createConnection")) {
+                Log.d(CreateConnectionProcessor.this, "Connection manager unbound while trying "
+                        + "create a connection, falling back to not using a connection manager");
+                return true;
+            }
+
+            return false;
+        }
+
         @Override
         public void handleCreateConnectionFailure(DisconnectCause errorDisconnectCause) {
             // Failure of some sort; record the reasons for failure and try again if possible
             Log.d(CreateConnectionProcessor.this, "Connection failed: (%s)", errorDisconnectCause);
             mLastErrorDisconnectCause = errorDisconnectCause;
-            attemptNextPhoneAccount();
+            if (shouldFallbackToNoConnectionManager(errorDisconnectCause)) {
+                mShouldUseConnectionManager = false;
+                // Restart from the beginning.
+                process();
+            } else {
+                attemptNextPhoneAccount();
+            }
         }
     }
 }

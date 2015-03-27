@@ -25,6 +25,7 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.RemoteException;
+import android.os.Trace;
 import android.os.UserHandle;
 import android.os.UserManager;
 import android.provider.Settings;
@@ -208,8 +209,8 @@ public class CallActivity extends Activity {
     /**
      * Trampolines the intent to the broadcast receiver that runs only as the primary user.
      */
-    private boolean sendBroadcastToReceiver(Intent intent, boolean incoming) {
-        intent.putExtra(CallReceiver.KEY_IS_INCOMING_CALL, incoming);
+    private boolean sendBroadcastToReceiver(Intent intent, boolean isIncoming) {
+        intent.putExtra(CallReceiver.KEY_IS_INCOMING_CALL, isIncoming);
         intent.setFlags(Intent.FLAG_RECEIVER_FOREGROUND);
         intent.setClass(this, CallReceiver.class);
         Log.d(this, "Sending broadcast as user to CallReceiver");

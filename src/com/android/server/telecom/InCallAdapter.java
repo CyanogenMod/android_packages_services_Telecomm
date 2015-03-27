@@ -104,8 +104,6 @@ class InCallAdapter extends IInCallAdapter.Stub {
                     break;
                 case MSG_POST_DIAL_CONTINUE:
                     call = mCallIdMapper.getCall(msg.obj);
-                    mCallsManager.postDialContinue(call, msg.arg1 == 1);
-                    call = mCallIdMapper.getCall(msg.obj);
                     if (call != null) {
                         mCallsManager.postDialContinue(call, msg.arg1 == 1);
                     } else {
@@ -141,7 +139,8 @@ class InCallAdapter extends IInCallAdapter.Stub {
                     try {
                         call = mCallIdMapper.getCall(args.arg1);
                         if (call != null) {
-                            mCallsManager.phoneAccountSelected(call, (PhoneAccountHandle) args.arg2);
+                            mCallsManager.phoneAccountSelected(call,
+                                    (PhoneAccountHandle) args.arg2, args.argi1 == 1);
                         } else {
                             Log.w(this, "phoneAccountSelected, unknown call id: %s", args.arg1);
                         }
