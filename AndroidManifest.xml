@@ -190,7 +190,7 @@
         <receiver android:name=".components.TelecomBroadcastReceiver" android:exported="false"
                 android:process="system">
             <intent-filter>
-                <action android:name="com.android.server.telecom.ACTION_CALL_BACK_FROM_NOTIFICATION" />
+                <action android:name="com.android.server.telecom.ACTION_CLEAR_MISSED_CALLS" />
                 <action android:name="com.android.server.telecom.ACTION_CALL_BACK_FROM_NOTIFICATION" />
                 <action android:name="com.android.server.telecom.ACTION_SEND_SMS_FROM_NOTIFICATION" />
             </intent-filter>
@@ -240,7 +240,7 @@
                 android:singleUser="true"
                 android:process="system">
             <intent-filter>
-                <android android:name="android.telecom.ITelecomService" />
+                <action android:name="android.telecom.ITelecomService" />
             </intent-filter>
         </service>
 

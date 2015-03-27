@@ -26,6 +26,7 @@ import com.android.server.telecom.MissedCallNotifier;
 import com.android.server.telecom.R;
 import com.android.server.telecom.TelecomBroadcastIntentProcessor;
 import com.android.server.telecom.TelecomSystem;
+import com.android.server.telecom.components.TelecomBroadcastReceiver;
 
 import android.app.Notification;
 import android.app.NotificationManager;
@@ -106,6 +107,7 @@ public class MissedCallNotifierImpl extends CallsManagerListenerBase implements 
     }
 
     /** Clears missed call notification and marks the call log's missed calls as read. */
+    @Override
     public void clearMissedCalls() {
         AsyncTask.execute(new Runnable() {
             @Override
@@ -131,6 +133,7 @@ public class MissedCallNotifierImpl extends CallsManagerListenerBase implements 
      *
      * @param call The missed call.
      */
+    @Override
     public void showMissedCallNotification(Call call) {
         mMissedCallCount++;
 
@@ -290,7 +293,7 @@ public class MissedCallNotifierImpl extends CallsManagerListenerBase implements 
      * @param data The intent data.
      */
     private PendingIntent createTelecomPendingIntent(String action, Uri data) {
-        Intent intent = new Intent(action, data, mContext, TelecomBroadcastIntentProcessor.class);
+        Intent intent = new Intent(action, data, mContext, TelecomBroadcastReceiver.class);
         return PendingIntent.getBroadcast(mContext, 0, intent, 0);
     }
 
