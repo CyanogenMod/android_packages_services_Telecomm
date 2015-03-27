@@ -268,7 +268,7 @@ final class CallLogManager extends CallsManagerListenerBase {
      * @return The number presentation constant to insert into the call logs.
      */
     private int getPresentation(Call call) {
-        return PhoneConstants.PRESENTATION_ALLOWED;
+        return call.getHandlePresentation();
     }
 
     /**
