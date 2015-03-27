@@ -19,12 +19,14 @@ include $(CLEAR_VARS)
 
 LOCAL_STATIC_JAVA_LIBRARIES := \
         android-ex-camera2 \
+        android-support-v4 \
         guava \
         mockito-target \
 
 LOCAL_SRC_FILES := $(call all-java-files-under, src)
 
 LOCAL_JAVA_LIBRARIES := android.test.runner
+
 LOCAL_PACKAGE_NAME := TelecomTests
 LOCAL_CERTIFICATE := platform
 
