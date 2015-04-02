@@ -364,7 +364,7 @@ final class CallAudioManager extends CallsManagerListenerBase
             requestAudioFocusAndSetMode(AudioManager.STREAM_RING, AudioManager.MODE_RINGTONE);
         } else {
             Call call = getForegroundCall();
-            if (call != null) {
+            if (call != null && call.getState() != CallState.DISCONNECTED) {
                 int mode = call.getIsVoipAudioMode() ?
                         AudioManager.MODE_IN_COMMUNICATION : AudioManager.MODE_IN_CALL;
                 requestAudioFocusAndSetMode(AudioManager.STREAM_VOICE_CALL, mode);
