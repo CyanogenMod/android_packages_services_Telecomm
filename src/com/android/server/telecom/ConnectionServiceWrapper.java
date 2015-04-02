@@ -128,7 +128,8 @@ final class ConnectionServiceWrapper extends ServiceBinder {
             try {
                 synchronized (mLock) {
                     logIncoming("setVideoProvider %s", callId);
-                    if (mCallIdMapper.isValidCallId(callId)) {
+                    if (mCallIdMapper.isValidCallId(callId)
+                            || mCallIdMapper.isValidConferenceId(callId)) {
                         Call call = mCallIdMapper.getCall(callId);
                         if (call != null) {
                             call.setVideoProvider(videoProvider);
@@ -405,7 +406,8 @@ final class ConnectionServiceWrapper extends ServiceBinder {
             try {
                 synchronized (mLock) {
                     logIncoming("setVideoState %s %d", callId, videoState);
-                    if (mCallIdMapper.isValidCallId(callId)) {
+                    if (mCallIdMapper.isValidCallId(callId)
+                            || mCallIdMapper.isValidConferenceId(callId)) {
                         Call call = mCallIdMapper.getCall(callId);
                         if (call != null) {
                             call.setVideoState(videoState);
@@ -530,6 +532,25 @@ final class ConnectionServiceWrapper extends ServiceBinder {
                             .createCallForExistingConnection(callId, connection);
                     mCallIdMapper.addCall(existingCall, callId);
                     existingCall.setConnectionService(ConnectionServiceWrapper.this);
+                }
+            } finally {
+                Binder.restoreCallingIdentity(token);
+            }
+        }
+
+        @Override
+        public void setCallSubstate(String callId, int callSubstate) {
+            long token = Binder.clearCallingIdentity();
+            try {
+                synchronized (mLock) {
+                    logIncoming("setCallSubstate %s %d", callId, callSubstate);
+                    if (mCallIdMapper.isValidCallId(callId)) {
+                        Call call = mCallIdMapper.getCall(callId);
+
+                        if (call != null) {
+                            call.setCallSubstate(callSubstate);
+                        }
+                    }
                 }
             } finally {
                 Binder.restoreCallingIdentity(token);

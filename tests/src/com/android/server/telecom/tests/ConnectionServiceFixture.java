@@ -85,6 +85,8 @@ public class ConnectionServiceFixture implements TestFixture<IConnectionService>
         int state;
         int capabilities;
         final List<String> connectionIds = new ArrayList<>();
+        IVideoProvider videoProvider;
+        int videoState;
         long connectTimeMillis;
     }
 
@@ -331,6 +333,8 @@ public class ConnectionServiceFixture implements TestFixture<IConnectionService>
                 c.state,
                 c.capabilities,
                 c.connectionIds,
+                c.videoProvider,
+                c.videoState,
                 c.connectTimeMillis);
     }
 
@@ -349,6 +353,7 @@ public class ConnectionServiceFixture implements TestFixture<IConnectionService>
                 false, /* voip audio mode */
                 c.statusHints,
                 c.disconnectCause,
-                c.conferenceableConnectionIds);
+                c.conferenceableConnectionIds,
+                0 /* call substate */);
     }
 }

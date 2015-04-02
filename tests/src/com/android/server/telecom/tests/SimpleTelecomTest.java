@@ -111,7 +111,7 @@ public class SimpleTelecomTest extends AndroidTestCase {
     @Mock IInCallService.Stub mInCallService;
     IInCallAdapter mIInCallAdapter;
 
-    private ComponentContextHolder mContextHolder;
+    private ComponentContextFixture mContextFixture;
     private TelecomSystem mSystem;
 
     private ConnectionRequest mConnectionRequest;
@@ -137,13 +137,13 @@ public class SimpleTelecomTest extends AndroidTestCase {
         mMainLooper = Looper.getMainLooper();
         mTestLooper = Looper.myLooper();
 
-        mContextHolder = new ComponentContextHolder();
+        mContextFixture = new ComponentContextFixture();
         MockitoAnnotations.initMocks(this);
 
-        mContextHolder.putResource(
+        mContextFixture.putResource(
                 com.android.server.telecom.R.string.ui_default_package,
                 mIncallComponentName.getPackageName());
-        mContextHolder.putResource(
+        mContextFixture.putResource(
                 com.android.server.telecom.R.string.incall_default_class,
                 mIncallComponentName.getClassName());
 
@@ -164,7 +164,7 @@ public class SimpleTelecomTest extends AndroidTestCase {
 
         // Set up connection service
 
-        mContextHolder.addConnectionService(
+        mContextFixture.addConnectionService(
                 mTestPhoneAccount.getAccountHandle().getComponentName(),
                 mConnectionService);
         when(mConnectionService.asBinder()).thenReturn(mConnectionService);
@@ -173,7 +173,7 @@ public class SimpleTelecomTest extends AndroidTestCase {
 
         // Set up in-call service
 
-        mContextHolder.addInCallService(
+        mContextFixture.addInCallService(
                 mIncallComponentName,
                 mInCallService);
         when(mInCallService.asBinder()).thenReturn(mInCallService);
@@ -181,7 +181,7 @@ public class SimpleTelecomTest extends AndroidTestCase {
                 .thenReturn(mInCallService);
 
         mSystem = new TelecomSystem(
-                mContextHolder.getTestDouble(),
+                mContextFixture.getTestDouble(),
                 mMissedCallNotifier,
                 mHeadsetMediaButtonFactory,
                 mProximitySensorManagerFactory,
@@ -215,7 +215,7 @@ public class SimpleTelecomTest extends AndroidTestCase {
                 mNewOutgoingCallReceiver = (BroadcastReceiver) invocation.getArguments()[3];
                 return null;
             }
-        }).when(mContextHolder.getTestDouble().getApplicationContext())
+        }).when(mContextFixture.getTestDouble().getApplicationContext())
                 .sendOrderedBroadcastAsUser(
                         any(Intent.class),
                         any(UserHandle.class),
@@ -298,7 +298,7 @@ public class SimpleTelecomTest extends AndroidTestCase {
         mNewOutgoingCallReceiver.setResultData(
                 mNewOutgoingCallIntent.getStringExtra(Intent.EXTRA_PHONE_NUMBER));
         mNewOutgoingCallReceiver.onReceive(
-                mContextHolder.getTestDouble(),
+                mContextFixture.getTestDouble(),
                 mNewOutgoingCallIntent);
 
         assertNotNull(mConnectionServiceAdapter);
@@ -322,7 +322,8 @@ public class SimpleTelecomTest extends AndroidTestCase {
                         false,
                         (StatusHints) null,
                         (DisconnectCause) null,
-                        (List<String>) Collections.EMPTY_LIST));
+                        (List<String>) Collections.EMPTY_LIST,
+                        0 /* callSubState */));
         mConnectionServiceAdapter.setDialing(mConnectionId);
         mConnectionServiceAdapter.setActive(mConnectionId);
 

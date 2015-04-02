@@ -261,7 +261,7 @@ public class TelecomSystemTest extends TelecomTestCase {
         // Pass on the new outgoing call Intent
         // Set a dummy PendingResult so the BroadcastReceiver agrees to accept onReceive()
         newOutgoingCallReceiver.getValue().setPendingResult(
-                new BroadcastReceiver.PendingResult(0, "", null, 0, true, false, null, 0));
+                new BroadcastReceiver.PendingResult(0, "", null, 0, true, false, null, 0, 0));
         newOutgoingCallReceiver.getValue().setResultData(
                 newOutgoingCallIntent.getValue().getStringExtra(Intent.EXTRA_PHONE_NUMBER));
         newOutgoingCallReceiver.getValue().onReceive(
