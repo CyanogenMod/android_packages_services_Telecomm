@@ -7,7 +7,7 @@ import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.EditText;
 
-import com.android.server.telecom.tests.R;
+import com.android.server.telecom.testapps.R;
 
 public class TestDialerActivity extends Activity {
     private EditText mNumberView;

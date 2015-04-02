@@ -67,11 +67,11 @@ public class PhoneAccountRegistrarTest extends TelecomTestCase {
     @Override
     public void tearDown() throws Exception {
         mRegistrar = null;
-        mComponentContextFixture = null;
         new File(
                 mComponentContextFixture.getTestDouble().getApplicationContext().getFilesDir(),
                 FILE_NAME)
                 .delete();
+        mComponentContextFixture = null;
         super.tearDown();
     }
 

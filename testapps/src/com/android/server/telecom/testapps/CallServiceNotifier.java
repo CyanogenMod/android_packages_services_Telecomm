@@ -16,7 +16,7 @@
 
 package com.android.server.telecom.testapps;
 
-import com.android.server.telecom.tests.R;
+import com.android.server.telecom.testapps.R;
 
 import android.app.Notification;
 import android.app.NotificationManager;
