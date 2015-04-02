@@ -27,8 +27,10 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.UserHandle;
 import android.os.UserManager;
+import android.provider.Settings;
 import android.telecom.PhoneAccount;
 import android.telecom.TelecomManager;
+import android.telecom.VideoProfile;
 import android.telephony.PhoneNumberUtils;
 import android.text.TextUtils;
 import android.widget.Toast;
@@ -104,8 +106,35 @@ public class UserCallIntentProcessor {
             return;
         }
 
+        int videoState = intent.getIntExtra(
+                TelecomManager.EXTRA_START_CALL_WITH_VIDEO_STATE,
+                VideoProfile.VideoState.AUDIO_ONLY);
+        Log.d(this, "processOutgoingCallIntent videoState = " + videoState);
+
+        if (VideoProfile.VideoState.isVideo(videoState)
+                && TelephonyUtil.shouldProcessAsEmergency(mContext, handle)) {
+            Log.d(this, "Emergency call...Converting video call to voice...");
+            videoState = VideoProfile.VideoState.AUDIO_ONLY;
+            intent.putExtra(TelecomManager.EXTRA_START_CALL_WITH_VIDEO_STATE,
+                    videoState);
+        }
+
+        if (VideoProfile.VideoState.isVideo(videoState) && isTtyModeEnabled()) {
+            Toast.makeText(mContext, mContext.getResources().getString(R.string.
+                    video_call_not_allowed_if_tty_enabled), Toast.LENGTH_SHORT).show();
+            Log.d(this, "Rejecting video calls as tty is enabled");
+            return;
+        }
+
         intent.putExtra(CallIntentProcessor.KEY_IS_DEFAULT_DIALER, isDefaultDialer(callingPackageName));
         sendBroadcastToReceiver(intent);
+    }
+
+    private boolean isTtyModeEnabled() {
+        return (android.provider.Settings.Secure.getInt(
+                mContext.getContentResolver(),
+                android.provider.Settings.Secure.PREFERRED_TTY_MODE,
+                TelecomManager.TTY_MODE_OFF) != TelecomManager.TTY_MODE_OFF);
     }
 
     private boolean isDefaultDialer(String callingPackageName) {

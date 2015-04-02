@@ -21,6 +21,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.SystemProperties;
 import android.os.Trace;
 import android.provider.CallLog.Calls;
 import android.telecom.AudioState;
@@ -39,6 +40,8 @@ import android.telephony.PhoneNumberUtils;
 import android.telephony.TelephonyManager;
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.internal.telephony.PhoneConstants;
+import com.android.internal.telephony.TelephonyProperties;
 import com.android.internal.util.IndentingPrintWriter;
 
 import java.util.Collection;
@@ -77,6 +80,7 @@ public class CallsManager extends Call.ListenerBase {
         void onIsVoipAudioModeChanged(Call call);
         void onVideoStateChanged(Call call);
         void onCanAddCallChanged(boolean canAddCall);
+        void onCallSubstateChanged(Call call);
     }
 
     private static final String TAG = "CallsManager";
@@ -366,6 +370,12 @@ public class CallsManager extends Call.ListenerBase {
 
     Collection<Call> getCalls() {
         return Collections.unmodifiableCollection(mCalls);
+    }
+
+    public void onCallSubstateChanged(Call call) {
+        for (CallsManagerListener listener : mListeners) {
+            listener.onCallSubstateChanged(call);
+        }
     }
 
     Call getForegroundCall() {
@@ -692,7 +702,19 @@ public class CallsManager extends Call.ListenerBase {
             // We do not update the UI until we get confirmation of the answer() through
             // {@link #markCallAsActive}.
             call.answer(videoState);
+            if (VideoProfile.VideoState.isVideo(videoState) &&
+                !mWiredHeadsetManager.isPluggedIn() &&
+                !mCallAudioManager.isBluetoothDeviceAvailable() &&
+                isSpeakerEnabledForVideoCalls()) {
+                call.setStartWithSpeakerphoneOn(true);
+            }
         }
+    }
+
+    private static boolean isSpeakerEnabledForVideoCalls() {
+        return (SystemProperties.getInt(TelephonyProperties.PROPERTY_VIDEOCALL_AUDIO_OUTPUT,
+                PhoneConstants.AUDIO_OUTPUT_DEFAULT) ==
+                PhoneConstants.AUDIO_OUTPUT_ENABLE_SPEAKER);
     }
 
     /**
@@ -1089,6 +1111,8 @@ public class CallsManager extends Call.ListenerBase {
 
         setCallState(call, Call.getStateFromConnectionState(parcelableConference.getState()));
         call.setConnectionCapabilities(parcelableConference.getConnectionCapabilities());
+        call.setVideoState(parcelableConference.getVideoState());
+        call.setVideoProvider(parcelableConference.getVideoProvider());
 
         // TODO: Move this to be a part of addCall()
         call.addListener(this);
