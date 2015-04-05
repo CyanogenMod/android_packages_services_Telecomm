@@ -635,16 +635,7 @@ public final class CallsManager extends Call.ListenerBase {
         call.setExtras(extras);
 
         // Do not add the call if it is a potential MMI code.
-        if (phoneAccountHandle == null && isPotentialMMICode(handle) &&
-                accounts.size() > 1) {
-            mCalls.add(call);
-            call.addListener(this);
-            extras.putString("Handle", handle.toString());
-            Intent intent = new Intent(mContext, AccountSelection.class);
-            intent.putExtras(extras);
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            mContext.startActivity(intent);
-        } else if ((isPotentialMMICode(handle) || isPotentialInCallMMICode) && !needsAccountSelection) {
+        if ((isPotentialMMICode(handle) || isPotentialInCallMMICode) && !needsAccountSelection) {
             call.addListener(this);
         } else if (!mCalls.contains(call)) {
             // We check if mCalls already contains the call because we could potentially be reusing
@@ -1016,16 +1007,6 @@ public final class CallsManager extends Call.ListenerBase {
         }
     }
 
-    void phoneAccountSelectedForMMI(Uri handle, PhoneAccountHandle account) {
-        Call call = getFirstCallWithHandle(handle, CallState.PRE_DIAL_WAIT);
-        Log.d(this,"call: "+ call);
-        if (account != null) {
-            phoneAccountSelected(call, account, false);
-        } else {
-            call.disconnect();
-        }
-    }
-
     /** Called when the audio state changes. */
     void onAudioStateChanged(AudioState oldAudioState, AudioState newAudioState) {
         Log.v(this, "onAudioStateChanged, audioState: %s -> %s", oldAudioState, newAudioState);
@@ -1263,18 +1244,6 @@ public final class CallsManager extends Call.ListenerBase {
 
     Call getFirstCallWithState(int... states) {
         return getFirstCallWithState(null, states);
-    }
-
-    Call getFirstCallWithHandle(Uri handle, int... states) {
-        for (int currentState : states) {
-            for (Call call : mCalls) {
-                if ((currentState == call.getState()) &&
-                        call.getHandle().toString().equals(handle.toString())) {
-                    return call;
-                }
-            }
-        }
-        return null;
     }
 
     /**

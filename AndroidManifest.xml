@@ -228,9 +228,6 @@
                 <action android:name="android.bluetooth.IBluetoothHeadsetPhone" />
             </intent-filter>
         </service>
-        <activity android:name="AccountSelection"
-            android:theme="@style/Theme.Telecomm.Transparent"
-            android:excludeFromRecents="true"/>
 
         <service android:name=".TelecomService"
                 android:singleUser="true"

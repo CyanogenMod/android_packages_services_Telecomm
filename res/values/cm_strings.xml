@@ -34,5 +34,4 @@
 
     <!-- Message indicating video calls not allowed if user enabled TTY Mode -->
     <string name="video_call_not_allowed_if_tty_enabled">Please disable TTY mode to make video calls.</string>
-    <string name="select_account_dialog_title">Select account</string>
 </resources>
