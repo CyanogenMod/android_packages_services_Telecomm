@@ -19,16 +19,16 @@
   <string name="blacklist_title">רשימה שחורה</string>
   <string name="blacklist_summary_disabled">מושבת</string>
   <string name="blacklist_summary">הודעות נכנסות ממספרי טלפון שברשימה השחורה ייחסמו</string>
-  <string name="blacklist_call_notification">חסם שיחה מ-%s</string>
-  <string name="blacklist_call_notification_private_number">חסם שיחה ממספר חסוי</string>
-  <string name="blacklist_call_notification_unknown_number">חסם שיחה מתוך מספר לא ידוע %s</string>
+  <string name="blacklist_call_notification">שיחה נחסמה מ-%s</string>
+  <string name="blacklist_call_notification_private_number">שיחה נחסמה ממספר חסוי</string>
+  <string name="blacklist_call_notification_unknown_number">שיחה נחסמה ממספר לא ידוע %s</string>
   <string name="blacklist_call_notification_multiple"><xliff:g id="count">%d</xliff:g> שיחות נחסמו</string>
-  <string name="blacklist_message_notification">חסם הודעה מ-%s</string>
-  <string name="blacklist_message_notification_private_number">חסם הודעה ממספר חסוי</string>
-  <string name="blacklist_message_notification_unknown_number">חסם הודעה ממספר לא ידוע %s</string>
+  <string name="blacklist_message_notification">הודעה נחסמה מ-%s</string>
+  <string name="blacklist_message_notification_private_number">הודעה נחסמה ממספר חסוי</string>
+  <string name="blacklist_message_notification_unknown_number">הודעה נחסמה ממספר לא ידוע %s</string>
   <string name="blacklist_message_notification_multiple"><xliff:g id="count">%d</xliff:g> הודעות נחסמו</string>
   <string name="blacklist_notification_list_private">פרטי</string>
   <string name="unblock_number">הורד חסימה</string>
-  <string name="video_call_not_allowed_if_tty_enabled">אנא בטל מצב TTY כדי לבצע שיחות וידאו.</string>
+  <string name="video_call_not_allowed_if_tty_enabled">אנא בטל את מצב TTY כדי לבצע שיחות וידאו.</string>
   <string name="select_account_dialog_title">בחר חשבון</string>
 </resources>
