@@ -416,16 +416,46 @@ public class Call implements CreateConnectionResponse {
             component = mConnectionService.getComponentName().flattenToShortString();
         }
 
-        return String.format(Locale.US, "[%s, %s, %s, %s, %d, childs(%d), has_parent(%b), [%s], %d]",
+
+
+        return String.format(Locale.US, "[%s, %s, %s, %s, %s, childs(%d), has_parent(%b), [%s], %d]",
                 System.identityHashCode(this),
                 CallState.toString(mState),
                 component,
                 Log.piiHandle(mHandle),
-                getVideoState(),
+                getVideoStateDescription(getVideoState()),
                 getChildCalls().size(),
                 getParentCall() != null,
                 Connection.capabilitiesToString(getConnectionCapabilities()),
                 getCallSubstate());
+    }
+
+    /**
+     * Builds a debug-friendly description string for a video state.
+     * <p>
+     * A = audio active, T = video transmission active, R = video reception active, P = video
+     * paused.
+     *
+     * @param videoState The video state.
+     * @return A string indicating which bits are set in the video state.
+     */
+    private String getVideoStateDescription(int videoState) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("A");
+
+        if (VideoProfile.VideoState.isTransmissionEnabled(videoState)) {
+            sb.append("T");
+        }
+
+        if (VideoProfile.VideoState.isReceptionEnabled(videoState)) {
+            sb.append("R");
+        }
+
+        if (VideoProfile.VideoState.isPaused(videoState)) {
+            sb.append("P");
+        }
+
+        return sb.toString();
     }
 
     int getState() {
