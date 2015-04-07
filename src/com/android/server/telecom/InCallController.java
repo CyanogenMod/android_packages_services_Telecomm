@@ -485,10 +485,6 @@ public final class InCallController extends CallsManagerListenerBase {
             capabilities |= android.telecom.Call.Details.CAPABILITY_RESPOND_VIA_TEXT;
         }
 
-        if (call.isRespondViaSmsCapable()) {
-            capabilities |= android.telecom.Call.Details.CAPABILITY_RESPOND_VIA_TEXT;
-        }
-
         if (call.isEmergencyCall()) {
             capabilities = removeCapability(
                     capabilities, android.telecom.Call.Details.CAPABILITY_MUTE);
@@ -625,6 +621,9 @@ public final class InCallController extends CallsManagerListenerBase {
         Connection.CAPABILITY_DISCONNECT_FROM_CONFERENCE,
         android.telecom.Call.Details.CAPABILITY_DISCONNECT_FROM_CONFERENCE,
 
+        Connection.CAPABILITY_GENERIC_CONFERENCE,
+        android.telecom.Call.Details.CAPABILITY_GENERIC_CONFERENCE,
+
         Connection.CALL_TYPE_MODIFIABLE,
         android.telecom.Call.Details.CALL_TYPE_MODIFIABLE,
 
@@ -636,7 +635,7 @@ public final class InCallController extends CallsManagerListenerBase {
         int callCapabilities = 0;
         for (int i = 0; i < CONNECTION_TO_CALL_CAPABILITY.length; i += 2) {
             if ((CONNECTION_TO_CALL_CAPABILITY[i] & connectionCapabilities) != 0) {
-                callCapabilities &= CONNECTION_TO_CALL_CAPABILITY[i + 1];
+                callCapabilities |= CONNECTION_TO_CALL_CAPABILITY[i + 1];
             }
         }
         return callCapabilities;
