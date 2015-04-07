@@ -28,5 +28,6 @@ public interface MissedCallNotifier extends CallsManager.CallsManagerListener {
     void updateOnStartup(
             TelecomSystem.SyncRoot lock,
             CallsManager callsManager,
-            ContactsAsyncHelper contactsAsyncHelper);
+            ContactsAsyncHelper contactsAsyncHelper,
+            CallerInfoAsyncQueryFactory callerInfoAsyncQueryFactory);
 }

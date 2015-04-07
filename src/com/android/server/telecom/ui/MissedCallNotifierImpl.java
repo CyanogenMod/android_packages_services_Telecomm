@@ -17,6 +17,7 @@
 package com.android.server.telecom.ui;
 
 import com.android.server.telecom.Call;
+import com.android.server.telecom.CallerInfoAsyncQueryFactory;
 import com.android.server.telecom.CallsManager;
 import com.android.server.telecom.CallsManagerListenerBase;
 import com.android.server.telecom.Constants;
@@ -312,7 +313,8 @@ public class MissedCallNotifierImpl extends CallsManagerListenerBase implements 
     public void updateOnStartup(
             final TelecomSystem.SyncRoot lock,
             final CallsManager callsManager,
-            final ContactsAsyncHelper contactsAsyncHelper) {
+            final ContactsAsyncHelper contactsAsyncHelper,
+            final CallerInfoAsyncQueryFactory callerInfoAsyncQueryFactory) {
         Log.d(this, "updateOnStartup()...");
 
         // instantiate query handler
@@ -343,8 +345,8 @@ public class MissedCallNotifierImpl extends CallsManagerListenerBase implements 
 
                                 // Convert the data to a call object
                                 Call call = new Call(mContext, callsManager, lock,
-                                        null, contactsAsyncHelper, null, null, null, null, true,
-                                        false);
+                                        null, contactsAsyncHelper, callerInfoAsyncQueryFactory,
+                                        null, null, null, null, true, false);
                                 call.setDisconnectCause(
                                         new DisconnectCause(DisconnectCause.MISSED));
                                 call.setState(CallState.DISCONNECTED);

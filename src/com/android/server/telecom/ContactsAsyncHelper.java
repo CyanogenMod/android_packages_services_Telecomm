@@ -127,12 +127,12 @@ public final class ContactsAsyncHelper {
                             }
                         }
                     }
-                    synchronized (mLock) {
-                        Log.d(this, "Notifying listener: " + args.listener.toString() +
-                                " image: " + args.displayPhotoUri + " completed");
-                        args.listener.onImageLoadComplete(msg.what, args.photo, args.photoIcon,
+
+                    // Listener will synchronize as needed
+                    Log.d(this, "Notifying listener: " + args.listener.toString() +
+                            " image: " + args.displayPhotoUri + " completed");
+                    args.listener.onImageLoadComplete(msg.what, args.photo, args.photoIcon,
                                 args.cookie);
-                    }
                     break;
                 default:
                     break;

@@ -128,6 +128,7 @@ public class CallsManager extends Call.ListenerBase {
     private final Context mContext;
     private final TelecomSystem.SyncRoot mLock;
     private final ContactsAsyncHelper mContactsAsyncHelper;
+    private final CallerInfoAsyncQueryFactory mCallerInfoAsyncQueryFactory;
     private final PhoneAccountRegistrar mPhoneAccountRegistrar;
     private final MissedCallNotifier mMissedCallNotifier;
     private final Set<Call> mLocallyDisconnectingCalls = new HashSet<>();
@@ -152,6 +153,7 @@ public class CallsManager extends Call.ListenerBase {
             Context context,
             TelecomSystem.SyncRoot lock,
             ContactsAsyncHelper contactsAsyncHelper,
+            CallerInfoAsyncQueryFactory callerInfoAsyncQueryFactory,
             MissedCallNotifier missedCallNotifier,
             PhoneAccountRegistrar phoneAccountRegistrar,
             HeadsetMediaButtonFactory headsetMediaButtonFactory,
@@ -160,13 +162,15 @@ public class CallsManager extends Call.ListenerBase {
         mContext = context;
         mLock = lock;
         mContactsAsyncHelper = contactsAsyncHelper;
+        mCallerInfoAsyncQueryFactory = callerInfoAsyncQueryFactory;
         mPhoneAccountRegistrar = phoneAccountRegistrar;
         mMissedCallNotifier = missedCallNotifier;
         StatusBarNotifier statusBarNotifier = new StatusBarNotifier(context, this);
         mWiredHeadsetManager = new WiredHeadsetManager(context);
         mCallAudioManager = new CallAudioManager(
                 context, statusBarNotifier, mWiredHeadsetManager, this);
-        InCallTonePlayer.Factory playerFactory = new InCallTonePlayer.Factory(mCallAudioManager);
+        InCallTonePlayer.Factory playerFactory =
+                new InCallTonePlayer.Factory(mCallAudioManager, lock);
         mRinger = new Ringer(mCallAudioManager, this, playerFactory, context);
         mHeadsetMediaButton = headsetMediaButtonFactory.create(context, this);
         mTtyManager = new TtyManager(context, mWiredHeadsetManager);
@@ -192,7 +196,8 @@ public class CallsManager extends Call.ListenerBase {
         mListeners.add(mHeadsetMediaButton);
         mListeners.add(mProximitySensorManager);
 
-        mMissedCallNotifier.updateOnStartup(mLock, this, mContactsAsyncHelper);
+        mMissedCallNotifier.updateOnStartup(
+                mLock, this, mContactsAsyncHelper, mCallerInfoAsyncQueryFactory);
     }
 
     public void setRespondViaSmsManager(RespondViaSmsManager respondViaSmsManager) {
@@ -444,6 +449,7 @@ public class CallsManager extends Call.ListenerBase {
                 mLock,
                 mConnectionServiceRepository,
                 mContactsAsyncHelper,
+                mCallerInfoAsyncQueryFactory,
                 handle,
                 null /* gatewayInfo */,
                 null /* connectionManagerPhoneAccount */,
@@ -466,6 +472,7 @@ public class CallsManager extends Call.ListenerBase {
                 mLock,
                 mConnectionServiceRepository,
                 mContactsAsyncHelper,
+                mCallerInfoAsyncQueryFactory,
                 handle,
                 null /* gatewayInfo */,
                 null /* connectionManagerPhoneAccount */,
@@ -505,6 +512,7 @@ public class CallsManager extends Call.ListenerBase {
                 mLock,
                 mConnectionServiceRepository,
                 mContactsAsyncHelper,
+                mCallerInfoAsyncQueryFactory,
                 handle,
                 null /* gatewayInfo */,
                 null /* connectionManagerPhoneAccount */,
@@ -1101,6 +1109,7 @@ public class CallsManager extends Call.ListenerBase {
                 mLock,
                 mConnectionServiceRepository,
                 mContactsAsyncHelper,
+                mCallerInfoAsyncQueryFactory,
                 null /* handle */,
                 null /* gatewayInfo */,
                 null /* connectionManagerPhoneAccount */,
@@ -1452,6 +1461,7 @@ public class CallsManager extends Call.ListenerBase {
                 mLock,
                 mConnectionServiceRepository,
                 mContactsAsyncHelper,
+                mCallerInfoAsyncQueryFactory,
                 connection.getHandle() /* handle */,
                 null /* gatewayInfo */,
                 null /* connectionManagerPhoneAccount */,
