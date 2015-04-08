@@ -254,7 +254,7 @@ final class Call implements CreateConnectionResponse {
     private DisconnectCause mDisconnectCause = new DisconnectCause(DisconnectCause.UNKNOWN);
 
     /** Info used by the connection services. */
-    private Bundle mExtras = Bundle.EMPTY;
+    private Bundle mExtras = new Bundle();
 
     /** Set of listeners on this call.
      *
