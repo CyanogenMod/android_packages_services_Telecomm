@@ -125,7 +125,7 @@ public class TestConnectionService extends ConnectionService {
         }
     }
 
-    private final class TestConnection extends Connection {
+    final class TestConnection extends Connection {
         private final boolean mIsIncoming;
 
         /** Used to cleanup camera and media when done with connection. */
@@ -136,6 +136,8 @@ public class TestConnectionService extends ConnectionService {
             // Assume all calls are video capable.
             int capabilities = getConnectionCapabilities();
             capabilities |= CAPABILITY_SUPPORTS_VT_LOCAL;
+            capabilities |= CAPABILITY_SUPPORTS_VT_REMOTE;
+            capabilities |= CAPABILITY_CAN_UPGRADE_TO_VIDEO;
             capabilities |= CAPABILITY_MUTE;
             capabilities |= CAPABILITY_SUPPORT_HOLD;
             capabilities |= CAPABILITY_HOLD;
@@ -212,6 +214,7 @@ public class TestConnectionService extends ConnectionService {
         @Override
         public void onAudioStateChanged(AudioState state) { }
 
+
         public void setTestVideoCallProvider(TestVideoProvider testVideoCallProvider) {
             mTestVideoCallProvider = testVideoCallProvider;
         }
@@ -281,7 +284,8 @@ public class TestConnectionService extends ConnectionService {
                     handle.getSchemeSpecificPart() + "..", ""),
                     originalRequest.getExtras(),
                     originalRequest.getVideoState());
-
+            connection.setVideoState(originalRequest.getVideoState());
+            addVideoProvider(connection);
             addCall(connection);
             connection.startOutgoing();
 
@@ -312,20 +316,14 @@ public class TestConnectionService extends ConnectionService {
             Uri address = providedHandle == null ?
                     Uri.fromParts(PhoneAccount.SCHEME_TEL, getDummyNumber(isVideoCall), null)
                     : providedHandle;
-            if (isVideoCall) {
-                TestVideoProvider testVideoCallProvider =
-                        new TestVideoProvider(getApplicationContext());
-                connection.setVideoProvider(testVideoCallProvider);
-
-                // Keep reference to original so we can clean up the media players later.
-                connection.setTestVideoCallProvider(testVideoCallProvider);
-            }
 
             int videoState = isVideoCall ?
                     VideoProfile.VideoState.BIDIRECTIONAL :
                     VideoProfile.VideoState.AUDIO_ONLY;
             connection.setVideoState(videoState);
             connection.setAddress(address, TelecomManager.PRESENTATION_ALLOWED);
+
+            addVideoProvider(connection);
 
             addCall(connection);
 
@@ -365,6 +363,15 @@ public class TestConnectionService extends ConnectionService {
             return Connection.createFailedConnection(new DisconnectCause(DisconnectCause.ERROR,
                     "Invalid inputs: " + accountHandle + " " + componentName));
         }
+    }
+
+    private void addVideoProvider(TestConnection connection) {
+        TestVideoProvider testVideoCallProvider =
+                new TestVideoProvider(getApplicationContext(), connection);
+        connection.setVideoProvider(testVideoCallProvider);
+
+        // Keep reference to original so we can clean up the media players later.
+        connection.setTestVideoCallProvider(testVideoCallProvider);
     }
 
     private void activateCall(TestConnection connection) {

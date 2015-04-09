@@ -20,6 +20,7 @@ import com.android.ex.camera2.blocking.BlockingCameraManager;
 import com.android.ex.camera2.blocking.BlockingCameraManager.BlockingOpenException;
 import com.android.ex.camera2.blocking.BlockingSessionCallback;
 import com.android.server.telecom.testapps.R;
+import com.android.server.telecom.testapps.TestConnectionService.TestConnection;
 
 import android.content.Context;
 import android.graphics.SurfaceTexture;
@@ -52,6 +53,7 @@ import java.util.Random;
  * Implements the VideoCallProvider.
  */
 public class TestVideoProvider extends Connection.VideoProvider {
+    private TestConnection mConnection;
     private CameraCapabilities mCameraCapabilities;
     private Random random;
     private Surface mDisplaySurface;
@@ -65,11 +67,14 @@ public class TestVideoProvider extends Connection.VideoProvider {
     private CameraCaptureSession mCameraSession;
     private CameraThread mLooperThread;
 
+    private final Handler mHandler = new Handler();
+
     private String mCameraId;
 
     private static final long SESSION_TIMEOUT_MS = 2000;
 
-    public TestVideoProvider(Context context) {
+    public TestVideoProvider(Context context, TestConnection connection) {
+        mConnection = connection;
         mContext = context;
         random = new Random();
         mCameraManager = (CameraManager) context.getSystemService(Context.CAMERA_SERVICE);
@@ -140,15 +145,22 @@ public class TestVideoProvider extends Connection.VideoProvider {
      * the response back via the CallVideoClient.
      */
     @Override
-    public void onSendSessionModifyRequest(VideoProfile requestProfile) {
+    public void onSendSessionModifyRequest(final VideoProfile requestProfile) {
         log("Sent session modify request");
 
-        VideoProfile responseProfile = new VideoProfile(
-                requestProfile.getVideoState(), requestProfile.getQuality());
-        receiveSessionModifyResponse(
-                SESSION_MODIFY_REQUEST_SUCCESS,
-                requestProfile,
-                responseProfile);
+        mHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                final VideoProfile responseProfile = new VideoProfile(
+                        requestProfile.getVideoState(), requestProfile.getQuality());
+                mConnection.setVideoState(requestProfile.getVideoState());
+
+                receiveSessionModifyResponse(
+                        SESSION_MODIFY_REQUEST_SUCCESS,
+                        requestProfile,
+                        responseProfile);
+            }
+        }, 2000);
     }
 
     @Override
