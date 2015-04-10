@@ -191,12 +191,12 @@ final class CallAudioManager extends CallsManagerListenerBase
         if (isDocked) {
             // Device just docked, turn to speakerphone. Only do so if the route is currently
             // earpiece so that we dont switch out of a BT headset or a wired headset.
-            if (mAudioState.route == AudioState.ROUTE_EARPIECE) {
+            if (mAudioState.getRoute() == AudioState.ROUTE_EARPIECE) {
                 setAudioRoute(AudioState.ROUTE_SPEAKER);
             }
         } else {
             // Device just undocked, remove from speakerphone if possible.
-            if (mAudioState.route == AudioState.ROUTE_SPEAKER) {
+            if (mAudioState.getRoute() == AudioState.ROUTE_SPEAKER) {
                 setAudioRoute(AudioState.ROUTE_WIRED_OR_EARPIECE);
             }
         }
