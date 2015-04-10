@@ -48,6 +48,9 @@ public class TestCallActivity extends Activity {
     public static final String ACTION_HANGUP_CALLS =
             "android.telecom.testapps.ACTION_HANGUP_CALLS";
 
+    public static final String ACTION_SEND_UPGRADE_REQUEST =
+            "android.telecom.testapps.ACTION_SEND_UPGRADE_REQUEST";
+
     @Override
     protected void onCreate(Bundle icicle) {
         super.onCreate(icicle);
@@ -60,6 +63,8 @@ public class TestCallActivity extends Activity {
             CallNotificationReceiver.addNewUnknownCall(this, data, intent.getExtras());
         } else if (ACTION_HANGUP_CALLS.equals(action)) {
             CallNotificationReceiver.hangupCalls(this);
+        } else if (ACTION_SEND_UPGRADE_REQUEST.equals(action)) {
+            CallNotificationReceiver.sendUpgradeRequest(this, data);
         } else {
             CallServiceNotifier.getInstance().updateNotification(this);
         }

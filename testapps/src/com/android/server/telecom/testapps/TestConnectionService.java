@@ -144,6 +144,15 @@ public class TestConnectionService extends ConnectionService {
             }
         };
 
+        private BroadcastReceiver mUpgradeRequestReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                final int request = Integer.parseInt(intent.getData().getSchemeSpecificPart());
+                final VideoProfile videoProfile = new VideoProfile(request);
+                mTestVideoCallProvider.receiveSessionModifyRequest(videoProfile);
+            }
+        };
+
         TestConnection(boolean isIncoming) {
             mIsIncoming = isIncoming;
             // Assume all calls are video capable.
@@ -158,6 +167,11 @@ public class TestConnectionService extends ConnectionService {
 
             LocalBroadcastManager.getInstance(getApplicationContext()).registerReceiver(
                     mHangupReceiver, new IntentFilter(TestCallActivity.ACTION_HANGUP_CALLS));
+            final IntentFilter filter =
+                    new IntentFilter(TestCallActivity.ACTION_SEND_UPGRADE_REQUEST);
+            filter.addDataScheme("int");
+            LocalBroadcastManager.getInstance(getApplicationContext()).registerReceiver(
+                    mUpgradeRequestReceiver, filter);
         }
 
         void startOutgoing() {
@@ -238,6 +252,8 @@ public class TestConnectionService extends ConnectionService {
         public void cleanup() {
             LocalBroadcastManager.getInstance(getApplicationContext()).unregisterReceiver(
                     mHangupReceiver);
+            LocalBroadcastManager.getInstance(getApplicationContext()).unregisterReceiver(
+                    mUpgradeRequestReceiver);
         }
 
         /**
