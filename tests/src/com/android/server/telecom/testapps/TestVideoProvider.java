@@ -327,7 +327,7 @@ public class TestVideoProvider extends Connection.VideoProvider {
                     CameraCharacteristics.SCALER_STREAM_CONFIGURATION_MAP);
             Size previewSize = map.getOutputSizes(SurfaceTexture.class)[0];
 
-            mCameraCapabilities = new CameraCapabilities(true, 1.0f, previewSize.getWidth(),
+            mCameraCapabilities = new CameraCapabilities(previewSize.getWidth(),
                     previewSize.getHeight());
         }
     }
