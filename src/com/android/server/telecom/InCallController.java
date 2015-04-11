@@ -587,8 +587,8 @@ public final class InCallController extends CallsManagerListenerBase {
         Connection.CAPABILITY_SUPPORTS_VT_LOCAL_TX,
         android.telecom.Call.Details.CAPABILITY_SUPPORTS_VT_LOCAL_TX,
 
-        Connection.CAPABILITY_SUPPORTS_VT_LOCAL,
-        android.telecom.Call.Details.CAPABILITY_SUPPORTS_VT_LOCAL,
+        Connection.CAPABILITY_SUPPORTS_VT_LOCAL_BIDIRECTIONAL,
+        android.telecom.Call.Details.CAPABILITY_SUPPORTS_VT_LOCAL_BIDIRECTIONAL,
 
         Connection.CAPABILITY_SUPPORTS_VT_REMOTE_RX,
         android.telecom.Call.Details.CAPABILITY_SUPPORTS_VT_REMOTE_RX,
@@ -596,8 +596,8 @@ public final class InCallController extends CallsManagerListenerBase {
         Connection.CAPABILITY_SUPPORTS_VT_REMOTE_TX,
         android.telecom.Call.Details.CAPABILITY_SUPPORTS_VT_REMOTE_TX,
 
-        Connection.CAPABILITY_SUPPORTS_VT_REMOTE,
-        android.telecom.Call.Details.CAPABILITY_SUPPORTS_VT_REMOTE,
+        Connection.CAPABILITY_SUPPORTS_VT_REMOTE_BIDIRECTIONAL,
+        android.telecom.Call.Details.CAPABILITY_SUPPORTS_VT_REMOTE_BIDIRECTIONAL,
 
         Connection.CAPABILITY_HIGH_DEF_AUDIO,
         android.telecom.Call.Details.CAPABILITY_HIGH_DEF_AUDIO,
