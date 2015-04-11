@@ -148,7 +148,7 @@ public class TestConnectionService extends ConnectionService {
             mIsIncoming = isIncoming;
             // Assume all calls are video capable.
             int capabilities = getConnectionCapabilities();
-            capabilities |= CAPABILITY_SUPPORTS_VT_LOCAL;
+            capabilities |= CAPABILITY_SUPPORTS_VT_LOCAL_BIDIRECTIONAL;
             capabilities |= CAPABILITY_MUTE;
             capabilities |= CAPABILITY_SUPPORT_HOLD;
             capabilities |= CAPABILITY_HOLD;

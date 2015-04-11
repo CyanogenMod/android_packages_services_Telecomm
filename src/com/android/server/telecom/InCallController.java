@@ -480,10 +480,10 @@ public final class InCallController extends CallsManagerListenerBase {
         }
 
         if (state == CallState.DIALING) {
-            capabilities = removeCapability(
-                    capabilities, android.telecom.Call.Details.CAPABILITY_SUPPORTS_VT_LOCAL);
-            capabilities = removeCapability(
-                    capabilities, android.telecom.Call.Details.CAPABILITY_SUPPORTS_VT_REMOTE);
+            capabilities = removeCapability(capabilities,
+                    android.telecom.Call.Details.CAPABILITY_SUPPORTS_VT_LOCAL_BIDIRECTIONAL);
+            capabilities = removeCapability(capabilities,
+                    android.telecom.Call.Details.CAPABILITY_SUPPORTS_VT_REMOTE_BIDIRECTIONAL);
         }
 
         if (state == CallState.ABORTED) {
