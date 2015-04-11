@@ -134,7 +134,7 @@ public class CallIntentProcessor {
         callsManager.processIncomingCallIntent(phoneAccountHandle, clientExtras);
     }
 
-    private static void processUnknownCallIntent(CallsManager callsManager, Intent intent) {
+    static void processUnknownCallIntent(CallsManager callsManager, Intent intent) {
         PhoneAccountHandle phoneAccountHandle = intent.getParcelableExtra(
                 TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE);
 
