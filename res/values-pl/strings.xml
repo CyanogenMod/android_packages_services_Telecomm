@@ -38,6 +38,8 @@
     <string name="outgoing_call_not_allowed" msgid="1435394568102165287">"Właściciel urządzenia zezwala tylko na połączenia alarmowe"</string>
     <string name="outgoing_call_error_no_phone_number_supplied" msgid="1940125199802007505">"Aby zadzwonić, wybierz prawidłowy numer."</string>
     <string name="duplicate_video_call_not_allowed" msgid="3749211605014548386">"Nie można w tej chwili dodać połączenia."</string>
+    <!-- no translation found for video_call_not_allowed_if_tty_enabled (7593649283571253283) -->
+    <skip />
     <string name="no_vm_number" msgid="4164780423805688336">"Brakuje numeru poczty głosowej"</string>
     <string name="no_vm_number_msg" msgid="1300729501030053828">"Na karcie SIM nie ma zapisanego numeru poczty głosowej."</string>
     <string name="add_vm_number_str" msgid="4676479471644687453">"Dodaj numer"</string>

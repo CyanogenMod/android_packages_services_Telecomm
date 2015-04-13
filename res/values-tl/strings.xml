@@ -38,6 +38,8 @@
     <string name="outgoing_call_not_allowed" msgid="1435394568102165287">"Ang mga emergency na tawag lang ang pinapayagan ng may-ari ng device"</string>
     <string name="outgoing_call_error_no_phone_number_supplied" msgid="1940125199802007505">"Upang tumawag, maglagay ng wastong numero."</string>
     <string name="duplicate_video_call_not_allowed" msgid="3749211605014548386">"Hindi maidadagdag ang tawag sa oras na ito."</string>
+    <!-- no translation found for video_call_not_allowed_if_tty_enabled (7593649283571253283) -->
+    <skip />
     <string name="no_vm_number" msgid="4164780423805688336">"Nawawala ang numero ng voicemail"</string>
     <string name="no_vm_number_msg" msgid="1300729501030053828">"Walang nakaimbak na numero ng voicemail sa SIM card."</string>
     <string name="add_vm_number_str" msgid="4676479471644687453">"Magdagdag ng numero"</string>

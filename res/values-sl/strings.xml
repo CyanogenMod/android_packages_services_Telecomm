@@ -38,6 +38,8 @@
     <string name="outgoing_call_not_allowed" msgid="1435394568102165287">"Lastnik naprave dovoljuje samo opravljanje klicev v sili"</string>
     <string name="outgoing_call_error_no_phone_number_supplied" msgid="1940125199802007505">"Če želite opraviti klic, vnesite veljavno številko."</string>
     <string name="duplicate_video_call_not_allowed" msgid="3749211605014548386">"Klica trenutno ni mogoče dodati."</string>
+    <!-- no translation found for video_call_not_allowed_if_tty_enabled (7593649283571253283) -->
+    <skip />
     <string name="no_vm_number" msgid="4164780423805688336">"Manjkajoča številka glasovne pošte"</string>
     <string name="no_vm_number_msg" msgid="1300729501030053828">"Na kartici SIM ni shranjena številka glasovne pošte."</string>
     <string name="add_vm_number_str" msgid="4676479471644687453">"Dodaj številko"</string>

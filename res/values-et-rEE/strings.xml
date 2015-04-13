@@ -38,6 +38,8 @@
     <string name="outgoing_call_not_allowed" msgid="1435394568102165287">"Seadme omanik lubab ainult hädaabikõnesid"</string>
     <string name="outgoing_call_error_no_phone_number_supplied" msgid="1940125199802007505">"Helistamiseks sisestage kehtiv number."</string>
     <string name="duplicate_video_call_not_allowed" msgid="3749211605014548386">"Kõnet ei saa praegu lisada."</string>
+    <!-- no translation found for video_call_not_allowed_if_tty_enabled (7593649283571253283) -->
+    <skip />
     <string name="no_vm_number" msgid="4164780423805688336">"Puudub kõnepostinumber"</string>
     <string name="no_vm_number_msg" msgid="1300729501030053828">"SIM-kaardile pole salvestatud ühtegi kõnepostinumbrit."</string>
     <string name="add_vm_number_str" msgid="4676479471644687453">"Lisa number"</string>

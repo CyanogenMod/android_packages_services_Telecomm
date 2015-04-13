@@ -38,6 +38,8 @@
     <string name="outgoing_call_not_allowed" msgid="1435394568102165287">"የአስቸኳይ አደጋ ጥሪዎች ብቻ ናቸው በባለቤቱ የተፈቀዱት"</string>
     <string name="outgoing_call_error_no_phone_number_supplied" msgid="1940125199802007505">"አንድ ጥሪ ለማድረግ የሚሰራ ቁጥር ያስገቡ።"</string>
     <string name="duplicate_video_call_not_allowed" msgid="3749211605014548386">"ጥሪ በዚህ ጊዜ ላይ ሊታከል አይችልም።"</string>
+    <!-- no translation found for video_call_not_allowed_if_tty_enabled (7593649283571253283) -->
+    <skip />
     <string name="no_vm_number" msgid="4164780423805688336">"የድምፅመልዕክት ቁጥርአመለጠ"</string>
     <string name="no_vm_number_msg" msgid="1300729501030053828">"በSIM ካርዱ ላይምንም የድምፅመልዕክት ቁጥር አልከተቀመጠም።"</string>
     <string name="add_vm_number_str" msgid="4676479471644687453">"ቁጥር አክል"</string>

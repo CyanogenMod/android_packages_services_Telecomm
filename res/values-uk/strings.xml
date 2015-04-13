@@ -38,6 +38,8 @@
     <string name="outgoing_call_not_allowed" msgid="1435394568102165287">"Власник пристрою дозволив лише екстрені виклики"</string>
     <string name="outgoing_call_error_no_phone_number_supplied" msgid="1940125199802007505">"Щоб зателефонувати, введіть дійсний номер."</string>
     <string name="duplicate_video_call_not_allowed" msgid="3749211605014548386">"Зараз не можна почати дзвінок."</string>
+    <!-- no translation found for video_call_not_allowed_if_tty_enabled (7593649283571253283) -->
+    <skip />
     <string name="no_vm_number" msgid="4164780423805688336">"Відстун. номер голос. пошти"</string>
     <string name="no_vm_number_msg" msgid="1300729501030053828">"На SIM-карті немає збереж. номерів голос. пошти."</string>
     <string name="add_vm_number_str" msgid="4676479471644687453">"Додати номер"</string>

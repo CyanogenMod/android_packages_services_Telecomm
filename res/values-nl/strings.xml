@@ -38,6 +38,8 @@
     <string name="outgoing_call_not_allowed" msgid="1435394568102165287">"Alleen noodoproepen zijn toegestaan door de apparaateigenaar"</string>
     <string name="outgoing_call_error_no_phone_number_supplied" msgid="1940125199802007505">"Als u wilt bellen, moet u een geldig nummer invoeren."</string>
     <string name="duplicate_video_call_not_allowed" msgid="3749211605014548386">"Oproep kan momenteel niet worden toegevoegd."</string>
+    <!-- no translation found for video_call_not_allowed_if_tty_enabled (7593649283571253283) -->
+    <skip />
     <string name="no_vm_number" msgid="4164780423805688336">"Voicemailnummer ontbreekt"</string>
     <string name="no_vm_number_msg" msgid="1300729501030053828">"Er is geen voicemailnummer op de SIM-kaart opgeslagen."</string>
     <string name="add_vm_number_str" msgid="4676479471644687453">"Nummer toevoegen"</string>

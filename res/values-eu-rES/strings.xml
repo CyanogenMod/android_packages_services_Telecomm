@@ -38,6 +38,8 @@
     <string name="outgoing_call_not_allowed" msgid="1435394568102165287">"Gailuaren jabeak larrialdi-deiak bakarrik egitea onartzen du"</string>
     <string name="outgoing_call_error_no_phone_number_supplied" msgid="1940125199802007505">"Deitzeko, idatzi balio duen zenbaki bat."</string>
     <string name="duplicate_video_call_not_allowed" msgid="3749211605014548386">"Une honetan ezin da deirik gehitu."</string>
+    <!-- no translation found for video_call_not_allowed_if_tty_enabled (7593649283571253283) -->
+    <skip />
     <string name="no_vm_number" msgid="4164780423805688336">"Erantzungailuaren zenbakia falta da"</string>
     <string name="no_vm_number_msg" msgid="1300729501030053828">"Ez da erantzungailuaren zenbakirik gorde SIM txartelean."</string>
     <string name="add_vm_number_str" msgid="4676479471644687453">"Gehitu zenbakia"</string>
