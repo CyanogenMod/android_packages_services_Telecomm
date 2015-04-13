@@ -19,7 +19,7 @@ package com.android.server.telecom.testapps;
 import com.android.ex.camera2.blocking.BlockingCameraManager;
 import com.android.ex.camera2.blocking.BlockingCameraManager.BlockingOpenException;
 import com.android.ex.camera2.blocking.BlockingSessionCallback;
-import com.android.server.telecom.tests.R;
+import com.android.server.telecom.testapps.R;
 
 import android.content.Context;
 import android.graphics.SurfaceTexture;

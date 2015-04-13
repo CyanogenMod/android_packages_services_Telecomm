@@ -1428,7 +1428,15 @@ public class Call implements CreateConnectionResponse {
      */
     public void setVideoState(int videoState) {
         // Track which video states were applicable over the duration of the call.
-        mVideoStateHistory = mVideoStateHistory | videoState;
+        // Only track the call state when the call is active or disconnected.  This ensures we do
+        // not include the video state when:
+        // - Call is incoming (but not answered).
+        // - Call it outgoing (but not answered).
+        // We include the video state when disconnected to ensure that rejected calls reflect the
+        // appropriate video state.
+        if (isActive() || getState() == CallState.DISCONNECTED) {
+            mVideoStateHistory = mVideoStateHistory | videoState;
+        }
 
         mVideoState = videoState;
         for (Listener l : mListeners) {

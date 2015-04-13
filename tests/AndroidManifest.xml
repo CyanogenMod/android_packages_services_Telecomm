@@ -30,65 +30,6 @@
     <application android:label="@string/app_name"
                  android:debuggable="true">
         <uses-library android:name="android.test.runner" />
-
-        <!-- Miscellaneous telecom app-related test activities. -->
-
-        <service android:name="com.android.server.telecom.testapps.TestConnectionService"
-                 android:permission="android.permission.BIND_CONNECTION_SERVICE" >
-            <intent-filter>
-                <action android:name="android.telecom.ConnectionService" />
-            </intent-filter>
-        </service>
-
-        <service android:name="com.android.server.telecom.tests.MockConnectionService"
-                 android:permission="android.permission.BIND_CONNECTION_SERVICE" >
-            <intent-filter>
-                <action android:name="android.telecom.ConnectionService" />
-            </intent-filter>
-        </service>
-
-        <service android:name="com.android.server.telecom.testapps.TestConnectionManager"
-                 android:permission="android.permission.BIND_CONNECTION_SERVICE" >
-            <intent-filter>
-                <action android:name="android.telecom.ConnectionService" />
-            </intent-filter>
-        </service>
-
-        <service android:name="com.android.server.telecom.testapps.TestInCallServiceImpl"
-                 android:process="com.android.server.telecom.testapps.TestInCallService"
-                 android:permission="android.permission.BIND_INCALL_SERVICE" >
-            <intent-filter>
-                <action android:name="android.telecom.InCallService"/>
-            </intent-filter>
-        </service>
-
-        <activity android:name="com.android.server.telecom.testapps.TestCallActivity"
-                android:theme="@android:style/Theme.NoDisplay"
-                android:label="@string/testCallActivityLabel">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-            <intent-filter>
-                <action android:name="android.telecom.testapps.ACTION_START_INCOMING_CALL" />
-                <action android:name="android.telecom.testapps.ACTION_NEW_UNKNOWN_CALL" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <data android:scheme="tel" />
-                <data android:scheme="sip" />
-            </intent-filter>
-            <intent-filter>
-                <action android:name="android.telecom.testapps.ACTION_HANGUP_CALLS" />
-                <category android:name="android.intent.category.DEFAULT" />
-            </intent-filter>
-        </activity>
-
-        <receiver android:name="com.android.server.telecom.testapps.CallNotificationReceiver"
-                android:exported="false">
-            <intent-filter>
-                <action android:name="com.android.server.telecom.testapps.ACTION_CALL_SERVICE_EXIT" />
-            </intent-filter>
-        </receiver>
     </application>
 
     <!--

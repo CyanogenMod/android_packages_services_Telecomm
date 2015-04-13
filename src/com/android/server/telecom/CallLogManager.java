@@ -208,8 +208,7 @@ final class CallLogManager extends CallsManagerListenerBase {
      * @return The call features.
      */
     private static int getCallFeatures(int videoState) {
-        if ((videoState & VideoProfile.VideoState.TX_ENABLED)
-                == VideoProfile.VideoState.TX_ENABLED) {
+        if (VideoProfile.VideoState.isVideo(videoState)) {
             return Calls.FEATURES_VIDEO;
         }
         return 0;

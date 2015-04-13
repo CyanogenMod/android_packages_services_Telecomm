@@ -38,7 +38,7 @@ import android.telecom.TelecomManager;
 import android.telecom.VideoProfile;
 import android.util.Log;
 
-import com.android.server.telecom.tests.R;
+import com.android.server.telecom.testapps.R;
 
 import java.lang.String;
 import java.util.ArrayList;
