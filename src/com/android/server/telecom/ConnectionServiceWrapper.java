@@ -561,7 +561,7 @@ final class ConnectionServiceWrapper extends ServiceBinder<IConnectionService> {
         @Override
         public void setStatusHints(String callId, StatusHints statusHints) {
             logIncoming("setStatusHints %s %s", callId, statusHints);
-            if (mCallIdMapper.isValidCallId(callId)) {
+            if (mCallIdMapper.isValidCallId(callId) || mCallIdMapper.isValidConferenceId(callId)) {
                 SomeArgs args = SomeArgs.obtain();
                 args.arg1 = callId;
                 args.arg2 = statusHints;

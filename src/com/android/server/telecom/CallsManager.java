@@ -1061,6 +1061,7 @@ public final class CallsManager extends Call.ListenerBase {
 
         setCallState(call, Call.getStateFromConnectionState(parcelableConference.getState()));
         call.setConnectionCapabilities(parcelableConference.getConnectionCapabilities());
+        call.setStatusHints(parcelableConference.getStatusHints());
 
         // TODO: Move this to be a part of addCall()
         call.addListener(this);
