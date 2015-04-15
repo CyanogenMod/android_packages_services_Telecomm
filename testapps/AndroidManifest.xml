@@ -53,7 +53,8 @@
         </service>
 
         <activity android:name="com.android.server.telecom.testapps.TestCallActivity"
-                  android:label="@string/testCallActivityLabel">
+                  android:label="@string/testCallActivityLabel"
+                  android:process="com.android.server.telecom.testapps.TestInCallService">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -74,6 +75,10 @@
                 <action android:name="android.telecom.testapps.ACTION_SEND_UPGRADE_REQUEST" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:scheme="int" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.server.telecom.testapps.ACTION_SEND_UPDATE_REQUEST_FROM_TEST_INCALL_SERVICE" />
+                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
 

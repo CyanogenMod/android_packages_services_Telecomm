@@ -16,6 +16,7 @@
 
 package com.android.server.telecom.testapps;
 
+import android.telecom.Call;
 import android.telecom.InCallService;
 import android.telecom.Phone;
 import android.util.Log;
@@ -34,12 +35,15 @@ public class TestInCallServiceImpl extends InCallService {
 
     private Phone.Listener mPhoneListener = new Phone.Listener() {
         @Override
-        public void onCallAdded(Phone phone, android.telecom.Call call) {
-            Log.i(TAG, "onCallAdded: "+call.toString());
+        public void onCallAdded(Phone phone, Call call) {
+            Log.i(TAG, "onCallAdded: " + call.toString());
+            TestCallList.getInstance().addCall(call);
         }
+
         @Override
-        public void onCallRemoved(Phone phone, android.telecom.Call call) {
+        public void onCallRemoved(Phone phone, Call call) {
             Log.i(TAG, "onCallRemoved: "+call.toString());
+            TestCallList.getInstance().removeCall(call);
         }
     };
 
@@ -48,7 +52,7 @@ public class TestInCallServiceImpl extends InCallService {
         Log.i(TAG, "onPhoneCreated");
         mPhone = phone;
         mPhone.addListener(mPhoneListener);
-
+        TestCallList.getInstance().clearCalls();
     }
 
     @Override
@@ -56,5 +60,6 @@ public class TestInCallServiceImpl extends InCallService {
         Log.i(TAG, "onPhoneDestroyed");
         mPhone.removeListener(mPhoneListener);
         mPhone = null;
+        TestCallList.getInstance().clearCalls();
     }
 }
