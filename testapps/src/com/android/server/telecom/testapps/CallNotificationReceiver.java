@@ -112,4 +112,11 @@ public class CallNotificationReceiver extends BroadcastReceiver {
         LocalBroadcastManager.getInstance(context).sendBroadcast(
                 new Intent(TestCallActivity.ACTION_HANGUP_CALLS));
     }
+
+    public static void sendUpgradeRequest(Context context, Uri data) {
+        Log.i(TAG, "Sending upgrade request of type: " + data);
+        final Intent intent = new Intent(TestCallActivity.ACTION_SEND_UPGRADE_REQUEST);
+        intent.setData(data);
+        LocalBroadcastManager.getInstance(context).sendBroadcast(intent);
+    }
 }
