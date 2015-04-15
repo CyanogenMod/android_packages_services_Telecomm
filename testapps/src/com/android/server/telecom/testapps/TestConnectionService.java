@@ -129,7 +129,7 @@ public class TestConnectionService extends ConnectionService {
         }
     }
 
-    private final class TestConnection extends Connection {
+    final class TestConnection extends Connection {
         private final boolean mIsIncoming;
 
         /** Used to cleanup camera and media when done with connection. */
