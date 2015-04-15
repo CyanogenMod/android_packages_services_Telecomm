@@ -42,7 +42,6 @@ import android.text.TextUtils;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.telecom.IVideoProvider;
 import com.android.internal.telephony.CallerInfo;
-import com.android.internal.telephony.CallerInfoAsyncQuery;
 import com.android.internal.telephony.CallerInfoAsyncQuery.OnQueryCompleteListener;
 import com.android.internal.telephony.SmsApplication;
 import com.android.server.telecom.ContactsAsyncHelper.OnImageLoadCompleteListener;
@@ -152,25 +151,29 @@ public class Call implements CreateConnectionResponse {
         public void onCallSubstateChanged(Call call) {}
     }
 
-    private static final OnQueryCompleteListener sCallerInfoQueryListener =
+    private final OnQueryCompleteListener mCallerInfoQueryListener =
             new OnQueryCompleteListener() {
                 /** ${inheritDoc} */
                 @Override
                 public void onQueryComplete(int token, Object cookie, CallerInfo callerInfo) {
-                    if (cookie != null) {
-                        ((Call) cookie).setCallerInfo(callerInfo, token);
+                    synchronized (mLock) {
+                        if (cookie != null) {
+                            ((Call) cookie).setCallerInfo(callerInfo, token);
+                        }
                     }
                 }
             };
 
-    private static final OnImageLoadCompleteListener sPhotoLoadListener =
+    private final OnImageLoadCompleteListener mPhotoLoadListener =
             new OnImageLoadCompleteListener() {
                 /** ${inheritDoc} */
                 @Override
                 public void onImageLoadComplete(
                         int token, Drawable photo, Bitmap photoIcon, Object cookie) {
-                    if (cookie != null) {
-                        ((Call) cookie).setPhoto(photo, photoIcon, token);
+                    synchronized (mLock) {
+                        if (cookie != null) {
+                            ((Call) cookie).setPhoto(photo, photoIcon, token);
+                        }
                     }
                 }
             };
@@ -310,6 +313,7 @@ public class Call implements CreateConnectionResponse {
     private final CallsManager mCallsManager;
     private final TelecomSystem.SyncRoot mLock;
     private int mCallSubstate;
+    private final CallerInfoAsyncQueryFactory mCallerInfoAsyncQueryFactory;
 
     private boolean mWasConferencePreviouslyMerged = false;
 
@@ -341,6 +345,7 @@ public class Call implements CreateConnectionResponse {
             TelecomSystem.SyncRoot lock,
             ConnectionServiceRepository repository,
             ContactsAsyncHelper contactsAsyncHelper,
+            CallerInfoAsyncQueryFactory callerInfoAsyncQueryFactory,
             Uri handle,
             GatewayInfo gatewayInfo,
             PhoneAccountHandle connectionManagerPhoneAccountHandle,
@@ -353,6 +358,7 @@ public class Call implements CreateConnectionResponse {
         mLock = lock;
         mRepository = repository;
         mContactsAsyncHelper = contactsAsyncHelper;
+        mCallerInfoAsyncQueryFactory = callerInfoAsyncQueryFactory;
         setHandle(handle);
         setHandle(handle, TelecomManager.PRESENTATION_ALLOWED);
         mGatewayInfo = gatewayInfo;
@@ -384,6 +390,7 @@ public class Call implements CreateConnectionResponse {
             TelecomSystem.SyncRoot lock,
             ConnectionServiceRepository repository,
             ContactsAsyncHelper contactsAsyncHelper,
+            CallerInfoAsyncQueryFactory callerInfoAsyncQueryFactory,
             Uri handle,
             GatewayInfo gatewayInfo,
             PhoneAccountHandle connectionManagerPhoneAccountHandle,
@@ -391,7 +398,8 @@ public class Call implements CreateConnectionResponse {
             boolean isIncoming,
             boolean isConference,
             long connectTimeMillis) {
-        this(context, callsManager, lock, repository, contactsAsyncHelper, handle, gatewayInfo,
+        this(context, callsManager, lock, repository, contactsAsyncHelper,
+                callerInfoAsyncQueryFactory, handle, gatewayInfo,
                 connectionManagerPhoneAccountHandle, targetPhoneAccountHandle, isIncoming,
                 isConference);
 
@@ -416,16 +424,46 @@ public class Call implements CreateConnectionResponse {
             component = mConnectionService.getComponentName().flattenToShortString();
         }
 
-        return String.format(Locale.US, "[%s, %s, %s, %s, %d, childs(%d), has_parent(%b), [%s], %d]",
+
+
+        return String.format(Locale.US, "[%s, %s, %s, %s, %s, childs(%d), has_parent(%b), [%s], %d]",
                 System.identityHashCode(this),
                 CallState.toString(mState),
                 component,
                 Log.piiHandle(mHandle),
-                getVideoState(),
+                getVideoStateDescription(getVideoState()),
                 getChildCalls().size(),
                 getParentCall() != null,
                 Connection.capabilitiesToString(getConnectionCapabilities()),
                 getCallSubstate());
+    }
+
+    /**
+     * Builds a debug-friendly description string for a video state.
+     * <p>
+     * A = audio active, T = video transmission active, R = video reception active, P = video
+     * paused.
+     *
+     * @param videoState The video state.
+     * @return A string indicating which bits are set in the video state.
+     */
+    private String getVideoStateDescription(int videoState) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("A");
+
+        if (VideoProfile.VideoState.isTransmissionEnabled(videoState)) {
+            sb.append("T");
+        }
+
+        if (VideoProfile.VideoState.isReceptionEnabled(videoState)) {
+            sb.append("R");
+        }
+
+        if (VideoProfile.VideoState.isPaused(videoState)) {
+            sb.append("P");
+        }
+
+        return sb.toString();
     }
 
     int getState() {
@@ -1269,11 +1307,11 @@ public class Call implements CreateConnectionResponse {
             mHandler.post(new Runnable() {
                 @Override
                 public void run() {
-                    CallerInfoAsyncQuery.startQuery(
+                    mCallerInfoAsyncQueryFactory.startQuery(
                             mQueryToken,
                             mContext,
                             number,
-                            sCallerInfoQueryListener,
+                            mCallerInfoQueryListener,
                             Call.this);
                 }
             });
@@ -1302,7 +1340,7 @@ public class Call implements CreateConnectionResponse {
                         token,
                         mContext,
                         mCallerInfo.contactDisplayPhotoUri,
-                        sPhotoLoadListener,
+                        mPhotoLoadListener,
                         this);
                 // Do not call onCallerInfoChanged yet in this case.  We call it in setPhoto().
             } else {

@@ -92,6 +92,7 @@ public final class TelecomSystem {
     public TelecomSystem(
             Context context,
             MissedCallNotifier missedCallNotifier,
+            CallerInfoAsyncQueryFactory callerInfoAsyncQueryFactory,
             HeadsetMediaButtonFactory headsetMediaButtonFactory,
             ProximitySensorManagerFactory proximitySensorManagerFactory,
             InCallWakeLockControllerFactory inCallWakeLockControllerFactory) {
@@ -105,6 +106,7 @@ public final class TelecomSystem {
                 mContext,
                 mLock,
                 mContactsAsyncHelper,
+                callerInfoAsyncQueryFactory,
                 mMissedCallNotifier,
                 mPhoneAccountRegistrar,
                 headsetMediaButtonFactory,

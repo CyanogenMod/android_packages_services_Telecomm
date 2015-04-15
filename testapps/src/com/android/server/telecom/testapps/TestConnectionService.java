@@ -303,7 +303,7 @@ public class TestConnectionService extends ConnectionService {
                     originalRequest.getExtras(),
                     originalRequest.getVideoState());
             connection.setVideoState(originalRequest.getVideoState());
-            maybeAddVideoProvider(connection);
+            addVideoProvider(connection);
             addCall(connection);
             connection.startOutgoing();
 
@@ -341,7 +341,7 @@ public class TestConnectionService extends ConnectionService {
             connection.setVideoState(videoState);
             connection.setAddress(address, TelecomManager.PRESENTATION_ALLOWED);
 
-            maybeAddVideoProvider(connection);
+            addVideoProvider(connection);
 
             addCall(connection);
 
@@ -383,15 +383,13 @@ public class TestConnectionService extends ConnectionService {
         }
     }
 
-    private void maybeAddVideoProvider(TestConnection connection) {
-        if (connection.getVideoState() == VideoProfile.VideoState.BIDIRECTIONAL) {
-            TestVideoProvider testVideoCallProvider =
-                    new TestVideoProvider(getApplicationContext());
-            connection.setVideoProvider(testVideoCallProvider);
+    private void addVideoProvider(TestConnection connection) {
+        TestVideoProvider testVideoCallProvider =
+                new TestVideoProvider(getApplicationContext(), connection);
+        connection.setVideoProvider(testVideoCallProvider);
 
-            // Keep reference to original so we can clean up the media players later.
-            connection.setTestVideoCallProvider(testVideoCallProvider);
-        }
+        // Keep reference to original so we can clean up the media players later.
+        connection.setTestVideoCallProvider(testVideoCallProvider);
     }
 
     private void activateCall(TestConnection connection) {
@@ -414,7 +412,7 @@ public class TestConnectionService extends ConnectionService {
         if (mCalls.isEmpty() && mMediaPlayer != null && mMediaPlayer.isPlaying()) {
             mMediaPlayer.stop();
             mMediaPlayer.release();
-            mMediaPlayer = null;
+            mMediaPlayer = createMediaPlayer();
         }
 
         updateConferenceable();
