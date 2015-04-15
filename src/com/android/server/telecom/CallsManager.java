@@ -203,7 +203,8 @@ public final class CallsManager extends Call.ListenerBase {
         mProximitySensorManager = new ProximitySensorManager(context);
         mPhoneStateBroadcaster = new PhoneStateBroadcaster();
         mCallLogManager = new CallLogManager(context);
-        mInCallController = new InCallController(context);
+        mInCallController = new InCallController(context,
+                SystemProperties.getBoolean("persist.radio.incalluialwayson", true));
         mDtmfLocalTonePlayer = new DtmfLocalTonePlayer(context);
         mConnectionServiceRepository = new ConnectionServiceRepository(mPhoneAccountRegistrar,
                 context);
