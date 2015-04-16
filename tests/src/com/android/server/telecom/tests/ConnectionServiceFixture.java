@@ -88,6 +88,7 @@ public class ConnectionServiceFixture implements TestFixture<IConnectionService>
         IVideoProvider videoProvider;
         int videoState;
         long connectTimeMillis;
+        StatusHints statusHints;
     }
 
     public String mLatestConnectionId;
@@ -335,7 +336,8 @@ public class ConnectionServiceFixture implements TestFixture<IConnectionService>
                 c.connectionIds,
                 c.videoProvider,
                 c.videoState,
-                c.connectTimeMillis);
+                c.connectTimeMillis,
+                c.statusHints);
     }
 
     private ParcelableConnection parcelable(ConnectionInfo c) {
