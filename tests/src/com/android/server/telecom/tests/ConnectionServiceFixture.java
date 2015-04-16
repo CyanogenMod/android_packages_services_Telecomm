@@ -353,7 +353,6 @@ public class ConnectionServiceFixture implements TestFixture<IConnectionService>
                 false, /* voip audio mode */
                 c.statusHints,
                 c.disconnectCause,
-                c.conferenceableConnectionIds,
-                0 /* call substate */);
+                c.conferenceableConnectionIds);
     }
 }

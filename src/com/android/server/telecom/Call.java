@@ -92,7 +92,6 @@ public class Call implements CreateConnectionResponse {
         void onPhoneAccountChanged(Call call);
         void onConferenceableCallsChanged(Call call);
         boolean onCanceledViaNewOutgoingCallBroadcast(Call call);
-        void onCallSubstateChanged(Call call);
     }
 
     public abstract static class ListenerBase implements Listener {
@@ -148,7 +147,6 @@ public class Call implements CreateConnectionResponse {
         public boolean onCanceledViaNewOutgoingCallBroadcast(Call call) {
             return false;
         }
-        public void onCallSubstateChanged(Call call) {}
     }
 
     private final OnQueryCompleteListener mCallerInfoQueryListener =
@@ -312,7 +310,6 @@ public class Call implements CreateConnectionResponse {
     private final Context mContext;
     private final CallsManager mCallsManager;
     private final TelecomSystem.SyncRoot mLock;
-    private int mCallSubstate;
     private final CallerInfoAsyncQueryFactory mCallerInfoAsyncQueryFactory;
 
     private boolean mWasConferencePreviouslyMerged = false;
@@ -426,7 +423,7 @@ public class Call implements CreateConnectionResponse {
 
 
 
-        return String.format(Locale.US, "[%s, %s, %s, %s, %s, childs(%d), has_parent(%b), [%s], %d]",
+        return String.format(Locale.US, "[%s, %s, %s, %s, %s, childs(%d), has_parent(%b), [%s]]",
                 System.identityHashCode(this),
                 CallState.toString(mState),
                 component,
@@ -434,8 +431,7 @@ public class Call implements CreateConnectionResponse {
                 getVideoStateDescription(getVideoState()),
                 getChildCalls().size(),
                 getParentCall() != null,
-                Connection.capabilitiesToString(getConnectionCapabilities()),
-                getCallSubstate());
+                Connection.capabilitiesToString(getConnectionCapabilities()));
     }
 
     /**
@@ -847,7 +843,6 @@ public class Call implements CreateConnectionResponse {
         setRingbackRequested(connection.isRingbackRequested());
         setIsVoipAudioMode(connection.getIsVoipAudioMode());
         setStatusHints(connection.getStatusHints());
-        setCallSubstate(connection.getCallSubstate());
 
         mConferenceableCalls.clear();
         for (String id : connection.getConferenceableConnectionIds()) {
@@ -1548,26 +1543,5 @@ public class Call implements CreateConnectionResponse {
                 return CallState.RINGING;
         }
         return CallState.DISCONNECTED;
-    }
-
-    /**
-     * The current call substate.
-     */
-    public int getCallSubstate() {
-        return mCallSubstate;
-    }
-
-
-    /**
-     * Determines the current substate for the call.
-     *
-     * @param callSubstate The substate for the call.
-     */
-    public void setCallSubstate(int callSubstate) {
-        mCallSubstate = callSubstate;
-
-        for (Listener l : mListeners) {
-            l.onCallSubstateChanged(this);
-        }
     }
 }

@@ -537,25 +537,6 @@ final class ConnectionServiceWrapper extends ServiceBinder {
                 Binder.restoreCallingIdentity(token);
             }
         }
-
-        @Override
-        public void setCallSubstate(String callId, int callSubstate) {
-            long token = Binder.clearCallingIdentity();
-            try {
-                synchronized (mLock) {
-                    logIncoming("setCallSubstate %s %d", callId, callSubstate);
-                    if (mCallIdMapper.isValidCallId(callId)) {
-                        Call call = mCallIdMapper.getCall(callId);
-
-                        if (call != null) {
-                            call.setCallSubstate(callSubstate);
-                        }
-                    }
-                }
-            } finally {
-                Binder.restoreCallingIdentity(token);
-            }
-        }
     }
 
     private final Adapter mAdapter = new Adapter();
