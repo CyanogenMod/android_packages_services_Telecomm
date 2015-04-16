@@ -80,7 +80,6 @@ public class CallsManager extends Call.ListenerBase {
         void onIsVoipAudioModeChanged(Call call);
         void onVideoStateChanged(Call call);
         void onCanAddCallChanged(boolean canAddCall);
-        void onCallSubstateChanged(Call call);
     }
 
     private static final String TAG = "CallsManager";
@@ -375,12 +374,6 @@ public class CallsManager extends Call.ListenerBase {
 
     Collection<Call> getCalls() {
         return Collections.unmodifiableCollection(mCalls);
-    }
-
-    public void onCallSubstateChanged(Call call) {
-        for (CallsManagerListener listener : mListeners) {
-            listener.onCallSubstateChanged(call);
-        }
     }
 
     Call getForegroundCall() {

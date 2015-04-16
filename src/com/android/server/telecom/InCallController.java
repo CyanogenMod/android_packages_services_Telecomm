@@ -120,11 +120,6 @@ public final class InCallController extends CallsManagerListenerBase {
         public void onConferenceableCallsChanged(Call call) {
             updateCall(call);
         }
-
-        @Override
-        public void onCallSubstateChanged(Call call) {
-            updateCall(call);
-        }
     };
 
     /**
@@ -569,8 +564,7 @@ public final class InCallController extends CallsManagerListenerBase {
                 call.getStatusHints(),
                 call.getVideoState(),
                 conferenceableCallIds,
-                call.getExtras(),
-                call.getCallSubstate());
+                call.getExtras());
     }
 
     private static final int[] CONNECTION_TO_CALL_CAPABILITY = new int[] {
