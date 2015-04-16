@@ -916,14 +916,12 @@ public class CallsManager extends Call.ListenerBase {
 
     void markCallAsDialing(Call call) {
         setCallState(call, CallState.DIALING);
+        maybeMoveToSpeakerPhone(call);
     }
 
     void markCallAsActive(Call call) {
         setCallState(call, CallState.ACTIVE);
-
-        if (call.getStartWithSpeakerphoneOn()) {
-            setAudioRoute(AudioState.ROUTE_SPEAKER);
-        }
+        maybeMoveToSpeakerPhone(call);
     }
 
     void markCallAsOnHold(Call call) {
@@ -1454,6 +1452,16 @@ public class CallsManager extends Call.ListenerBase {
             return false;
         }
         return true;
+    }
+
+    /**
+     * Checks to see if the call should be on speakerphone and if so, set it.
+     */
+    private void maybeMoveToSpeakerPhone(Call call) {
+        if (call.getStartWithSpeakerphoneOn()) {
+            setAudioRoute(AudioState.ROUTE_SPEAKER);
+            call.setStartWithSpeakerphoneOn(false);
+        }
     }
 
     /**
