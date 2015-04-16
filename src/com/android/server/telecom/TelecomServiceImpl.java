@@ -45,6 +45,7 @@ import com.android.internal.util.IndentingPrintWriter;
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -56,9 +57,13 @@ public class TelecomServiceImpl {
 
     private final ITelecomService.Stub mBinderImpl = new ITelecomService.Stub() {
         @Override
-        public PhoneAccountHandle getDefaultOutgoingPhoneAccount(String uriScheme) {
+        public PhoneAccountHandle getDefaultOutgoingPhoneAccount(String uriScheme,
+                String callingPackage) {
             synchronized (mLock) {
-                enforceReadPermission();
+                if (!canReadPhoneState("getDefaultOutgoingPhoneAccount")) {
+                    return null;
+                }
+
                 long token = Binder.clearCallingIdentity();
                 try {
                     PhoneAccountHandle defaultOutgoingPhoneAccount =
@@ -112,9 +117,12 @@ public class TelecomServiceImpl {
         }
 
         @Override
-        public List<PhoneAccountHandle> getCallCapablePhoneAccounts() {
+        public List<PhoneAccountHandle> getCallCapablePhoneAccounts(String callingPackage) {
+            if (!canReadPhoneState("getDefaultOutgoingPhoneAccount")) {
+                return Collections.emptyList();
+            }
+
             synchronized (mLock) {
-                enforceReadPermission();
                 long token = Binder.clearCallingIdentity();
                 try {
                     return filterForAccountsVisibleToCaller(
@@ -129,9 +137,13 @@ public class TelecomServiceImpl {
         }
 
         @Override
-        public List<PhoneAccountHandle> getPhoneAccountsSupportingScheme(String uriScheme) {
+        public List<PhoneAccountHandle> getPhoneAccountsSupportingScheme(String uriScheme,
+                String callingPackage) {
             synchronized (mLock) {
-                enforceReadPermission();
+                if (!canReadPhoneState("getPhoneAccountsSupportingScheme")) {
+                    return Collections.emptyList();
+                }
+
                 long token = Binder.clearCallingIdentity();
                 try {
                     return filterForAccountsVisibleToCaller(
@@ -252,9 +264,12 @@ public class TelecomServiceImpl {
         }
 
         @Override
-        public List<PhoneAccountHandle> getSimCallManagers() {
+        public List<PhoneAccountHandle> getSimCallManagers(String callingPackage) {
             synchronized (mLock) {
-                enforceReadPermission();
+                if (!canReadPhoneState("getSimCallManagers")) {
+                    return Collections.emptyList();
+                }
+
                 long token = Binder.clearCallingIdentity();
                 try {
                     return filterForAccountsVisibleToCaller(
@@ -339,9 +354,13 @@ public class TelecomServiceImpl {
          * @see android.telecom.TelecomManager#isVoiceMailNumber
          */
         @Override
-        public boolean isVoiceMailNumber(PhoneAccountHandle accountHandle, String number) {
+        public boolean isVoiceMailNumber(PhoneAccountHandle accountHandle, String number,
+                String callingPackage) {
             synchronized (mLock) {
-                enforceReadPermissionOrDefaultDialer();
+                if (!isDefaultDialerCalling() && !canReadPhoneState("isVoiceMailNumber")) {
+                    return false;
+                }
+
                 try {
                     if (!isVisibleToCaller(accountHandle)) {
                         Log.w(this, "%s is not visible for the calling user", accountHandle);
@@ -359,9 +378,12 @@ public class TelecomServiceImpl {
          * @see android.telecom.TelecomManager#getVoiceMailNumber
          */
         @Override
-        public String getVoiceMailNumber(PhoneAccountHandle accountHandle) {
+        public String getVoiceMailNumber(PhoneAccountHandle accountHandle, String callingPackage) {
             synchronized (mLock) {
-                enforceReadPermissionOrDefaultDialer();
+                if (!isDefaultDialerCalling() && !canReadPhoneState("getVoiceMailNumber")) {
+                    return null;
+                }
+
                 try {
                     if (!isVisibleToCaller(accountHandle)) {
                         Log.w(this, "%s is not visible for the calling user", accountHandle);
@@ -385,8 +407,11 @@ public class TelecomServiceImpl {
          * @see android.telecom.TelecomManager#getLine1Number
          */
         @Override
-        public String getLine1Number(PhoneAccountHandle accountHandle) {
-            enforceReadPermissionOrDefaultDialer();
+        public String getLine1Number(PhoneAccountHandle accountHandle, String callingPackage) {
+            if (!isDefaultDialerCalling() && !canReadPhoneState("getLine1Number")) {
+                return null;
+            }
+
             synchronized (mLock) {
                 try {
                     if (!isVisibleToCaller(accountHandle)) {
@@ -430,9 +455,12 @@ public class TelecomServiceImpl {
          * @see android.telecom.TelecomManager#isInCall
          */
         @Override
-        public boolean isInCall() {
+        public boolean isInCall(String callingPackage) {
+            if (!canReadPhoneState("isInCall")) {
+                return null;
+            }
+
             synchronized (mLock) {
-                enforceReadPermission();
                 final int callState = mCallsManager.getCallState();
                 return callState == TelephonyManager.CALL_STATE_OFFHOOK
                         || callState == TelephonyManager.CALL_STATE_RINGING;
@@ -443,9 +471,12 @@ public class TelecomServiceImpl {
          * @see android.telecom.TelecomManager#isRinging
          */
         @Override
-        public boolean isRinging() {
+        public boolean isRinging(String callingPackage) {
+            if (!canReadPhoneState("isRinging")) {
+                return null;
+            }
+
             synchronized (mLock) {
-                enforceReadPermission();
                 return mCallsManager.getCallState() == TelephonyManager.CALL_STATE_RINGING;
             }
         }
@@ -486,9 +517,12 @@ public class TelecomServiceImpl {
          * @see android.telecom.TelecomManager#showInCallScreen
          */
         @Override
-        public void showInCallScreen(boolean showDialpad) {
+        public void showInCallScreen(boolean showDialpad, String callingPackage) {
+            if (!isDefaultDialerCalling() && !canReadPhoneState("showInCallScreen")) {
+                return;
+            }
+
             synchronized (mLock) {
-                enforceReadPermissionOrDefaultDialer();
                 mCallsManager.getInCallController().bringToForeground(showDialpad);
             }
         }
@@ -587,9 +621,12 @@ public class TelecomServiceImpl {
          * @see android.telecom.TelecomManager#isTtySupported
          */
         @Override
-        public boolean isTtySupported() {
+        public boolean isTtySupported(String callingPackage) {
+            if (!canReadPhoneState("hasVoiceMailNumber")) {
+                return null;
+            }
+
             synchronized (mLock) {
-                enforceReadPermission();
                 return mCallsManager.isTtySupported();
             }
         }
@@ -598,9 +635,12 @@ public class TelecomServiceImpl {
          * @see android.telecom.TelecomManager#getCurrentTtyMode
          */
         @Override
-        public int getCurrentTtyMode() {
+        public int getCurrentTtyMode(String callingPackage) {
+            if (!canReadPhoneState("getCurrentTtyMode")) {
+                return TelecomManager.TTY_MODE_OFF;
+            }
+
             synchronized (mLock) {
-                enforceReadPermission();
                 return mCallsManager.getCurrentTtyMode();
             }
         }
@@ -860,12 +900,6 @@ public class TelecomServiceImpl {
         }
     }
 
-    private void enforceReadPermissionOrDefaultDialer() {
-        if (!isDefaultDialerCalling()) {
-            enforceReadPermission();
-        }
-    }
-
     private void enforceModifyPermissionOrDefaultDialer() {
         if (!isDefaultDialerCalling()) {
             enforceModifyPermission();
@@ -890,10 +924,6 @@ public class TelecomServiceImpl {
 
     private void enforceRegisterConnectionManagerPermission() {
         enforcePermission(android.Manifest.permission.REGISTER_CONNECTION_MANAGER);
-    }
-
-    private void enforceReadPermission() {
-        enforcePermission(Manifest.permission.READ_PHONE_STATE);
     }
 
     private void enforceModifyPermission() {
@@ -922,6 +952,15 @@ public class TelecomServiceImpl {
             throw new UnsupportedOperationException(
                     "System does not support feature " + feature);
         }
+    }
+
+    private boolean canReadPhoneState(String message) {
+        // Accessing phone state is gated by a special permission.
+        mContext.enforceCallingOrSelfPermission(Manifest.permission.READ_PHONE_STATE, message);
+
+        // Some apps that have the permission can be restricted via app ops.
+        return mAppOpsManager.noteOp(AppOpsManager.OP_READ_PHONE_STATE,
+                Binder.getCallingUid(), callingPackage) == AppOpsManager.MODE_ALLOWED;
     }
 
     private boolean isCallerSimCallManager() {
