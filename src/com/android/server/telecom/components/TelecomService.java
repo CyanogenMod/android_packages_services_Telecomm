@@ -22,6 +22,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.IBinder;
 
+import com.android.internal.telephony.CallerInfoAsyncQuery;
+import com.android.server.telecom.CallerInfoAsyncQueryFactory;
 import com.android.server.telecom.CallsManager;
 import com.android.server.telecom.HeadsetMediaButton;
 import com.android.server.telecom.HeadsetMediaButtonFactory;
@@ -63,6 +65,17 @@ public class TelecomService extends Service implements TelecomSystem.Component {
                     new TelecomSystem(
                             context,
                             new MissedCallNotifierImpl(context.getApplicationContext()),
+                            new CallerInfoAsyncQueryFactory() {
+                                @Override
+                                public CallerInfoAsyncQuery startQuery(int token, Context context,
+                                        String number,
+                                        CallerInfoAsyncQuery.OnQueryCompleteListener listener,
+                                        Object cookie) {
+                                    Log.i(TelecomSystem.getInstance(), "CallerInfoAsyncQuery.startQuery number=%s cookie=%s", number, cookie);
+                                    return CallerInfoAsyncQuery.startQuery(
+                                            token, context, number, listener, cookie);
+                                }
+                            },
                             new HeadsetMediaButtonFactory() {
                                 @Override
                                 public HeadsetMediaButton create(Context context,

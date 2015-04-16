@@ -409,7 +409,7 @@ public class TelecomServiceImpl {
         @Override
         public void silenceRinger() {
             synchronized (mLock) {
-                enforceModifyPermission();
+                enforceModifyPermissionOrDefaultDialer();
                 mCallsManager.getRinger().silence();
             }
         }

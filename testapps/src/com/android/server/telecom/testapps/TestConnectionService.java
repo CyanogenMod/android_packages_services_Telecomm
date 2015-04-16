@@ -129,7 +129,7 @@ public class TestConnectionService extends ConnectionService {
         }
     }
 
-    private final class TestConnection extends Connection {
+    final class TestConnection extends Connection {
         private final boolean mIsIncoming;
 
         /** Used to cleanup camera and media when done with connection. */
@@ -141,6 +141,15 @@ public class TestConnectionService extends ConnectionService {
                 setDisconnected(new DisconnectCause(DisconnectCause.MISSED));
                 destroyCall(TestConnection.this);
                 destroy();
+            }
+        };
+
+        private BroadcastReceiver mUpgradeRequestReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                final int request = Integer.parseInt(intent.getData().getSchemeSpecificPart());
+                final VideoProfile videoProfile = new VideoProfile(request);
+                mTestVideoCallProvider.receiveSessionModifyRequest(videoProfile);
             }
         };
 
@@ -156,6 +165,11 @@ public class TestConnectionService extends ConnectionService {
 
             LocalBroadcastManager.getInstance(getApplicationContext()).registerReceiver(
                     mHangupReceiver, new IntentFilter(TestCallActivity.ACTION_HANGUP_CALLS));
+            final IntentFilter filter =
+                    new IntentFilter(TestCallActivity.ACTION_SEND_UPGRADE_REQUEST);
+            filter.addDataScheme("int");
+            LocalBroadcastManager.getInstance(getApplicationContext()).registerReceiver(
+                    mUpgradeRequestReceiver, filter);
         }
 
         void startOutgoing() {
@@ -235,6 +249,8 @@ public class TestConnectionService extends ConnectionService {
         public void cleanup() {
             LocalBroadcastManager.getInstance(getApplicationContext()).unregisterReceiver(
                     mHangupReceiver);
+            LocalBroadcastManager.getInstance(getApplicationContext()).unregisterReceiver(
+                    mUpgradeRequestReceiver);
         }
 
         /**
@@ -303,7 +319,7 @@ public class TestConnectionService extends ConnectionService {
                     originalRequest.getExtras(),
                     originalRequest.getVideoState());
             connection.setVideoState(originalRequest.getVideoState());
-            maybeAddVideoProvider(connection);
+            addVideoProvider(connection);
             addCall(connection);
             connection.startOutgoing();
 
@@ -341,7 +357,7 @@ public class TestConnectionService extends ConnectionService {
             connection.setVideoState(videoState);
             connection.setAddress(address, TelecomManager.PRESENTATION_ALLOWED);
 
-            maybeAddVideoProvider(connection);
+            addVideoProvider(connection);
 
             addCall(connection);
 
@@ -383,15 +399,13 @@ public class TestConnectionService extends ConnectionService {
         }
     }
 
-    private void maybeAddVideoProvider(TestConnection connection) {
-        if (connection.getVideoState() == VideoProfile.VideoState.BIDIRECTIONAL) {
-            TestVideoProvider testVideoCallProvider =
-                    new TestVideoProvider(getApplicationContext());
-            connection.setVideoProvider(testVideoCallProvider);
+    private void addVideoProvider(TestConnection connection) {
+        TestVideoProvider testVideoCallProvider =
+                new TestVideoProvider(getApplicationContext(), connection);
+        connection.setVideoProvider(testVideoCallProvider);
 
-            // Keep reference to original so we can clean up the media players later.
-            connection.setTestVideoCallProvider(testVideoCallProvider);
-        }
+        // Keep reference to original so we can clean up the media players later.
+        connection.setTestVideoCallProvider(testVideoCallProvider);
     }
 
     private void activateCall(TestConnection connection) {
@@ -414,7 +428,7 @@ public class TestConnectionService extends ConnectionService {
         if (mCalls.isEmpty() && mMediaPlayer != null && mMediaPlayer.isPlaying()) {
             mMediaPlayer.stop();
             mMediaPlayer.release();
-            mMediaPlayer = null;
+            mMediaPlayer = createMediaPlayer();
         }
 
         updateConferenceable();

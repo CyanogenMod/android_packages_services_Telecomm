@@ -17,11 +17,15 @@
 package com.android.server.telecom.tests;
 
 import com.android.internal.telecom.IInCallAdapter;
+import com.android.internal.telephony.CallerInfo;
+import com.android.internal.telephony.CallerInfoAsyncQuery;
+import com.android.server.telecom.CallerInfoAsyncQueryFactory;
 import com.android.server.telecom.CallsManager;
 import com.android.server.telecom.HeadsetMediaButton;
 import com.android.server.telecom.HeadsetMediaButtonFactory;
 import com.android.server.telecom.InCallWakeLockController;
 import com.android.server.telecom.InCallWakeLockControllerFactory;
+import com.android.server.telecom.Log;
 import com.android.server.telecom.MissedCallNotifier;
 import com.android.server.telecom.ProximitySensorManager;
 import com.android.server.telecom.ProximitySensorManagerFactory;
@@ -30,7 +34,6 @@ import com.android.server.telecom.TelecomSystem;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 
-import android.annotation.TargetApi;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
@@ -47,6 +50,10 @@ import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
 import android.telecom.TelecomManager;
 import android.telephony.TelephonyManager;
+
+import java.util.concurrent.BrokenBarrierException;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CyclicBarrier;
 
 import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Matchers.anyInt;
@@ -125,6 +132,8 @@ public class TelecomSystemTest extends TelecomTestCase {
     ConnectionServiceFixture mConnectionServiceFixtureA;
     ConnectionServiceFixture mConnectionServiceFixtureB;
 
+    CallerInfoAsyncQueryFactoryFixture mCallerInfoAsyncQueryFactoryFixture;
+
     TelecomSystem mTelecomSystem;
 
     @Override
@@ -157,6 +166,8 @@ public class TelecomSystemTest extends TelecomTestCase {
         InCallWakeLockControllerFactory inCallWakeLockControllerFactory =
                 mock(InCallWakeLockControllerFactory.class);
 
+        mCallerInfoAsyncQueryFactoryFixture = new CallerInfoAsyncQueryFactoryFixture();
+
         when(headsetMediaButtonFactory.create(
                 any(Context.class),
                 any(CallsManager.class)))
@@ -173,6 +184,7 @@ public class TelecomSystemTest extends TelecomTestCase {
         mTelecomSystem = new TelecomSystem(
                 mComponentContextFixture.getTestDouble(),
                 mMissedCallNotifier,
+                mCallerInfoAsyncQueryFactoryFixture.getTestDouble(),
                 headsetMediaButtonFactory,
                 proximitySensorManagerFactory,
                 inCallWakeLockControllerFactory);
@@ -338,6 +350,32 @@ public class TelecomSystemTest extends TelecomTestCase {
         return id;
     }
 
+    private void rapidFire(Runnable... tasks) {
+        final CyclicBarrier barrier = new CyclicBarrier(tasks.length);
+        final CountDownLatch latch = new CountDownLatch(tasks.length);
+        for (int i = 0; i < tasks.length; i++) {
+            final Runnable task = tasks[i];
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        barrier.await();
+                        task.run();
+                    } catch (InterruptedException | BrokenBarrierException e){
+                        Log.e(TelecomSystemTest.this, e, "Unexpectedly interrupted");
+                    } finally {
+                        latch.countDown();
+                    }
+                }
+            }).start();
+        }
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            Log.e(TelecomSystemTest.this, e, "Unexpectedly interrupted");
+        }
+    }
+
     // A simple outgoing call, verifying that the appropriate connection service is contacted,
     // the proper lifecycle is followed, and both In-Call Services are updated correctly.
     public void testSingleOutgoingCall() throws Exception {
@@ -397,5 +435,43 @@ public class TelecomSystemTest extends TelecomTestCase {
         mConnectionServiceFixtureA.sendSetDisconnected(connectionId, DisconnectCause.LOCAL);
         assertEquals(CallState.DISCONNECTED, mInCallServiceFixtureX.getCall(callId).getState());
         assertEquals(CallState.DISCONNECTED, mInCallServiceFixtureY.getCall(callId).getState());
+    }
+
+    public void testDeadlockOnOutgoingCall() throws Exception {
+        for (int i = 0; i < 100; i++) {
+            TelecomSystemTest test = new TelecomSystemTest();
+            test.setContext(getContext());
+            test.setTestContext(getTestContext());
+            test.setName(getName());
+            test.setUp();
+            test.do_testDeadlockOnOutgoingCall();
+            test.tearDown();
+        }
+    }
+
+    public void do_testDeadlockOnOutgoingCall() throws Exception {
+        final String connectionId = startOutgoingPhoneCall(
+                "650-555-1212",
+                mPhoneAccountA0.getAccountHandle(),
+                mConnectionServiceFixtureA);
+        rapidFire(
+                new Runnable() {
+                    @Override
+                    public void run() {
+                        while (mCallerInfoAsyncQueryFactoryFixture.mRequests.size() > 0) {
+                            mCallerInfoAsyncQueryFactoryFixture.mRequests.remove(0).reply();
+                        }
+                    }
+                },
+                new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            mConnectionServiceFixtureA.sendSetActive(connectionId);
+                        } catch (Exception e) {
+                            Log.e(this, e, "");
+                        }
+                    }
+                });
     }
 }
