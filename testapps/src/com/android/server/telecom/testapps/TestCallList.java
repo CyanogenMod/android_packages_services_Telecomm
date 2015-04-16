@@ -30,14 +30,14 @@ import java.util.Set;
 /**
  * Maintains a list of calls received via the {@link TestInCallServiceImpl}.
  */
-public class TestCallList extends Call.Listener {
+public class TestCallList extends Call.Callback {
     private static final TestCallList INSTANCE = new TestCallList();
     private static final String TAG = "TestCallList";
 
-    private class TestVideoCallListener extends InCallService.VideoCall.Listener {
+    private class TestVideoCallCallback extends InCallService.VideoCall.Callback {
         private Call mCall;
 
-        public TestVideoCallListener(Call call) {
+        public TestVideoCallCallback(Call call) {
             mCall = call;
         }
 
@@ -86,8 +86,8 @@ public class TestCallList extends Call.Listener {
 
     // The calls the call list knows about.
     private Set<Call> mCalls = new ArraySet<Call>();
-    private Map<Call, TestVideoCallListener> mVideoCallListeners =
-            new ArrayMap<Call, TestVideoCallListener>();
+    private Map<Call, TestVideoCallCallback> mVideoCallCallbacks =
+            new ArrayMap<Call, TestVideoCallCallback>();
 
     /**
      * Singleton accessor.
@@ -103,7 +103,7 @@ public class TestCallList extends Call.Listener {
         }
         Log.v(TAG, "addCall: " + call + " " + System.identityHashCode(this));
         mCalls.add(call);
-        call.addListener(this);
+        call.registerCallback(this);
     }
 
     public void removeCall(Call call) {
@@ -113,17 +113,17 @@ public class TestCallList extends Call.Listener {
         }
         Log.v(TAG, "removeCall: " + call);
         mCalls.remove(call);
-        call.removeListener(this);
+        call.unregisterCallback(this);
     }
 
     public void clearCalls() {
         mCalls.clear();
-        for (Call call : mVideoCallListeners.keySet()) {
+        for (Call call : mVideoCallCallbacks.keySet()) {
             if (call.getVideoCall() != null) {
-                call.getVideoCall().setVideoCallListener(null);
+                call.getVideoCall().unregisterCallback();
             }
         }
-        mVideoCallListeners.clear();
+        mVideoCallCallbacks.clear();
     }
 
     /**
@@ -149,11 +149,11 @@ public class TestCallList extends Call.Listener {
     public void onVideoCallChanged(Call call, InCallService.VideoCall videoCall) {
         Log.v(TAG, "onVideoCallChanged: call = " + call + " " + System.identityHashCode(this));
         if (videoCall != null) {
-            if (!mVideoCallListeners.containsKey(call)) {
-                TestVideoCallListener listener = new TestVideoCallListener(call);
-                videoCall.setVideoCallListener(listener);
-                mVideoCallListeners.put(call, listener);
-                Log.v(TAG, "onVideoCallChanged: added new listener");
+            if (!mVideoCallCallbacks.containsKey(call)) {
+                TestVideoCallCallback callback = new TestVideoCallCallback(call);
+                videoCall.registerCallback(callback);
+                mVideoCallCallbacks.put(call, callback);
+                Log.v(TAG, "onVideoCallChanged: added new callback");
             }
         }
     }
