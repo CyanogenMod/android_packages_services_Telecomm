@@ -158,6 +158,8 @@ public class TestConnectionService extends ConnectionService {
             // Assume all calls are video capable.
             int capabilities = getConnectionCapabilities();
             capabilities |= CAPABILITY_SUPPORTS_VT_LOCAL_BIDIRECTIONAL;
+            capabilities |= CAPABILITY_SUPPORTS_VT_REMOTE_BIDIRECTIONAL;
+            capabilities |= CAPABILITY_CAN_UPGRADE_TO_VIDEO;
             capabilities |= CAPABILITY_MUTE;
             capabilities |= CAPABILITY_SUPPORT_HOLD;
             capabilities |= CAPABILITY_HOLD;
