@@ -60,7 +60,7 @@ public class TelecomServiceImpl {
         public PhoneAccountHandle getDefaultOutgoingPhoneAccount(String uriScheme,
                 String callingPackage) {
             synchronized (mLock) {
-                if (!canReadPhoneState("getDefaultOutgoingPhoneAccount")) {
+                if (!canReadPhoneState(callingPackage, "getDefaultOutgoingPhoneAccount")) {
                     return null;
                 }
 
@@ -118,7 +118,7 @@ public class TelecomServiceImpl {
 
         @Override
         public List<PhoneAccountHandle> getCallCapablePhoneAccounts(String callingPackage) {
-            if (!canReadPhoneState("getDefaultOutgoingPhoneAccount")) {
+            if (!canReadPhoneState(callingPackage, "getDefaultOutgoingPhoneAccount")) {
                 return Collections.emptyList();
             }
 
@@ -140,7 +140,7 @@ public class TelecomServiceImpl {
         public List<PhoneAccountHandle> getPhoneAccountsSupportingScheme(String uriScheme,
                 String callingPackage) {
             synchronized (mLock) {
-                if (!canReadPhoneState("getPhoneAccountsSupportingScheme")) {
+                if (!canReadPhoneState(callingPackage, "getPhoneAccountsSupportingScheme")) {
                     return Collections.emptyList();
                 }
 
@@ -266,7 +266,7 @@ public class TelecomServiceImpl {
         @Override
         public List<PhoneAccountHandle> getSimCallManagers(String callingPackage) {
             synchronized (mLock) {
-                if (!canReadPhoneState("getSimCallManagers")) {
+                if (!canReadPhoneState(callingPackage, "getSimCallManagers")) {
                     return Collections.emptyList();
                 }
 
@@ -357,7 +357,8 @@ public class TelecomServiceImpl {
         public boolean isVoiceMailNumber(PhoneAccountHandle accountHandle, String number,
                 String callingPackage) {
             synchronized (mLock) {
-                if (!isDefaultDialerCalling() && !canReadPhoneState("isVoiceMailNumber")) {
+                if (!isDefaultDialerCalling()
+                        && !canReadPhoneState(callingPackage, "isVoiceMailNumber")) {
                     return false;
                 }
 
@@ -380,7 +381,8 @@ public class TelecomServiceImpl {
         @Override
         public String getVoiceMailNumber(PhoneAccountHandle accountHandle, String callingPackage) {
             synchronized (mLock) {
-                if (!isDefaultDialerCalling() && !canReadPhoneState("getVoiceMailNumber")) {
+                if (!isDefaultDialerCalling()
+                        && !canReadPhoneState(callingPackage, "getVoiceMailNumber")) {
                     return null;
                 }
 
@@ -408,7 +410,8 @@ public class TelecomServiceImpl {
          */
         @Override
         public String getLine1Number(PhoneAccountHandle accountHandle, String callingPackage) {
-            if (!isDefaultDialerCalling() && !canReadPhoneState("getLine1Number")) {
+            if (!isDefaultDialerCalling()
+                    && !canReadPhoneState(callingPackage, "getLine1Number")) {
                 return null;
             }
 
@@ -456,8 +459,8 @@ public class TelecomServiceImpl {
          */
         @Override
         public boolean isInCall(String callingPackage) {
-            if (!canReadPhoneState("isInCall")) {
-                return null;
+            if (!canReadPhoneState(callingPackage, "isInCall")) {
+                return false;
             }
 
             synchronized (mLock) {
@@ -472,8 +475,8 @@ public class TelecomServiceImpl {
          */
         @Override
         public boolean isRinging(String callingPackage) {
-            if (!canReadPhoneState("isRinging")) {
-                return null;
+            if (!canReadPhoneState(callingPackage, "isRinging")) {
+                return false;
             }
 
             synchronized (mLock) {
@@ -518,7 +521,8 @@ public class TelecomServiceImpl {
          */
         @Override
         public void showInCallScreen(boolean showDialpad, String callingPackage) {
-            if (!isDefaultDialerCalling() && !canReadPhoneState("showInCallScreen")) {
+            if (!isDefaultDialerCalling()
+                    && !canReadPhoneState(callingPackage, "showInCallScreen")) {
                 return;
             }
 
@@ -622,8 +626,8 @@ public class TelecomServiceImpl {
          */
         @Override
         public boolean isTtySupported(String callingPackage) {
-            if (!canReadPhoneState("hasVoiceMailNumber")) {
-                return null;
+            if (!canReadPhoneState(callingPackage, "hasVoiceMailNumber")) {
+                return false;
             }
 
             synchronized (mLock) {
@@ -636,7 +640,7 @@ public class TelecomServiceImpl {
          */
         @Override
         public int getCurrentTtyMode(String callingPackage) {
-            if (!canReadPhoneState("getCurrentTtyMode")) {
+            if (!canReadPhoneState(callingPackage, "getCurrentTtyMode")) {
                 return TelecomManager.TTY_MODE_OFF;
             }
 
@@ -954,7 +958,7 @@ public class TelecomServiceImpl {
         }
     }
 
-    private boolean canReadPhoneState(String message) {
+    private boolean canReadPhoneState(String callingPackage, String message) {
         // Accessing phone state is gated by a special permission.
         mContext.enforceCallingOrSelfPermission(Manifest.permission.READ_PHONE_STATE, message);
 
