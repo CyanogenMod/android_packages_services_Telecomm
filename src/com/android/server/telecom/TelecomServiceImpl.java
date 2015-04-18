@@ -692,6 +692,8 @@ public class TelecomServiceImpl {
                 mPhoneAccountRegistrar.dump(pw);
                 pw.decreaseIndent();
             }
+
+            Log.dumpCallEvents(pw);
         }
     };
 

@@ -367,6 +367,8 @@ public class Call implements CreateConnectionResponse {
         mIsIncoming = isIncoming;
         mIsConference = isConference;
         maybeLoadCannedSmsResponses();
+
+        Log.event(this, Log.Events.CREATED);
     }
 
     /**
@@ -414,6 +416,10 @@ public class Call implements CreateConnectionResponse {
         if (listener != null) {
             mListeners.remove(listener);
         }
+    }
+
+    public void destroy() {
+        Log.event(this, Log.Events.DESTROYED);
     }
 
     /** {@inheritDoc} */
@@ -525,6 +531,38 @@ public class Call implements CreateConnectionResponse {
                 mDisconnectTimeMillis = System.currentTimeMillis();
                 setLocallyDisconnecting(false);
                 fixParentAfterDisconnect();
+            }
+
+            // Log the state transition event
+            String event = null;
+            switch (newState) {
+                case CallState.ACTIVE:
+                    event = Log.Events.SET_ACTIVE;
+                    break;
+                case CallState.CONNECTING:
+                    event = Log.Events.SET_CONNECTING;
+                    break;
+                case CallState.DIALING:
+                    event = Log.Events.SET_DIALING;
+                    break;
+                case CallState.DISCONNECTED:
+                    event = Log.Events.SET_DISCONNECTED;
+                    break;
+                case CallState.DISCONNECTING:
+                    event = Log.Events.SET_DISCONNECTING;
+                    break;
+                case CallState.ON_HOLD:
+                    event = Log.Events.SET_HOLD;
+                    break;
+                case CallState.PRE_DIAL_WAIT:
+                    event = Log.Events.SET_PRE_DIAL_WAIT;
+                    break;
+                case CallState.RINGING:
+                    event = Log.Events.SET_RINGING;
+                    break;
+            }
+            if (event != null) {
+                Log.event(this, event);
             }
         }
     }
@@ -907,6 +945,7 @@ public class Call implements CreateConnectionResponse {
         } else {
             Log.i(this, "Send playDtmfTone to connection service for call %s", this);
             mConnectionService.playDtmfTone(this, digit);
+            Log.event(this, Log.Events.START_DTMF, Log.pii(digit));
         }
     }
 
@@ -918,6 +957,7 @@ public class Call implements CreateConnectionResponse {
             Log.w(this, "stopDtmfTone() request on a call without a connection service.");
         } else {
             Log.i(this, "Send stopDtmfTone to connection service for call %s", this);
+            Log.event(this, Log.Events.STOP_DTMF);
             mConnectionService.stopDtmfTone(this);
         }
     }
@@ -930,6 +970,8 @@ public class Call implements CreateConnectionResponse {
      * Attempts to disconnect the call through the connection service.
      */
     void disconnect(boolean wasViaNewOutgoingCallBroadcaster) {
+        Log.event(this, Log.Events.REQUEST_DISCONNECT);
+
         // Track that the call is now locally disconnecting.
         setLocallyDisconnecting(true);
 
@@ -999,6 +1041,7 @@ public class Call implements CreateConnectionResponse {
             // that the call is in a non-STATE_RINGING state before changing the UI. See
             // {@link ConnectionServiceAdapter#setActive} and other set* methods.
             mConnectionService.answer(this, videoState);
+            Log.event(this, Log.Events.REQUEST_ACCEPT);
         }
     }
 
@@ -1015,6 +1058,7 @@ public class Call implements CreateConnectionResponse {
         // between the time the user hits 'reject' and Telecomm receives the command.
         if (isRinging("reject")) {
             mConnectionService.reject(this);
+            Log.event(this, Log.Events.REQUEST_REJECT);
         }
     }
 
@@ -1026,6 +1070,7 @@ public class Call implements CreateConnectionResponse {
 
         if (mState == CallState.ACTIVE) {
             mConnectionService.hold(this);
+            Log.event(this, Log.Events.REQUEST_HOLD);
         }
     }
 
@@ -1037,6 +1082,7 @@ public class Call implements CreateConnectionResponse {
 
         if (mState == CallState.ON_HOLD) {
             mConnectionService.unhold(this);
+            Log.event(this, Log.Events.REQUEST_UNHOLD);
         }
     }
 
