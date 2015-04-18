@@ -38,8 +38,7 @@
     <string name="outgoing_call_not_allowed" msgid="1435394568102165287">"Hanya panggilan kecemasan dibenarkan oleh pemilik peranti"</string>
     <string name="outgoing_call_error_no_phone_number_supplied" msgid="1940125199802007505">"Untuk membuat panggilan, masukkan nombor yang sah."</string>
     <string name="duplicate_video_call_not_allowed" msgid="3749211605014548386">"Panggilan tidak boleh ditambahkan pada masa ini."</string>
-    <!-- no translation found for video_call_not_allowed_if_tty_enabled (7593649283571253283) -->
-    <skip />
+    <string name="video_call_not_allowed_if_tty_enabled" msgid="7593649283571253283">"Sila lumpuhkan Mod TTY untuk membuat panggilan video."</string>
     <string name="no_vm_number" msgid="4164780423805688336">"Nombor mel suara tiada"</string>
     <string name="no_vm_number_msg" msgid="1300729501030053828">"Tidak ada nombor mel suara disimpan pada kad SIM."</string>
     <string name="add_vm_number_str" msgid="4676479471644687453">"Tambah nombor"</string>

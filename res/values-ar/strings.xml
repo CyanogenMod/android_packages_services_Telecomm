@@ -38,8 +38,7 @@
     <string name="outgoing_call_not_allowed" msgid="1435394568102165287">"مسموح لمالك الجهاز بمكالمات الطوارئ فقط"</string>
     <string name="outgoing_call_error_no_phone_number_supplied" msgid="1940125199802007505">"لإجراء مكالمة، أدخل رقمًا صالحًا."</string>
     <string name="duplicate_video_call_not_allowed" msgid="3749211605014548386">"لا يمكن إضافة مكالمة في الوقت الحالي."</string>
-    <!-- no translation found for video_call_not_allowed_if_tty_enabled (7593649283571253283) -->
-    <skip />
+    <string name="video_call_not_allowed_if_tty_enabled" msgid="7593649283571253283">"‏يُرجى تعطيل وضع TTY لإجراء مكالمات فيديو."</string>
     <string name="no_vm_number" msgid="4164780423805688336">"رقم البريد الصوتي مفقود"</string>
     <string name="no_vm_number_msg" msgid="1300729501030053828">"‏لم يتم تخزين رقم بريد صوتي على شريحة SIM."</string>
     <string name="add_vm_number_str" msgid="4676479471644687453">"إضافة رقم"</string>

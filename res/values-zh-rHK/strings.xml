@@ -38,8 +38,7 @@
     <string name="outgoing_call_not_allowed" msgid="1435394568102165287">"只有裝置擁有者才可撥打緊急電話"</string>
     <string name="outgoing_call_error_no_phone_number_supplied" msgid="1940125199802007505">"要撥打電話，請輸入有效的號碼。"</string>
     <string name="duplicate_video_call_not_allowed" msgid="3749211605014548386">"目前無法新增視像通話。"</string>
-    <!-- no translation found for video_call_not_allowed_if_tty_enabled (7593649283571253283) -->
-    <skip />
+    <string name="video_call_not_allowed_if_tty_enabled" msgid="7593649283571253283">"請停用 TTY 模式以進行視像通話。"</string>
     <string name="no_vm_number" msgid="4164780423805688336">"未填留言信箱號碼"</string>
     <string name="no_vm_number_msg" msgid="1300729501030053828">"SIM 卡中沒有儲存任何留言信箱號碼。"</string>
     <string name="add_vm_number_str" msgid="4676479471644687453">"新增電話號碼"</string>

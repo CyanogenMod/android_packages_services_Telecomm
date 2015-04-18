@@ -38,8 +38,7 @@
     <string name="outgoing_call_not_allowed" msgid="1435394568102165287">"Власник уређаја је дозволио само хитне позиве"</string>
     <string name="outgoing_call_error_no_phone_number_supplied" msgid="1940125199802007505">"Да бисте упутили позив, унесите важећи број."</string>
     <string name="duplicate_video_call_not_allowed" msgid="3749211605014548386">"Тренутно није могуће додати позив."</string>
-    <!-- no translation found for video_call_not_allowed_if_tty_enabled (7593649283571253283) -->
-    <skip />
+    <string name="video_call_not_allowed_if_tty_enabled" msgid="7593649283571253283">"Онемогућите TTY режим да бисте упућивали видео позиве."</string>
     <string name="no_vm_number" msgid="4164780423805688336">"Недостаје број за говорну пошту"</string>
     <string name="no_vm_number_msg" msgid="1300729501030053828">"Није ускладиштен ниједан број говорне поште на SIM картици."</string>
     <string name="add_vm_number_str" msgid="4676479471644687453">"Додај број"</string>

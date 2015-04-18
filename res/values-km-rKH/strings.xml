@@ -38,8 +38,7 @@
     <string name="outgoing_call_not_allowed" msgid="1435394568102165287">"ការហៅពេលមានអាសន្នដែលត្រូវបានអនុញ្ញាតដោយម្ចាស់ឧបករណ៍តែប៉ុណ្ណោះ។"</string>
     <string name="outgoing_call_error_no_phone_number_supplied" msgid="1940125199802007505">"ដើម្បីធ្វើការហៅ បញ្ចូលលេខដែលមានសុពលភាព។"</string>
     <string name="duplicate_video_call_not_allowed" msgid="3749211605014548386">"មិន​អាច​បន្ថែម​​​នៅ​ពេល​នេះ​​បាន​ទេ។"</string>
-    <!-- no translation found for video_call_not_allowed_if_tty_enabled (7593649283571253283) -->
-    <skip />
+    <string name="video_call_not_allowed_if_tty_enabled" msgid="7593649283571253283">"សូមបិទដំណើរការរបៀប TTY ដើម្បីធ្វើការហៅជាវីដេអូ។"</string>
     <string name="no_vm_number" msgid="4164780423805688336">"បាត់​​ចំនួន​​សារ​ជា​សំឡេង"</string>
     <string name="no_vm_number_msg" msgid="1300729501030053828">"គ្មាន​ចំនួន​សារ​ជា​សំឡេង​​ត្រូវ​បាន​រក្សា​ទុក​នៅ​លើ​ស៊ី​ម​កាត​ទេ​។"</string>
     <string name="add_vm_number_str" msgid="4676479471644687453">"បន្ថែម​លេខ"</string>

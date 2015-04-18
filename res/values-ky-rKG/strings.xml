@@ -47,8 +47,7 @@
     <string name="outgoing_call_not_allowed" msgid="1435394568102165287">"Түзмөк ээси шашылыш чалууларга гана уруксат берген"</string>
     <string name="outgoing_call_error_no_phone_number_supplied" msgid="1940125199802007505">"Чалуу үчүн, жарактуу номер киргизиңиз."</string>
     <string name="duplicate_video_call_not_allowed" msgid="3749211605014548386">"Бул жолу чалууну кошуу мүмкүн эмес."</string>
-    <!-- no translation found for video_call_not_allowed_if_tty_enabled (7593649283571253283) -->
-    <skip />
+    <string name="video_call_not_allowed_if_tty_enabled" msgid="7593649283571253283">"Видео чалууларды аткаруу үчүн Телетайп түзмөк режимин өчүрүңүз."</string>
     <!-- no translation found for no_vm_number (4164780423805688336) -->
     <skip />
     <!-- no translation found for no_vm_number_msg (1300729501030053828) -->

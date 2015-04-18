@@ -38,8 +38,7 @@
     <string name="outgoing_call_not_allowed" msgid="1435394568102165287">"Από τον κάτοχο της συσκευής επιτρέπονται μόνο κλήσεις έκτακτης ανάγκης"</string>
     <string name="outgoing_call_error_no_phone_number_supplied" msgid="1940125199802007505">"Για να πραγματοποιήσετε μια κλήση, εισαγάγετε έναν έγκυρο αριθμό."</string>
     <string name="duplicate_video_call_not_allowed" msgid="3749211605014548386">"Δεν είναι δυνατή η προσθήκη κλήσης αυτήν τη στιγμή."</string>
-    <!-- no translation found for video_call_not_allowed_if_tty_enabled (7593649283571253283) -->
-    <skip />
+    <string name="video_call_not_allowed_if_tty_enabled" msgid="7593649283571253283">"Απενεργοποιήστε τη λειτουργία TTY για να πραγματοποιήσετε βιντεοκλήσεις."</string>
     <string name="no_vm_number" msgid="4164780423805688336">"Λείπει ο αριθμός αυτόματου τηλεφωνητή"</string>
     <string name="no_vm_number_msg" msgid="1300729501030053828">"Δεν έχει αποθηκευτεί αριθμός για τον αυτόματο τηλεφωνητή στην κάρτα SIM."</string>
     <string name="add_vm_number_str" msgid="4676479471644687453">"Προσθήκη αριθμού"</string>

@@ -38,8 +38,7 @@
     <string name="outgoing_call_not_allowed" msgid="1435394568102165287">"设备机主仅允许拨打紧急呼救电话"</string>
     <string name="outgoing_call_error_no_phone_number_supplied" msgid="1940125199802007505">"要拨打电话，请输入有效的电话号码。"</string>
     <string name="duplicate_video_call_not_allowed" msgid="3749211605014548386">"目前无法添加通话。"</string>
-    <!-- no translation found for video_call_not_allowed_if_tty_enabled (7593649283571253283) -->
-    <skip />
+    <string name="video_call_not_allowed_if_tty_enabled" msgid="7593649283571253283">"要进行视频通话，请停用 TTY 模式。"</string>
     <string name="no_vm_number" msgid="4164780423805688336">"缺少语音信箱号码"</string>
     <string name="no_vm_number_msg" msgid="1300729501030053828">"SIM卡上未存储语音信箱号码。"</string>
     <string name="add_vm_number_str" msgid="4676479471644687453">"添加号码"</string>

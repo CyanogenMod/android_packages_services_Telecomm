@@ -38,8 +38,7 @@
     <string name="outgoing_call_not_allowed" msgid="1435394568102165287">"기기 소유자만 긴급 전화를 사용할 수 있습니다."</string>
     <string name="outgoing_call_error_no_phone_number_supplied" msgid="1940125199802007505">"전화를 걸려면 올바른 번호를 입력하세요."</string>
     <string name="duplicate_video_call_not_allowed" msgid="3749211605014548386">"현재 통화를 추가할 수 없습니다."</string>
-    <!-- no translation found for video_call_not_allowed_if_tty_enabled (7593649283571253283) -->
-    <skip />
+    <string name="video_call_not_allowed_if_tty_enabled" msgid="7593649283571253283">"화상 통화를 하려면 TTY 모드를 중지하세요."</string>
     <string name="no_vm_number" msgid="4164780423805688336">"음성사서함 번호 없음"</string>
     <string name="no_vm_number_msg" msgid="1300729501030053828">"SIM 카드에 저장된 음성사서함 번호가 없습니다."</string>
     <string name="add_vm_number_str" msgid="4676479471644687453">"번호 추가"</string>

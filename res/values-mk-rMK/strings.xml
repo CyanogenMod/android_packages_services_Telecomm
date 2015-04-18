@@ -38,8 +38,7 @@
     <string name="outgoing_call_not_allowed" msgid="1435394568102165287">"Дозволени се само итни повици од страна на сопственикот на уредот"</string>
     <string name="outgoing_call_error_no_phone_number_supplied" msgid="1940125199802007505">"За да повикате, внесете важечки број."</string>
     <string name="duplicate_video_call_not_allowed" msgid="3749211605014548386">"Повикот не може да се додаде во моментов."</string>
-    <!-- no translation found for video_call_not_allowed_if_tty_enabled (7593649283571253283) -->
-    <skip />
+    <string name="video_call_not_allowed_if_tty_enabled" msgid="7593649283571253283">"Оневозможете го режимот TTY за да остварите видеоповици."</string>
     <string name="no_vm_number" msgid="4164780423805688336">"Недостасува број на говорна пошта"</string>
     <string name="no_vm_number_msg" msgid="1300729501030053828">"Нема мемориран број на говорна пошта на СИМ картичката."</string>
     <string name="add_vm_number_str" msgid="4676479471644687453">"Додај број"</string>

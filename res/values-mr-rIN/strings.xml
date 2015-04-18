@@ -38,8 +38,7 @@
     <string name="outgoing_call_not_allowed" msgid="1435394568102165287">"डिव्हाइस मालकाद्वारे केवळ आणीबाणी कॉलना अनुमती आहे"</string>
     <string name="outgoing_call_error_no_phone_number_supplied" msgid="1940125199802007505">"कॉल करण्यासाठी, एक वैध नंबर प्रविष्ट करा."</string>
     <string name="duplicate_video_call_not_allowed" msgid="3749211605014548386">"यावेळी कॉल जोडला जाऊ शकत नाही."</string>
-    <!-- no translation found for video_call_not_allowed_if_tty_enabled (7593649283571253283) -->
-    <skip />
+    <string name="video_call_not_allowed_if_tty_enabled" msgid="7593649283571253283">"कृपया व्हिडिओ कॉल करण्‍यासाठी TTY मोड अक्षम करा."</string>
     <string name="no_vm_number" msgid="4164780423805688336">"व्हॉइसमेल नंबर गहाळ"</string>
     <string name="no_vm_number_msg" msgid="1300729501030053828">"सिम कार्डवर कोणताही व्हॉइसमेल नंबर संचयित केला नाही."</string>
     <string name="add_vm_number_str" msgid="4676479471644687453">"नंबर जोडा"</string>

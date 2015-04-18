@@ -38,8 +38,7 @@
     <string name="outgoing_call_not_allowed" msgid="1435394568102165287">"ಸಾಧನದ ಮಾಲೀಕರಿಂದ ತುರ್ತು ಕರೆಗಳನ್ನು ಮಾಡಲು ಮಾತ್ರ ಅವಕಾಶವಿದೆ"</string>
     <string name="outgoing_call_error_no_phone_number_supplied" msgid="1940125199802007505">"ಕರೆಯನ್ನು ಮಾಡಲು, ಮಾನ್ಯವಾದ ಸಂಖ್ಯೆಯನ್ನು ನಮೂದಿಸಿ."</string>
     <string name="duplicate_video_call_not_allowed" msgid="3749211605014548386">"ಕರೆಯನ್ನು ಈ ಸಮಯದಲ್ಲಿ ಸೇರಿಸಲಾಗುವುದಿಲ್ಲ."</string>
-    <!-- no translation found for video_call_not_allowed_if_tty_enabled (7593649283571253283) -->
-    <skip />
+    <string name="video_call_not_allowed_if_tty_enabled" msgid="7593649283571253283">"ವೀಡಿಯೊ ಕರೆಗಳನ್ನು ಮಾಡಲು TTY ಮೋಡ್‌ ನಿಷ್ಕ್ರಿಯಗೊಳಿಸಿ."</string>
     <string name="no_vm_number" msgid="4164780423805688336">"ಧ್ವನಿಮೇಲ್‌ ಸಂಖ್ಯೆಯು ಕಾಣೆಯಾಗಿದೆ"</string>
     <string name="no_vm_number_msg" msgid="1300729501030053828">"ಸಿಮ್‌ ಕಾರ್ಡ್‌ನಲ್ಲಿ ಯಾವುದೇ ಧ್ವನಿಮೇಲ್‌ ಸಂಖ್ಯೆಯನ್ನು ಸಂಗ್ರಹಿಸಿಲ್ಲ."</string>
     <string name="add_vm_number_str" msgid="4676479471644687453">"ಸಂಖ್ಯೆಯನ್ನು ಸೇರಿಸಿ"</string>

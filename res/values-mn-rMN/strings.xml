@@ -38,8 +38,7 @@
     <string name="outgoing_call_not_allowed" msgid="1435394568102165287">"Энэхүү төхөөрөмжийн эзэмшигч нь зөвхөн түргэн тусламжийн дуудлага хийх эрхтэй байна."</string>
     <string name="outgoing_call_error_no_phone_number_supplied" msgid="1940125199802007505">"Дуудлага хийхийн тулд хүчин төгөлдөр дугаар оруулна уу."</string>
     <string name="duplicate_video_call_not_allowed" msgid="3749211605014548386">"Одоо дуудлага нэмэх боломжгүй."</string>
-    <!-- no translation found for video_call_not_allowed_if_tty_enabled (7593649283571253283) -->
-    <skip />
+    <string name="video_call_not_allowed_if_tty_enabled" msgid="7593649283571253283">"Видео дуудлага хийхийн тулд TTY горимыг идэвхгүй болгоно уу."</string>
     <string name="no_vm_number" msgid="4164780423805688336">"Дуут шуудангийн дугаар байхгүй"</string>
     <string name="no_vm_number_msg" msgid="1300729501030053828">"SIM карт дээр дуут шуудангийн дугаар хадгалагдаагүй байна."</string>
     <string name="add_vm_number_str" msgid="4676479471644687453">"Дугаар нэмэх"</string>
