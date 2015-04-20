@@ -1193,6 +1193,8 @@ public class CallsManager extends Call.ListenerBase {
             shouldNotify = true;
         }
 
+        call.destroy();
+
         // Only broadcast changes for calls that are being tracked.
         if (shouldNotify) {
             for (CallsManagerListener listener : mListeners) {
