@@ -2,7 +2,9 @@ package com.android.server.telecom.testapps;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
+import android.telecom.PhoneAccount;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.EditText;
@@ -51,6 +53,8 @@ public class TestDialerActivity extends Activity {
     }
 
     private void placeCall() {
-        // TODO: Place a call with the number entered in the number field
+        final Intent intent = new Intent(Intent.ACTION_CALL,
+                Uri.fromParts(PhoneAccount.SCHEME_TEL, mNumberView.getText().toString(), null));
+        startActivityForResult(intent, 0);
     }
 }
