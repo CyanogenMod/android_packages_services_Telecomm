@@ -428,10 +428,16 @@ final class CallAudioManager extends CallsManagerListenerBase
     }
 
     private void onCallUpdated(Call call) {
-        updateAudioStreamAndMode(call);
-        if (call != null && call.getState() == CallState.ACTIVE &&
+
+        if (call != null) {
+            if (call.getState() != CallState.DISCONNECTED) {
+                updateAudioStreamAndMode(call);
+            }
+
+            if (call.getState() == CallState.ACTIVE &&
                             call == mCallToSpeedUpMTAudio) {
-            mCallToSpeedUpMTAudio = null;
+                mCallToSpeedUpMTAudio = null;
+            }
         }
     }
 
