@@ -41,6 +41,7 @@ import android.text.TextUtils;
 // TODO: Needed for move to system service: import com.android.internal.R;
 import com.android.internal.telecom.ITelecomService;
 import com.android.internal.util.IndentingPrintWriter;
+import com.android.server.telecom.components.UserCallIntentProcessor;
 
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
@@ -707,6 +708,23 @@ public class TelecomServiceImpl {
         }
 
         /**
+         * @see android.telecom.TelecomManager#placeCall
+         */
+        @Override
+        public void placeCall(Uri handle, Bundle extras, String callingPackage) {
+            enforceCallingPackage(callingPackage);
+            if (!canCallPhone(callingPackage, "placeCall")) {
+                throw new SecurityException("Package " + callingPackage
+                        + " is not allowed to place phone calls");
+            }
+            synchronized (mLock) {
+                final Intent intent = new Intent(Intent.ACTION_CALL, handle);
+                intent.putExtras(extras);
+                new UserCallIntentProcessor(mContext).processIntent(intent, callingPackage);
+            }
+        }
+
+        /**
          * Dumps the current state of the TelecomService.  Used when generating problem reports.
          *
          * @param fd The file descriptor.
@@ -966,6 +984,15 @@ public class TelecomServiceImpl {
 
         // Some apps that have the permission can be restricted via app ops.
         return mAppOpsManager.noteOp(AppOpsManager.OP_READ_PHONE_STATE,
+                Binder.getCallingUid(), callingPackage) == AppOpsManager.MODE_ALLOWED;
+    }
+
+    private boolean canCallPhone(String callingPackage, String message) {
+        // Accessing phone state is gated by a special permission.
+        mContext.enforceCallingOrSelfPermission(Manifest.permission.CALL_PHONE, message);
+
+        // Some apps that have the permission can be restricted via app ops.
+        return mAppOpsManager.noteOp(AppOpsManager.OP_CALL_PHONE,
                 Binder.getCallingUid(), callingPackage) == AppOpsManager.MODE_ALLOWED;
     }
 
