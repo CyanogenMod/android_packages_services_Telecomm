@@ -22,7 +22,6 @@ import android.Manifest.permission;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.provider.CallLog.Calls;
-import android.telecom.CallState;
 import android.telecom.DisconnectCause;
 import android.telecom.PhoneAccountHandle;
 import android.telecom.VideoProfile;
@@ -108,7 +107,7 @@ final class CallLogManager extends CallsManagerListenerBase {
         // 2) It is a conference call
         // 3) Call was not explicitly canceled
         if (isNewlyDisconnected &&
-                (oldState != CallState.PRE_DIAL_WAIT &&
+                (oldState != CallState.SELECT_PHONE_ACCOUNT &&
                  !call.isConference() &&
                  !isCallCanceled)) {
             int type;

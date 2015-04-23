@@ -25,7 +25,6 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Trace;
 import android.provider.ContactsContract.Contacts;
-import android.telecom.CallState;
 import android.telecom.DisconnectCause;
 import android.telecom.Connection;
 import android.telecom.GatewayInfo;
@@ -314,10 +313,10 @@ public class Call implements CreateConnectionResponse {
 
     private boolean mWasConferencePreviouslyMerged = false;
 
-    // For conferences which support merge/swap at their level, we retain a notion of an active call.
-    // This is used for BluetoothPhoneService.  In order to support hold/merge, it must have the notion
-    // of the current "active" call within the conference call. This maintains the "active" call and
-    // switches every time the user hits "swap".
+    // For conferences which support merge/swap at their level, we retain a notion of an active
+    // call. This is used for BluetoothPhoneService.  In order to support hold/merge, it must have
+    // the notion of the current "active" call within the conference call. This maintains the
+    // "active" call and switches every time the user hits "swap".
     private Call mConferenceLevelActiveCall = null;
 
     private boolean mIsLocallyDisconnecting = false;
@@ -550,8 +549,8 @@ public class Call implements CreateConnectionResponse {
                 case CallState.ON_HOLD:
                     event = Log.Events.SET_HOLD;
                     break;
-                case CallState.PRE_DIAL_WAIT:
-                    event = Log.Events.SET_PRE_DIAL_WAIT;
+                case CallState.SELECT_PHONE_ACCOUNT:
+                    event = Log.Events.SET_SELECT_PHONE_ACCOUNT;
                     break;
                 case CallState.RINGING:
                     event = Log.Events.SET_RINGING;
@@ -970,7 +969,7 @@ public class Call implements CreateConnectionResponse {
         // Track that the call is now locally disconnecting.
         setLocallyDisconnecting(true);
 
-        if (mState == CallState.NEW || mState == CallState.PRE_DIAL_WAIT ||
+        if (mState == CallState.NEW || mState == CallState.SELECT_PHONE_ACCOUNT ||
                 mState == CallState.CONNECTING) {
             Log.v(this, "Aborting call %s", this);
             abort(wasViaNewOutgoingCallBroadcaster);
@@ -993,7 +992,7 @@ public class Call implements CreateConnectionResponse {
         if (mCreateConnectionProcessor != null &&
                 !mCreateConnectionProcessor.isProcessingComplete()) {
             mCreateConnectionProcessor.abort();
-        } else if (mState == CallState.NEW || mState == CallState.PRE_DIAL_WAIT
+        } else if (mState == CallState.NEW || mState == CallState.SELECT_PHONE_ACCOUNT
                 || mState == CallState.CONNECTING) {
             if (wasViaNewOutgoingCallBroadcaster) {
                 // If the cancelation was from NEW_OUTGOING_CALL, then we do not automatically
@@ -1016,7 +1015,7 @@ public class Call implements CreateConnectionResponse {
 
             handleCreateConnectionFailure(new DisconnectCause(DisconnectCause.CANCELED));
         } else {
-            Log.v(this, "Cannot abort a call which isn't either PRE_DIAL_WAIT or CONNECTING");
+            Log.v(this, "Cannot abort a call which is neither SELECT_PHONE_ACCOUNT or CONNECTING");
         }
     }
 

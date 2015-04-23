@@ -25,7 +25,6 @@ import android.os.SystemProperties;
 import android.os.Trace;
 import android.provider.CallLog.Calls;
 import android.telecom.AudioState;
-import android.telecom.CallState;
 import android.telecom.Conference;
 import android.telecom.Connection;
 import android.telecom.DisconnectCause;
@@ -91,10 +90,10 @@ public class CallsManager extends Call.ListenerBase {
     private static final int MAXIMUM_TOP_LEVEL_CALLS = 2;
 
     private static final int[] OUTGOING_CALL_STATES =
-            {CallState.CONNECTING, CallState.PRE_DIAL_WAIT, CallState.DIALING};
+            {CallState.CONNECTING, CallState.SELECT_PHONE_ACCOUNT, CallState.DIALING};
 
     private static final int[] LIVE_CALL_STATES =
-            {CallState.CONNECTING, CallState.PRE_DIAL_WAIT, CallState.DIALING, CallState.ACTIVE};
+            {CallState.CONNECTING, CallState.SELECT_PHONE_ACCOUNT, CallState.DIALING, CallState.ACTIVE};
 
     /**
      * The main call repository. Keeps an instance of all live calls. New incoming and outgoing
@@ -580,7 +579,7 @@ public class CallsManager extends Call.ListenerBase {
 
         if (needsAccountSelection) {
             // This is the state where the user is expected to select an account
-            call.setState(CallState.PRE_DIAL_WAIT);
+            call.setState(CallState.SELECT_PHONE_ACCOUNT);
             // Create our own instance to modify (since extras may be Bundle.EMPTY)
             extras = new Bundle(extras);
             extras.putParcelableList(android.telecom.Call.AVAILABLE_PHONE_ACCOUNTS, accounts);
@@ -874,7 +873,7 @@ public class CallsManager extends Call.ListenerBase {
             Log.i(this, "Attempted to add account to unknown call %s", call);
         } else {
             // TODO: There is an odd race condition here. Since NewOutgoingCallIntentBroadcaster and
-            // the PRE_DIAL_WAIT sequence run in parallel, if the user selects an account before the
+            // the SELECT_PHONE_ACCOUNT sequence run in parallel, if the user selects an account before the
             // NEW_OUTGOING_CALL sequence finishes, we'll start the call immediately without
             // respecting a rewritten number or a canceled number. This is unlikely since
             // NEW_OUTGOING_CALL sequence, in practice, runs a lot faster than the user selecting
@@ -1390,7 +1389,7 @@ public class CallsManager extends Call.ListenerBase {
 
             if (call == liveCall) {
                 // If the call is already the foreground call, then we are golden.
-                // This can happen after the user selects an account in the PRE_DIAL_WAIT
+                // This can happen after the user selects an account in the SELECT_PHONE_ACCOUNT
                 // state since the call was already populated into the list.
                 return true;
             }

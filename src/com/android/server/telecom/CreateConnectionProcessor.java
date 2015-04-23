@@ -17,7 +17,6 @@
 package com.android.server.telecom;
 
 import android.content.Context;
-import android.telecom.CallState;
 import android.telecom.DisconnectCause;
 import android.telecom.ParcelableConnection;
 import android.telecom.Phone;

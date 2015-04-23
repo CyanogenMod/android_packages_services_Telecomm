@@ -17,7 +17,6 @@
 package com.android.server.telecom;
 
 import android.media.ToneGenerator;
-import android.telecom.CallState;
 
 import java.util.Collection;
 

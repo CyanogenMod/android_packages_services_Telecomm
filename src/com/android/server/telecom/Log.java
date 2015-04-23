@@ -57,7 +57,7 @@ public class Log {
         public static final String SET_RINGING = "SET_RINGING";
         public static final String SET_DISCONNECTED = "SET_DISCONNECTED";
         public static final String SET_DISCONNECTING = "SET_DISCONNECTING";
-        public static final String SET_PRE_DIAL_WAIT = "SET_PRE_DIAL_WAIT";
+        public static final String SET_SELECT_PHONE_ACCOUNT = "SET_SELECT_PHONE_ACCOUNT";
         public static final String REQUEST_HOLD = "REQUEST_HOLD";
         public static final String REQUEST_UNHOLD = "REQUEST_UNHOLD";
         public static final String REQUEST_DISCONNECT = "REQUEST_DISCONNECT";

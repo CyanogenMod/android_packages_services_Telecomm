@@ -32,7 +32,6 @@ import android.os.Trace;
 import android.os.UserHandle;
 import android.telecom.AudioState;
 import android.telecom.CallProperties;
-import android.telecom.CallState;
 import android.telecom.Connection;
 import android.telecom.InCallService;
 import android.telecom.ParcelableCall;
@@ -463,7 +462,7 @@ public final class InCallController extends CallsManagerListenerBase {
     private ParcelableCall toParcelableCall(Call call, boolean includeVideoProvider) {
         String callId = mCallIdMapper.getCallId(call);
 
-        int state = call.getState();
+        int state = getParcelableState(call);
         int capabilities = convertConnectionToCallCapabilities(call.getConnectionCapabilities());
 
         // If this is a single-SIM device, the "default SIM" will always be the only SIM.
@@ -479,19 +478,11 @@ public final class InCallController extends CallsManagerListenerBase {
                     capabilities, android.telecom.Call.Details.CAPABILITY_MUTE);
         }
 
-        if (state == CallState.DIALING) {
+        if (state == android.telecom.Call.STATE_DIALING) {
             capabilities = removeCapability(capabilities,
                     android.telecom.Call.Details.CAPABILITY_SUPPORTS_VT_LOCAL_BIDIRECTIONAL);
             capabilities = removeCapability(capabilities,
                     android.telecom.Call.Details.CAPABILITY_SUPPORTS_VT_REMOTE_BIDIRECTIONAL);
-        }
-
-        if (state == CallState.ABORTED) {
-            state = CallState.DISCONNECTED;
-        }
-
-        if (call.isLocallyDisconnecting() && state != CallState.DISCONNECTED) {
-            state = CallState.DISCONNECTING;
         }
 
         String parentCallId = null;
@@ -554,6 +545,48 @@ public final class InCallController extends CallsManagerListenerBase {
                 call.getVideoState(),
                 conferenceableCallIds,
                 call.getExtras());
+    }
+
+    private static int getParcelableState(Call call) {
+        int state = CallState.NEW;
+        switch (call.getState()) {
+            case CallState.ABORTED:
+            case CallState.DISCONNECTED:
+                state = android.telecom.Call.STATE_DISCONNECTED;
+                break;
+            case CallState.ACTIVE:
+                state = android.telecom.Call.STATE_ACTIVE;
+                break;
+            case CallState.CONNECTING:
+                state = android.telecom.Call.STATE_CONNECTING;
+                break;
+            case CallState.DIALING:
+                state = android.telecom.Call.STATE_DIALING;
+                break;
+            case CallState.DISCONNECTING:
+                state = android.telecom.Call.STATE_DISCONNECTING;
+                break;
+            case CallState.NEW:
+                state = android.telecom.Call.STATE_NEW;
+                break;
+            case CallState.ON_HOLD:
+                state = android.telecom.Call.STATE_HOLDING;
+                break;
+            case CallState.RINGING:
+                state = android.telecom.Call.STATE_RINGING;
+                break;
+            case CallState.SELECT_PHONE_ACCOUNT:
+                state = android.telecom.Call.STATE_SELECT_PHONE_ACCOUNT;
+                break;
+        }
+
+        // If we are marked as 'locally disconnecting' then mark ourselves as disconnecting instead.
+        // Unless we're disconnect*ED*, in which case leave it at that.
+        if (call.isLocallyDisconnecting() &&
+                (state != android.telecom.Call.STATE_DISCONNECTED)) {
+            state = android.telecom.Call.STATE_DISCONNECTING;
+        }
+        return state;
     }
 
     private static final int[] CONNECTION_TO_CALL_CAPABILITY = new int[] {

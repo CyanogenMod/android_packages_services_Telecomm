@@ -16,8 +16,6 @@
 
 package com.android.server.telecom;
 
-import android.telecom.CallState;
-
 import com.android.internal.util.Preconditions;
 
 /**

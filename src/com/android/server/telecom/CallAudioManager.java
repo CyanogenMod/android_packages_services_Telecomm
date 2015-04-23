@@ -20,7 +20,6 @@ import android.content.Context;
 import android.media.AudioManager;
 import android.os.Binder;
 import android.telecom.AudioState;
-import android.telecom.CallState;
 
 import com.android.internal.util.IndentingPrintWriter;
 import com.android.internal.util.Preconditions;
@@ -402,7 +401,7 @@ final class CallAudioManager extends CallsManagerListenerBase
         } else {
             Call foregroundCall = getForegroundCall();
             Call waitingForAccountSelectionCall = mCallsManager
-                    .getFirstCallWithState(CallState.PRE_DIAL_WAIT);
+                    .getFirstCallWithState(CallState.SELECT_PHONE_ACCOUNT);
             Call call = mCallsManager.getForegroundCall();
             if (foregroundCall == null && call != null && call == mCallToSpeedUpMTAudio) {
                 requestAudioFocusAndSetMode(AudioManager.STREAM_VOICE_CALL,

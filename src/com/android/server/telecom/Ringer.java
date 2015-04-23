@@ -26,7 +26,6 @@ import android.os.Bundle;
 import android.os.SystemVibrator;
 import android.os.Vibrator;
 import android.provider.Settings;
-import android.telecom.CallState;
 
 import java.util.LinkedList;
 import java.util.List;
