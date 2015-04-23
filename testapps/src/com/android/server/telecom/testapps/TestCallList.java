@@ -34,7 +34,7 @@ public class TestCallList extends Call.Listener {
     private static final TestCallList INSTANCE = new TestCallList();
     private static final String TAG = "TestCallList";
 
-    private class TestVideoCallListener extends InCallService.VideoCall.Listener {
+    private class TestVideoCallListener extends InCallService.VideoCall.Callback {
         private Call mCall;
 
         public TestVideoCallListener(Call call) {
@@ -120,7 +120,7 @@ public class TestCallList extends Call.Listener {
         mCalls.clear();
         for (Call call : mVideoCallListeners.keySet()) {
             if (call.getVideoCall() != null) {
-                call.getVideoCall().setVideoCallListener(null);
+                call.getVideoCall().unregisterCallback();
             }
         }
         mVideoCallListeners.clear();
@@ -151,7 +151,7 @@ public class TestCallList extends Call.Listener {
         if (videoCall != null) {
             if (!mVideoCallListeners.containsKey(call)) {
                 TestVideoCallListener listener = new TestVideoCallListener(call);
-                videoCall.setVideoCallListener(listener);
+                videoCall.registerCallback(listener);
                 mVideoCallListeners.put(call, listener);
                 Log.v(TAG, "onVideoCallChanged: added new listener");
             }
