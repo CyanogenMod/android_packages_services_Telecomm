@@ -26,7 +26,11 @@ public class CallIntentProcessor {
 
     public static final String KEY_IS_UNKNOWN_CALL = "is_unknown_call";
     public static final String KEY_IS_INCOMING_CALL = "is_incoming_call";
-    public static final String KEY_IS_DEFAULT_DIALER = "is_default_dialer";
+    /*
+     *  Whether or not the dialer initiating this outgoing call is the default dialer, or system
+     *  dialer and thus allowed to make emergency calls.
+     */
+    public static final String KEY_IS_PRIVILEGED_DIALER = "is_privileged_dialer";
 
     private final Context mContext;
     private final CallsManager mCallsManager;
@@ -83,7 +87,7 @@ public class CallIntentProcessor {
             clientExtras = new Bundle();
         }
 
-        final boolean isDefaultDialer = intent.getBooleanExtra(KEY_IS_DEFAULT_DIALER, false);
+        final boolean isPrivilegedDialer = intent.getBooleanExtra(KEY_IS_PRIVILEGED_DIALER, false);
 
         // Send to CallsManager to ensure the InCallUI gets kicked off before the broadcast returns
         Call call = callsManager.startOutgoingCall(handle, phoneAccountHandle, clientExtras);
@@ -95,7 +99,7 @@ public class CallIntentProcessor {
             // process will be running throughout the duration of the phone call and should never
             // be killed.
             NewOutgoingCallIntentBroadcaster broadcaster = new NewOutgoingCallIntentBroadcaster(
-                    context, callsManager, call, intent, isDefaultDialer);
+                    context, callsManager, call, intent, isPrivilegedDialer);
             final int result = broadcaster.processIntent();
             final boolean success = result == DisconnectCause.NOT_DISCONNECTED;
 
