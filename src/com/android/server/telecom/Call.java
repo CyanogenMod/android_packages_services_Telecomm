@@ -530,6 +530,7 @@ public class Call implements CreateConnectionResponse {
 
             // Log the state transition event
             String event = null;
+            Object data = null;
             switch (newState) {
                 case CallState.ACTIVE:
                     event = Log.Events.SET_ACTIVE;
@@ -542,6 +543,7 @@ public class Call implements CreateConnectionResponse {
                     break;
                 case CallState.DISCONNECTED:
                     event = Log.Events.SET_DISCONNECTED;
+                    data = getDisconnectCause();
                     break;
                 case CallState.DISCONNECTING:
                     event = Log.Events.SET_DISCONNECTING;
@@ -557,7 +559,7 @@ public class Call implements CreateConnectionResponse {
                     break;
             }
             if (event != null) {
-                Log.event(this, event);
+                Log.event(this, event, data);
             }
         }
     }
