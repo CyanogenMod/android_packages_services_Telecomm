@@ -458,6 +458,9 @@ public class TelecomServiceImpl {
         }
 
         /**
+         * @return the package name of the current user-selected default dialer. If no default
+         *         has been selected, the package name of the system dialer is returned. If
+         *         neither exists, then {@code null} is returned.
          * @see android.telecom.TelecomManager#getDefaultDialerPackage
          */
         @Override
