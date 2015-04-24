@@ -19,6 +19,7 @@ package com.android.server.telecom;
 import android.net.Uri;
 import android.telecom.PhoneAccount;
 import android.telephony.PhoneNumberUtils;
+import android.text.TextUtils;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.util.IndentingPrintWriter;
@@ -118,12 +119,16 @@ public class Log {
         public void dump(IndentingPrintWriter pw) {
             Map<String, CallEvent> pendingResponses = new HashMap<>();
 
-            pw.print("Call [");
+            pw.print("Call ");
+            pw.print(mId);
+            pw.print(" [");
             pw.print(sDateFormat.format(new Date(mCall.getCreationTimeMillis())));
             pw.print("]");
             pw.println(mCall.isIncoming() ? "(MT - incoming)" : "(MO - outgoing)");
 
             pw.increaseIndent();
+            pw.println("To address: " + piiHandle(mCall.getHandle()));
+
             for (CallEvent event : mEvents) {
 
                 // We print out events in chronological order. During that process we look at each
@@ -304,27 +309,35 @@ public class Log {
             return String.valueOf(pii);
         }
 
+        StringBuilder sb = new StringBuilder();
         if (pii instanceof Uri) {
             Uri uri = (Uri) pii;
+            String scheme = uri.getScheme();
 
-            // All Uri's which are not "tel" go through normal pii() method.
-            if (!PhoneAccount.SCHEME_TEL.equals(uri.getScheme())) {
-                return pii(pii);
+            if (!TextUtils.isEmpty(scheme)) {
+                sb.append(scheme).append(":");
+            }
+
+            String textToObfuscate = uri.getSchemeSpecificPart();
+            if (PhoneAccount.SCHEME_TEL.equals(scheme)) {
+                for (int i = 0; i < textToObfuscate.length(); i++) {
+                    char c = textToObfuscate.charAt(i);
+                    sb.append(PhoneNumberUtils.isDialable(c) ? "*" : c);
+                }
+            } else if (PhoneAccount.SCHEME_SIP.equals(scheme)) {
+                for (int i = 0; i < textToObfuscate.length(); i++) {
+                    char c = textToObfuscate.charAt(i);
+                    if (c != '@' && c != '.') {
+                        c = '*';
+                    }
+                    sb.append(c);
+                }
             } else {
-                pii = uri.getSchemeSpecificPart();
+                sb.append(pii(pii));
             }
         }
 
-        String originalString = String.valueOf(pii);
-        StringBuilder stringBuilder = new StringBuilder(originalString.length());
-        for (char c : originalString.toCharArray()) {
-            if (PhoneNumberUtils.isDialable(c)) {
-                stringBuilder.append('*');
-            } else {
-                stringBuilder.append(c);
-            }
-        }
-        return stringBuilder.toString();
+        return sb.toString();
     }
 
     /**
