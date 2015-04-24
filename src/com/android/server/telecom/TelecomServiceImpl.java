@@ -1046,7 +1046,7 @@ public class TelecomServiceImpl {
                         Binder.getCallingUid(), defaultDialerComponent.getPackageName());
                 return true;
             } catch (SecurityException e) {
-                Log.e(this, e, "Could not get default dialer.");
+                Log.i(this, "Calling uid %d is not the default dialer.", Binder.getCallingUid());
             }
         }
         return false;
