@@ -443,7 +443,8 @@ final class ConnectionServiceWrapper extends ServiceBinder {
             try {
                 synchronized (mLock) {
                     logIncoming("setStatusHints %s %s", callId, statusHints);
-                    if (mCallIdMapper.isValidCallId(callId)) {
+                    if (mCallIdMapper.isValidCallId(callId)
+                            || mCallIdMapper.isValidConferenceId(callId)) {
                         Call call = mCallIdMapper.getCall(callId);
                         if (call != null) {
                             call.setStatusHints(statusHints);
