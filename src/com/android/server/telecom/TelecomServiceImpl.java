@@ -30,6 +30,7 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.os.UserHandle;
 import android.os.UserManager;
+import android.telecom.DefaultDialerManager;
 import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
 import android.telecom.TelecomManager;
@@ -444,6 +445,8 @@ public class TelecomServiceImpl {
 
         /**
          * @see android.telecom.TelecomManager#getDefaultPhoneApp
+         * @deprecated - Use {@link android.telecom.TelecomManager#getDefaultDialerPackage()}
+         *         instead.
          */
         @Override
         public ComponentName getDefaultPhoneApp() {
@@ -452,6 +455,27 @@ public class TelecomServiceImpl {
             return new ComponentName(
                     resources.getString(R.string.ui_default_package),
                     resources.getString(R.string.dialer_default_class));
+        }
+
+        /**
+         * @see android.telecom.TelecomManager#getDefaultDialerPackage
+         */
+        @Override
+        public String getDefaultDialerPackage() {
+            final ComponentName defaultDialer =
+                    DefaultDialerManager.getDefaultDialerApplication(mContext);
+            if (defaultDialer != null) {
+                return defaultDialer.getPackageName();
+            }
+            return null;
+        }
+
+        /**
+         * @see android.telecom.TelecomManager#getSystemDialerPackage
+         */
+        @Override
+        public String getSystemDialerPackage() {
+            return mContext.getResources().getString(R.string.ui_default_package);
         }
 
         /**
