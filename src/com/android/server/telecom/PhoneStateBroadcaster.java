@@ -18,7 +18,6 @@ package com.android.server.telecom;
 
 import android.os.RemoteException;
 import android.os.ServiceManager;
-import android.telecom.CallState;
 import android.telephony.TelephonyManager;
 
 import com.android.internal.telephony.ITelephonyRegistry;

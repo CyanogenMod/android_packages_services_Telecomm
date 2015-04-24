@@ -17,6 +17,7 @@
 package com.android.server.telecom.ui;
 
 import com.android.server.telecom.Call;
+import com.android.server.telecom.CallState;
 import com.android.server.telecom.CallerInfoAsyncQueryFactory;
 import com.android.server.telecom.CallsManager;
 import com.android.server.telecom.CallsManagerListenerBase;
@@ -46,7 +47,6 @@ import android.os.AsyncTask;
 import android.os.Binder;
 import android.os.UserHandle;
 import android.provider.CallLog.Calls;
-import android.telecom.CallState;
 import android.telecom.DisconnectCause;
 import android.telecom.PhoneAccount;
 import android.telephony.PhoneNumberUtils;

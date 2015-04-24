@@ -22,9 +22,9 @@ import static org.mockito.Mockito.never;
 
 import android.content.Context;
 import android.os.PowerManager;
-import android.telecom.CallState;
 
 import com.android.server.telecom.Call;
+import com.android.server.telecom.CallState;
 import com.android.server.telecom.CallsManager;
 import com.android.server.telecom.InCallWakeLockController;
 

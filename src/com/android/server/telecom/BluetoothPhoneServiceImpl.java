@@ -27,7 +27,6 @@ import android.content.IntentFilter;
 import android.net.Uri;
 import android.os.IBinder;
 import android.os.RemoteException;
-import android.telecom.CallState;
 import android.telecom.Connection;
 import android.telecom.PhoneAccount;
 import android.telephony.PhoneNumberUtils;
@@ -699,7 +698,7 @@ public final class BluetoothPhoneServiceImpl {
             case CallState.ABORTED:
             case CallState.DISCONNECTED:
             case CallState.CONNECTING:
-            case CallState.PRE_DIAL_WAIT:
+            case CallState.SELECT_PHONE_ACCOUNT:
                 return CALL_STATE_IDLE;
 
             case CallState.ACTIVE:
