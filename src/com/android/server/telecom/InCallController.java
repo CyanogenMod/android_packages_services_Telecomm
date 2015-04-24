@@ -33,6 +33,7 @@ import android.os.UserHandle;
 import android.telecom.AudioState;
 import android.telecom.CallProperties;
 import android.telecom.Connection;
+import android.telecom.DefaultDialerManager;
 import android.telecom.InCallService;
 import android.telecom.ParcelableCall;
 import android.telecom.TelecomManager;
@@ -298,10 +299,11 @@ public final class InCallController extends CallsManagerListenerBase {
                         continue;
                     }
 
-                    if (!hasControlInCallPermission) {
-                        Log.w(this,
-                                "InCall UI does not have CONTROL_INCALL_EXPERIENCE permission: " +
-                                        serviceInfo.packageName);
+                    if (!hasControlInCallPermission
+                            && !DefaultDialerManager.isDefaultOrSystemDialer(mContext,
+                                    serviceInfo.packageName)) {
+                        Log.w(this, "Service does not have CONTROL_INCALL_EXPERIENCE permission: %s"
+                                + " and is not system or default dialer.", serviceInfo.packageName);
                         continue;
                     }
 
