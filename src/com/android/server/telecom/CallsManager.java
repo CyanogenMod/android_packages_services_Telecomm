@@ -1121,6 +1121,7 @@ public class CallsManager extends Call.ListenerBase {
         call.setConnectionCapabilities(parcelableConference.getConnectionCapabilities());
         call.setVideoState(parcelableConference.getVideoState());
         call.setVideoProvider(parcelableConference.getVideoProvider());
+        call.setStatusHints(parcelableConference.getStatusHints());
 
         // TODO: Move this to be a part of addCall()
         call.addListener(this);

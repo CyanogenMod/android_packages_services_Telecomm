@@ -36,6 +36,7 @@ import android.telecom.Connection;
 import android.telecom.InCallService;
 import android.telecom.ParcelableCall;
 import android.telecom.TelecomManager;
+import android.telecom.VideoCallImpl;
 import android.util.ArrayMap;
 
 // TODO: Needed for move to system service: import com.android.internal.R;
@@ -86,7 +87,7 @@ public final class InCallController extends CallsManagerListenerBase {
 
         @Override
         public void onVideoCallProviderChanged(Call call) {
-            updateCall(call);
+            updateCall(call, true /* videoProviderChanged */);
         }
 
         @Override
@@ -164,9 +165,8 @@ public final class InCallController extends CallsManagerListenerBase {
             for (Map.Entry<ComponentName, IInCallService> entry : mInCallServices.entrySet()) {
                 ComponentName componentName = entry.getKey();
                 IInCallService inCallService = entry.getValue();
-
                 ParcelableCall parcelableCall = toParcelableCall(call,
-                        componentName.equals(mInCallComponentName) /* includeVideoProvider */);
+                        true /* includeVideoProvider */);
                 try {
                     inCallService.addCall(parcelableCall);
                 } catch (RemoteException ignored) {
@@ -376,9 +376,7 @@ public final class InCallController extends CallsManagerListenerBase {
                 try {
                     // Track the call if we don't already know about it.
                     addCall(call);
-                    inCallService.addCall(toParcelableCall(
-                            call,
-                            componentName.equals(mInCallComponentName) /* includeVideoProvider */));
+                    inCallService.addCall(toParcelableCall(call, true /* includeVideoProvider */));
                 } catch (RemoteException ignored) {
                 }
             }
@@ -430,18 +428,28 @@ public final class InCallController extends CallsManagerListenerBase {
     }
 
     /**
-     * Informs all {@link InCallService} instances of the updated call information.  Changes to the
-     * video provider are only communicated to the default in-call UI.
+     * Informs all {@link InCallService} instances of the updated call information.
      *
      * @param call The {@link Call}.
      */
     private void updateCall(Call call) {
+        updateCall(call, false /* videoProviderChanged */);
+    }
+
+    /**
+     * Informs all {@link InCallService} instances of the updated call information.
+     *
+     * @param call The {@link Call}.
+     * @param videoProviderChanged {@code true} if the video provider changed, {@code false}
+     *      otherwise.
+     */
+    private void updateCall(Call call, boolean videoProviderChanged) {
         if (!mInCallServices.isEmpty()) {
             for (Map.Entry<ComponentName, IInCallService> entry : mInCallServices.entrySet()) {
                 ComponentName componentName = entry.getKey();
                 IInCallService inCallService = entry.getValue();
                 ParcelableCall parcelableCall = toParcelableCall(call,
-                        componentName.equals(mInCallComponentName) /* includeVideoProvider */);
+                        videoProviderChanged /* includeVideoProvider */);
                 Log.v(this, "updateCall %s ==> %s", call, parcelableCall);
                 try {
                     inCallService.updateCall(parcelableCall);
@@ -455,8 +463,10 @@ public final class InCallController extends CallsManagerListenerBase {
      * Parcels all information for a {@link Call} into a new {@link ParcelableCall} instance.
      *
      * @param call The {@link Call} to parcel.
-     * @param includeVideoProvider When {@code true}, the {@link IVideoProvider} is included in the
-     *      parceled call.  When {@code false}, the {@link IVideoProvider} is not included.
+     * @param includeVideoProvider {@code true} if the video provider should be parcelled with the
+     *      {@link Call}, {@code false} otherwise.  Since the {@link ParcelableCall#getVideoCall()}
+     *      method creates a {@link VideoCallImpl} instance on access it is important for the
+     *      recipient of the {@link ParcelableCall} to know if the video provider changed.
      * @return The {@link ParcelableCall} containing all call information from the {@link Call}.
      */
     private ParcelableCall toParcelableCall(Call call, boolean includeVideoProvider) {
@@ -538,6 +548,7 @@ public final class InCallController extends CallsManagerListenerBase {
                 call.getCallerDisplayNamePresentation(),
                 call.getGatewayInfo(),
                 call.getTargetPhoneAccount(),
+                includeVideoProvider,
                 includeVideoProvider ? call.getVideoProvider() : null,
                 parentCallId,
                 childCallIds,
