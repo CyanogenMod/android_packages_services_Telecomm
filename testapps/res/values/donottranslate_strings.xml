@@ -29,4 +29,8 @@
 
     <!-- String for button in TestDialerActivity that places a test call -->
     <string name="placeCallButton">Place call</string>
+
+    <!-- String for button in TestDialerActivity that performs voicemail requests to verify
+            voicemail permissions -->
+    <string name="testVoicemailButton">Exercise voicemail permissions</string>
 </resources>
