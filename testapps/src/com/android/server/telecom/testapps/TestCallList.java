@@ -120,7 +120,7 @@ public class TestCallList extends Call.Listener {
         mCalls.clear();
         for (Call call : mVideoCallListeners.keySet()) {
             if (call.getVideoCall() != null) {
-                call.getVideoCall().unregisterCallback();
+                call.getVideoCall().destroy();
             }
         }
         mVideoCallListeners.clear();
