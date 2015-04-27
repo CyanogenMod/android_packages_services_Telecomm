@@ -54,6 +54,7 @@
         </service>
 
         <activity android:name="com.android.server.telecom.testapps.TestCallActivity"
+                  android:theme="@android:style/Theme.NoDisplay"
                   android:label="@string/testCallActivityLabel"
                   android:process="com.android.server.telecom.testapps.TestInCallService">
             <intent-filter>
