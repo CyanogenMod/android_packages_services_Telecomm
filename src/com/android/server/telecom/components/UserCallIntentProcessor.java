@@ -48,11 +48,11 @@ import android.widget.Toast;
  * calls via ACTION_CALL_PRIVILEGED.
  *
  * In addition, the default dialer (identified via
- * {@link android.telecom.TelecomManager#getDefaultPhoneApp()} will also be granted the ability to
- * make emergency outgoing calls using the CALL action. In order to do this, it must call
- * startActivityForResult on the CALL intent to allow its package name to be passed to
- * {@link UserCallIntentProcessor}. Calling startActivity will continue to work on all
- * non-emergency numbers just like it did pre-L.
+ * {@link android.telecom.TelecomManager#getDefaultDialerPackage()} will also be granted the
+ * ability to make emergency outgoing calls using the CALL action. In order to do this, it must
+ * use the {@link TelecomManager#placeCall(Uri, android.os.Bundle)} method to allow its package
+ * name to be passed to {@link UserCallIntentProcessor}. Calling startActivity will continue to
+ * work on all non-emergency numbers just like it did pre-L.
  */
 public class UserCallIntentProcessor {
 
@@ -126,7 +126,8 @@ public class UserCallIntentProcessor {
             return;
         }
 
-        intent.putExtra(CallIntentProcessor.KEY_IS_DEFAULT_DIALER, isDefaultDialer(callingPackageName));
+        intent.putExtra(CallIntentProcessor.KEY_IS_PRIVILEGED_DIALER,
+                isDefaultOrSystemDialer(callingPackageName));
         sendBroadcastToReceiver(intent);
     }
 
@@ -137,16 +138,18 @@ public class UserCallIntentProcessor {
                 TelecomManager.TTY_MODE_OFF) != TelecomManager.TTY_MODE_OFF);
     }
 
-    private boolean isDefaultDialer(String callingPackageName) {
+    private boolean isDefaultOrSystemDialer(String callingPackageName) {
         if (TextUtils.isEmpty(callingPackageName)) {
             return false;
         }
 
         final TelecomManager telecomManager =
                 (TelecomManager) mContext.getSystemService(Context.TELECOM_SERVICE);
-        final ComponentName defaultPhoneApp = telecomManager.getDefaultPhoneApp();
-        return (defaultPhoneApp != null
-                && TextUtils.equals(defaultPhoneApp.getPackageName(), callingPackageName));
+        if (TextUtils.equals(telecomManager.getDefaultDialerPackage(), callingPackageName)) {
+            return true;
+        }
+
+        return TextUtils.equals(telecomManager.getSystemDialerPackage(), callingPackageName);
     }
 
     /**
