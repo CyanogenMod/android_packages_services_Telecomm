@@ -465,12 +465,7 @@ public class TelecomServiceImpl {
          */
         @Override
         public String getDefaultDialerPackage() {
-            final ComponentName defaultDialer =
-                    DefaultDialerManager.getDefaultDialerApplication(mContext);
-            if (defaultDialer != null) {
-                return defaultDialer.getPackageName();
-            }
-            return null;
+            return DefaultDialerManager.getDefaultDialerApplication(mContext);
         }
 
         /**
