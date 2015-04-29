@@ -250,6 +250,9 @@ public class Call implements CreateConnectionResponse {
     /**
      * Tracks the video states which were applicable over the duration of a call.
      * See {@link VideoProfile} for a list of valid video states.
+     * <p>
+     * Video state history is tracked when the call is active, and when a call is rejected or
+     * missed.
      */
     private int mVideoStateHistory;
 
@@ -515,12 +518,24 @@ public class Call implements CreateConnectionResponse {
                     mConnectTimeMillis = System.currentTimeMillis();
                 }
 
+                // Video state changes are normally tracked against history when a call is active.
+                // When the call goes active we need to be sure we track the history in case the
+                // state never changes during the duration of the call -- we want to ensure we
+                // always know the state at the start of the call.
+                mVideoStateHistory = mVideoStateHistory | mVideoState;
+
                 // We're clearly not disconnected, so reset the disconnected time.
                 mDisconnectTimeMillis = 0;
             } else if (mState == CallState.DISCONNECTED) {
                 mDisconnectTimeMillis = System.currentTimeMillis();
                 setLocallyDisconnecting(false);
                 fixParentAfterDisconnect();
+            }
+
+            if (mState == CallState.DISCONNECTED &&
+                    mDisconnectCause.getCode() == DisconnectCause.MISSED) {
+                // Ensure when an incoming call is missed that the video state history is updated.
+                mVideoStateHistory |= mVideoState;
             }
         }
     }
@@ -1009,6 +1024,9 @@ public class Call implements CreateConnectionResponse {
         // Check to verify that the call is still in the ringing state. A call can change states
         // between the time the user hits 'reject' and Telecomm receives the command.
         if (isRinging("reject")) {
+            // Ensure video state history tracks video state at time of rejection.
+            mVideoStateHistory |= mVideoState;
+
             mConnectionService.reject(this);
         }
     }
