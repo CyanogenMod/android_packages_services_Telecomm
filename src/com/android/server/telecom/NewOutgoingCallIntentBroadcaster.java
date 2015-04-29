@@ -16,6 +16,7 @@
 
 package com.android.server.telecom;
 
+import android.app.AppOpsManager;
 import com.android.server.telecom.components.UserCallIntentProcessor;
 
 import android.app.Activity;
@@ -53,9 +54,6 @@ import android.text.TextUtils;
  * prior to sending ACTION_NEW_OUTGOING_CALL and cannot be redirected nor prevented.
  */
 class NewOutgoingCallIntentBroadcaster {
-    /** Required permission for any app that wants to consume ACTION_NEW_OUTGOING_CALL. */
-    private static final String PERMISSION = android.Manifest.permission.PROCESS_OUTGOING_CALLS;
-
     private static final String EXTRA_ACTUAL_NUMBER_TO_DIAL =
             "android.telecom.extra.ACTUAL_NUMBER_TO_DIAL";
 
@@ -289,7 +287,8 @@ class NewOutgoingCallIntentBroadcaster {
         mContext.sendOrderedBroadcastAsUser(
                 broadcastIntent,
                 UserHandle.CURRENT,
-                PERMISSION,
+                android.Manifest.permission.PROCESS_OUTGOING_CALLS,
+                AppOpsManager.OP_PROCESS_OUTGOING_CALLS,
                 receiverRequired ? new NewOutgoingCallBroadcastIntentReceiver() : null,
                 null,  // scheduler
                 Activity.RESULT_OK,  // initialCode
