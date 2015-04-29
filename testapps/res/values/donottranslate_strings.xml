@@ -33,4 +33,8 @@
     <!-- String for button in TestDialerActivity that performs voicemail requests to verify
             voicemail permissions -->
     <string name="testVoicemailButton">Exercise voicemail permissions</string>
+
+    <!-- String for button in TestDialerActivity that tries to exercise the
+            TelecomManager.cancelMissedCallNotifications() functionality -->
+    <string name="cancelMissedButton">Cancel missed calls</string>
 </resources>

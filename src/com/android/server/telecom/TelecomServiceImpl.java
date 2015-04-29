@@ -358,7 +358,7 @@ public class TelecomServiceImpl {
         public boolean isVoiceMailNumber(PhoneAccountHandle accountHandle, String number,
                 String callingPackage) {
             synchronized (mLock) {
-                if (!isDefaultDialerCalling()
+                if (!isPrivilegedDialerCalling(callingPackage)
                         && !canReadPhoneState(callingPackage, "isVoiceMailNumber")) {
                     return false;
                 }
@@ -382,7 +382,7 @@ public class TelecomServiceImpl {
         @Override
         public String getVoiceMailNumber(PhoneAccountHandle accountHandle, String callingPackage) {
             synchronized (mLock) {
-                if (!isDefaultDialerCalling()
+                if (!isPrivilegedDialerCalling(callingPackage)
                         && !canReadPhoneState(callingPackage, "getVoiceMailNumber")) {
                     return null;
                 }
@@ -411,7 +411,7 @@ public class TelecomServiceImpl {
          */
         @Override
         public String getLine1Number(PhoneAccountHandle accountHandle, String callingPackage) {
-            if (!isDefaultDialerCalling()
+            if (!isPrivilegedDialerCalling(callingPackage)
                     && !canReadPhoneState(callingPackage, "getLine1Number")) {
                 return null;
             }
@@ -436,9 +436,9 @@ public class TelecomServiceImpl {
          * @see android.telecom.TelecomManager#silenceRinger
          */
         @Override
-        public void silenceRinger() {
+        public void silenceRinger(String callingPackage) {
             synchronized (mLock) {
-                enforceModifyPermissionOrDefaultDialer();
+                enforceModifyPermissionOrPrivilegedDialer(callingPackage);
                 mCallsManager.getRinger().silence();
             }
         }
@@ -543,7 +543,7 @@ public class TelecomServiceImpl {
          */
         @Override
         public void showInCallScreen(boolean showDialpad, String callingPackage) {
-            if (!isDefaultDialerCalling()
+            if (!isPrivilegedDialerCalling(callingPackage)
                     && !canReadPhoneState(callingPackage, "showInCallScreen")) {
                 return;
             }
@@ -557,9 +557,9 @@ public class TelecomServiceImpl {
          * @see android.telecom.TelecomManager#cancelMissedCallsNotification
          */
         @Override
-        public void cancelMissedCallsNotification() {
+        public void cancelMissedCallsNotification(String callingPackage) {
             synchronized (mLock) {
-                enforceModifyPermissionOrDefaultDialer();
+                enforceModifyPermissionOrPrivilegedDialer(callingPackage);
                 mCallsManager.getMissedCallNotifier().clearMissedCalls();
             }
         }
@@ -568,9 +568,9 @@ public class TelecomServiceImpl {
          * @see android.telecom.TelecomManager#handleMmi
          */
         @Override
-        public boolean handlePinMmi(String dialString) {
+        public boolean handlePinMmi(String dialString, String callingPackage) {
             synchronized (mLock) {
-                enforceModifyPermissionOrDefaultDialer();
+                enforceModifyPermissionOrPrivilegedDialer(callingPackage);
 
                 // Switch identity so that TelephonyManager checks Telecom's permissions instead.
                 long token = Binder.clearCallingIdentity();
@@ -591,9 +591,10 @@ public class TelecomServiceImpl {
         @Override
         public boolean handlePinMmiForPhoneAccount(
                 PhoneAccountHandle accountHandle,
-                String dialString) {
+                String dialString,
+                String callingPackage) {
             synchronized (mLock) {
-                enforceModifyPermissionOrDefaultDialer();
+                enforceModifyPermissionOrPrivilegedDialer(callingPackage);
 
                 if (!isVisibleToCaller(accountHandle)) {
                     Log.w(this, "%s is not visible for the calling user", accountHandle);
@@ -619,9 +620,10 @@ public class TelecomServiceImpl {
          * @see android.telecom.TelecomManager#getAdnUriForPhoneAccount
          */
         @Override
-        public Uri getAdnUriForPhoneAccount(PhoneAccountHandle accountHandle) {
+        public Uri getAdnUriForPhoneAccount(PhoneAccountHandle accountHandle,
+                String callingPackage) {
             synchronized (mLock) {
-                enforceModifyPermissionOrDefaultDialer();
+                enforceModifyPermissionOrPrivilegedDialer(callingPackage);
 
                 if (!isVisibleToCaller(accountHandle)) {
                     Log.w(this, "%s is not visible for the calling user", accountHandle);
@@ -947,9 +949,15 @@ public class TelecomServiceImpl {
         }
     }
 
-    private void enforceModifyPermissionOrDefaultDialer() {
-        if (!isDefaultDialerCalling()) {
-            enforceModifyPermission();
+    private void enforceModifyPermissionOrPrivilegedDialer(String packageName) {
+        if (!isPrivilegedDialerCalling(packageName)) {
+            try {
+                enforceModifyPermission();
+            } catch (SecurityException e) {
+                Log.e(this, e, "Caller must be the default or system dialer, or have the system"
+                        + " only permission MODIFY_PHONE_STATE to perform this operation.");
+                throw e;
+            }
         }
     }
 
@@ -1033,25 +1041,9 @@ public class TelecomServiceImpl {
         return false;
     }
 
-    private boolean isDefaultDialerCalling() {
-        ComponentName defaultDialerComponent = getDefaultPhoneAppInternal();
-        if (defaultDialerComponent != null) {
-            try {
-                mAppOpsManager.checkPackage(
-                        Binder.getCallingUid(), defaultDialerComponent.getPackageName());
-                return true;
-            } catch (SecurityException e) {
-                Log.i(this, "Calling uid %d is not the default dialer.", Binder.getCallingUid());
-            }
-        }
-        return false;
-    }
-
-    private ComponentName getDefaultPhoneAppInternal() {
-        Resources resources = mContext.getResources();
-        return new ComponentName(
-                resources.getString(R.string.ui_default_package),
-                resources.getString(R.string.dialer_default_class));
+    private boolean isPrivilegedDialerCalling(String callingPackage) {
+        mAppOpsManager.checkPackage(Binder.getCallingUid(), callingPackage);
+        return DefaultDialerManager.isDefaultOrSystemDialer(mContext, callingPackage);
     }
 
     private TelephonyManager getTelephonyManager() {
