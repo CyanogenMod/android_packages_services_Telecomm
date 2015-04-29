@@ -777,7 +777,13 @@ public final class InCallController extends CallsManagerListenerBase {
         android.telecom.Call.Details.CAPABILITY_VOICE_PRIVACY,
 
         Connection.CAPABILITY_ADD_PARTICIPANT,
-        android.telecom.Call.Details.CAPABILITY_ADD_PARTICIPANT
+        android.telecom.Call.Details.CAPABILITY_ADD_PARTICIPANT,
+
+        Connection.CAPABILITY_SUPPORTS_DOWNGRADE_TO_VOICE_LOCAL,
+        android.telecom.Call.Details.CAPABILITY_SUPPORTS_DOWNGRADE_TO_VOICE_LOCAL,
+
+        Connection.CAPABILITY_SUPPORTS_DOWNGRADE_TO_VOICE_REMOTE,
+        android.telecom.Call.Details.CAPABILITY_SUPPORTS_DOWNGRADE_TO_VOICE_REMOTE
     };
 
     private static int convertConnectionToCallCapabilities(int connectionCapabilities) {
