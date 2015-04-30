@@ -135,6 +135,7 @@
             </intent-filter>
             <intent-filter android:priority="1000">
                 <action android:name="android.intent.action.CALL_PRIVILEGED" />
+                <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="vnd.android.cursor.item/phone" />
                 <data android:mimeType="vnd.android.cursor.item/phone_v2" />
                 <data android:mimeType="vnd.android.cursor.item/person" />
@@ -173,15 +174,6 @@
                 <data android:mimeType="vnd.android.cursor.item/phone" />
                 <data android:mimeType="vnd.android.cursor.item/phone_v2" />
                 <data android:mimeType="vnd.android.cursor.item/person" />
-            </intent-filter>
-        </activity-alias>
-
-        <activity-alias android:name="IncomingCallActivity"
-                android:targetActivity="CallActivity"
-                android:exported="true">
-            <intent-filter>
-                <action android:name="android.telecom.action.INCOMING_CALL" />
-                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity-alias>
 
@@ -236,9 +228,6 @@
                 <action android:name="android.bluetooth.IBluetoothHeadsetPhone" />
             </intent-filter>
         </service>
-        <activity android:name="AccountSelection"
-            android:theme="@style/Theme.Telecomm.Transparent"
-            android:excludeFromRecents="true"/>
 
         <service android:name=".TelecomService"
                 android:singleUser="true"

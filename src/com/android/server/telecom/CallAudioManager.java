@@ -279,13 +279,18 @@ final class CallAudioManager extends CallsManagerListenerBase
 
     private void onCallUpdated(Call call) {
         boolean wasNotVoiceCall = mAudioFocusStreamType != AudioManager.STREAM_VOICE_CALL;
-        updateAudioStreamAndMode();
-        if ((call != null) && (call.getState() == CallState.ACTIVE) &&
-                (call.getTargetPhoneAccount() != null) &&
-                call.getTargetPhoneAccount().getId().equals(mSubId) && mSpeedUpAudioForMtCall) {
-            Log.d(this,"Reset mSpeedUpAudioForMtCall");
-            mSpeedUpAudioForMtCall = false;
+        if (call != null) {
+            if (call.getState() != CallState.DISCONNECTED) {
+                updateAudioStreamAndMode();
+            }
+            if ((call.getState() == CallState.ACTIVE) &&
+                    (call.getTargetPhoneAccount() != null) &&
+                    call.getTargetPhoneAccount().getId().equals(mSubId) && mSpeedUpAudioForMtCall) {
+                Log.d(this,"Reset mSpeedUpAudioForMtCall");
+                mSpeedUpAudioForMtCall = false;
+            }
         }
+
         // If we transition from not voice call to voice call, we need to set an initial state.
         if (wasNotVoiceCall && mAudioFocusStreamType == AudioManager.STREAM_VOICE_CALL) {
             setInitialAudioState(call, true /* force */);

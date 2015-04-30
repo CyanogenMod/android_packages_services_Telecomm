@@ -57,6 +57,14 @@ class MissedCallNotifier extends CallsManagerListenerBase {
         Calls.DURATION,
         Calls.TYPE,
     };
+
+    private static final int CALL_LOG_COLUMN_ID = 0;
+    private static final int CALL_LOG_COLUMN_NUMBER = 1;
+    private static final int CALL_LOG_COLUMN_NUMBER_PRESENTATION = 2;
+    private static final int CALL_LOG_COLUMN_DATE = 3;
+    private static final int CALL_LOG_COLUMN_DURATION = 4;
+    private static final int CALL_LOG_COLUMN_TYPE = 5;
+
     private static final int MISSED_CALL_NOTIFICATION_ID = 1;
 
     private final Context mContext;
@@ -284,6 +292,7 @@ class MissedCallNotifier extends CallsManagerListenerBase {
                             // Get data about the missed call from the cursor
                             final String handleString = cursor.getString(
                                     cursor.getColumnIndexOrThrow(Calls.NUMBER));
+                            long date = cursor.getLong(CALL_LOG_COLUMN_DATE);
                             final int presentation = cursor.getInt(cursor.getColumnIndexOrThrow(
                                     Calls.NUMBER_PRESENTATION));
 
@@ -302,6 +311,7 @@ class MissedCallNotifier extends CallsManagerListenerBase {
                                     false);
                             call.setDisconnectCause(new DisconnectCause(DisconnectCause.MISSED));
                             call.setState(CallState.DISCONNECTED);
+                            call.setCreationTimeMillis(date);
 
                             // Listen for the update to the caller information before posting the
                             // notification so that we have the contact info and photo.

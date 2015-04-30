@@ -111,7 +111,8 @@ public class RespondViaSmsManager extends CallsManagerListenerBase {
                 QuickResponseUtils.maybeMigrateLegacyQuickResponses(context);
 
                 final SharedPreferences prefs = context.getSharedPreferences(
-                        QuickResponseUtils.SHARED_PREFERENCES_NAME, Context.MODE_PRIVATE);
+                        QuickResponseUtils.SHARED_PREFERENCES_NAME,
+                        Context.MODE_PRIVATE | Context.MODE_MULTI_PROCESS);
                 final Resources res = context.getResources();
 
                 final ArrayList<String> textMessages = new ArrayList<>(
@@ -143,10 +144,10 @@ public class RespondViaSmsManager extends CallsManagerListenerBase {
     @Override
     public void onIncomingCallRejected(Call call, boolean rejectWithMessage, String textMessage) {
         if (call != null && rejectWithMessage) {
-            long subId = SubscriptionManager.getDefaultSubId();
+            int subId = SubscriptionManager.getDefaultSubId();
             if (call.getTargetPhoneAccount() != null) {
                 try {
-                    subId = Long.parseLong(call.getTargetPhoneAccount().getId());
+                    subId = Integer.parseInt(call.getTargetPhoneAccount().getId());
                 } catch (NumberFormatException e) {
                     Log.e(RespondViaSmsManager.this, e , "Exception e ");
                 }
@@ -187,7 +188,7 @@ public class RespondViaSmsManager extends CallsManagerListenerBase {
      * Reject the call with the specified message. If message is null this call is ignored.
      */
     private void rejectCallWithMessage(Context context, String phoneNumber, String textMessage,
-            long subId) {
+            int subId) {
         if (textMessage != null) {
             final ComponentName component =
                     SmsApplication.getDefaultRespondViaMessageApplication(context,

@@ -188,7 +188,7 @@ public final class PhoneAccountRegistrar {
     }
 
     PhoneAccountHandle getUserSelectedVoicePhoneAccount() {
-        long voiceSubId = SubscriptionManager.getDefaultVoiceSubId();
+        int voiceSubId = SubscriptionManager.getDefaultVoiceSubId();
         boolean isVoicePrompt = SubscriptionManager.isVoicePromptEnabled();
         PhoneAccountHandle prefPhoneAccount = null;
 
@@ -203,9 +203,9 @@ public final class PhoneAccountRegistrar {
                    Log.i(this, "getUserSelVoicePhoneAccount, emergency account ");
                    return mState.accounts.get(i).getAccountHandle();
                 }
-                long subId = voiceSubId;
+                int subId = voiceSubId;
                 try {
-                    subId = Long.parseLong(id);
+                    subId = Integer.parseInt(id);
                 } catch (NumberFormatException e) {
                     Log.w(this, " NumberFormatException " + e);
                 }
@@ -315,7 +315,8 @@ public final class PhoneAccountRegistrar {
             // Return the registered sim call manager iff it still exists (we keep a sticky
             // setting to survive account deletion and re-addition)
             for (int i = 0; i < mState.accounts.size(); i++) {
-                if (mState.accounts.get(i).getAccountHandle().equals(mState.simCallManager)) {
+                if (mState.accounts.get(i).getAccountHandle().equals(mState.simCallManager)
+                        && !resolveComponent(mState.simCallManager.getComponentName()).isEmpty()) {
                     return mState.simCallManager;
                 }
             }
@@ -325,14 +326,9 @@ public final class PhoneAccountRegistrar {
         String defaultConnectionMgr =
                 mContext.getResources().getString(R.string.default_connection_manager_component);
         if (!TextUtils.isEmpty(defaultConnectionMgr)) {
-            PackageManager pm = mContext.getPackageManager();
-
             ComponentName componentName = ComponentName.unflattenFromString(defaultConnectionMgr);
-            Intent intent = new Intent(ConnectionService.SERVICE_INTERFACE);
-            intent.setComponent(componentName);
-
             // Make sure that the component can be resolved.
-            List<ResolveInfo> resolveInfos = pm.queryIntentServices(intent, 0);
+            List<ResolveInfo> resolveInfos = resolveComponent(componentName);
             if (!resolveInfos.isEmpty()) {
                 // See if there is registered PhoneAccount by this component.
                 List<PhoneAccountHandle> handles = getAllPhoneAccountHandles();
@@ -350,6 +346,13 @@ public final class PhoneAccountRegistrar {
         }
 
         return null;
+    }
+
+    private List<ResolveInfo> resolveComponent(ComponentName componentName) {
+        PackageManager pm = mContext.getPackageManager();
+        Intent intent = new Intent(ConnectionService.SERVICE_INTERFACE);
+        intent.setComponent(componentName);
+        return pm.queryIntentServices(intent, 0);
     }
 
     /**
@@ -497,7 +500,7 @@ public final class PhoneAccountRegistrar {
                     packageName,
                     phoneAccount.getAccountHandle().getComponentName().getPackageName())) {
                 Log.i(this, "Removing phone account " + phoneAccount.getLabel());
-                it.remove();
+                mState.accounts.remove(phoneAccount);
                 accountsRemoved = true;
             }
         }
@@ -585,7 +588,10 @@ public final class PhoneAccountRegistrar {
         List<PhoneAccountHandle> accountHandles = new ArrayList<>();
         for (PhoneAccount m : mState.accounts) {
             if (m.hasCapabilities(flags) && (uriScheme == null || m.supportsUriScheme(uriScheme))) {
-                accountHandles.add(m.getAccountHandle());
+                // Also filter out unresolveable accounts
+                if (!resolveComponent(m.getAccountHandle().getComponentName()).isEmpty()) {
+                    accountHandles.add(m.getAccountHandle());
+                }
             }
         }
         return accountHandles;
@@ -611,7 +617,7 @@ public final class PhoneAccountRegistrar {
         /**
          * The complete list of {@code PhoneAccount}s known to the Telecom subsystem.
          */
-        public final List<PhoneAccount> accounts = new ArrayList<>();
+        public final List<PhoneAccount> accounts = new CopyOnWriteArrayList<>();
 
         /**
          * The version number of the State data.

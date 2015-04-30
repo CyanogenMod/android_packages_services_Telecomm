@@ -91,8 +91,6 @@ public class CallActivity extends Activity {
                 Intent.ACTION_CALL_PRIVILEGED.equals(action) ||
                 Intent.ACTION_CALL_EMERGENCY.equals(action)) {
             processOutgoingCallIntent(intent);
-        } else if (TelecomManager.ACTION_INCOMING_CALL.equals(action)) {
-            processIncomingCallIntent(intent);
         }
     }
 
@@ -178,10 +176,6 @@ public class CallActivity extends Activity {
                 getContentResolver(),
                 android.provider.Settings.Secure.PREFERRED_TTY_MODE,
                 TelecomManager.TTY_MODE_OFF) != TelecomManager.TTY_MODE_OFF);
-    }
-
-    private void processIncomingCallIntent(Intent intent) {
-        sendBroadcastToReceiver(intent, true /* isIncoming */);
     }
 
     private boolean isDefaultDialer() {

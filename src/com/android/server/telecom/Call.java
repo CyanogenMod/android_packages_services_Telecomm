@@ -73,6 +73,7 @@ final class Call implements CreateConnectionResponse {
         void onFailedUnknownCall(Call call);
         void onRingbackRequested(Call call, boolean ringbackRequested);
         void onPostDialWait(Call call, String remaining);
+        void onPostDialChar(Call call, char nextChar);
         void onConnectionCapabilitiesChanged(Call call);
         void onCallPropertiesChanged(Call call);
         void onParentChanged(Call call);
@@ -109,6 +110,8 @@ final class Call implements CreateConnectionResponse {
         public void onRingbackRequested(Call call, boolean ringbackRequested) {}
         @Override
         public void onPostDialWait(Call call, String remaining) {}
+        @Override
+        public void onPostDialChar(Call call, char nextChar) {}
         @Override
         public void onConnectionCapabilitiesChanged(Call call) {}
         @Override
@@ -192,7 +195,7 @@ final class Call implements CreateConnectionResponse {
      * The time this call was created. Beyond logging and such, may also be used for bookkeeping
      * and specifically for marking certain call attempts as failed attempts.
      */
-    private final long mCreationTimeMillis = System.currentTimeMillis();
+    private long mCreationTimeMillis = System.currentTimeMillis();
 
     /** The gateway information associated with this call. This stores the original call handle
      * that the user is attempting to connect to via the gateway, the actual handle to dial in
@@ -610,6 +613,10 @@ final class Call implements CreateConnectionResponse {
         return mCreationTimeMillis;
     }
 
+    void setCreationTimeMillis(long time) {
+        mCreationTimeMillis = time;
+    }
+
     long getConnectTimeMillis() {
         return mConnectTimeMillis;
     }
@@ -1004,6 +1011,12 @@ final class Call implements CreateConnectionResponse {
     void onPostDialWait(String remaining) {
         for (Listener l : mListeners) {
             l.onPostDialWait(this, remaining);
+        }
+    }
+
+    void onPostDialChar(char nextChar) {
+        for (Listener l : mListeners) {
+            l.onPostDialChar(this, nextChar);
         }
     }
 
