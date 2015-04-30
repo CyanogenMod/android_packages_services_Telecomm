@@ -2,11 +2,13 @@ package com.android.server.telecom.testapps;
 
 import android.app.Activity;
 import android.content.ContentValues;
+import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.CallLog.Calls;
 import android.telecom.PhoneAccount;
+import android.telecom.TelecomManager;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.EditText;
@@ -27,6 +29,7 @@ public class TestDialerActivity extends Activity {
                 setDefault();
             }
         });
+
         findViewById(R.id.place_call_button).setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -38,6 +41,13 @@ public class TestDialerActivity extends Activity {
             @Override
             public void onClick(View v) {
                 testVoicemail();
+            }
+        });
+
+        findViewById(R.id.cancel_missed_button).setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                cancelMissedCallNotification();
             }
         });
 
@@ -81,5 +91,16 @@ public class TestDialerActivity extends Activity {
             return;
         }
         Toast.makeText(this, "Permission check succeeded", Toast.LENGTH_SHORT).show();
+    }
+
+    private void cancelMissedCallNotification() {
+        try {
+            final TelecomManager tm = (TelecomManager) getSystemService(Context.TELECOM_SERVICE);
+            tm.cancelMissedCallsNotification();
+        } catch (SecurityException e) {
+            Toast.makeText(this, "Privileged dialer operation failed", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        Toast.makeText(this, "Privileged dialer operation succeeded", Toast.LENGTH_SHORT).show();
     }
 }
