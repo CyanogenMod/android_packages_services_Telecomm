@@ -45,6 +45,10 @@ public class ProximitySensorManager extends CallsManagerListenerBase {
     @Override
     public void onCallRemoved(Call call) {
         if (CallsManager.getInstance().getCalls().isEmpty()) {
+            if (mCmHardwareManager.isSupported(CmHardwareManager.FEATURE_TAP_TO_WAKE)
+                    && mWasTapToWakeEnabled) {
+                mCmHardwareManager.set(CmHardwareManager.FEATURE_TAP_TO_WAKE, true);
+            }
             Log.i(this, "All calls removed, resetting proximity sensor to default state");
             turnOff(true);
         }
@@ -85,10 +89,6 @@ public class ProximitySensorManager extends CallsManagerListenerBase {
             return;
         }
         if (mProximityWakeLock.isHeld()) {
-            if (mCmHardwareManager.isSupported(CmHardwareManager.FEATURE_TAP_TO_WAKE)
-                    && mWasTapToWakeEnabled) {
-                mCmHardwareManager.set(CmHardwareManager.FEATURE_TAP_TO_WAKE, true);
-            }
             Log.i(this, "Releasing proximity wake lock");
             int flags =
                 (screenOnImmediately ? 0 : PowerManager.RELEASE_FLAG_WAIT_FOR_NO_PROXIMITY);
