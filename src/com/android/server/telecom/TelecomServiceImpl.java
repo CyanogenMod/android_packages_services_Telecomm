@@ -741,10 +741,12 @@ public class TelecomServiceImpl {
                         + " is not allowed to place phone calls");
             }
             synchronized (mLock) {
+                final UserHandle userHandle = Binder.getCallingUserHandle();
                 long token = Binder.clearCallingIdentity();
                 final Intent intent = new Intent(Intent.ACTION_CALL, handle);
                 intent.putExtras(extras);
-                new UserCallIntentProcessor(mContext).processIntent(intent, callingPackage);
+                new UserCallIntentProcessor(mContext, userHandle).processIntent(intent,
+                        callingPackage);
                 Binder.restoreCallingIdentity(token);
             }
         }

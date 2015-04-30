@@ -21,13 +21,11 @@ import com.android.server.telecom.Log;
 import com.android.server.telecom.R;
 import com.android.server.telecom.TelephonyUtil;
 
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.UserHandle;
 import android.os.UserManager;
-import android.provider.Settings;
 import android.telecom.PhoneAccount;
 import android.telecom.TelecomManager;
 import android.telecom.VideoProfile;
@@ -57,9 +55,11 @@ import android.widget.Toast;
 public class UserCallIntentProcessor {
 
     private final Context mContext;
+    private final UserHandle mUserHandle;
 
-    public UserCallIntentProcessor(Context context) {
+    public UserCallIntentProcessor(Context context, UserHandle userHandle) {
         mContext = context;
+        mUserHandle = userHandle;
     }
 
     /**
@@ -93,15 +93,12 @@ public class UserCallIntentProcessor {
         }
 
         UserManager userManager = (UserManager) mContext.getSystemService(Context.USER_SERVICE);
-        if (userManager.hasUserRestriction(UserManager.DISALLOW_OUTGOING_CALLS)
+        if (userManager.hasUserRestriction(UserManager.DISALLOW_OUTGOING_CALLS, mUserHandle)
                 && !TelephonyUtil.shouldProcessAsEmergency(mContext, handle)) {
             // Only emergency calls are allowed for users with the DISALLOW_OUTGOING_CALLS
             // restriction.
-            Toast.makeText(
-                    mContext,
-                    mContext.getResources().getString(R.string.outgoing_call_not_allowed),
-                    Toast.LENGTH_SHORT).show();
-            Log.d(this, "Rejecting non-emergency phone call due to DISALLOW_OUTGOING_CALLS "
+            showErrorDialogForRestrictedOutgoingCall(mContext);
+            Log.w(this, "Rejecting non-emergency phone call due to DISALLOW_OUTGOING_CALLS "
                     + "restriction");
             return;
         }
@@ -172,5 +169,13 @@ public class UserCallIntentProcessor {
         Log.d(this, "Sending broadcast as user to CallReceiver");
         mContext.sendBroadcastAsUser(intent, UserHandle.OWNER);
         return true;
+    }
+
+    private static void showErrorDialogForRestrictedOutgoingCall(Context context) {
+        final Intent intent = new Intent(context, ErrorDialogActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        intent.putExtra(ErrorDialogActivity.ERROR_MESSAGE_ID_EXTRA,
+                R.string.outgoing_call_not_allowed);
+        context.startActivityAsUser(intent, UserHandle.CURRENT);
     }
 }
