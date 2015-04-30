@@ -21,8 +21,11 @@ import com.android.server.telecom.Log;
 import com.android.server.telecom.TelecomSystem;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.UserHandle;
+import android.os.UserManager;
 import android.telecom.TelecomManager;
 
 // TODO: Needed for move to system service: import com.android.internal.R;
@@ -53,7 +56,10 @@ public class UserCallActivity extends Activity implements TelecomSystem.Componen
         // See OutgoingCallBroadcaster in services/Telephony for more.
         Intent intent = getIntent();
         verifyCallAction(intent);
-        new UserCallIntentProcessor(this).processIntent(getIntent(), getCallingPackage());
+        final UserManager userManager = (UserManager) getSystemService(Context.USER_SERVICE);
+        final UserHandle userHandle = new UserHandle(userManager.getUserHandle());
+        new UserCallIntentProcessor(this, userHandle).processIntent(getIntent(),
+                getCallingPackage());
         finish();
     }
 
