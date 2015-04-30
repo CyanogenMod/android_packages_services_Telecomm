@@ -167,9 +167,9 @@ public class CallIntentProcessor {
         }
         if (errorMessageId != -1) {
             errorIntent.putExtra(ErrorDialogActivity.ERROR_MESSAGE_ID_EXTRA, errorMessageId);
+            errorIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            context.startActivityAsUser(errorIntent, UserHandle.CURRENT);
         }
-        errorIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        context.startActivityAsUser(errorIntent, UserHandle.CURRENT);
     }
 
     /**
