@@ -163,6 +163,7 @@ public class TestConnectionService extends ConnectionService {
             capabilities |= CAPABILITY_MUTE;
             capabilities |= CAPABILITY_SUPPORT_HOLD;
             capabilities |= CAPABILITY_HOLD;
+            capabilities |= CAPABILITY_RESPOND_VIA_TEXT;
             setConnectionCapabilities(capabilities);
 
             LocalBroadcastManager.getInstance(getApplicationContext()).registerReceiver(
