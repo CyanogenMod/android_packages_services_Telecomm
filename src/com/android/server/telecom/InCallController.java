@@ -31,7 +31,6 @@ import android.os.RemoteException;
 import android.os.Trace;
 import android.os.UserHandle;
 import android.telecom.AudioState;
-import android.telecom.CallProperties;
 import android.telecom.Connection;
 import android.telecom.DefaultDialerManager;
 import android.telecom.InCallService;
@@ -476,6 +475,10 @@ public final class InCallController extends CallsManagerListenerBase {
 
         int state = getParcelableState(call);
         int capabilities = convertConnectionToCallCapabilities(call.getConnectionCapabilities());
+        int properties = convertConnectionToCallProperties(call.getConnectionCapabilities());
+        if (call.isConference()) {
+            properties |= android.telecom.Call.Details.PROPERTY_CONFERENCE;
+        }
 
         // If this is a single-SIM device, the "default SIM" will always be the only SIM.
         boolean isDefaultSmsAccount =
@@ -535,7 +538,6 @@ public final class InCallController extends CallsManagerListenerBase {
             }
         }
 
-        int properties = call.isConference() ? CallProperties.CONFERENCE : 0;
         return new ParcelableCall(
                 callId,
                 state,
@@ -615,9 +617,6 @@ public final class InCallController extends CallsManagerListenerBase {
         Connection.CAPABILITY_SWAP_CONFERENCE,
         android.telecom.Call.Details.CAPABILITY_SWAP_CONFERENCE,
 
-        Connection.CAPABILITY_UNUSED,
-        android.telecom.Call.Details.CAPABILITY_UNUSED,
-
         Connection.CAPABILITY_RESPOND_VIA_TEXT,
         android.telecom.Call.Details.CAPABILITY_RESPOND_VIA_TEXT,
 
@@ -645,23 +644,11 @@ public final class InCallController extends CallsManagerListenerBase {
         Connection.CAPABILITY_SUPPORTS_VT_REMOTE_BIDIRECTIONAL,
         android.telecom.Call.Details.CAPABILITY_SUPPORTS_VT_REMOTE_BIDIRECTIONAL,
 
-        Connection.CAPABILITY_HIGH_DEF_AUDIO,
-        android.telecom.Call.Details.CAPABILITY_HIGH_DEF_AUDIO,
-
-        Connection.CAPABILITY_WIFI,
-        android.telecom.Call.Details.CAPABILITY_WIFI,
-
         Connection.CAPABILITY_SEPARATE_FROM_CONFERENCE,
         android.telecom.Call.Details.CAPABILITY_SEPARATE_FROM_CONFERENCE,
 
         Connection.CAPABILITY_DISCONNECT_FROM_CONFERENCE,
         android.telecom.Call.Details.CAPABILITY_DISCONNECT_FROM_CONFERENCE,
-
-        Connection.CAPABILITY_GENERIC_CONFERENCE,
-        android.telecom.Call.Details.CAPABILITY_GENERIC_CONFERENCE,
-
-        Connection.CAPABILITY_SHOW_CALLBACK_NUMBER,
-        android.telecom.Call.Details.CAPABILITY_SHOW_CALLBACK_NUMBER,
 
         Connection.CAPABILITY_CAN_UPGRADE_TO_VIDEO,
         android.telecom.Call.Details.CAPABILITY_CAN_UPGRADE_TO_VIDEO,
@@ -678,6 +665,30 @@ public final class InCallController extends CallsManagerListenerBase {
             }
         }
         return callCapabilities;
+    }
+
+    private static final int[] CONNECTION_TO_CALL_PROPERTIES = new int[] {
+        Connection.CAPABILITY_HIGH_DEF_AUDIO,
+        android.telecom.Call.Details.PROPERTY_HIGH_DEF_AUDIO,
+
+        Connection.CAPABILITY_WIFI,
+        android.telecom.Call.Details.PROPERTY_WIFI,
+
+        Connection.CAPABILITY_GENERIC_CONFERENCE,
+        android.telecom.Call.Details.PROPERTY_GENERIC_CONFERENCE,
+
+        Connection.CAPABILITY_SHOW_CALLBACK_NUMBER,
+        android.telecom.Call.Details.PROPERTY_EMERGENCY_CALLBACK_MODE,
+    };
+
+    private static int convertConnectionToCallProperties(int connectionCapabilities) {
+        int callProperties = 0;
+        for (int i = 0; i < CONNECTION_TO_CALL_PROPERTIES.length; i += 2) {
+            if ((CONNECTION_TO_CALL_PROPERTIES[i] & connectionCapabilities) != 0) {
+                callProperties |= CONNECTION_TO_CALL_PROPERTIES[i + 1];
+            }
+        }
+        return callProperties;
     }
 
     /**
