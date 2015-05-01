@@ -307,7 +307,7 @@ public class TestConnectionService extends ConnectionService {
                 originalHandle + "]");
 
         final TestConnection connection = new TestConnection(false /* isIncoming */);
-        connection.setAddress(handle, TelecomManager.PRESENTATION_ALLOWED);
+        setAddress(connection, handle);
 
         // If the number starts with 555, then we handle it ourselves. If not, then we
         // use a remote connection service.
@@ -358,7 +358,7 @@ public class TestConnectionService extends ConnectionService {
                     VideoProfile.VideoState.BIDIRECTIONAL :
                     VideoProfile.VideoState.AUDIO_ONLY;
             connection.setVideoState(videoState);
-            connection.setAddress(address, TelecomManager.PRESENTATION_ALLOWED);
+            setAddress(connection, address);
 
             addVideoProvider(connection);
 
@@ -454,6 +454,13 @@ public class TestConnectionService extends ConnectionService {
             Connection c = freeConnections.remove(i);
             c.setConferenceableConnections(freeConnections);
             freeConnections.add(i, c);
+        }
+    }
+
+    private void setAddress(Connection connection, Uri address) {
+        connection.setAddress(address, TelecomManager.PRESENTATION_ALLOWED);
+        if ("5551234".equals(address.getSchemeSpecificPart())) {
+            connection.setCallerDisplayName("Hello World", TelecomManager.PRESENTATION_ALLOWED);
         }
     }
 
