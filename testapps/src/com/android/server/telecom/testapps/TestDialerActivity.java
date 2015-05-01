@@ -17,6 +17,8 @@ import android.widget.Toast;
 import com.android.server.telecom.testapps.R;
 
 public class TestDialerActivity extends Activity {
+    private static final int REQUEST_CODE_SET_DEFAULT_DIALER = 1;
+
     private EditText mNumberView;
 
     @Override
@@ -56,6 +58,17 @@ public class TestDialerActivity extends Activity {
     }
 
     @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == REQUEST_CODE_SET_DEFAULT_DIALER) {
+            if (resultCode == RESULT_OK) {
+                showToast("User accepted request to become default dialer");
+            } else if (resultCode == RESULT_CANCELED) {
+                showToast("User declined request to become default dialer");
+            }
+        }
+    }
+
+    @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         updateEditTextWithNumber();
@@ -69,7 +82,9 @@ public class TestDialerActivity extends Activity {
     }
 
     private void setDefault() {
-        // TODO: Send a request to become the default dialer application
+        final Intent intent = new Intent(TelecomManager.ACTION_CHANGE_DEFAULT_DIALER);
+        intent.putExtra(TelecomManager.EXTRA_CHANGE_DEFAULT_DIALER_PACKAGE_NAME, getPackageName());
+        startActivityForResult(intent, REQUEST_CODE_SET_DEFAULT_DIALER);
     }
 
     private void placeCall() {
@@ -87,10 +102,14 @@ public class TestDialerActivity extends Activity {
             values.put(Calls.CACHED_NAME, "hello world");
             getContentResolver().update(Calls.CONTENT_URI_WITH_VOICEMAIL, values, "1=0", null);
         } catch (SecurityException e) {
-            Toast.makeText(this, "Permission check failed", Toast.LENGTH_SHORT).show();
+            showToast("Permission check failed");
             return;
         }
-        Toast.makeText(this, "Permission check succeeded", Toast.LENGTH_SHORT).show();
+        showToast("Permission check succeeded");
+    }
+
+    private void showToast(String message) {
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
     }
 
     private void cancelMissedCallNotification() {
