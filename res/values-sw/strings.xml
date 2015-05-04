@@ -35,11 +35,18 @@
     <string name="respond_via_sms_setting_summary" msgid="9150281183930613065"></string>
     <string name="respond_via_sms_edittext_dialog_title" msgid="20379890418289778">"Majibu ya haraka"</string>
     <string name="respond_via_sms_confirmation_format" msgid="7229149977515784269">"Ujumbe uliotumwa kwa <xliff:g id="PHONE_NUMBER">%s</xliff:g> ."</string>
-    <string name="outgoing_call_not_allowed" msgid="1435394568102165287">"Ni simu za dharura pekee zinazoruhusiwa na mmiliki wa kifaa"</string>
+    <!-- no translation found for outgoing_call_not_allowed (7227847719229873744) -->
+    <skip />
     <string name="outgoing_call_error_no_phone_number_supplied" msgid="1940125199802007505">"Ili upige simu, weka nambari sahihi."</string>
     <string name="duplicate_video_call_not_allowed" msgid="3749211605014548386">"Hangout ya video haiwezi kuongezwa kwa wakati huu."</string>
     <string name="video_call_not_allowed_if_tty_enabled" msgid="7593649283571253283">"Tafadhali zima Hali ya TTY ili uanzishe Hangout ya video."</string>
     <string name="no_vm_number" msgid="4164780423805688336">"Nambari ya sauti inayokosekana"</string>
     <string name="no_vm_number_msg" msgid="1300729501030053828">"Hakuna nambari ya ujumbe wa sauti iliyohifadhiwa katika SIM kadi."</string>
     <string name="add_vm_number_str" msgid="4676479471644687453">"Ongeza nambari"</string>
+    <!-- no translation found for change_default_dialer_dialog_title (4430590714918044425) -->
+    <skip />
+    <!-- no translation found for change_default_dialer_with_previous_app_set_text (3213396537499337949) -->
+    <skip />
+    <!-- no translation found for change_default_dialer_no_previous_app_set_text (7608426684114545221) -->
+    <skip />
 </resources>
