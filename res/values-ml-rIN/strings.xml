@@ -35,11 +35,18 @@
     <string name="respond_via_sms_setting_summary" msgid="9150281183930613065"></string>
     <string name="respond_via_sms_edittext_dialog_title" msgid="20379890418289778">"ദ്രുത പ്രതികരണം"</string>
     <string name="respond_via_sms_confirmation_format" msgid="7229149977515784269">"<xliff:g id="PHONE_NUMBER">%s</xliff:g> എന്നതിലേക്ക് സന്ദേശമയച്ചു."</string>
-    <string name="outgoing_call_not_allowed" msgid="1435394568102165287">"ഉപകരണ ഉടമ അടിയന്തിര കോളുകൾ മാത്രമേ അനുവദിച്ചിട്ടുള്ളൂ"</string>
+    <!-- no translation found for outgoing_call_not_allowed (7227847719229873744) -->
+    <skip />
     <string name="outgoing_call_error_no_phone_number_supplied" msgid="1940125199802007505">"ഒരു കോൾ ചെയ്യുന്നതിന്, സാധുതയുള്ള നമ്പർ നൽകുക."</string>
     <string name="duplicate_video_call_not_allowed" msgid="3749211605014548386">"കോൾ ഇപ്പോൾ ചേർക്കാനാകില്ല."</string>
     <string name="video_call_not_allowed_if_tty_enabled" msgid="7593649283571253283">"വീഡിയോ കോളുകൾ നടത്താൻ TTY മോഡ് പ്രവർത്തനരഹിതമാക്കുക."</string>
     <string name="no_vm_number" msgid="4164780423805688336">"വോയ്‌സ്മെയിൽ നമ്പർ കാണുന്നില്ല"</string>
     <string name="no_vm_number_msg" msgid="1300729501030053828">"സിം കാർഡിൽ വോയ്‌സ്‌മെയിൽ നമ്പറൊന്നും സംഭരിച്ചിട്ടില്ല."</string>
     <string name="add_vm_number_str" msgid="4676479471644687453">"നമ്പർ ചേർക്കുക"</string>
+    <!-- no translation found for change_default_dialer_dialog_title (4430590714918044425) -->
+    <skip />
+    <!-- no translation found for change_default_dialer_with_previous_app_set_text (3213396537499337949) -->
+    <skip />
+    <!-- no translation found for change_default_dialer_no_previous_app_set_text (7608426684114545221) -->
+    <skip />
 </resources>

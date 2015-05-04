@@ -35,11 +35,17 @@
     <string name="respond_via_sms_setting_summary" msgid="9150281183930613065"></string>
     <string name="respond_via_sms_edittext_dialog_title" msgid="20379890418289778">"အမြန်တုံ့ပြန်ချက်"</string>
     <string name="respond_via_sms_confirmation_format" msgid="7229149977515784269">"<xliff:g id="PHONE_NUMBER">%s</xliff:g> ထံ စာတိုပို့လိုက်ပါပြီ"</string>
-    <string name="outgoing_call_not_allowed" msgid="1435394568102165287">"အရေးပေါ်ဖုန်းများကိုသာ ခေါ်ဆိုနိုင်ရန် စက်ကိရိယာပိုင်ရှင်က ခွင့်ပြုထား၏"</string>
+    <string name="outgoing_call_not_allowed" msgid="7227847719229873744">"အရေးပေါ်ဖုန်းများကိုသာ ခေါ်ဆိုနိုင်ရန် စက်ကိရိယာပိုင်ရှင်က ခွင့်ပြုထားသည်။"</string>
     <string name="outgoing_call_error_no_phone_number_supplied" msgid="1940125199802007505">"ဖုန်းခေါ်ရန်အတွက်၊ သင့်လျော်သည့်နံပါတ် ရိုက်ထည့်ပါ။"</string>
     <string name="duplicate_video_call_not_allowed" msgid="3749211605014548386">"ဗွီဒီယိုခေါ်နေစဉ် ထပ်ခေါ်မရပါ။"</string>
     <string name="video_call_not_allowed_if_tty_enabled" msgid="7593649283571253283">"ဗီဒီယိုခေါ်ဆိုမှုများ ပြုလုပ်ရန် ကျေးဇူးပြု၍ TTY မုဒ်ကို ပိတ်ထားပါ။"</string>
     <string name="no_vm_number" msgid="4164780423805688336">"အသံစာပို့စနစ် နံပါတ် ပျောက်နေပါသည်"</string>
     <string name="no_vm_number_msg" msgid="1300729501030053828">"ဆင်းမ်ကဒ်ပေါ်တွင် အသံစာပို့စနစ် နံပါတ် သိမ်းဆည်ထားခြင်း မရှိပါ"</string>
     <string name="add_vm_number_str" msgid="4676479471644687453">"နံပါတ်ထပ်ထည့်ရန်"</string>
+    <!-- no translation found for change_default_dialer_dialog_title (4430590714918044425) -->
+    <skip />
+    <!-- no translation found for change_default_dialer_with_previous_app_set_text (3213396537499337949) -->
+    <skip />
+    <!-- no translation found for change_default_dialer_no_previous_app_set_text (7608426684114545221) -->
+    <skip />
 </resources>
