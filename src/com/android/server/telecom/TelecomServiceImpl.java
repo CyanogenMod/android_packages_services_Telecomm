@@ -308,13 +308,16 @@ public class TelecomServiceImpl {
 
                     // Broadcast an intent indicating the phone account which was registered.
                     long token = Binder.clearCallingIdentity();
-                    Intent intent = new Intent(TelecomManager.ACTION_PHONE_ACCOUNT_REGISTERED);
-                    intent.putExtra(TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE,
-                            account.getAccountHandle());
-                    Log.i(this, "Sending phone-account intent as user");
-                    mContext.sendBroadcastAsUser(intent, UserHandle.ALL,
-                            PERMISSION_PROCESS_PHONE_ACCOUNT_REGISTRATION);
-                    Binder.restoreCallingIdentity(token);
+                    try {
+                        Intent intent = new Intent(TelecomManager.ACTION_PHONE_ACCOUNT_REGISTERED);
+                        intent.putExtra(TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE,
+                                account.getAccountHandle());
+                        Log.i(this, "Sending phone-account intent as user");
+                        mContext.sendBroadcastAsUser(intent, UserHandle.ALL,
+                                PERMISSION_PROCESS_PHONE_ACCOUNT_REGISTRATION);
+                    } finally {
+                        Binder.restoreCallingIdentity(token);
+                    }
                 } catch (Exception e) {
                     Log.e(this, e, "registerPhoneAccount %s", account);
                     throw e;
@@ -743,11 +746,14 @@ public class TelecomServiceImpl {
             synchronized (mLock) {
                 final UserHandle userHandle = Binder.getCallingUserHandle();
                 long token = Binder.clearCallingIdentity();
-                final Intent intent = new Intent(Intent.ACTION_CALL, handle);
-                intent.putExtras(extras);
-                new UserCallIntentProcessor(mContext, userHandle).processIntent(intent,
-                        callingPackage);
-                Binder.restoreCallingIdentity(token);
+                try {
+                    final Intent intent = new Intent(Intent.ACTION_CALL, handle);
+                    intent.putExtras(extras);
+                    new UserCallIntentProcessor(mContext, userHandle).processIntent(intent,
+                            callingPackage);
+                } finally {
+                    Binder.restoreCallingIdentity(token);
+                }
             }
         }
 
