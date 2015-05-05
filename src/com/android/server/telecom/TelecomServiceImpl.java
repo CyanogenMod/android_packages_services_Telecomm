@@ -468,7 +468,12 @@ public class TelecomServiceImpl {
          */
         @Override
         public String getDefaultDialerPackage() {
-            return DefaultDialerManager.getDefaultDialerApplication(mContext);
+            final long token = Binder.clearCallingIdentity();
+            try {
+                return DefaultDialerManager.getDefaultDialerApplication(mContext);
+            } finally {
+                Binder.restoreCallingIdentity(token);
+            }
         }
 
         /**
