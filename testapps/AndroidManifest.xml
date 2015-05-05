@@ -55,10 +55,16 @@
             </intent-filter>
         </service>
 
+        <receiver android:name="com.android.server.telecom.testapps.TestInCallServiceBroadcastReceiver"
+                 android:process="com.android.server.telecom.testapps.TestInCallService" >
+            <intent-filter>
+                <action android:name="android.server.telecom.testapps.ACTION_SEND_UPDATE_REQUEST_FROM_TEST_INCALL_SERVICE"/>
+            </intent-filter>
+        </receiver>
+
         <activity android:name="com.android.server.telecom.testapps.TestCallActivity"
                   android:theme="@android:style/Theme.NoDisplay"
-                  android:label="@string/testCallActivityLabel"
-                  android:process="com.android.server.telecom.testapps.TestInCallService">
+                  android:label="@string/testCallActivityLabel">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.DEFAULT" />

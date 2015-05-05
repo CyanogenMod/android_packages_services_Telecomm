@@ -295,6 +295,38 @@ final class ConnectionServiceWrapper extends ServiceBinder {
         }
 
         @Override
+        public void setConferenceMergeFailed(String callId) {
+            long token = Binder.clearCallingIdentity();
+            try {
+                synchronized (mLock) {
+                    logIncoming("setConferenceMergeFailed %s", callId);
+                    if (mCallIdMapper.isValidCallId(callId)) {
+                        // TODO: we should move the UI for indication a merge failure here
+                        // from CallNotifier.onSuppServiceFailed(). This way the InCallUI can
+                        // deliver the message anyway that they want. b/20530631.
+                        Call call = mCallIdMapper.getCall(callId);
+                        if (call != null) {
+                            // Just refresh the connection capabilities so that the UI
+                            // is forced to reenable the merge button as the capability
+                            // is still on the connection. Note when b/20530631 is fixed, we need
+                            // to revisit this fix to remove this hacky way of unhiding the merge
+                            // button (side effect of reprocessing the capabilities) and plumb
+                            // the failure event all the way to InCallUI instead of stopping
+                            // it here. That way we can also handle the UI of notifying that
+                            // the merged has failed.
+                            call.setConnectionCapabilities(call.getConnectionCapabilities(), true);
+                        } else {
+                            Log.w(this, "setConferenceMergeFailed, unknown call id: %s", callId);
+                        }
+                    }
+
+                }
+            } finally {
+                Binder.restoreCallingIdentity(token);
+            }
+        }
+
+        @Override
         public void addConferenceCall(String callId, ParcelableConference parcelableConference) {
             long token = Binder.clearCallingIdentity();
             try {

@@ -51,12 +51,6 @@ public class TestCallActivity extends Activity {
     public static final String ACTION_SEND_UPGRADE_REQUEST =
             "android.telecom.testapps.ACTION_SEND_UPGRADE_REQUEST";
 
-    /**
-     * Sends an upgrade to video request for any live calls.
-     */
-    public static final String ACTION_SEND_UPDATE_REQUEST_FROM_TEST_INCALL_SERVICE =
-            "android.server.telecom.testapps.ACTION_SEND_UPDATE_REQUEST_FROM_TEST_INCALL_SERVICE";
-
     @Override
     protected void onCreate(Bundle icicle) {
         super.onCreate(icicle);
@@ -71,8 +65,6 @@ public class TestCallActivity extends Activity {
             CallNotificationReceiver.hangupCalls(this);
         } else if (ACTION_SEND_UPGRADE_REQUEST.equals(action)) {
             CallNotificationReceiver.sendUpgradeRequest(this, data);
-        } else if (ACTION_SEND_UPDATE_REQUEST_FROM_TEST_INCALL_SERVICE.equals(action)) {
-            TestCallList.getInstance().sendUpgradeToVideoRequest();
         } else {
             CallServiceNotifier.getInstance().updateNotification(this);
         }
