@@ -249,6 +249,9 @@ public class Call implements CreateConnectionResponse {
     /**
      * Tracks the video states which were applicable over the duration of a call.
      * See {@link VideoProfile} for a list of valid video states.
+     * <p>
+     * Video state history is tracked when the call is active, and when a call is rejected or
+     * missed.
      */
     private int mVideoStateHistory;
 
@@ -520,6 +523,12 @@ public class Call implements CreateConnectionResponse {
                     mConnectTimeMillis = System.currentTimeMillis();
                 }
 
+                // Video state changes are normally tracked against history when a call is active.
+                // When the call goes active we need to be sure we track the history in case the
+                // state never changes during the duration of the call -- we want to ensure we
+                // always know the state at the start of the call.
+                mVideoStateHistory = mVideoStateHistory | mVideoState;
+
                 // We're clearly not disconnected, so reset the disconnected time.
                 mDisconnectTimeMillis = 0;
             } else if (mState == CallState.DISCONNECTED) {
@@ -527,39 +536,10 @@ public class Call implements CreateConnectionResponse {
                 setLocallyDisconnecting(false);
                 fixParentAfterDisconnect();
             }
-
-            // Log the state transition event
-            String event = null;
-            Object data = null;
-            switch (newState) {
-                case CallState.ACTIVE:
-                    event = Log.Events.SET_ACTIVE;
-                    break;
-                case CallState.CONNECTING:
-                    event = Log.Events.SET_CONNECTING;
-                    break;
-                case CallState.DIALING:
-                    event = Log.Events.SET_DIALING;
-                    break;
-                case CallState.DISCONNECTED:
-                    event = Log.Events.SET_DISCONNECTED;
-                    data = getDisconnectCause();
-                    break;
-                case CallState.DISCONNECTING:
-                    event = Log.Events.SET_DISCONNECTING;
-                    break;
-                case CallState.ON_HOLD:
-                    event = Log.Events.SET_HOLD;
-                    break;
-                case CallState.SELECT_PHONE_ACCOUNT:
-                    event = Log.Events.SET_SELECT_PHONE_ACCOUNT;
-                    break;
-                case CallState.RINGING:
-                    event = Log.Events.SET_RINGING;
-                    break;
-            }
-            if (event != null) {
-                Log.event(this, event, data);
+            if (mState == CallState.DISCONNECTED &&
+                    mDisconnectCause.getCode() == DisconnectCause.MISSED) {
+                // Ensure when an incoming call is missed that the video state history is updated.
+                mVideoStateHistory |= mVideoState;
             }
         }
     }
@@ -1053,6 +1033,9 @@ public class Call implements CreateConnectionResponse {
         // Check to verify that the call is still in the ringing state. A call can change states
         // between the time the user hits 'reject' and Telecomm receives the command.
         if (isRinging("reject")) {
+            // Ensure video state history tracks video state at time of rejection.
+            mVideoStateHistory |= mVideoState;
+
             mConnectionService.reject(this);
             Log.event(this, Log.Events.REQUEST_REJECT);
         }
