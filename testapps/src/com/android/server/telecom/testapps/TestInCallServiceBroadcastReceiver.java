@@ -45,7 +45,8 @@ public class TestInCallServiceBroadcastReceiver extends BroadcastReceiver {
         Log.v(TAG, "onReceive: " + action);
 
         if (ACTION_SEND_UPDATE_REQUEST_FROM_TEST_INCALL_SERVICE.equals(action)) {
-            TestCallList.getInstance().sendUpgradeToVideoRequest();
+            final int videoState = Integer.parseInt(intent.getData().getSchemeSpecificPart());
+            TestCallList.getInstance().sendUpgradeToVideoRequest(videoState);
         }
     }
 }
