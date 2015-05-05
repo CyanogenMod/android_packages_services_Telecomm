@@ -129,8 +129,8 @@ public class TestCallList extends Call.Listener {
     /**
      * For any video calls tracked, sends an upgrade to video request.
      */
-    public void sendUpgradeToVideoRequest() {
-        Log.v(TAG, "sendUpgradeToVideoRequest "+mCalls.size()+ " " + System.identityHashCode(this));
+    public void sendUpgradeToVideoRequest(int videoState) {
+        Log.v(TAG, "sendUpgradeToVideoRequest : videoState = " + videoState);
 
         for (Call call : mCalls) {
             InCallService.VideoCall videoCall = call.getVideoCall();
@@ -140,8 +140,7 @@ public class TestCallList extends Call.Listener {
             }
 
             Log.v(TAG, "send upgrade to video request for call: " + call);
-            videoCall.sendSessionModifyRequest(new VideoProfile(
-                    VideoProfile.VideoState.BIDIRECTIONAL));
+            videoCall.sendSessionModifyRequest(new VideoProfile(videoState));
         }
     }
 
