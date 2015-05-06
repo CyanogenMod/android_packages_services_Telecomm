@@ -96,8 +96,9 @@ public class TestManagedVideoProvider extends Connection.VideoProvider {
     }
 
     @Override
-    public void onSendSessionModifyRequest(VideoProfile requestProfile) {
-        mRemoteVideoProvider.sendSessionModifyRequest(requestProfile);
+    public void onSendSessionModifyRequest(VideoProfile fromProfile,
+            VideoProfile requestProfile) {
+        mRemoteVideoProvider.sendSessionModifyRequest(fromProfile, requestProfile);
     }
 
     @Override
