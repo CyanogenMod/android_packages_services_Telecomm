@@ -145,7 +145,8 @@ public class TestVideoProvider extends Connection.VideoProvider {
      * the response back via the CallVideoClient.
      */
     @Override
-    public void onSendSessionModifyRequest(final VideoProfile requestProfile) {
+    public void onSendSessionModifyRequest(final VideoProfile fromProfile,
+            final VideoProfile requestProfile) {
         log("Sent session modify request");
 
         mHandler.postDelayed(new Runnable() {
