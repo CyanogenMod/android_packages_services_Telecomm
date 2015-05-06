@@ -21,11 +21,13 @@ import com.android.server.telecom.Log;
 import com.android.server.telecom.R;
 import com.android.server.telecom.TelephonyUtil;
 
+import android.app.ActivityManager;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.UserHandle;
 import android.os.UserManager;
+import android.telecom.DefaultDialerManager;
 import android.telecom.PhoneAccount;
 import android.telecom.TelecomManager;
 import android.telecom.VideoProfile;
@@ -140,12 +142,14 @@ public class UserCallIntentProcessor {
             return false;
         }
 
-        final TelecomManager telecomManager =
-                (TelecomManager) mContext.getSystemService(Context.TELECOM_SERVICE);
-        if (TextUtils.equals(telecomManager.getDefaultDialerPackage(), callingPackageName)) {
+        final String defaultDialer = DefaultDialerManager.getDefaultDialerApplication(mContext,
+                mUserHandle.getIdentifier());
+        if (TextUtils.equals(defaultDialer, callingPackageName)) {
             return true;
         }
 
+        final TelecomManager telecomManager =
+                (TelecomManager) mContext.getSystemService(Context.TELECOM_SERVICE);
         return TextUtils.equals(telecomManager.getSystemDialerPackage(), callingPackageName);
     }
 

@@ -88,9 +88,10 @@ public class TestDialerActivity extends Activity {
     }
 
     private void placeCall() {
-        final Intent intent = new Intent(Intent.ACTION_CALL,
-                Uri.fromParts(PhoneAccount.SCHEME_TEL, mNumberView.getText().toString(), null));
-        startActivityForResult(intent, 0);
+        final TelecomManager telecomManager =
+                (TelecomManager) getSystemService(Context.TELECOM_SERVICE);
+        telecomManager.placeCall(Uri.fromParts(PhoneAccount.SCHEME_TEL,
+                mNumberView.getText().toString(), null), null);
     }
 
     private void testVoicemail() {
