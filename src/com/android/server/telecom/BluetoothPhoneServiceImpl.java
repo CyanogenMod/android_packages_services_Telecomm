@@ -742,13 +742,15 @@ public final class BluetoothPhoneServiceImpl {
         PhoneAccount account = null;
         if (call != null) {
             // First try to get the network name of the foreground call.
-            account = mPhoneAccountRegistrar.getPhoneAccount(call.getTargetPhoneAccount());
+            account = mPhoneAccountRegistrar.getPhoneAccountCheckCallingUser(
+                    call.getTargetPhoneAccount());
         }
 
         if (account == null) {
             // Second, Try to get the label for the default Phone Account.
-            account = mPhoneAccountRegistrar.getPhoneAccount(
-                    mPhoneAccountRegistrar.getDefaultOutgoingPhoneAccount(PhoneAccount.SCHEME_TEL));
+            account = mPhoneAccountRegistrar.getPhoneAccountCheckCallingUser(
+                    mPhoneAccountRegistrar.getOutgoingPhoneAccountForScheme(
+                        PhoneAccount.SCHEME_TEL));
         }
         return account;
     }
