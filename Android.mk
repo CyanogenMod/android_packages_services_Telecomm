@@ -17,9 +17,9 @@ LOCAL_PROGUARD_FLAGS := $(proguard.flags)
 # Workaround for "local variable type mismatch" error.
 LOCAL_DX_FLAGS += --no-locals
 
-TELECOMM_SPAM_FILTER ?= $(LOCAL_PATH)/spam_filter
+TELECOMM_CALLINFO_PROVIDER ?= $(LOCAL_PATH)/callinfo_provider
 
-include $(TELECOMM_SPAM_FILTER)/Android.mk
+include $(TELECOMM_CALLINFO_PROVIDER)/provider.mk
 
 include $(BUILD_PACKAGE)
 
