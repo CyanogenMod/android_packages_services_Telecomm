@@ -56,6 +56,8 @@ public final class TelecomGlobals {
      */
     private PhoneAccountRegistrar mPhoneAccountRegistrar;
 
+    private CallInfoProvider mCallInfoProvider;
+
     /**
      * The calls manager for the Telecom service.
      */
@@ -88,12 +90,13 @@ public final class TelecomGlobals {
         }
         mContext = context.getApplicationContext();
 
-        mMissedCallNotifier = new MissedCallNotifier(mContext);
+        mCallInfoProvider = new CallInfoProvider(context);
+        mMissedCallNotifier = new MissedCallNotifier(mContext, mCallInfoProvider);
         mBlacklistCallNotifier = new BlacklistCallNotifier(mContext);
         mPhoneAccountRegistrar = new PhoneAccountRegistrar(mContext);
 
         mCallsManager = new CallsManager(mContext, mMissedCallNotifier,
-				mBlacklistCallNotifier, mPhoneAccountRegistrar);
+                mBlacklistCallNotifier, mPhoneAccountRegistrar, mCallInfoProvider);
         CallsManager.initialize(mCallsManager);
         Log.i(this, "CallsManager initialized");
 
@@ -113,5 +116,9 @@ public final class TelecomGlobals {
 
     CallsManager getCallsManager() {
         return mCallsManager;
+    }
+
+    CallInfoProvider getCallInfoProvider() {
+        return mCallInfoProvider;
     }
 }

@@ -138,7 +138,7 @@ public final class CallsManager extends Call.ListenerBase {
     private final PhoneAccountRegistrar mPhoneAccountRegistrar;
     private final MissedCallNotifier mMissedCallNotifier;
     private final BlacklistCallNotifier mBlacklistCallNotifier;
-    private final SpamBlocker mCallerInfoBlocker;
+    private final CallInfoProvider mCallInfoProvider;
     private final Set<Call> mLocallyDisconnectingCalls = new HashSet<>();
     private final Set<Call> mPendingCallsToDisconnect = new HashSet<>();
 
@@ -186,7 +186,8 @@ public final class CallsManager extends Call.ListenerBase {
      */
      CallsManager(Context context, MissedCallNotifier missedCallNotifier,
                   BlacklistCallNotifier blacklistCallNotifier,
-                  PhoneAccountRegistrar phoneAccountRegistrar) {
+                  PhoneAccountRegistrar phoneAccountRegistrar,
+                  CallInfoProvider callInfoProvider) {
         mContext = context;
         mPhoneAccountRegistrar = phoneAccountRegistrar;
         mMissedCallNotifier = missedCallNotifier;
@@ -207,7 +208,7 @@ public final class CallsManager extends Call.ListenerBase {
         mConnectionServiceRepository = new ConnectionServiceRepository(mPhoneAccountRegistrar,
                 context);
         mInCallWakeLockController = new InCallWakeLockController(context, this);
-        mCallerInfoBlocker = new SpamBlocker(context);
+        mCallInfoProvider = callInfoProvider;
 
         mListeners.add(statusBarNotifier);
         mListeners.add(mCallLogManager);
@@ -222,7 +223,7 @@ public final class CallsManager extends Call.ListenerBase {
         mListeners.add(mHeadsetMediaButton);
         mListeners.add(RespondViaSmsManager.getInstance());
         mListeners.add(mProximitySensorManager);
-        mListeners.add(mCallerInfoBlocker);
+        mListeners.add(mCallInfoProvider);
     }
 
     @Override
@@ -259,7 +260,7 @@ public final class CallsManager extends Call.ListenerBase {
             mCallLogManager.logCall(incomingCall, Calls.BLACKLIST_TYPE);
             incomingCall.setDisconnectCause(
                     new DisconnectCause(android.telephony.DisconnectCause.CALL_BLACKLISTED));
-        } else if (mCallerInfoBlocker.shouldBlock(incomingCall.getNumber())) {
+        } else if (mCallInfoProvider.shouldBlock(incomingCall.getNumber())) {
             // TODO: show notification for blocked spam calls
             // TODO: add unique call type for spam
             mCallLogManager.logCall(incomingCall, Calls.BLACKLIST_TYPE);
