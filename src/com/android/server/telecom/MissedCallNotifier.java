@@ -16,6 +16,9 @@
 
 package com.android.server.telecom;
 
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -75,15 +78,18 @@ class MissedCallNotifier extends CallsManagerListenerBase {
 
     private final Context mContext;
     private final NotificationManager mNotificationManager;
+    private String mLastNotificationNumber;
+    private ExecutorService mCallInfoExecutor;
+    private CallInfoProvider mCallInfoProvider;
 
     // Used to track the number of missed calls.
     private int mMissedCallCount = 0;
 
-    MissedCallNotifier(Context context) {
+    MissedCallNotifier(Context context, CallInfoProvider callInfoProvider) {
         mContext = context;
         mNotificationManager =
                 (NotificationManager) mContext.getSystemService(Context.NOTIFICATION_SERVICE);
-
+        mCallInfoProvider = callInfoProvider;
         updateOnStartup();
     }
 
@@ -117,14 +123,38 @@ class MissedCallNotifier extends CallsManagerListenerBase {
         cancelMissedCallNotification();
     }
 
+    void fetchCallInfoAsync(final Call call) {
+        if (mCallInfoExecutor == null) {
+            mCallInfoExecutor = Executors.newSingleThreadExecutor();
+        }
+        mCallInfoExecutor.submit(new Runnable() {
+            @Override
+            public void run() {
+                CallInfo info = mCallInfoProvider.getInfoForCall(call);
+                if (info != null) {
+                    showMissedCallNotificationInternal(call, info);
+                }
+            }
+        });
+    }
+
+    void showMissedCallNotification(Call call) {
+        if (mMissedCallCount == 0 && !call.getCallerInfo().contactExists
+                && mCallInfoProvider.providesCallInfo()) {
+            fetchCallInfoAsync(call);
+        }
+        showMissedCallNotificationInternal(call, null);
+    }
+
     /**
      * Create a system notification for the missed call.
      *
      * @param call The missed call.
      */
-    void showMissedCallNotification(Call call) {
-        mMissedCallCount++;
-
+    void showMissedCallNotificationInternal(Call call, CallInfo callInfo) {
+        if (!TextUtils.equals(call.getNumber(), mLastNotificationNumber)) {
+            mMissedCallCount++;
+        }
         final int titleResId;
         final String expandedText;  // The text in the notification's line 1 and 2.
 
@@ -133,7 +163,11 @@ class MissedCallNotifier extends CallsManagerListenerBase {
         // More than 1 missed call: <number of calls> + "missed calls"
         if (mMissedCallCount == 1) {
             titleResId = R.string.notification_missedCallTitle;
-            expandedText = getNameForCall(call);
+            String name = call.getName();
+            if (callInfo != null) {
+                name = callInfo.getName();
+            }
+            expandedText = getNameForCall(call, name);
         } else {
             titleResId = R.string.notification_missedCallsTitle;
             expandedText =
@@ -150,6 +184,10 @@ class MissedCallNotifier extends CallsManagerListenerBase {
                 .setContentIntent(createCallLogPendingIntent())
                 .setAutoCancel(true)
                 .setDeleteIntent(createClearMissedCallsPendingIntent());
+
+        if (callInfo.getSummaryText() != null) {
+            builder.setSubText(callInfo.getSummaryText());
+        }
 
         Uri handleUri = call.getHandle();
         String handle = handleUri == null ? null : handleUri.getSchemeSpecificPart();
@@ -170,6 +208,9 @@ class MissedCallNotifier extends CallsManagerListenerBase {
             }
 
             Bitmap photoIcon = call.getPhotoIcon();
+            if (callInfo != null) {
+                photoIcon = callInfo.getPhoto();
+            }
             if (photoIcon != null) {
                 builder.setLargeIcon(photoIcon);
             } else {
@@ -186,6 +227,9 @@ class MissedCallNotifier extends CallsManagerListenerBase {
         Notification notification = builder.build();
         configureLedOnNotification(mContext, notification);
 
+        mLastNotificationNumber = call.getNumber();
+        mCallInfoProvider.updateNotification(notification);
+
         Log.i(this, "Adding missed call notification for %s.", call);
         mNotificationManager.notifyAsUser(
                 null /* tag */ , MISSED_CALL_NOTIFICATION_ID, notification, UserHandle.CURRENT);
@@ -196,14 +240,14 @@ class MissedCallNotifier extends CallsManagerListenerBase {
         // Reset the number of missed calls to 0.
         mMissedCallCount = 0;
         mNotificationManager.cancel(MISSED_CALL_NOTIFICATION_ID);
+        mLastNotificationNumber = null;
     }
 
     /**
      * Returns the name to use in the missed call notification.
      */
-    private String getNameForCall(Call call) {
+    private String getNameForCall(Call call, String name) {
         String handle = call.getHandle() == null ? null : call.getHandle().getSchemeSpecificPart();
-        String name = call.getName();
 
         if (!TextUtils.isEmpty(name) && TextUtils.isGraphic(name)) {
             return name;
