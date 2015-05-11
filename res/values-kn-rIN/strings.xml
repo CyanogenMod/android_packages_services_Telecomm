@@ -35,18 +35,14 @@
     <string name="respond_via_sms_setting_summary" msgid="9150281183930613065"></string>
     <string name="respond_via_sms_edittext_dialog_title" msgid="20379890418289778">"ತ್ವರಿತ ಪ್ರತಿಕ್ರಿಯೆ"</string>
     <string name="respond_via_sms_confirmation_format" msgid="7229149977515784269">"<xliff:g id="PHONE_NUMBER">%s</xliff:g> ಗೆ ಸಂದೇಶ ಕಳುಹಿಸಲಾಗಿದೆ."</string>
-    <!-- no translation found for outgoing_call_not_allowed (7227847719229873744) -->
-    <skip />
+    <string name="outgoing_call_not_allowed" msgid="7227847719229873744">"ಸಾಧನದ ಮಾಲೀಕರಿಂದ ತುರ್ತು ಕರೆಗಳನ್ನು ಮಾಡಲು ಮಾತ್ರ ಅವಕಾಶವಿದೆ."</string>
     <string name="outgoing_call_error_no_phone_number_supplied" msgid="1940125199802007505">"ಕರೆಯನ್ನು ಮಾಡಲು, ಮಾನ್ಯವಾದ ಸಂಖ್ಯೆಯನ್ನು ನಮೂದಿಸಿ."</string>
     <string name="duplicate_video_call_not_allowed" msgid="3749211605014548386">"ಕರೆಯನ್ನು ಈ ಸಮಯದಲ್ಲಿ ಸೇರಿಸಲಾಗುವುದಿಲ್ಲ."</string>
     <string name="video_call_not_allowed_if_tty_enabled" msgid="7593649283571253283">"ವೀಡಿಯೊ ಕರೆಗಳನ್ನು ಮಾಡಲು TTY ಮೋಡ್‌ ನಿಷ್ಕ್ರಿಯಗೊಳಿಸಿ."</string>
     <string name="no_vm_number" msgid="4164780423805688336">"ಧ್ವನಿಮೇಲ್‌ ಸಂಖ್ಯೆಯು ಕಾಣೆಯಾಗಿದೆ"</string>
     <string name="no_vm_number_msg" msgid="1300729501030053828">"ಸಿಮ್‌ ಕಾರ್ಡ್‌ನಲ್ಲಿ ಯಾವುದೇ ಧ್ವನಿಮೇಲ್‌ ಸಂಖ್ಯೆಯನ್ನು ಸಂಗ್ರಹಿಸಿಲ್ಲ."</string>
     <string name="add_vm_number_str" msgid="4676479471644687453">"ಸಂಖ್ಯೆಯನ್ನು ಸೇರಿಸಿ"</string>
-    <!-- no translation found for change_default_dialer_dialog_title (4430590714918044425) -->
-    <skip />
-    <!-- no translation found for change_default_dialer_with_previous_app_set_text (3213396537499337949) -->
-    <skip />
-    <!-- no translation found for change_default_dialer_no_previous_app_set_text (7608426684114545221) -->
-    <skip />
+    <string name="change_default_dialer_dialog_title" msgid="4430590714918044425">"ಡೀಫಾಲ್ಟ್ ಡಯಲರ್ ಅಪ್ಲಿಕೇಶನ್ ಬದಲಾಯಿಸುವುದೇ?"</string>
+    <string name="change_default_dialer_with_previous_app_set_text" msgid="3213396537499337949">"<xliff:g id="CURRENT_APP">%2$s</xliff:g> ಬದಲಿಗೆ <xliff:g id="NEW_APP">%1$s</xliff:g> ಅನ್ನು ನಿಮ್ಮ ಡೀಫಾಲ್ಟ್ ಡಯಲರ್ ಅಪ್ಲಿಕೇಶನ್ ಆಗಿ ಬಳಸುವುದೇ?"</string>
+    <string name="change_default_dialer_no_previous_app_set_text" msgid="7608426684114545221">"<xliff:g id="NEW_APP">%s</xliff:g> ಅನ್ನು ನಿಮ್ಮ ಡೀಫಾಲ್ಟ್ ಡಯಲರ್ ಅಪ್ಲಿಕೇಶನ್ ಆಗಿ ಬಳಸುವುದೇ?"</string>
 </resources>

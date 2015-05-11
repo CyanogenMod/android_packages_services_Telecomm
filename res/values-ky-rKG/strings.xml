@@ -44,8 +44,7 @@
     <string name="respond_via_sms_setting_summary" msgid="9150281183930613065"></string>
     <string name="respond_via_sms_edittext_dialog_title" msgid="20379890418289778">"Тез жооп"</string>
     <string name="respond_via_sms_confirmation_format" msgid="7229149977515784269">"<xliff:g id="PHONE_NUMBER">%s</xliff:g> номуруна билдирүү жөнөтүлдү."</string>
-    <!-- no translation found for outgoing_call_not_allowed (7227847719229873744) -->
-    <skip />
+    <string name="outgoing_call_not_allowed" msgid="7227847719229873744">"Түзмөк ээси шашылыш кырдаалдарда чалууга гана уруксат берген"</string>
     <string name="outgoing_call_error_no_phone_number_supplied" msgid="1940125199802007505">"Чалуу үчүн, жарактуу номер киргизиңиз."</string>
     <string name="duplicate_video_call_not_allowed" msgid="3749211605014548386">"Бул жолу чалууну кошуу мүмкүн эмес."</string>
     <string name="video_call_not_allowed_if_tty_enabled" msgid="7593649283571253283">"Видео чалууларды аткаруу үчүн Телетайп түзмөк режимин өчүрүңүз."</string>
@@ -55,10 +54,7 @@
     <skip />
     <!-- no translation found for add_vm_number_str (4676479471644687453) -->
     <skip />
-    <!-- no translation found for change_default_dialer_dialog_title (4430590714918044425) -->
-    <skip />
-    <!-- no translation found for change_default_dialer_with_previous_app_set_text (3213396537499337949) -->
-    <skip />
-    <!-- no translation found for change_default_dialer_no_previous_app_set_text (7608426684114545221) -->
-    <skip />
+    <string name="change_default_dialer_dialog_title" msgid="4430590714918044425">"Демейки терүүчү колдонмо өзгөрсүнбү?"</string>
+    <string name="change_default_dialer_with_previous_app_set_text" msgid="3213396537499337949">"Демейки терүүчү колдонмо катары мурунку <xliff:g id="CURRENT_APP">%2$s</xliff:g> колдонмонун ордуна <xliff:g id="NEW_APP">%1$s</xliff:g> бул колдонмо колдонулсунбу?"</string>
+    <string name="change_default_dialer_no_previous_app_set_text" msgid="7608426684114545221">"Демейки терүүчү колдонмо катары <xliff:g id="NEW_APP">%s</xliff:g> колдонулсунбу?"</string>
 </resources>
