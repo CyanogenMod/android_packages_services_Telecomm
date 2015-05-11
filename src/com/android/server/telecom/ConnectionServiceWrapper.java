@@ -957,15 +957,11 @@ final class ConnectionServiceWrapper extends ServiceBinder {
         // Make a list of ConnectionServices that are listed as being associated with SIM accounts
         final Set<ConnectionServiceWrapper> simServices = Collections.newSetFromMap(
                 new ConcurrentHashMap<ConnectionServiceWrapper, Boolean>(8, 0.9f, 1));
-        for (PhoneAccountHandle handle : mPhoneAccountRegistrar.getCallCapablePhoneAccounts()) {
-            PhoneAccount account = mPhoneAccountRegistrar.getPhoneAccount(handle);
-            if ((account.getCapabilities() & PhoneAccount.CAPABILITY_SIM_SUBSCRIPTION) != 0) {
-                ConnectionServiceWrapper service =
-                        mConnectionServiceRepository.getService(handle.getComponentName(),
-                                handle.getUserHandle());
-                if (service != null) {
-                    simServices.add(service);
-                }
+        for (PhoneAccountHandle handle : mPhoneAccountRegistrar.getSimPhoneAccounts()) {
+            ConnectionServiceWrapper service = mConnectionServiceRepository.getService(
+                    handle.getComponentName(), handle.getUserHandle());
+            if (service != null) {
+                simServices.add(service);
             }
         }
 

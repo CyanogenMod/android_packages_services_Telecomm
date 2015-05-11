@@ -68,7 +68,7 @@ public class TelecomServiceImpl {
                 long token = Binder.clearCallingIdentity();
                 try {
                     PhoneAccountHandle defaultOutgoingPhoneAccount =
-                            mPhoneAccountRegistrar.getDefaultOutgoingPhoneAccount(uriScheme);
+                            mPhoneAccountRegistrar.getOutgoingPhoneAccountForScheme(uriScheme);
                     // Make sure that the calling user can see this phone account.
                     if (defaultOutgoingPhoneAccount != null
                             && !isVisibleToCaller(defaultOutgoingPhoneAccount)) {
@@ -127,7 +127,7 @@ public class TelecomServiceImpl {
                 long token = Binder.clearCallingIdentity();
                 try {
                     return filterForAccountsVisibleToCaller(
-                            mPhoneAccountRegistrar.getCallCapablePhoneAccounts());
+                            mPhoneAccountRegistrar.getCallCapablePhoneAccounts(null));
                 } catch (Exception e) {
                     Log.e(this, e, "getCallCapablePhoneAccounts");
                     throw e;
@@ -179,7 +179,8 @@ public class TelecomServiceImpl {
                         Log.w(this, "%s is not visible for the calling user", accountHandle);
                         return null;
                     }
-                    return mPhoneAccountRegistrar.getPhoneAccountInternal(accountHandle);
+                    // TODO: Do we really want to return for *any* user?
+                    return mPhoneAccountRegistrar.getPhoneAccount(accountHandle);
                 } catch (Exception e) {
                     Log.e(this, e, "getPhoneAccount %s", accountHandle);
                     throw e;
@@ -833,9 +834,7 @@ public class TelecomServiceImpl {
         if (accountHandle == null) {
             return false;
         }
-
-        return isVisibleToCaller(mPhoneAccountRegistrar
-                .getPhoneAccountInternal(accountHandle));
+        return isVisibleToCaller(mPhoneAccountRegistrar.getPhoneAccount(accountHandle));
     }
 
     private boolean isVisibleToCaller(PhoneAccount account) {
