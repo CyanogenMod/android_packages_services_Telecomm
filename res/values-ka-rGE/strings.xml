@@ -35,18 +35,14 @@
     <string name="respond_via_sms_setting_summary" msgid="9150281183930613065"></string>
     <string name="respond_via_sms_edittext_dialog_title" msgid="20379890418289778">"სწრაფი პასუხი"</string>
     <string name="respond_via_sms_confirmation_format" msgid="7229149977515784269">"შეტყობინება გაიგზავნა <xliff:g id="PHONE_NUMBER">%s</xliff:g>-თან."</string>
-    <!-- no translation found for outgoing_call_not_allowed (7227847719229873744) -->
-    <skip />
+    <string name="outgoing_call_not_allowed" msgid="7227847719229873744">"მოწყობილობის მფლობელის მიერ ნებადართულია მხოლოდ საგანგებო ზარების განხორციელება."</string>
     <string name="outgoing_call_error_no_phone_number_supplied" msgid="1940125199802007505">"ზარის განხორციელებისათვის, შეიყვანეთ მოქმედი ნომერი."</string>
     <string name="duplicate_video_call_not_allowed" msgid="3749211605014548386">"ამ ეტაპზე ზარის დამატება ვერ ხერხდება."</string>
     <string name="video_call_not_allowed_if_tty_enabled" msgid="7593649283571253283">"ვიდეოზარების განხორციელებისათვის, გთხოვთ, გამორთოთ TTY რეჟიმი"</string>
     <string name="no_vm_number" msgid="4164780423805688336">"ხმოვანი ფოსტის ნომერი არ არის"</string>
     <string name="no_vm_number_msg" msgid="1300729501030053828">"SIM ბარათზე ხმოვანი ფოსტის ნომერი შენახული არ არის."</string>
     <string name="add_vm_number_str" msgid="4676479471644687453">"ნომრის დამატება"</string>
-    <!-- no translation found for change_default_dialer_dialog_title (4430590714918044425) -->
-    <skip />
-    <!-- no translation found for change_default_dialer_with_previous_app_set_text (3213396537499337949) -->
-    <skip />
-    <!-- no translation found for change_default_dialer_no_previous_app_set_text (7608426684114545221) -->
-    <skip />
+    <string name="change_default_dialer_dialog_title" msgid="4430590714918044425">"გსურთ ამკრეფის ნაგულისხმევი აპის შეცვლა?"</string>
+    <string name="change_default_dialer_with_previous_app_set_text" msgid="3213396537499337949">"გსურთ ამკრეფის ნაგულისხმევ აპად <xliff:g id="CURRENT_APP">%2$s</xliff:g>-ის ნაცვლად <xliff:g id="NEW_APP">%1$s</xliff:g>-ის გამოყენება?"</string>
+    <string name="change_default_dialer_no_previous_app_set_text" msgid="7608426684114545221">"გსურთ, გამოიყენოთ <xliff:g id="NEW_APP">%s</xliff:g>, როგორც ნაგულისხმევი აპი?"</string>
 </resources>

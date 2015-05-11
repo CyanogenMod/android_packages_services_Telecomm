@@ -35,18 +35,14 @@
     <string name="respond_via_sms_setting_summary" msgid="9150281183930613065"></string>
     <string name="respond_via_sms_edittext_dialog_title" msgid="20379890418289778">"Шуурхай хариу"</string>
     <string name="respond_via_sms_confirmation_format" msgid="7229149977515784269">"Зурвасыг <xliff:g id="PHONE_NUMBER">%s</xliff:g> руу илгээв."</string>
-    <!-- no translation found for outgoing_call_not_allowed (7227847719229873744) -->
-    <skip />
+    <string name="outgoing_call_not_allowed" msgid="7227847719229873744">"Төхөөрөмж эзэмшигч зөвхөн түргэн тусламжийн дуудлага хийх боломжтой."</string>
     <string name="outgoing_call_error_no_phone_number_supplied" msgid="1940125199802007505">"Дуудлага хийхийн тулд хүчин төгөлдөр дугаар оруулна уу."</string>
     <string name="duplicate_video_call_not_allowed" msgid="3749211605014548386">"Одоо дуудлага нэмэх боломжгүй."</string>
     <string name="video_call_not_allowed_if_tty_enabled" msgid="7593649283571253283">"Видео дуудлага хийхийн тулд TTY горимыг идэвхгүй болгоно уу."</string>
     <string name="no_vm_number" msgid="4164780423805688336">"Дуут шуудангийн дугаар байхгүй"</string>
     <string name="no_vm_number_msg" msgid="1300729501030053828">"SIM карт дээр дуут шуудангийн дугаар хадгалагдаагүй байна."</string>
     <string name="add_vm_number_str" msgid="4676479471644687453">"Дугаар нэмэх"</string>
-    <!-- no translation found for change_default_dialer_dialog_title (4430590714918044425) -->
-    <skip />
-    <!-- no translation found for change_default_dialer_with_previous_app_set_text (3213396537499337949) -->
-    <skip />
-    <!-- no translation found for change_default_dialer_no_previous_app_set_text (7608426684114545221) -->
-    <skip />
+    <string name="change_default_dialer_dialog_title" msgid="4430590714918044425">"Үндсэн залгагч апп-ыг өөрчлөх үү?"</string>
+    <string name="change_default_dialer_with_previous_app_set_text" msgid="3213396537499337949">"<xliff:g id="NEW_APP">%1$s</xliff:g>-ыг <xliff:g id="CURRENT_APP">%2$s</xliff:g>-ын оронд таны үндсэн залгагч апп болгон тохируулах уу?"</string>
+    <string name="change_default_dialer_no_previous_app_set_text" msgid="7608426684114545221">"<xliff:g id="NEW_APP">%s</xliff:g>-ыг таны үндсэн залгагч апп болгон тохируулах уу?"</string>
 </resources>

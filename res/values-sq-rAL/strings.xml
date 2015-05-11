@@ -35,8 +35,7 @@
     <string name="respond_via_sms_setting_summary" msgid="9150281183930613065"></string>
     <string name="respond_via_sms_edittext_dialog_title" msgid="20379890418289778">"Përgjigje e shpejtë"</string>
     <string name="respond_via_sms_confirmation_format" msgid="7229149977515784269">"Mesazhi u dërgua te <xliff:g id="PHONE_NUMBER">%s</xliff:g>."</string>
-    <!-- no translation found for outgoing_call_not_allowed (7227847719229873744) -->
-    <skip />
+    <string name="outgoing_call_not_allowed" msgid="7227847719229873744">"Vetëm telefonatat e urgjencës lejohen nga zotëruesi i pajisjes."</string>
     <string name="outgoing_call_error_no_phone_number_supplied" msgid="1940125199802007505">"Për të kryer një telefonatë, fut një numër të vlefshëm."</string>
     <string name="duplicate_video_call_not_allowed" msgid="3749211605014548386">"Telefonata nuk mund të shtohet këtë herë."</string>
     <string name="video_call_not_allowed_if_tty_enabled" msgid="7593649283571253283">"Çaktivizo modalitetin TTY për të kryer telefonata me video."</string>
