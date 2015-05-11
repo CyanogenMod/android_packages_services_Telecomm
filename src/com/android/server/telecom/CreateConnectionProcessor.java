@@ -168,7 +168,7 @@ final class CreateConnectionProcessor {
         if (mAttemptRecordIterator.hasNext()) {
             attempt = mAttemptRecordIterator.next();
 
-            if (!mPhoneAccountRegistrar.phoneAccountHasPermission(
+            if (!mPhoneAccountRegistrar.phoneAccountRequiresBindPermission(
                     attempt.connectionManagerPhoneAccount)) {
                 Log.w(this,
                         "Connection mgr does not have BIND_CONNECTION_SERVICE for attempt: %s",
@@ -178,9 +178,10 @@ final class CreateConnectionProcessor {
             }
 
             // If the target PhoneAccount differs from the ConnectionManager phone acount, ensure it
-            // also has BIND_CONNECTION_SERVICE permission.
+            // also requires the BIND_CONNECTION_SERVICE permission.
             if (!attempt.connectionManagerPhoneAccount.equals(attempt.targetPhoneAccount) &&
-                    !mPhoneAccountRegistrar.phoneAccountHasPermission(attempt.targetPhoneAccount)) {
+                    !mPhoneAccountRegistrar.phoneAccountRequiresBindPermission(
+                            attempt.targetPhoneAccount)) {
                 Log.w(this,
                         "Target PhoneAccount does not have BIND_CONNECTION_SERVICE for attempt: %s",
                         attempt);
@@ -265,7 +266,8 @@ final class CreateConnectionProcessor {
         }
 
         // Connection managers are only allowed to manage SIM subscriptions.
-        PhoneAccount targetPhoneAccount = mPhoneAccountRegistrar.getPhoneAccount(
+        // TODO: Should this really be checking the "calling user" test for phone account?
+        PhoneAccount targetPhoneAccount = mPhoneAccountRegistrar.getPhoneAccountCheckCallingUser(
                 targetPhoneAccountHandle);
         if (targetPhoneAccount == null) {
             Log.d(this, "shouldSetConnectionManager, phone account not found");
@@ -328,13 +330,14 @@ final class CreateConnectionProcessor {
             // Next, add the connection manager account as a backup if it can place emergency calls.
             PhoneAccountHandle callManagerHandle = mPhoneAccountRegistrar.getSimCallManager();
             if (mShouldUseConnectionManager && callManagerHandle != null) {
+                // TODO: Should this really be checking the "calling user" test for phone account?
                 PhoneAccount callManager = mPhoneAccountRegistrar
-                        .getPhoneAccount(callManagerHandle);
+                        .getPhoneAccountCheckCallingUser(callManagerHandle);
                 if (callManager != null && callManager.hasCapabilities(
                         PhoneAccount.CAPABILITY_PLACE_EMERGENCY_CALLS)) {
                     CallAttemptRecord callAttemptRecord = new CallAttemptRecord(callManagerHandle,
                             mPhoneAccountRegistrar.
-                                    getDefaultOutgoingPhoneAccount(mCall.getHandle().getScheme())
+                                    getOutgoingPhoneAccountForScheme(mCall.getHandle().getScheme())
                     );
 
                     if (!mAttemptRecords.contains(callAttemptRecord)) {
