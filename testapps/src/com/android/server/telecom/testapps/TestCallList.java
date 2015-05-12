@@ -17,9 +17,9 @@
 package com.android.server.telecom.testapps;
 
 import android.telecom.Call;
-import android.telecom.CameraCapabilities;
 import android.telecom.InCallService;
 import android.telecom.VideoProfile;
+import android.telecom.VideoProfile.CameraCapabilities;
 import android.util.ArrayMap;
 import android.util.ArraySet;
 import android.util.Log;
