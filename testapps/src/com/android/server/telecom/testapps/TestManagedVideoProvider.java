@@ -16,10 +16,10 @@
 
 package com.android.server.telecom.testapps;
 
-import android.telecom.CameraCapabilities;
 import android.telecom.Connection;
 import android.telecom.RemoteConnection;
 import android.telecom.VideoProfile;
+import android.telecom.VideoProfile.CameraCapabilities;
 import android.view.Surface;
 
 public class TestManagedVideoProvider extends Connection.VideoProvider {
