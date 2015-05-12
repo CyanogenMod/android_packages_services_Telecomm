@@ -16,9 +16,9 @@
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <!-- Blacklist preferences -->
-    <string name="blacklist_title">Blacklist</string>
+    <string name="blacklist_title">Blocked caller list</string>
     <string name="blacklist_summary_disabled">Disabled</string>
-    <string name="blacklist_summary">Incoming calls from phone numbers in the blacklist will be blocked</string>
+    <string name="blacklist_summary">You will not receive incoming calls or messages from phone numbers on the blocked caller list</string>
 
     <!-- Blacklist notifications -->
     <string name="blacklist_call_notification">Blocked a call from %s</string>
