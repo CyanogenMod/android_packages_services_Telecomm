@@ -32,6 +32,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.drawable.Icon;
 import android.net.Uri;
 import android.os.Parcel;
 import android.telecom.PhoneAccount;
@@ -226,10 +227,9 @@ public class PhoneAccountRegistrarTest extends TelecomTestCase {
                         .setAddress(Uri.parse("tel:123456"))
                         .setCapabilities(23)
                         .setHighlightColor(0xf0f0f0)
-                        .setIcon(
-                                "com.android.server.telecom.tests",
-                                R.drawable.stat_sys_phone_call,
-                                0xfefefe)
+                        .setIcon(Icon.createWithResource(
+                                "com.android.server.telecom.tests", R.drawable.stat_sys_phone_call))
+                        // TODO: set icon tint (0xfefefe)
                         .setShortDescription("short description")
                         .setSubscriptionAddress(Uri.parse("tel:2345678"))
                         .setSupportedUriSchemes(Arrays.asList("tel", "sip"))
@@ -239,10 +239,10 @@ public class PhoneAccountRegistrarTest extends TelecomTestCase {
                         .setAddress(Uri.parse("tel:123456"))
                         .setCapabilities(23)
                         .setHighlightColor(0xf0f0f0)
-                        .setIcon(
+                        .setIcon(Icon.createWithBitmap(
                                 BitmapFactory.decodeResource(
                                         getContext().getResources(),
-                                        R.drawable.stat_sys_phone_call))
+                                        R.drawable.stat_sys_phone_call)))
                         .setShortDescription("short description")
                         .setSubscriptionAddress(Uri.parse("tel:2345678"))
                         .setSupportedUriSchemes(Arrays.asList("tel", "sip"))
@@ -273,7 +273,8 @@ public class PhoneAccountRegistrarTest extends TelecomTestCase {
                 .setAddress(Uri.parse("http://foo.com/" + idx))
                 .setSubscriptionAddress(Uri.parse("tel:555-000" + idx))
                 .setCapabilities(idx)
-                .setIcon("com.android.server.telecom.tests", R.drawable.stat_sys_phone_call)
+                .setIcon(Icon.createWithResource(
+                            "com.android.server.telecom.tests", R.drawable.stat_sys_phone_call))
                 .setShortDescription("desc" + idx)
                 .build();
     }
@@ -343,29 +344,11 @@ public class PhoneAccountRegistrarTest extends TelecomTestCase {
             assertEquals(a.getAddress(), b.getAddress());
             assertEquals(a.getSubscriptionAddress(), b.getSubscriptionAddress());
             assertEquals(a.getCapabilities(), b.getCapabilities());
-            assertEquals(a.getIconResId(), b.getIconResId());
-            assertEquals(a.getIconPackageName(), b.getIconPackageName());
-            assertBitmapEquals(a.getIconBitmap(), b.getIconBitmap());
-            assertEquals(a.getIconTint(), b.getIconTint());
+            assertEquals(a.getIcon().toString(), b.getIcon().toString());
             assertEquals(a.getHighlightColor(), b.getHighlightColor());
             assertEquals(a.getLabel(), b.getLabel());
             assertEquals(a.getShortDescription(), b.getShortDescription());
             assertEquals(a.getSupportedUriSchemes(), b.getSupportedUriSchemes());
-        }
-    }
-
-    private static void assertBitmapEquals(Bitmap a, Bitmap b) {
-        if (a == null || b == null) {
-            assertEquals(null, a);
-            assertEquals(null, b);
-        } else {
-            assertEquals(a.getWidth(), b.getWidth());
-            assertEquals(a.getHeight(), b.getHeight());
-            for (int x = 0; x < a.getWidth(); x++) {
-                for (int y = 0; y < a.getHeight(); y++) {
-                    assertEquals(a.getPixel(x, y), b.getPixel(x, y));
-                }
-            }
         }
     }
 

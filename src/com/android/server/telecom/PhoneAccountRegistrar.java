@@ -26,6 +26,7 @@ import android.content.pm.ServiceInfo;
 import android.content.pm.UserInfo;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.drawable.Icon;
 import android.net.Uri;
 import android.os.Binder;
 import android.os.Process;
@@ -43,7 +44,6 @@ import android.util.AtomicFile;
 import android.util.Base64;
 import android.util.Xml;
 
-
 // TODO: Needed for move to system service: import com.android.internal.R;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.util.FastXmlSerializer;
@@ -56,6 +56,7 @@ import org.xmlpull.v1.XmlSerializer;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -83,8 +84,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
  *
  *  -- About Users and Phone Accounts --
  *
- * When it comes to PhoneAccounts, we store all phone account in a single place,
- * which means that there are three users that we deal with:
+ * We store all phone accounts for all users in a single place, which means that there are three
+ * users that we have to deal with in code:
  * 1) The Android User that is currently active on the device.
  * 2) The user which owns/registers the phone account.
  * 3) The user running the app that is requesting the phone account information.
@@ -92,12 +93,12 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * For example, I have a device with 2 users, primary (A) and secondary (B), and the secondary user
  * has a work profile running as another user (B2). Lets say that user B opens the phone settings
  * (not currently supported, but theoretically speaking), and phone settings queries for a phone
- * account list. Lets also say that an app running in the work profile has registered a phone account.
- * This means that:
+ * account list. Lets also say that an app running in the work profile has registered a phone
+ * account. This means that:
  *
  * Since phone settings always runs as the primary user, We have the following situation:
- * User A (settings) is requesting a list of phone accounts while the active user is User B, and that
- * list contains a phone account for profile User B2.
+ * User A (settings) is requesting a list of phone accounts while the active user is User B, and
+ * that list contains a phone account for profile User B2.
  *
  * In practice, (2) is stored with the phone account handle and is part of the handle's ID. (1) is
  * saved in {@link #mCurrentUserHandle} and (3) we get from Binder.getCallingUser(). We check these
@@ -879,13 +880,13 @@ public final class PhoneAccountRegistrar {
             serializer.endTag(null, tagName);
         }
 
-        protected void writeBitmapIfNonNull(String tagName, Bitmap value, XmlSerializer serializer)
+        protected void writeIconIfNonNull(String tagName, Icon value, XmlSerializer serializer)
                 throws IOException {
-            if (value != null && value.getByteCount() > 0) {
+            if (value != null) {
                 ByteArrayOutputStream stream = new ByteArrayOutputStream();
-                value.compress(Bitmap.CompressFormat.PNG, 100, stream);
-                byte[] imageByteArray = stream.toByteArray();
-                String text = Base64.encodeToString(imageByteArray, 0, imageByteArray.length, 0);
+                value.writeToStream(stream);
+                byte[] iconByteArray = stream.toByteArray();
+                String text = Base64.encodeToString(iconByteArray, 0, iconByteArray.length, 0);
 
                 serializer.startTag(null, tagName);
                 serializer.text(text);
@@ -931,10 +932,15 @@ public final class PhoneAccountRegistrar {
             return arrayEntries;
         }
 
-        protected Bitmap readBitmap(XmlPullParser parser)
-                throws IOException, XmlPullParserException {
+        protected Bitmap readBitmap(XmlPullParser parser) {
             byte[] imageByteArray = Base64.decode(parser.getText(), 0);
             return BitmapFactory.decodeByteArray(imageByteArray, 0, imageByteArray.length);
+        }
+
+        protected Icon readIcon(XmlPullParser parser) throws IOException {
+            byte[] iconByteArray = Base64.decode(parser.getText(), 0);
+            ByteArrayInputStream stream = new ByteArrayInputStream(iconByteArray);
+            return Icon.createFromStream(stream);
         }
     }
 
@@ -1037,6 +1043,7 @@ public final class PhoneAccountRegistrar {
         private static final String LABEL = "label";
         private static final String SHORT_DESCRIPTION = "short_description";
         private static final String SUPPORTED_URI_SCHEMES = "supported_uri_schemes";
+        private static final String ICON = "icon";
 
         @Override
         public void writeToXml(PhoneAccount o, XmlSerializer serializer, Context context)
@@ -1053,10 +1060,7 @@ public final class PhoneAccountRegistrar {
                 writeTextIfNonNull(ADDRESS, o.getAddress(), serializer);
                 writeTextIfNonNull(SUBSCRIPTION_ADDRESS, o.getSubscriptionAddress(), serializer);
                 writeTextIfNonNull(CAPABILITIES, Integer.toString(o.getCapabilities()), serializer);
-                writeTextIfNonNull(ICON_RES_ID, Integer.toString(o.getIconResId()), serializer);
-                writeTextIfNonNull(ICON_PACKAGE_NAME, o.getIconPackageName(), serializer);
-                writeBitmapIfNonNull(ICON_BITMAP, o.getIconBitmap(), serializer);
-                writeTextIfNonNull(ICON_TINT, Integer.toString(o.getIconTint()), serializer);
+                writeIconIfNonNull(ICON, o.getIcon(), serializer);
                 writeTextIfNonNull(HIGHLIGHT_COLOR,
                         Integer.toString(o.getHighlightColor()), serializer);
                 writeTextIfNonNull(LABEL, o.getLabel(), serializer);
@@ -1083,6 +1087,7 @@ public final class PhoneAccountRegistrar {
                 String label = null;
                 String shortDescription = null;
                 List<String> supportedUriSchemes = null;
+                Icon icon = null;
 
                 while (XmlUtils.nextElementWithin(parser, outerDepth)) {
                     if (parser.getName().equals(ACCOUNT_HANDLE)) {
@@ -1122,6 +1127,9 @@ public final class PhoneAccountRegistrar {
                         shortDescription = parser.getText();
                     } else if (parser.getName().equals(SUPPORTED_URI_SCHEMES)) {
                         supportedUriSchemes = readStringList(parser);
+                    } else if (parser.getName().equals(ICON)) {
+                        parser.next();
+                        icon = readIcon(parser);
                     }
                 }
 
@@ -1161,10 +1169,13 @@ public final class PhoneAccountRegistrar {
                         .setSupportedUriSchemes(supportedUriSchemes)
                         .setHighlightColor(highlightColor);
 
-                if (iconBitmap == null) {
-                    builder.setIcon(iconPackageName, iconResId, iconTint);
-                } else {
-                    builder.setIcon(iconBitmap);
+                if (icon != null) {
+                    builder.setIcon(icon);
+                } else if (iconBitmap != null) {
+                    builder.setIcon(Icon.createWithBitmap(iconBitmap));
+                } else if (!TextUtils.isEmpty(iconPackageName)) {
+                    builder.setIcon(Icon.createWithResource(iconPackageName, iconResId));
+                    // TODO: Need to set tint.
                 }
 
                 return builder.build();
@@ -1173,7 +1184,8 @@ public final class PhoneAccountRegistrar {
         }
 
         /**
-         * Determines if the SIP call settings specify to use SIP for all calls, including PSTN calls.
+         * Determines if the SIP call settings specify to use SIP for all calls, including PSTN
+         * calls.
          *
          * @param context The context.
          * @return {@code True} if SIP should be used for all calls.
