@@ -16,6 +16,7 @@
 
 package com.android.server.telecom.testapps;
 
+import android.net.Uri;
 import android.telecom.Connection;
 import android.telecom.RemoteConnection;
 import android.telecom.VideoProfile;
@@ -117,7 +118,7 @@ public class TestManagedVideoProvider extends Connection.VideoProvider {
     }
 
     @Override
-    public void onSetPauseImage(String uri) {
+    public void onSetPauseImage(Uri uri) {
         mRemoteVideoProvider.setPauseImage(uri);
     }
 }
