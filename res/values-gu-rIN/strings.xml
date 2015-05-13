@@ -42,10 +42,7 @@
     <string name="no_vm_number" msgid="4164780423805688336">"વૉઇસમેઇલ નંબર ખૂટે છે"</string>
     <string name="no_vm_number_msg" msgid="1300729501030053828">"SIM કાર્ડ પર કોઈ વૉઇસમેઇલ નંબર સંગ્રહિત નથી."</string>
     <string name="add_vm_number_str" msgid="4676479471644687453">"નંબર ઉમેરો"</string>
-    <!-- no translation found for change_default_dialer_dialog_title (4430590714918044425) -->
-    <skip />
-    <!-- no translation found for change_default_dialer_with_previous_app_set_text (3213396537499337949) -->
-    <skip />
-    <!-- no translation found for change_default_dialer_no_previous_app_set_text (7608426684114545221) -->
-    <skip />
+    <string name="change_default_dialer_dialog_title" msgid="4430590714918044425">"ડિફોલ્ટ ડાયલર એપ્લિકેશન બદલીએ?"</string>
+    <string name="change_default_dialer_with_previous_app_set_text" msgid="3213396537499337949">"તમારી ડિફોલ્ટ ડાયલર એપ્લિકેશન તરીકે <xliff:g id="CURRENT_APP">%2$s</xliff:g> ને બદલે <xliff:g id="NEW_APP">%1$s</xliff:g> નો ઉપયોગ કરીએ?"</string>
+    <string name="change_default_dialer_no_previous_app_set_text" msgid="7608426684114545221">"તમારી ડિફોલ્ટ ડાયલર એપ્લિકેશન તરીકે <xliff:g id="NEW_APP">%s</xliff:g> નો ઉપયોગ કરીએ?"</string>
 </resources>

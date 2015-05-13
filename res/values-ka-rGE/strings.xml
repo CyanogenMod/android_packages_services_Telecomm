@@ -44,5 +44,5 @@
     <string name="add_vm_number_str" msgid="4676479471644687453">"ნომრის დამატება"</string>
     <string name="change_default_dialer_dialog_title" msgid="4430590714918044425">"გსურთ ამკრეფის ნაგულისხმევი აპის შეცვლა?"</string>
     <string name="change_default_dialer_with_previous_app_set_text" msgid="3213396537499337949">"გსურთ ამკრეფის ნაგულისხმევ აპად <xliff:g id="CURRENT_APP">%2$s</xliff:g>-ის ნაცვლად <xliff:g id="NEW_APP">%1$s</xliff:g>-ის გამოყენება?"</string>
-    <string name="change_default_dialer_no_previous_app_set_text" msgid="7608426684114545221">"გსურთ, გამოიყენოთ <xliff:g id="NEW_APP">%s</xliff:g>, როგორც ნაგულისხმევი აპი?"</string>
+    <string name="change_default_dialer_no_previous_app_set_text" msgid="7608426684114545221">"გსურთ, გამოიყენოთ <xliff:g id="NEW_APP">%s</xliff:g>, როგორც ამკრეფის ნაგულისხმევი აპი?"</string>
 </resources>

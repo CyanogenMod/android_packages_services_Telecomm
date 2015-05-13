@@ -42,7 +42,7 @@
     <string name="no_vm_number" msgid="4164780423805688336">"Nambari ya sauti inayokosekana"</string>
     <string name="no_vm_number_msg" msgid="1300729501030053828">"Hakuna nambari ya ujumbe wa sauti iliyohifadhiwa katika SIM kadi."</string>
     <string name="add_vm_number_str" msgid="4676479471644687453">"Ongeza nambari"</string>
-    <string name="change_default_dialer_dialog_title" msgid="4430590714918044425">"Ungependa kubadilisha programu ya chaguo-msingi ya kupiga simu"</string>
-    <string name="change_default_dialer_with_previous_app_set_text" msgid="3213396537499337949">"Ungependa kutumia <xliff:g id="NEW_APP">%1$s</xliff:g> badala ya <xliff:g id="CURRENT_APP">%2$s</xliff:g> kama programu ya chaguo-msingi ya kupiga simu?"</string>
-    <string name="change_default_dialer_no_previous_app_set_text" msgid="7608426684114545221">"Ungependa kutumia <xliff:g id="NEW_APP">%s</xliff:g> kama programu ya chaguo-msingi ya kupiga simu?"</string>
+    <string name="change_default_dialer_dialog_title" msgid="4430590714918044425">"Ungependa kubadilisha programu chaguo-msingi ya simu?"</string>
+    <string name="change_default_dialer_with_previous_app_set_text" msgid="3213396537499337949">"Ungependa kutumia <xliff:g id="NEW_APP">%1$s</xliff:g> badala ya <xliff:g id="CURRENT_APP">%2$s</xliff:g> kama programu ya chaguo-msingi ya kupigia simu?"</string>
+    <string name="change_default_dialer_no_previous_app_set_text" msgid="7608426684114545221">"Ungependa kutumia <xliff:g id="NEW_APP">%s</xliff:g> kama programu ya chaguo-msingi ya kupigia simu?"</string>
 </resources>

@@ -42,7 +42,7 @@
     <string name="no_vm_number" msgid="4164780423805688336">"Ovozli pochta raqami ko‘rsatilmagan"</string>
     <string name="no_vm_number_msg" msgid="1300729501030053828">"SIM kartada birorta ham ovozli pochta raqami yo‘q."</string>
     <string name="add_vm_number_str" msgid="4676479471644687453">"Raqam qo‘shish"</string>
-    <string name="change_default_dialer_dialog_title" msgid="4430590714918044425">"Birlamchi raqam terish paneli o‘zgartirilsinmi?"</string>
-    <string name="change_default_dialer_with_previous_app_set_text" msgid="3213396537499337949">"<xliff:g id="CURRENT_APP">%2$s</xliff:g> raqam terish paneli o‘rniga <xliff:g id="NEW_APP">%1$s</xliff:g> raqam terish panelidan foydalanilsinmi?"</string>
-    <string name="change_default_dialer_no_previous_app_set_text" msgid="7608426684114545221">"<xliff:g id="NEW_APP">%s</xliff:g> raqam terish panelidan birlamchi sifatida foydalanilsinmi?"</string>
+    <string name="change_default_dialer_dialog_title" msgid="4430590714918044425">"Birlamchi raqam terish ilovasi o‘zgartirilsinmi?"</string>
+    <string name="change_default_dialer_with_previous_app_set_text" msgid="3213396537499337949">"Raqam terish uchun birlamchi ilova sifatida <xliff:g id="CURRENT_APP">%2$s</xliff:g> o‘rniga <xliff:g id="NEW_APP">%1$s</xliff:g> ilovasi tanlansinmi?"</string>
+    <string name="change_default_dialer_no_previous_app_set_text" msgid="7608426684114545221">"<xliff:g id="NEW_APP">%s</xliff:g> raqam terish uchun birlamchi ilova sifatida tanlansinmi?"</string>
 </resources>
