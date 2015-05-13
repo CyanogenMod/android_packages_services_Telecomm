@@ -34,6 +34,7 @@ import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.TotalCaptureResult;
 import android.hardware.camera2.params.StreamConfigurationMap;
 import android.media.MediaPlayer;
+import android.net.Uri;
 import android.os.Handler;
 import android.telecom.Connection;
 import android.telecom.VideoProfile;
@@ -192,7 +193,7 @@ public class TestVideoProvider extends Connection.VideoProvider {
      * We do not have a need to set a paused image.
      */
     @Override
-    public void onSetPauseImage(String uri) {
+    public void onSetPauseImage(Uri uri) {
         // Not implemented.
     }
 
