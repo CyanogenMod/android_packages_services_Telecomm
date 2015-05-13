@@ -469,10 +469,11 @@ public final class PhoneAccountRegistrar {
         // Enforce the requirement that a connection service for a phone account has the correct
         // permission.
         if (!phoneAccountRequiresBindPermission(account.getAccountHandle())) {
-            Log.w(this, "Phone account %s does not have BIND_CONNECTION_SERVICE permission.",
+            Log.w(this,
+                    "Phone account %s does not have BIND_TELECOM_CONNECTION_SERVICE permission.",
                     account.getAccountHandle());
-            throw new SecurityException(
-                    "PhoneAccount connection service requires BIND_CONNECTION_SERVICE permission.");
+            throw new SecurityException("PhoneAccount connection service requires "
+                    + "BIND_TELECOM_CONNECTION_SERVICE permission.");
         }
 
         addOrReplacePhoneAccount(account);
@@ -568,7 +569,7 @@ public final class PhoneAccountRegistrar {
 
     /**
      * Determines if the connection service specified by a {@link PhoneAccountHandle} requires the
-     * {@link Manifest.permission#BIND_CONNECTION_SERVICE} permission.
+     * {@link Manifest.permission#BIND_TELECOM_CONNECTION_SERVICE} permission.
      *
      * @param phoneAccountHandle The phone account to check.
      * @return {@code True} if the phone account has permission.
@@ -581,8 +582,16 @@ public final class PhoneAccountRegistrar {
         }
         for (ResolveInfo resolveInfo : resolveInfos) {
             ServiceInfo serviceInfo = resolveInfo.serviceInfo;
-            if (serviceInfo == null ||
-                    !Manifest.permission.BIND_CONNECTION_SERVICE.equals(serviceInfo.permission)) {
+            if (serviceInfo == null) {
+                return false;
+            }
+
+            if (!Manifest.permission.BIND_CONNECTION_SERVICE.equals(serviceInfo.permission) &&
+                    !Manifest.permission.BIND_TELECOM_CONNECTION_SERVICE.equals(
+                            serviceInfo.permission)) {
+                // The ConnectionService must require either the deprecated BIND_CONNECTION_SERVICE,
+                // or the public BIND_TELECOM_CONNECTION_SERVICE permissions, both of which are
+                // system/signature only.
                 return false;
             }
         }
