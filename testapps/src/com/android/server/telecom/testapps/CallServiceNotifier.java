@@ -27,6 +27,7 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
+import android.graphics.drawable.Icon;
 import android.net.Uri;
 import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
@@ -111,7 +112,9 @@ public class CallServiceNotifier {
                 .setSubscriptionAddress(Uri.parse("tel:555-TEST"))
                 .setCapabilities(PhoneAccount.CAPABILITY_CALL_PROVIDER |
                         PhoneAccount.CAPABILITY_VIDEO_CALLING)
-                .setIcon(context, R.drawable.stat_sys_phone_call, Color.RED)
+                .setIcon(Icon.createWithResource(
+                        context.getResources(), R.drawable.stat_sys_phone_call))
+                // TODO: Add icon tint (Color.RED)
                 .setHighlightColor(Color.RED)
                 .setShortDescription("a short description for the call provider")
                 .setSupportedUriSchemes(Arrays.asList("tel"))
@@ -127,7 +130,9 @@ public class CallServiceNotifier {
                 .setCapabilities(PhoneAccount.CAPABILITY_CALL_PROVIDER |
                         PhoneAccount.CAPABILITY_SIM_SUBSCRIPTION |
                         PhoneAccount.CAPABILITY_VIDEO_CALLING)
-                .setIcon(context, R.drawable.stat_sys_phone_call, Color.GREEN)
+                .setIcon(Icon.createWithResource(
+                        context.getResources(), R.drawable.stat_sys_phone_call))
+                // TODO: Add icon tint (Color.GREEN)
                 .setHighlightColor(Color.GREEN)
                 .setShortDescription("a short description for the sim subscription")
                 .build());
@@ -140,7 +145,9 @@ public class CallServiceNotifier {
                 .setAddress(Uri.parse("tel:555-CMGR"))
                 .setSubscriptionAddress(Uri.parse("tel:555-CMGR"))
                 .setCapabilities(PhoneAccount.CAPABILITY_CONNECTION_MANAGER)
-                .setIcon(context, R.drawable.stat_sys_phone_call, Color.BLUE)
+                .setIcon(Icon.createWithResource(
+                        context.getResources(), R.drawable.stat_sys_phone_call))
+                // TODO: Add icon tint (Color.BLUE)
                 .setShortDescription("a short description for the connection manager")
                 .build());
     }
