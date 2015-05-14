@@ -18,6 +18,7 @@ package com.android.server.telecom.testapps;
 
 import android.net.Uri;
 import android.telecom.AudioState;
+import android.telecom.CallAudioState;
 import android.telecom.Conference;
 import android.telecom.Connection;
 import android.telecom.ConnectionRequest;
@@ -172,8 +173,8 @@ public class TestConnectionManager extends ConnectionService {
         }
 
         @Override
-        public void onAudioStateChanged(AudioState state) {
-            mRemote.setAudioState(state);
+        public void onCallAudioStateChanged(CallAudioState state) {
+            mRemote.setCallAudioState(state);
         }
 
         private void setState(int state) {
