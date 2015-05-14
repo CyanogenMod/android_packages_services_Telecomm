@@ -697,14 +697,20 @@ public class TelecomServiceImpl {
 
                     // Make sure it doesn't cross the UserHandle boundary
                     enforceUserHandleMatchesCaller(phoneAccountHandle);
+                    long token = Binder.clearCallingIdentity();
 
-                    Intent intent = new Intent(TelecomManager.ACTION_INCOMING_CALL);
-                    intent.putExtra(TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE, phoneAccountHandle);
-                    intent.putExtra(CallIntentProcessor.KEY_IS_INCOMING_CALL, true);
-                    if (extras != null) {
-                        intent.putExtra(TelecomManager.EXTRA_INCOMING_CALL_EXTRAS, extras);
+                    try {
+                        Intent intent = new Intent(TelecomManager.ACTION_INCOMING_CALL);
+                        intent.putExtra(TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE,
+                            phoneAccountHandle);
+                        intent.putExtra(CallIntentProcessor.KEY_IS_INCOMING_CALL, true);
+                        if (extras != null) {
+                            intent.putExtra(TelecomManager.EXTRA_INCOMING_CALL_EXTRAS, extras);
+                        }
+                        CallIntentProcessor.processIncomingCallIntent(mCallsManager, intent);
+                    } finally {
+                        Binder.restoreCallingIdentity(token);
                     }
-                    CallIntentProcessor.processIncomingCallIntent(mCallsManager, intent);
                 } else {
                     Log.w(this,
                             "Null phoneAccountHandle. Ignoring request to add new incoming call");
@@ -725,12 +731,18 @@ public class TelecomServiceImpl {
 
                     // Make sure it doesn't cross the UserHandle boundary
                     enforceUserHandleMatchesCaller(phoneAccountHandle);
+                    long token = Binder.clearCallingIdentity();
 
-                    Intent intent = new Intent(TelecomManager.ACTION_NEW_UNKNOWN_CALL);
-                    intent.putExtras(extras);
-                    intent.putExtra(CallIntentProcessor.KEY_IS_UNKNOWN_CALL, true);
-                    intent.putExtra(TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE, phoneAccountHandle);
-                    CallIntentProcessor.processUnknownCallIntent(mCallsManager, intent);
+                    try {
+                        Intent intent = new Intent(TelecomManager.ACTION_NEW_UNKNOWN_CALL);
+                        intent.putExtras(extras);
+                        intent.putExtra(CallIntentProcessor.KEY_IS_UNKNOWN_CALL, true);
+                        intent.putExtra(TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE,
+                            phoneAccountHandle);
+                        CallIntentProcessor.processUnknownCallIntent(mCallsManager, intent);
+                    } finally {
+                        Binder.restoreCallingIdentity(token);
+                    }
                 } else {
                     Log.i(this,
                             "Null phoneAccountHandle or not initiated by Telephony. " +
