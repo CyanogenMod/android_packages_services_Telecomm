@@ -25,6 +25,7 @@ import android.os.IBinder;
 import android.os.RemoteException;
 import android.os.UserHandle;
 import android.telecom.AudioState;
+import android.telecom.CallAudioState;
 import android.telecom.Connection;
 import android.telecom.ConnectionRequest;
 import android.telecom.ConnectionService;
@@ -714,13 +715,13 @@ final class ConnectionServiceWrapper extends ServiceBinder {
         }
     }
 
-    /** @see IConnectionService#onAudioStateChanged(String,AudioState) */
-    void onAudioStateChanged(Call activeCall, AudioState audioState) {
+    /** @see IConnectionService#onCallAudioStateChanged(String,CallAudioState) */
+    void onCallAudioStateChanged(Call activeCall, CallAudioState audioState) {
         final String callId = mCallIdMapper.getCallId(activeCall);
-        if (callId != null && isServiceValid("onAudioStateChanged")) {
+        if (callId != null && isServiceValid("onCallAudioStateChanged")) {
             try {
-                logOutgoing("onAudioStateChanged %s %s", callId, audioState);
-                mServiceInterface.onAudioStateChanged(callId, audioState);
+                logOutgoing("onCallAudioStateChanged %s %s", callId, audioState);
+                mServiceInterface.onCallAudioStateChanged(callId, audioState);
             } catch (RemoteException e) {
             }
         }

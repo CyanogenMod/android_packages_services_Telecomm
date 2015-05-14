@@ -25,6 +25,7 @@ import android.os.IBinder;
 import android.os.IInterface;
 import android.os.RemoteException;
 import android.telecom.AudioState;
+import android.telecom.CallAudioState;
 import android.telecom.ParcelableCall;
 
 import java.util.HashMap;
@@ -37,7 +38,7 @@ public class InCallServiceFixture implements TestFixture<IInCallService> {
 
     public String mLatestCallId;
     public IInCallAdapter mInCallAdapter;
-    public AudioState mAudioState;
+    public CallAudioState mCallAudioState;
     public final Map<String, ParcelableCall> mCallById = new HashMap<>();
     public final Map<String, String> mPostDialById = new HashMap<>();
     public final Map<String, String> mPostDialWaitById = new HashMap<>();
@@ -88,8 +89,8 @@ public class InCallServiceFixture implements TestFixture<IInCallService> {
         }
 
         @Override
-        public void onAudioStateChanged(AudioState audioState) throws RemoteException {
-            mAudioState = audioState;
+        public void onCallAudioStateChanged(CallAudioState audioState) throws RemoteException {
+            mCallAudioState = audioState;
         }
 
         @Override
