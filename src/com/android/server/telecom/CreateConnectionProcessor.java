@@ -171,20 +171,20 @@ final class CreateConnectionProcessor {
             if (!mPhoneAccountRegistrar.phoneAccountRequiresBindPermission(
                     attempt.connectionManagerPhoneAccount)) {
                 Log.w(this,
-                        "Connection mgr does not have BIND_CONNECTION_SERVICE for attempt: %s",
-                        attempt);
+                        "Connection mgr does not have BIND_TELECOM_CONNECTION_SERVICE for "
+                                + "attempt: %s", attempt);
                 attemptNextPhoneAccount();
                 return;
             }
 
             // If the target PhoneAccount differs from the ConnectionManager phone acount, ensure it
-            // also requires the BIND_CONNECTION_SERVICE permission.
+            // also requires the BIND_TELECOM_CONNECTION_SERVICE permission.
             if (!attempt.connectionManagerPhoneAccount.equals(attempt.targetPhoneAccount) &&
                     !mPhoneAccountRegistrar.phoneAccountRequiresBindPermission(
                             attempt.targetPhoneAccount)) {
                 Log.w(this,
-                        "Target PhoneAccount does not have BIND_CONNECTION_SERVICE for attempt: %s",
-                        attempt);
+                        "Target PhoneAccount does not have BIND_TELECOM_CONNECTION_SERVICE for "
+                                + "attempt: %s", attempt);
                 attemptNextPhoneAccount();
                 return;
             }
