@@ -17,6 +17,7 @@
 package com.android.server.telecom;
 
 import android.telecom.AudioState;
+import android.telecom.CallAudioState;
 
 /**
  * Provides a default implementation for listeners of CallsManager.
@@ -54,7 +55,8 @@ public class CallsManagerListenerBase implements CallsManager.CallsManagerListen
     }
 
     @Override
-    public void onAudioStateChanged(AudioState oldAudioState, AudioState newAudioState) {
+    public void onCallAudioStateChanged(CallAudioState oldAudioState,
+            CallAudioState newAudioState) {
     }
 
     @Override

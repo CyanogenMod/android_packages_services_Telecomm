@@ -31,6 +31,7 @@ import android.os.RemoteException;
 import android.os.Trace;
 import android.os.UserHandle;
 import android.telecom.AudioState;
+import android.telecom.CallAudioState;
 import android.telecom.Connection;
 import android.telecom.DefaultDialerManager;
 import android.telecom.InCallService;
@@ -200,13 +201,14 @@ public final class InCallController extends CallsManagerListenerBase {
     }
 
     @Override
-    public void onAudioStateChanged(AudioState oldAudioState, AudioState newAudioState) {
+    public void onCallAudioStateChanged(CallAudioState oldCallAudioState,
+            CallAudioState newCallAudioState) {
         if (!mInCallServices.isEmpty()) {
-            Log.i(this, "Calling onAudioStateChanged, audioState: %s -> %s", oldAudioState,
-                    newAudioState);
+            Log.i(this, "Calling onAudioStateChanged, audioState: %s -> %s", oldCallAudioState,
+                    newCallAudioState);
             for (IInCallService inCallService : mInCallServices.values()) {
                 try {
-                    inCallService.onAudioStateChanged(newAudioState);
+                    inCallService.onCallAudioStateChanged(newCallAudioState);
                 } catch (RemoteException ignored) {
                 }
             }
@@ -381,7 +383,7 @@ public final class InCallController extends CallsManagerListenerBase {
                 } catch (RemoteException ignored) {
                 }
             }
-            onAudioStateChanged(
+            onCallAudioStateChanged(
                     null,
                     mCallsManager.getAudioState());
             onCanAddCallChanged(mCallsManager.canAddCall());

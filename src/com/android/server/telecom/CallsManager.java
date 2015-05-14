@@ -25,6 +25,7 @@ import android.os.SystemProperties;
 import android.os.Trace;
 import android.provider.CallLog.Calls;
 import android.telecom.AudioState;
+import android.telecom.CallAudioState;
 import android.telecom.Conference;
 import android.telecom.Connection;
 import android.telecom.DisconnectCause;
@@ -73,7 +74,7 @@ public class CallsManager extends Call.ListenerBase {
         void onIncomingCallAnswered(Call call);
         void onIncomingCallRejected(Call call, boolean rejectWithMessage, String textMessage);
         void onForegroundCallChanged(Call oldForegroundCall, Call newForegroundCall);
-        void onAudioStateChanged(AudioState oldAudioState, AudioState newAudioState);
+        void onCallAudioStateChanged(CallAudioState oldAudioState, CallAudioState newAudioState);
         void onRingbackRequested(Call call, boolean ringback);
         void onIsConferencedChanged(Call call);
         void onIsVoipAudioModeChanged(Call call);
@@ -406,8 +407,8 @@ public class CallsManager extends Call.ListenerBase {
         return false;
     }
 
-    AudioState getAudioState() {
-        return mCallAudioManager.getAudioState();
+    CallAudioState getAudioState() {
+        return mCallAudioManager.getCallAudioState();
     }
 
     boolean isTtySupported() {
@@ -891,10 +892,10 @@ public class CallsManager extends Call.ListenerBase {
     }
 
     /** Called when the audio state changes. */
-    void onAudioStateChanged(AudioState oldAudioState, AudioState newAudioState) {
+    void onCallAudioStateChanged(CallAudioState oldAudioState, CallAudioState newAudioState) {
         Log.v(this, "onAudioStateChanged, audioState: %s -> %s", oldAudioState, newAudioState);
         for (CallsManagerListener listener : mListeners) {
-            listener.onAudioStateChanged(oldAudioState, newAudioState);
+            listener.onCallAudioStateChanged(oldAudioState, newAudioState);
         }
     }
 
@@ -1450,7 +1451,7 @@ public class CallsManager extends Call.ListenerBase {
      */
     private void maybeMoveToSpeakerPhone(Call call) {
         if (call.getStartWithSpeakerphoneOn()) {
-            setAudioRoute(AudioState.ROUTE_SPEAKER);
+            setAudioRoute(CallAudioState.ROUTE_SPEAKER);
             call.setStartWithSpeakerphoneOn(false);
         }
     }
