@@ -25,6 +25,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.net.Uri;
+import android.os.Binder;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.telecom.Connection;
@@ -83,13 +84,20 @@ public final class BluetoothPhoneServiceImpl {
         public boolean answerCall() throws RemoteException {
             synchronized (mLock) {
                 enforceModifyPermission();
-                Log.i(TAG, "BT - answering call");
-                Call call = mCallsManager.getRingingCall();
-                if (call != null) {
-                    mCallsManager.answerCall(call, 0);
-                    return true;
+
+                long token = Binder.clearCallingIdentity();
+                try {
+                    Log.i(TAG, "BT - answering call");
+                    Call call = mCallsManager.getRingingCall();
+                    if (call != null) {
+                        mCallsManager.answerCall(call, 0);
+                        return true;
+                    }
+                    return false;
+                } finally {
+                    Binder.restoreCallingIdentity(token);
                 }
-                return false;
+
             }
         }
 
@@ -97,13 +105,19 @@ public final class BluetoothPhoneServiceImpl {
         public boolean hangupCall() throws RemoteException {
             synchronized (mLock) {
                 enforceModifyPermission();
-                Log.i(TAG, "BT - hanging up call");
-                Call call = mCallsManager.getForegroundCall();
-                if (call != null) {
-                    mCallsManager.disconnectCall(call);
-                    return true;
+
+                long token = Binder.clearCallingIdentity();
+                try {
+                    Log.i(TAG, "BT - hanging up call");
+                    Call call = mCallsManager.getForegroundCall();
+                    if (call != null) {
+                        mCallsManager.disconnectCall(call);
+                        return true;
+                    }
+                    return false;
+                } finally {
+                    Binder.restoreCallingIdentity(token);
                 }
-                return false;
             }
         }
 
@@ -111,16 +125,22 @@ public final class BluetoothPhoneServiceImpl {
         public boolean sendDtmf(int dtmf) throws RemoteException {
             synchronized (mLock) {
                 enforceModifyPermission();
-                Log.i(TAG, "BT - sendDtmf %c", Log.DEBUG ? dtmf : '.');
-                Call call = mCallsManager.getForegroundCall();
-                if (call != null) {
-                    // TODO: Consider making this a queue instead of starting/stopping
-                    // in quick succession.
-                    mCallsManager.playDtmfTone(call, (char) dtmf);
-                    mCallsManager.stopDtmfTone(call);
-                    return true;
+
+                long token = Binder.clearCallingIdentity();
+                try {
+                    Log.i(TAG, "BT - sendDtmf %c", Log.DEBUG ? dtmf : '.');
+                    Call call = mCallsManager.getForegroundCall();
+                    if (call != null) {
+                        // TODO: Consider making this a queue instead of starting/stopping
+                        // in quick succession.
+                        mCallsManager.playDtmfTone(call, (char) dtmf);
+                        mCallsManager.stopDtmfTone(call);
+                        return true;
+                    }
+                    return false;
+                } finally {
+                    Binder.restoreCallingIdentity(token);
                 }
-                return false;
             }
         }
 
@@ -128,14 +148,20 @@ public final class BluetoothPhoneServiceImpl {
         public String getNetworkOperator() throws RemoteException {
             synchronized (mLock) {
                 enforceModifyPermission();
-                Log.i(TAG, "getNetworkOperator");
-                PhoneAccount account = getBestPhoneAccount();
-                if (account != null) {
-                    return account.getLabel().toString();
-                } else {
-                    // Finally, just get the network name from telephony.
-                    return TelephonyManager.from(mContext)
-                            .getNetworkOperatorName();
+
+                long token = Binder.clearCallingIdentity();
+                try {
+                    Log.i(TAG, "getNetworkOperator");
+                    PhoneAccount account = getBestPhoneAccount();
+                    if (account != null) {
+                        return account.getLabel().toString();
+                    } else {
+                        // Finally, just get the network name from telephony.
+                        return TelephonyManager.from(mContext)
+                                .getNetworkOperatorName();
+                    }
+                } finally {
+                    Binder.restoreCallingIdentity(token);
                 }
             }
         }
@@ -144,19 +170,25 @@ public final class BluetoothPhoneServiceImpl {
         public String getSubscriberNumber() throws RemoteException {
             synchronized (mLock) {
                 enforceModifyPermission();
-                Log.i(TAG, "getSubscriberNumber");
-                String address = null;
-                PhoneAccount account = getBestPhoneAccount();
-                if (account != null) {
-                    Uri addressUri = account.getAddress();
-                    if (addressUri != null) {
-                        address = addressUri.getSchemeSpecificPart();
+
+                long token = Binder.clearCallingIdentity();
+                try {
+                    Log.i(TAG, "getSubscriberNumber");
+                    String address = null;
+                    PhoneAccount account = getBestPhoneAccount();
+                    if (account != null) {
+                        Uri addressUri = account.getAddress();
+                        if (addressUri != null) {
+                            address = addressUri.getSchemeSpecificPart();
+                        }
                     }
+                    if (TextUtils.isEmpty(address)) {
+                        address = TelephonyManager.from(mContext).getLine1Number();
+                    }
+                    return address;
+                } finally {
+                    Binder.restoreCallingIdentity(token);
                 }
-                if (TextUtils.isEmpty(address)) {
-                    address = TelephonyManager.from(mContext).getLine1Number();
-                }
-                return address;
             }
         }
 
@@ -164,17 +196,23 @@ public final class BluetoothPhoneServiceImpl {
         public boolean listCurrentCalls() throws RemoteException {
             synchronized (mLock) {
                 enforceModifyPermission();
-                // only log if it is after we recently updated the headset state or else it can clog
-                // the android log since this can be queried every second.
-                boolean logQuery = mHeadsetUpdatedRecently;
-                mHeadsetUpdatedRecently = false;
 
-                if (logQuery) {
-                    Log.i(TAG, "listcurrentCalls");
+                long token = Binder.clearCallingIdentity();
+                try {
+                    // only log if it is after we recently updated the headset state or else it can
+                    // clog the android log since this can be queried every second.
+                    boolean logQuery = mHeadsetUpdatedRecently;
+                    mHeadsetUpdatedRecently = false;
+
+                    if (logQuery) {
+                        Log.i(TAG, "listcurrentCalls");
+                    }
+
+                    sendListOfCalls(logQuery);
+                    return true;
+                } finally {
+                    Binder.restoreCallingIdentity(token);
                 }
-
-                sendListOfCalls(logQuery);
-                return true;
             }
         }
 
@@ -182,9 +220,15 @@ public final class BluetoothPhoneServiceImpl {
         public boolean queryPhoneState() throws RemoteException {
             synchronized (mLock) {
                 enforceModifyPermission();
-                Log.i(TAG, "queryPhoneState");
-                updateHeadsetWithCallState(true /* force */);
-                return true;
+
+                long token = Binder.clearCallingIdentity();
+                try {
+                    Log.i(TAG, "queryPhoneState");
+                    updateHeadsetWithCallState(true /* force */);
+                    return true;
+                } finally {
+                    Binder.restoreCallingIdentity(token);
+                }
             }
         }
 
@@ -192,8 +236,14 @@ public final class BluetoothPhoneServiceImpl {
         public boolean processChld(int chld) throws RemoteException {
             synchronized (mLock) {
                 enforceModifyPermission();
-                Log.i(TAG, "processChld %d", chld);
-                return BluetoothPhoneServiceImpl.this.processChld(chld);
+
+                long token = Binder.clearCallingIdentity();
+                try {
+                    Log.i(TAG, "processChld %d", chld);
+                    return BluetoothPhoneServiceImpl.this.processChld(chld);
+                } finally {
+                    Binder.restoreCallingIdentity(token);
+                }
             }
         }
 
