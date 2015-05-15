@@ -16,8 +16,7 @@
      limitations under the License.
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-  <string name="blacklist_title">لیستی ڕەش</string>
   <string name="blacklist_summary_disabled">ناچالاککرا</string>
-  <string name="blacklist_summary">نامه‌ی هاتوو له‌ ژماره‌ی مۆبایله‌کانه‌وه‌ له‌ لیستی ڕه‌ش بلۆک ده‌بێت</string>
   <string name="blacklist_call_notification">په‌یوه‌ندی بلۆککراو له‌ %s</string>
+  <string name="blacklist_notification_list_private">تایبەت</string>
 </resources>

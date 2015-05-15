@@ -16,9 +16,9 @@
      limitations under the License.
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-  <string name="blacklist_title">Juodasis sąrašas</string>
+  <string name="blacklist_title">Užblokuotų skambintojų sąrašas</string>
   <string name="blacklist_summary_disabled">Neleidžiamas</string>
-  <string name="blacklist_summary">Įeinantys skambučiai iš telefono numerių kurie yra juodajame sąraše bus blokuojami</string>
+  <string name="blacklist_summary">Jūs negausite įeinančių skambučių ar pranešimų iš telefonų numerių kurie yra užblokuotų skambintojų sąraše</string>
   <string name="blacklist_call_notification">Skambutis užblokuotas iš %s</string>
   <string name="blacklist_call_notification_private_number">Užblokuotas skambutis iš privataus numerio</string>
   <string name="blacklist_call_notification_unknown_number">Užblokuotas skambutis iš nežinomo numerio %s</string>
@@ -30,5 +30,4 @@
   <string name="blacklist_notification_list_private">Privatus</string>
   <string name="unblock_number">Atblokuoti</string>
   <string name="video_call_not_allowed_if_tty_enabled">Prašome neleisti TTY režimo, kad atliktumėte vaizdo skambučius.</string>
-  <string name="select_account_dialog_title">Pasirinkti paskyrą</string>
 </resources>

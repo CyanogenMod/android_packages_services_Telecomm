@@ -16,9 +16,7 @@
      limitations under the License.
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-  <string name="blacklist_title">Swartlys</string>
   <string name="blacklist_summary_disabled">Gedeaktiveer</string>
-  <string name="blacklist_summary">Inkomende oproepe van telefoonnommers in die swartlys sal geblokkeer word</string>
   <string name="blacklist_call_notification">\'n Oproep van %s geblokkeer</string>
   <string name="blacklist_call_notification_private_number">\'n Oproep van \'n privaat nommer geblokkeer</string>
   <string name="blacklist_call_notification_unknown_number">\'n Oproep van onbekende nommer %s, geblokkeer</string>
@@ -30,5 +28,4 @@
   <string name="blacklist_notification_list_private">Privaat</string>
   <string name="unblock_number">Onblokkeer</string>
   <string name="video_call_not_allowed_if_tty_enabled">Skakel TTY modus af om video-oproepe te maak.</string>
-  <string name="select_account_dialog_title">Kies rekening</string>
 </resources>

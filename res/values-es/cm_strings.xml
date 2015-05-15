@@ -16,9 +16,7 @@
      limitations under the License.
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-  <string name="blacklist_title">Lista negra</string>
   <string name="blacklist_summary_disabled">Deshabilitada</string>
-  <string name="blacklist_summary">Las llamadas entrantes de los números en la lista negra serán bloqueadas</string>
   <string name="blacklist_call_notification">Bloqueada una llamada de %s</string>
   <string name="blacklist_call_notification_private_number">Bloqueada una llamada de un número privado</string>
   <string name="blacklist_call_notification_unknown_number">Bloqueada una llamada de un número desconocido: %s</string>
@@ -30,5 +28,4 @@
   <string name="blacklist_notification_list_private">Privado</string>
   <string name="unblock_number">Desbloquear</string>
   <string name="video_call_not_allowed_if_tty_enabled">Deshabilita el modo TTY para hacer videollamadas.</string>
-  <string name="select_account_dialog_title">Selecciona una cuenta</string>
 </resources>

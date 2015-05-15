@@ -16,9 +16,7 @@
      limitations under the License.
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-  <string name="blacklist_title">Listă neagră</string>
   <string name="blacklist_summary_disabled">Dezactivat</string>
-  <string name="blacklist_summary">Apelurile primite de la numere de telefon din lista neagră vor fi blocate</string>
   <string name="blacklist_call_notification">S-a blocat un apel de la %s</string>
   <string name="blacklist_call_notification_private_number">S-a blocat un apel de la un nr. privat</string>
   <string name="blacklist_call_notification_unknown_number">S-a blocat un apel de la un nr. necunoscut %s</string>
@@ -28,5 +26,4 @@
   <string name="blacklist_message_notification_unknown_number">S-a blocat un mesaj de la nr. necunoscut %s</string>
   <string name="blacklist_notification_list_private">Privat</string>
   <string name="unblock_number">Deblocare</string>
-  <string name="select_account_dialog_title">Selectați contul</string>
 </resources>

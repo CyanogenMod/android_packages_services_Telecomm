@@ -16,9 +16,9 @@
      limitations under the License.
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-  <string name="blacklist_title">Μαύρη λίστα</string>
+  <string name="blacklist_title">Λίστα αποκλεισμένων καλούντων</string>
   <string name="blacklist_summary_disabled">Απενεργοποιημένη</string>
-  <string name="blacklist_summary">Εισερχόμενες κλήσεις από αριθμούς που είναι στη μαύρη λίστα θα απορρίπτονται</string>
+  <string name="blacklist_summary">Δε θα λαμβάνετε εισερχόμενες κλήσεις ή μηνύματα από τηλεφωνικούς αριθμούς στη λίστα αποκλεισμένων καλούντων</string>
   <string name="blacklist_call_notification">Απορρίφθηκε κλήση από %s</string>
   <string name="blacklist_call_notification_private_number">Απορρίφθηκε κλήση από απόρρητο αριθμό</string>
   <string name="blacklist_call_notification_unknown_number">Απορρίφθηκε κλήση από άγνωστο αριθμό %s</string>
@@ -30,5 +30,4 @@
   <string name="blacklist_notification_list_private">Απόρρητο</string>
   <string name="unblock_number">Ακύρωση φραγής</string>
   <string name="video_call_not_allowed_if_tty_enabled">Παρακαλούμε απενεργοποιήστε τη λειτουργία TTY για να πραγματοποιήσετε κλήσεις βίντεο.</string>
-  <string name="select_account_dialog_title">Επιλέξτε λογαριασμό</string>
 </resources>

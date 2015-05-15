@@ -16,9 +16,7 @@
      limitations under the License.
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-  <string name="blacklist_title">黑名單</string>
   <string name="blacklist_summary_disabled">停用</string>
-  <string name="blacklist_summary">黑名單中的來電將被封鎖</string>
   <string name="blacklist_call_notification">已阻擋來自 %s 的來電</string>
   <string name="blacklist_call_notification_private_number">已阻擋來自私人號碼的來電</string>
   <string name="blacklist_call_notification_unknown_number">已阻擋來自 %s 的不明號碼來電</string>
@@ -30,5 +28,4 @@
   <string name="blacklist_notification_list_private">私人</string>
   <string name="unblock_number">解除封鎖</string>
   <string name="video_call_not_allowed_if_tty_enabled">請停用 TTY 模式進行視頻通話。</string>
-  <string name="select_account_dialog_title">選取帳戶</string>
 </resources>

@@ -16,9 +16,9 @@
      limitations under the License.
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-  <string name="blacklist_title">Blokkeringsliste</string>
+  <string name="blacklist_title">Blokkert anropsliste</string>
   <string name="blacklist_summary_disabled">Deaktivert</string>
-  <string name="blacklist_summary">Innkommende meldinger fra telefonnumre i svartelisten blokkeres</string>
+  <string name="blacklist_summary">Du vil ikke motta innkommende samtaler eller meldinger fra telefonnumre på listen over blokkerte telefonnummer</string>
   <string name="blacklist_call_notification">Blokkerte en samtale fra %s</string>
   <string name="blacklist_call_notification_private_number">Blokkerte et anrop fra et skjult nummer</string>
   <string name="blacklist_call_notification_unknown_number">Blokkert en samtale fra ukjent nummer %s</string>
@@ -30,5 +30,4 @@
   <string name="blacklist_notification_list_private">Privat</string>
   <string name="unblock_number">Opphev blokkering</string>
   <string name="video_call_not_allowed_if_tty_enabled">Deaktiver TTY-modus for å gjøre videosamtaler.</string>
-  <string name="select_account_dialog_title">Velg konto</string>
 </resources>

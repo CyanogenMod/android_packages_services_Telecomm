@@ -32,10 +32,7 @@
   <string name="respond_via_sms_setting_title">Rempuestes rápides</string>
   <string name="respond_via_sms_setting_title_2">Editar rempuestes rápides</string>
   <string name="respond_via_sms_edittext_dialog_title">Rempuesta rápida</string>
-  <string name="respond_via_sms_menu_reset_default_activity">Restablecer aplicación</string>
   <string name="respond_via_sms_confirmation_format">Mensaxe unviáu a <xliff:g id="PHONE_NUMBER">%s</xliff:g>.</string>
-  <string name="outgoing_call_not_allowed">Esti usuariu nun pue facer llamaes que nun seyan d\'emerxencia</string>
-  <string name="outgoing_call_error_no_phone_number_supplied">Nun se fexo la llamada; el númberu inxertáu nun ye válidu.</string>
   <string name="no_vm_number">Falta\'l númberu del buzón de voz</string>
   <string name="no_vm_number_msg">Nun s\'almacenó nengún númberu de buzón de voz na tarxeta SIM.</string>
   <string name="add_vm_number_str">Amestar númberu</string>

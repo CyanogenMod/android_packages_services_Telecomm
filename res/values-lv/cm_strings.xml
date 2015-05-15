@@ -16,9 +16,7 @@
      limitations under the License.
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-  <string name="blacklist_title">Melnais saraksts</string>
   <string name="blacklist_summary_disabled">Atslēgts</string>
-  <string name="blacklist_summary">Ienākošie zvani no numuriem melnajā sarakstā tiks bloķēti</string>
   <string name="blacklist_call_notification">Bloķēts zvans no %s</string>
   <string name="blacklist_call_notification_private_number">Bloķēts zvans no privāta numura</string>
   <string name="blacklist_call_notification_unknown_number">Bloķēts zvans no nezināma numura %s</string>
@@ -30,5 +28,4 @@
   <string name="blacklist_notification_list_private">Privāts</string>
   <string name="unblock_number">Atbloķēt</string>
   <string name="video_call_not_allowed_if_tty_enabled">Lūdzu, atspējojiet TTY režīmu, lai veikt video zvanus.</string>
-  <string name="select_account_dialog_title">Konta izvēle</string>
 </resources>

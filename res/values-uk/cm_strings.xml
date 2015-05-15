@@ -16,9 +16,7 @@
      limitations under the License.
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-  <string name="blacklist_title">Чорний список</string>
   <string name="blacklist_summary_disabled">Вимкнено</string>
-  <string name="blacklist_summary">Відхиляти виклики з номерів в чорному списку</string>
   <string name="blacklist_call_notification">Виклик від %s заблоковано</string>
   <string name="blacklist_call_notification_private_number">Виклик з приватного номера заблоковано</string>
   <string name="blacklist_call_notification_unknown_number">Виклик з невідомого номера %s заблоковано</string>
@@ -30,5 +28,4 @@
   <string name="blacklist_notification_list_private">Прихований номер</string>
   <string name="unblock_number">Розблокувати</string>
   <string name="video_call_not_allowed_if_tty_enabled">Будь-ласка, вимкніть режим TTY, щоб робити відео-дзвінки.</string>
-  <string name="select_account_dialog_title">Оберіть обліковий запис</string>
 </resources>

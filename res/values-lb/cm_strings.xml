@@ -16,9 +16,9 @@
      limitations under the License.
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-  <string name="blacklist_title">Schwaarz Lëscht</string>
+  <string name="blacklist_title">Lëscht vu blockéierten Nummeren</string>
   <string name="blacklist_summary_disabled">Desaktivéiert</string>
-  <string name="blacklist_summary">Erakommend Uriff vun Telefonsnummeren op der schwaarzer Lëscht gi blockéiert</string>
+  <string name="blacklist_summary">Du wäerts keng Uriff oder Messagë vun den Telefonsnummeren op dëser Lëscht empfänken</string>
   <string name="blacklist_call_notification">Uruff vum %s blockéiert</string>
   <string name="blacklist_call_notification_private_number">En Uruff vun enger ënnerdréckter Nummer gouf blockéiert</string>
   <string name="blacklist_call_notification_unknown_number">En Uruff vun der onbekannter Nummer %s gouf blockéiert</string>
@@ -30,5 +30,4 @@
   <string name="blacklist_notification_list_private">Privat</string>
   <string name="unblock_number">Deblockéieren</string>
   <string name="video_call_not_allowed_if_tty_enabled">Desaktivéier w.e.g. den TTY-Modus fir Videouriff ze maachen.</string>
-  <string name="select_account_dialog_title">Kont auswielen</string>
 </resources>

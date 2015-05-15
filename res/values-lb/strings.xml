@@ -32,10 +32,7 @@
   <string name="respond_via_sms_setting_title">Séier Äntwerten</string>
   <string name="respond_via_sms_setting_title_2">Séier Äntwerten änneren</string>
   <string name="respond_via_sms_edittext_dialog_title">Séier Äntwert</string>
-  <string name="respond_via_sms_menu_reset_default_activity">Standard-App zrécksetzen</string>
   <string name="respond_via_sms_confirmation_format">Message geschéckt un <xliff:g id="phone_number">%s</xliff:g>.</string>
-  <string name="outgoing_call_not_allowed">Dëse Benotzer dierf keng net-Noufriff maachen</string>
-  <string name="outgoing_call_error_no_phone_number_supplied">Uruff net geschéckt, keng gëlteg Nummer.</string>
   <string name="no_vm_number">Mailbox-Nummer feelt</string>
   <string name="no_vm_number_msg">Op der SIM-Kaart ass keng Mailbox-Nummer gespäichert.</string>
   <string name="add_vm_number_str">Nummer dobäisetzen</string>

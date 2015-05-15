@@ -16,9 +16,7 @@
      limitations under the License.
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-  <string name="blacklist_title">काली सूची</string>
   <string name="blacklist_summary_disabled">अक्षम किया गया</string>
-  <string name="blacklist_summary">काली सूची के फ़ोन नंबरों से आनेवाले कॉलों को अवरुद्ध किया जाएगा</string>
   <string name="blacklist_call_notification">%s से अवरुद्ध किया गया कॉल</string>
   <string name="blacklist_call_notification_private_number">निजी नंबर से अवरुद्ध किया गया कॉल</string>
   <string name="blacklist_call_notification_unknown_number">अज्ञात नंबर %s से अवरुद्ध किया गया कॉल</string>
@@ -30,5 +28,4 @@
   <string name="blacklist_notification_list_private">निजी</string>
   <string name="unblock_number">अनवरुद्ध करें</string>
   <string name="video_call_not_allowed_if_tty_enabled">वीडियो कॉल करने के लिए कृपया टीटीवाई मोड को अक्षम करें।</string>
-  <string name="select_account_dialog_title">खाता चुनें</string>
 </resources>

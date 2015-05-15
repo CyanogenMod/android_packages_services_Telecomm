@@ -16,9 +16,7 @@
      limitations under the License.
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-  <string name="blacklist_title">Qara siyahı</string>
   <string name="blacklist_summary_disabled">Ləğv edilib</string>
-  <string name="blacklist_summary">Qara siyahıdakı telefon nömrələrindən gələn zənglər əngəllənəcək</string>
   <string name="blacklist_call_notification">%s nömrәsindәn gələn zәng əngəlləndi</string>
   <string name="blacklist_call_notification_private_number">Gizli nömrədən gələn zəng əngəlləndi</string>
   <string name="blacklist_call_notification_unknown_number">Bilinməyən %s nömrәsindәn gələn zәng əngəlləndi</string>
@@ -30,5 +28,4 @@
   <string name="blacklist_notification_list_private">Gizli</string>
   <string name="unblock_number">Əngəldən çıxart</string>
   <string name="video_call_not_allowed_if_tty_enabled">Zəhmət olmasa görüntülü zəng etmək üçün TTY rejimini ləğv edin.</string>
-  <string name="select_account_dialog_title">Hesab seçin</string>
 </resources>

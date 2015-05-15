@@ -16,9 +16,7 @@
      limitations under the License.
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-  <string name="blacklist_title">Црна листа</string>
   <string name="blacklist_summary_disabled">Онемогућено</string>
-  <string name="blacklist_summary">Долазни позиви са телефонских бројева у црној листи ће бити блокирани</string>
   <string name="blacklist_call_notification">Блокирај позив од %s</string>
   <string name="blacklist_call_notification_private_number">Блокирај позив са приватног броја</string>
   <string name="blacklist_call_notification_unknown_number">Блокирај позив са непознатог броја %s</string>
@@ -30,5 +28,4 @@
   <string name="blacklist_notification_list_private">Приватно</string>
   <string name="unblock_number">Одблокирај</string>
   <string name="video_call_not_allowed_if_tty_enabled">Молим онемогући TTY мод да направиш видео позив.</string>
-  <string name="select_account_dialog_title">Изабери налог</string>
 </resources>

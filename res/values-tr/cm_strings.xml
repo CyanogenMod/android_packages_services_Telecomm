@@ -16,9 +16,7 @@
      limitations under the License.
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-  <string name="blacklist_title">Kara liste</string>
   <string name="blacklist_summary_disabled">Devre dışı</string>
-  <string name="blacklist_summary">Kara listedeki telefon numaralarından gelen çağrılar engellenecek</string>
   <string name="blacklist_call_notification">%s \'den gelen bir çağrı engellendi</string>
   <string name="blacklist_call_notification_private_number">Özel numaradan gelen bir çağrı engellendi</string>
   <string name="blacklist_call_notification_unknown_number">Bilinmeyen bir numaradan \'%s\' gelen bir çağrı engellendi</string>
@@ -30,5 +28,4 @@
   <string name="blacklist_notification_list_private">Özel</string>
   <string name="unblock_number">Engeli kaldır</string>
   <string name="video_call_not_allowed_if_tty_enabled">Lütfen görüntülü görüşme yapmak için TTY modunu devre dışı bırakın.</string>
-  <string name="select_account_dialog_title">Hesap seçin</string>
 </resources>

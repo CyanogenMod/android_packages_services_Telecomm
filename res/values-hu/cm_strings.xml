@@ -16,9 +16,9 @@
      limitations under the License.
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-  <string name="blacklist_title">Tiltólista</string>
+  <string name="blacklist_title">Blokkolt hívók listája</string>
   <string name="blacklist_summary_disabled">Letiltva</string>
-  <string name="blacklist_summary">Bejövő hívások blokkolása, melyek szerepelnek a tiltólistán</string>
+  <string name="blacklist_summary">Nem fog bejövő hívásokat és üzeneteket kapni a blokkolt hívó listán szereplő telefonszámokról</string>
   <string name="blacklist_call_notification">Blokkolt hívás a következő számról: %s</string>
   <string name="blacklist_call_notification_private_number">Blokkolt szám nélküli hívás</string>
   <string name="blacklist_call_notification_unknown_number">Blokkolt ismeretlen szám: %s</string>
@@ -30,5 +30,4 @@
   <string name="blacklist_notification_list_private">Rejtett szám</string>
   <string name="unblock_number">Eltávolítás</string>
   <string name="video_call_not_allowed_if_tty_enabled">Kérjük, tiltsa le a TTY módot a videóhívások kezdeményezéséhez.</string>
-  <string name="select_account_dialog_title">Válasszon fiókot</string>
 </resources>

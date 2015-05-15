@@ -16,9 +16,7 @@
      limitations under the License.
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-  <string name="blacklist_title">רשימה שחורה</string>
   <string name="blacklist_summary_disabled">מושבת</string>
-  <string name="blacklist_summary">הודעות נכנסות ממספרי טלפון שברשימה השחורה ייחסמו</string>
   <string name="blacklist_call_notification">שיחה נחסמה מ-%s</string>
   <string name="blacklist_call_notification_private_number">שיחה נחסמה ממספר חסוי</string>
   <string name="blacklist_call_notification_unknown_number">שיחה נחסמה ממספר לא ידוע %s</string>
@@ -30,5 +28,4 @@
   <string name="blacklist_notification_list_private">פרטי</string>
   <string name="unblock_number">הורד חסימה</string>
   <string name="video_call_not_allowed_if_tty_enabled">אנא בטל את מצב TTY כדי לבצע שיחות וידאו.</string>
-  <string name="select_account_dialog_title">בחר חשבון</string>
 </resources>
