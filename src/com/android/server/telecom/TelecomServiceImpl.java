@@ -16,7 +16,13 @@
 
 package com.android.server.telecom;
 
-import android.Manifest;
+import static android.Manifest.permission.CALL_PHONE;
+import static android.Manifest.permission.MODIFY_PHONE_STATE;
+import static android.Manifest.permission.READ_PHONE_STATE;
+import static android.Manifest.permission.REGISTER_CALL_PROVIDER;
+import static android.Manifest.permission.REGISTER_CONNECTION_MANAGER;
+import static android.Manifest.permission.REGISTER_SIM_SUBSCRIPTION;
+
 import android.app.AppOpsManager;
 import android.content.ComponentName;
 import android.content.Context;
@@ -462,7 +468,7 @@ public class TelecomServiceImpl {
         @Override
         public void silenceRinger(String callingPackage) {
             synchronized (mLock) {
-                enforceModifyPermissionOrPrivilegedDialer(callingPackage);
+                enforcePermissionOrPrivilegedDialer(MODIFY_PHONE_STATE, callingPackage);
 
                 long token = Binder.clearCallingIdentity();
                 try {
@@ -612,7 +618,7 @@ public class TelecomServiceImpl {
         @Override
         public void cancelMissedCallsNotification(String callingPackage) {
             synchronized (mLock) {
-                enforceModifyPermissionOrPrivilegedDialer(callingPackage);
+                enforcePermissionOrPrivilegedDialer(MODIFY_PHONE_STATE, callingPackage);
                 long token = Binder.clearCallingIdentity();
                 try {
                     mCallsManager.getMissedCallNotifier().clearMissedCalls();
@@ -628,7 +634,7 @@ public class TelecomServiceImpl {
         @Override
         public boolean handlePinMmi(String dialString, String callingPackage) {
             synchronized (mLock) {
-                enforceModifyPermissionOrPrivilegedDialer(callingPackage);
+                enforcePermissionOrPrivilegedDialer(MODIFY_PHONE_STATE, callingPackage);
 
                 // Switch identity so that TelephonyManager checks Telecom's permissions instead.
                 long token = Binder.clearCallingIdentity();
@@ -652,7 +658,7 @@ public class TelecomServiceImpl {
                 String dialString,
                 String callingPackage) {
             synchronized (mLock) {
-                enforceModifyPermissionOrPrivilegedDialer(callingPackage);
+                enforcePermissionOrPrivilegedDialer(MODIFY_PHONE_STATE, callingPackage);
 
                 if (!isVisibleToCaller(accountHandle)) {
                     Log.w(this, "%s is not visible for the calling user", accountHandle);
@@ -681,7 +687,7 @@ public class TelecomServiceImpl {
         public Uri getAdnUriForPhoneAccount(PhoneAccountHandle accountHandle,
                 String callingPackage) {
             synchronized (mLock) {
-                enforceModifyPermissionOrPrivilegedDialer(callingPackage);
+                enforcePermissionOrPrivilegedDialer(MODIFY_PHONE_STATE, callingPackage);
 
                 if (!isVisibleToCaller(accountHandle)) {
                     Log.w(this, "%s is not visible for the calling user", accountHandle);
@@ -806,10 +812,8 @@ public class TelecomServiceImpl {
         @Override
         public void placeCall(Uri handle, Bundle extras, String callingPackage) {
             enforceCallingPackage(callingPackage);
-            if (!canCallPhone(callingPackage, "placeCall")) {
-                throw new SecurityException("Package " + callingPackage
-                        + " is not allowed to place phone calls");
-            }
+            enforcePermissionOrPrivilegedDialer(CALL_PHONE, callingPackage);
+
             synchronized (mLock) {
                 final UserHandle userHandle = Binder.getCallingUserHandle();
                 long token = Binder.clearCallingIdentity();
@@ -1007,7 +1011,7 @@ public class TelecomServiceImpl {
     private void enforcePhoneAccountModificationForPackage(String packageName) {
         // TODO: Use a new telecomm permission for this instead of reusing modify.
 
-        int result = mContext.checkCallingOrSelfPermission(Manifest.permission.MODIFY_PHONE_STATE);
+        int result = mContext.checkCallingOrSelfPermission(MODIFY_PHONE_STATE);
 
         // Callers with MODIFY_PHONE_STATE can use the PhoneAccount mechanism to implement
         // built-in behavior even when PhoneAccounts are not exposed as a third-part API. They
@@ -1022,13 +1026,13 @@ public class TelecomServiceImpl {
         }
     }
 
-    private void enforceModifyPermissionOrPrivilegedDialer(String packageName) {
+    private void enforcePermissionOrPrivilegedDialer(String permission, String packageName) {
         if (!isPrivilegedDialerCalling(packageName)) {
             try {
-                enforceModifyPermission();
+                enforcePermission(permission);
             } catch (SecurityException e) {
-                Log.e(this, e, "Caller must be the default or system dialer, or have the system"
-                        + " only permission MODIFY_PHONE_STATE to perform this operation.");
+                Log.e(this, e, "Caller must be the default or system dialer, or have the permission"
+                        + " %s to perform this operation.", permission);
                 throw e;
             }
         }
@@ -1043,19 +1047,19 @@ public class TelecomServiceImpl {
     }
 
     private void enforceRegisterCallProviderPermission() {
-        enforcePermission(android.Manifest.permission.REGISTER_CALL_PROVIDER);
+        enforcePermission(REGISTER_CALL_PROVIDER);
     }
 
     private void enforceRegisterSimSubscriptionPermission() {
-        enforcePermission(android.Manifest.permission.REGISTER_SIM_SUBSCRIPTION);
+        enforcePermission(REGISTER_SIM_SUBSCRIPTION);
     }
 
     private void enforceRegisterConnectionManagerPermission() {
-        enforcePermission(android.Manifest.permission.REGISTER_CONNECTION_MANAGER);
+        enforcePermission(REGISTER_CONNECTION_MANAGER);
     }
 
     private void enforceModifyPermission() {
-        enforcePermission(Manifest.permission.MODIFY_PHONE_STATE);
+        enforcePermission(MODIFY_PHONE_STATE);
     }
 
     private void enforcePermission(String permission) {
@@ -1084,7 +1088,7 @@ public class TelecomServiceImpl {
 
     private boolean canReadPhoneState(String callingPackage, String message) {
         // Accessing phone state is gated by a special permission.
-        mContext.enforceCallingOrSelfPermission(Manifest.permission.READ_PHONE_STATE, message);
+        mContext.enforceCallingOrSelfPermission(READ_PHONE_STATE, message);
 
         // Some apps that have the permission can be restricted via app ops.
         return mAppOpsManager.noteOp(AppOpsManager.OP_READ_PHONE_STATE,
@@ -1093,7 +1097,7 @@ public class TelecomServiceImpl {
 
     private boolean canCallPhone(String callingPackage, String message) {
         // Accessing phone state is gated by a special permission.
-        mContext.enforceCallingOrSelfPermission(Manifest.permission.CALL_PHONE, message);
+        mContext.enforceCallingOrSelfPermission(CALL_PHONE, message);
 
         // Some apps that have the permission can be restricted via app ops.
         return mAppOpsManager.noteOp(AppOpsManager.OP_CALL_PHONE,
