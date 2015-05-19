@@ -16,6 +16,8 @@
 
 package com.android.server.telecom;
 
+import com.android.server.telecom.components.TelecomService;
+
 import android.content.Context;
 
 /**
@@ -27,5 +29,8 @@ import android.content.Context;
  */
 public interface HeadsetMediaButtonFactory {
 
-    HeadsetMediaButton create(Context context, CallsManager callsManager);
+    HeadsetMediaButton create(
+            Context context,
+            CallsManager callsManager,
+            TelecomSystem.SyncRoot lock);
 }
