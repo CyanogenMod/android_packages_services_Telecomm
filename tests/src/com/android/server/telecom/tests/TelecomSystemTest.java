@@ -170,7 +170,8 @@ public class TelecomSystemTest extends TelecomTestCase {
 
         when(headsetMediaButtonFactory.create(
                 any(Context.class),
-                any(CallsManager.class)))
+                any(CallsManager.class),
+                any(TelecomSystem.SyncRoot.class)))
                 .thenReturn(mHeadsetMediaButton);
         when(proximitySensorManagerFactory.create(
                 any(Context.class),
@@ -191,7 +192,8 @@ public class TelecomSystemTest extends TelecomTestCase {
 
         verify(headsetMediaButtonFactory).create(
                 eq(mComponentContextFixture.getTestDouble().getApplicationContext()),
-                any(CallsManager.class));
+                any(CallsManager.class),
+                any(TelecomSystem.SyncRoot.class));
         verify(proximitySensorManagerFactory).create(
                 eq(mComponentContextFixture.getTestDouble().getApplicationContext()),
                 any(CallsManager.class));

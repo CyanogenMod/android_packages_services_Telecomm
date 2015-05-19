@@ -172,7 +172,7 @@ public class CallsManager extends Call.ListenerBase {
                 context, statusBarNotifier, mWiredHeadsetManager, mDockManager, this);
         InCallTonePlayer.Factory playerFactory = new InCallTonePlayer.Factory(mCallAudioManager, lock);
         mRinger = new Ringer(mCallAudioManager, this, playerFactory, context);
-        mHeadsetMediaButton = headsetMediaButtonFactory.create(context, this);
+        mHeadsetMediaButton = headsetMediaButtonFactory.create(context, this, mLock);
         mTtyManager = new TtyManager(context, mWiredHeadsetManager);
         mProximitySensorManager = proximitySensorManagerFactory.create(context, this);
         mPhoneStateBroadcaster = new PhoneStateBroadcaster(this);
