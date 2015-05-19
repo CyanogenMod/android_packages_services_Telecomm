@@ -194,7 +194,7 @@ public final class PhoneAccountRegistrar {
             }
         }
 
-        List<PhoneAccountHandle> outgoing = getCallCapablePhoneAccounts(uriScheme);
+        List<PhoneAccountHandle> outgoing = getCallCapablePhoneAccounts(uriScheme, false);
         switch (outgoing.size()) {
             case 0:
                 // There are no accounts, so there can be no default
@@ -348,6 +348,20 @@ public final class PhoneAccountRegistrar {
         mCurrentUserHandle = userHandle;
     }
 
+    public void enablePhoneAccount(PhoneAccountHandle accountHandle, boolean isEnabled) {
+        PhoneAccount account = getPhoneAccount(accountHandle);
+        if (account.hasCapabilities(PhoneAccount.CAPABILITY_SIM_SUBSCRIPTION)) {
+            // We never change the enabled state of SIM-based accounts.
+            return;
+        }
+
+        if (account != null && account.isEnabled() != isEnabled) {
+            account.setIsEnabled(isEnabled);
+            write();
+            fireAccountsChanged();
+        }
+    }
+
     private boolean isVisibleForUser(PhoneAccount account) {
         if (account == null) {
             return false;
@@ -414,15 +428,16 @@ public final class PhoneAccountRegistrar {
 
     /**
      * Retrieves a list of all {@link PhoneAccountHandle}s registered.
+     * Only returns accounts which are enabled.
      *
      * @return The list of {@link PhoneAccountHandle}s.
      */
     public List<PhoneAccountHandle> getAllPhoneAccountHandles() {
-        return getPhoneAccountHandles(0, null, null);
+        return getPhoneAccountHandles(0, null, null, false);
     }
 
     public List<PhoneAccount> getAllPhoneAccounts() {
-        return getPhoneAccounts(0, null, null);
+        return getPhoneAccounts(0, null, null, false);
     }
 
     /**
@@ -432,8 +447,10 @@ public final class PhoneAccountRegistrar {
      * @param uriScheme The URI scheme.
      * @return The phone account handles.
      */
-    public List<PhoneAccountHandle> getCallCapablePhoneAccounts(String uriScheme) {
-        return getPhoneAccountHandles(PhoneAccount.CAPABILITY_CALL_PROVIDER, uriScheme, null);
+    public List<PhoneAccountHandle> getCallCapablePhoneAccounts(
+            String uriScheme, boolean includeDisabledAccounts) {
+        return getPhoneAccountHandles(
+                PhoneAccount.CAPABILITY_CALL_PROVIDER, uriScheme, null, includeDisabledAccounts);
     }
 
     /**
@@ -442,7 +459,7 @@ public final class PhoneAccountRegistrar {
     public List<PhoneAccountHandle> getSimPhoneAccounts() {
         return getPhoneAccountHandles(
                 PhoneAccount.CAPABILITY_CALL_PROVIDER | PhoneAccount.CAPABILITY_SIM_SUBSCRIPTION,
-                null, null);
+                null, null, false);
     }
 
     /**
@@ -452,7 +469,7 @@ public final class PhoneAccountRegistrar {
      * @return The phone account handles.
      */
     public List<PhoneAccountHandle> getPhoneAccountsForPackage(String packageName) {
-        return getPhoneAccountHandles(0, null, packageName);
+        return getPhoneAccountHandles(0, null, packageName, false);
     }
 
     /**
@@ -461,7 +478,7 @@ public final class PhoneAccountRegistrar {
      * @return The phone account handles.
      */
     public List<PhoneAccountHandle> getConnectionManagerPhoneAccounts() {
-        return getPhoneAccountHandles(PhoneAccount.CAPABILITY_CONNECTION_MANAGER, null, null);
+        return getPhoneAccountHandles(PhoneAccount.CAPABILITY_CONNECTION_MANAGER, null, null, true);
     }
 
     // TODO: Should we implement an artificial limit for # of accounts associated with a single
@@ -489,11 +506,22 @@ public final class PhoneAccountRegistrar {
         Log.d(this, "addOrReplacePhoneAccount(%s -> %s)",
                 account.getAccountHandle(), account);
 
+        // Start _enabled_ property as false.
+        // !!! IMPORTANT !!! It is important that we do not read the enabled state that the
+        // source app provides or else an third party app could enable itself.
+        boolean isEnabled = false;
+
         PhoneAccount oldAccount = getPhoneAccount(account.getAccountHandle());
         if (oldAccount != null) {
             mState.accounts.remove(oldAccount);
+            isEnabled = oldAccount.isEnabled();
         }
+
         mState.accounts.add(account);
+        // Reset enabled state to whatever the value was if the account was already registered,
+        // or _true_ if this is a SIM-based account.  All SIM-based accounts are always enabled.
+        account.setIsEnabled(
+                isEnabled || account.hasCapabilities(PhoneAccount.CAPABILITY_SIM_SUBSCRIPTION));
 
         write();
         fireAccountsChanged();
@@ -636,9 +664,14 @@ public final class PhoneAccountRegistrar {
      * and package name.
      */
     private List<PhoneAccountHandle> getPhoneAccountHandles(
-            int capabilities, String uriScheme, String packageName) {
+            int capabilities,
+            String uriScheme,
+            String packageName,
+            boolean includeDisabledAccounts) {
         List<PhoneAccountHandle> handles = new ArrayList<>();
-        for (PhoneAccount account : getPhoneAccounts(capabilities, uriScheme, packageName)) {
+
+        for (PhoneAccount account : getPhoneAccounts(
+                capabilities, uriScheme, packageName, includeDisabledAccounts)) {
             handles.add(account.getAccountHandle());
         }
         return handles;
@@ -654,9 +687,17 @@ public final class PhoneAccountRegistrar {
      * @param packageName Package name of the PhoneAccount. {@code null} bypasses packageName check.
      */
     private List<PhoneAccount> getPhoneAccounts(
-            int capabilities, String uriScheme, String packageName) {
+            int capabilities,
+            String uriScheme,
+            String packageName,
+            boolean includeDisabledAccounts) {
         List<PhoneAccount> accounts = new ArrayList<>(mState.accounts.size());
         for (PhoneAccount m : mState.accounts) {
+            if (!(m.isEnabled() || includeDisabledAccounts)) {
+                // Do not include disabled accounts.
+                continue;
+            }
+
             if (capabilities != 0 && !m.hasCapabilities(capabilities)) {
                 // Account doesn't have the right capabilities; skip this one.
                 continue;
@@ -1053,6 +1094,7 @@ public final class PhoneAccountRegistrar {
         private static final String SHORT_DESCRIPTION = "short_description";
         private static final String SUPPORTED_URI_SCHEMES = "supported_uri_schemes";
         private static final String ICON = "icon";
+        private static final String ENABLED = "enabled";
 
         @Override
         public void writeToXml(PhoneAccount o, XmlSerializer serializer, Context context)
@@ -1075,6 +1117,7 @@ public final class PhoneAccountRegistrar {
                 writeTextIfNonNull(LABEL, o.getLabel(), serializer);
                 writeTextIfNonNull(SHORT_DESCRIPTION, o.getShortDescription(), serializer);
                 writeStringList(SUPPORTED_URI_SCHEMES, o.getSupportedUriSchemes(), serializer);
+                writeTextIfNonNull(ENABLED, o.isEnabled() ? "true" : "false" , serializer);
 
                 serializer.endTag(null, CLASS_PHONE_ACCOUNT);
             }
@@ -1097,6 +1140,7 @@ public final class PhoneAccountRegistrar {
                 String shortDescription = null;
                 List<String> supportedUriSchemes = null;
                 Icon icon = null;
+                boolean enabled = false;
 
                 while (XmlUtils.nextElementWithin(parser, outerDepth)) {
                     if (parser.getName().equals(ACCOUNT_HANDLE)) {
@@ -1139,6 +1183,9 @@ public final class PhoneAccountRegistrar {
                     } else if (parser.getName().equals(ICON)) {
                         parser.next();
                         icon = readIcon(parser);
+                    } else if (parser.getName().equals(ENABLED)) {
+                        parser.next();
+                        enabled = "true".equalsIgnoreCase(parser.getText());
                     }
                 }
 
@@ -1176,7 +1223,8 @@ public final class PhoneAccountRegistrar {
                         .setCapabilities(capabilities)
                         .setShortDescription(shortDescription)
                         .setSupportedUriSchemes(supportedUriSchemes)
-                        .setHighlightColor(highlightColor);
+                        .setHighlightColor(highlightColor)
+                        .setIsEnabled(enabled);
 
                 if (icon != null) {
                     builder.setIcon(icon);
@@ -1187,7 +1235,7 @@ public final class PhoneAccountRegistrar {
                     // TODO: Need to set tint.
                 }
 
-                return builder.build();
+                builder.build();
             }
             return null;
         }
