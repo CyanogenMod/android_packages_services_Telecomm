@@ -527,7 +527,7 @@ public class CallsManager extends Call.ListenerBase {
         Call call = getNewOutgoingCall(handle);
 
         List<PhoneAccountHandle> accounts =
-                mPhoneAccountRegistrar.getCallCapablePhoneAccounts(handle.getScheme());
+                mPhoneAccountRegistrar.getCallCapablePhoneAccounts(handle.getScheme(), false);
 
         Log.v(this, "startOutgoingCall found accounts = " + accounts);
 

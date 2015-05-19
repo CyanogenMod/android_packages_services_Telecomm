@@ -131,7 +131,7 @@ public class PhoneAccountRegistrarTest extends TelecomTestCase {
                 .build());
 
         assertEquals(4, mRegistrar.getAllPhoneAccountHandles().size());
-        assertEquals(3, mRegistrar.getCallCapablePhoneAccounts(null).size());
+        assertEquals(3, mRegistrar.getCallCapablePhoneAccounts(null, false).size());
         assertEquals(null, mRegistrar.getSimCallManager());
         assertEquals(null, mRegistrar.getOutgoingPhoneAccountForScheme(PhoneAccount.SCHEME_TEL));
     }

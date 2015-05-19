@@ -38,7 +38,7 @@ import java.util.List;
  */
 public class EnableAccountPreferenceFragment extends PreferenceFragment {
 
-    private static final class AccountSwitchPreference extends SwitchPreference {
+    private final class AccountSwitchPreference extends SwitchPreference {
         private final PhoneAccount mAccount;
 
         public AccountSwitchPreference(Context context, PhoneAccount account) {
@@ -51,6 +51,7 @@ public class EnableAccountPreferenceFragment extends PreferenceFragment {
             if (icon != null) {
                 setIcon(icon.loadDrawable(context));
             }
+            setChecked(account.isEnabled());
         }
 
         /** ${inheritDoc} */
@@ -58,7 +59,7 @@ public class EnableAccountPreferenceFragment extends PreferenceFragment {
         protected void onClick() {
             super.onClick();
 
-            // TODO: Handle enabling/disabling phone accounts
+            mTelecomManager.enablePhoneAccount(mAccount.getAccountHandle(), isChecked());
         }
     }
 
@@ -75,11 +76,17 @@ public class EnableAccountPreferenceFragment extends PreferenceFragment {
     public void onResume() {
         super.onResume();
 
-        addPreferencesFromResource(R.xml.enable_account_preference);
-
-        List<PhoneAccountHandle> accountHandles = mTelecomManager.getCallCapablePhoneAccounts();
-
         PreferenceScreen screen = getPreferenceScreen();
+        if (screen != null) {
+            screen.removeAll();
+        }
+
+        addPreferencesFromResource(R.xml.enable_account_preference);
+        screen = getPreferenceScreen();
+
+        List<PhoneAccountHandle> accountHandles =
+                mTelecomManager.getCallCapablePhoneAccounts(true /* includeDisabledAccounts */);
+
         Context context = getActivity();
         for (PhoneAccountHandle handle : accountHandles) {
             PhoneAccount account = mTelecomManager.getPhoneAccount(handle);

@@ -51,7 +51,9 @@ public final class TelephonyUtil {
         return PhoneAccount.builder(DEFAULT_EMERGENCY_PHONE_ACCOUNT_HANDLE, "E")
                 .setCapabilities(PhoneAccount.CAPABILITY_SIM_SUBSCRIPTION |
                         PhoneAccount.CAPABILITY_CALL_PROVIDER |
-                        PhoneAccount.CAPABILITY_PLACE_EMERGENCY_CALLS).build();
+                        PhoneAccount.CAPABILITY_PLACE_EMERGENCY_CALLS)
+                .setIsEnabled(true)
+                .build();
     }
 
     static boolean isPstnComponentName(ComponentName componentName) {
