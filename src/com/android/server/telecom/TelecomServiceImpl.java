@@ -130,7 +130,8 @@ public class TelecomServiceImpl {
         }
 
         @Override
-        public List<PhoneAccountHandle> getCallCapablePhoneAccounts(String callingPackage) {
+        public List<PhoneAccountHandle> getCallCapablePhoneAccounts(
+                boolean includeDisabledAccounts, String callingPackage) {
             if (!canReadPhoneState(callingPackage, "getDefaultOutgoingPhoneAccount")) {
                 return Collections.emptyList();
             }
@@ -141,7 +142,8 @@ public class TelecomServiceImpl {
                     // TODO: Does this isVisible check actually work considering we are clearing
                     // the calling identity?
                     return filterForAccountsVisibleToCaller(
-                            mPhoneAccountRegistrar.getCallCapablePhoneAccounts(null));
+                            mPhoneAccountRegistrar.getCallCapablePhoneAccounts(
+                                    null, includeDisabledAccounts));
                 } catch (Exception e) {
                     Log.e(this, e, "getCallCapablePhoneAccounts");
                     throw e;
@@ -164,7 +166,7 @@ public class TelecomServiceImpl {
                     // TODO: Does this isVisible check actually work considering we are clearing
                     // the calling identity?
                     return filterForAccountsVisibleToCaller(
-                            mPhoneAccountRegistrar.getCallCapablePhoneAccounts(uriScheme));
+                            mPhoneAccountRegistrar.getCallCapablePhoneAccounts(uriScheme, false));
                 } catch (Exception e) {
                     Log.e(this, e, "getPhoneAccountsSupportingScheme %s", uriScheme);
                     throw e;
@@ -821,6 +823,23 @@ public class TelecomServiceImpl {
                     intent.putExtras(extras);
                     new UserCallIntentProcessor(mContext, userHandle).processIntent(intent,
                             callingPackage);
+                } finally {
+                    Binder.restoreCallingIdentity(token);
+                }
+            }
+        }
+
+        /**
+         * @see android.telecom.TelecomManager#enablePhoneAccount
+         */
+        @Override
+        public void enablePhoneAccount(PhoneAccountHandle accountHandle, boolean isEnabled) {
+            enforceModifyPermission();
+            synchronized (mLock) {
+                long token  = Binder.clearCallingIdentity();
+                try {
+                    // enable/disable phone account
+                    mPhoneAccountRegistrar.enablePhoneAccount(accountHandle, isEnabled);
                 } finally {
                     Binder.restoreCallingIdentity(token);
                 }
