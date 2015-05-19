@@ -78,9 +78,11 @@ public class TelecomService extends Service implements TelecomSystem.Component {
                             },
                             new HeadsetMediaButtonFactory() {
                                 @Override
-                                public HeadsetMediaButton create(Context context,
-                                        CallsManager callsManager) {
-                                    return new HeadsetMediaButton(context, callsManager);
+                                public HeadsetMediaButton create(
+                                        Context context,
+                                        CallsManager callsManager,
+                                        TelecomSystem.SyncRoot lock) {
+                                    return new HeadsetMediaButton(context, callsManager, lock);
                                 }
                             },
                             new ProximitySensorManagerFactory() {
