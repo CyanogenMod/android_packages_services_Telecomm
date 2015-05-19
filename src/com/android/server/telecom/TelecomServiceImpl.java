@@ -380,8 +380,7 @@ public class TelecomServiceImpl {
         public boolean isVoiceMailNumber(PhoneAccountHandle accountHandle, String number,
                 String callingPackage) {
             synchronized (mLock) {
-                if (!isPrivilegedDialerCalling(callingPackage)
-                        && !canReadPhoneState(callingPackage, "isVoiceMailNumber")) {
+                if (!canReadPhoneState(callingPackage, "isVoiceMailNumber")) {
                     return false;
                 }
 
@@ -408,8 +407,7 @@ public class TelecomServiceImpl {
         @Override
         public String getVoiceMailNumber(PhoneAccountHandle accountHandle, String callingPackage) {
             synchronized (mLock) {
-                if (!isPrivilegedDialerCalling(callingPackage)
-                        && !canReadPhoneState(callingPackage, "getVoiceMailNumber")) {
+                if (!canReadPhoneState(callingPackage, "getVoiceMailNumber")) {
                     return null;
                 }
 
@@ -437,8 +435,7 @@ public class TelecomServiceImpl {
          */
         @Override
         public String getLine1Number(PhoneAccountHandle accountHandle, String callingPackage) {
-            if (!isPrivilegedDialerCalling(callingPackage)
-                    && !canReadPhoneState(callingPackage, "getLine1Number")) {
+            if (!canReadPhoneState(callingPackage, "getLine1Number")) {
                 return null;
             }
 
@@ -596,8 +593,7 @@ public class TelecomServiceImpl {
          */
         @Override
         public void showInCallScreen(boolean showDialpad, String callingPackage) {
-            if (!isPrivilegedDialerCalling(callingPackage)
-                    && !canReadPhoneState(callingPackage, "showInCallScreen")) {
+            if (!canReadPhoneState(callingPackage, "showInCallScreen")) {
                 return;
             }
 
@@ -812,7 +808,10 @@ public class TelecomServiceImpl {
         @Override
         public void placeCall(Uri handle, Bundle extras, String callingPackage) {
             enforceCallingPackage(callingPackage);
-            enforcePermissionOrPrivilegedDialer(CALL_PHONE, callingPackage);
+            if (!canCallPhone(callingPackage, "placeCall")) {
+                throw new SecurityException("Package " + callingPackage
+                        + " is not allowed to place phone calls");
+            }
 
             synchronized (mLock) {
                 final UserHandle userHandle = Binder.getCallingUserHandle();
@@ -1087,6 +1086,12 @@ public class TelecomServiceImpl {
     }
 
     private boolean canReadPhoneState(String callingPackage, String message) {
+        // The system/default dialer can always read phone state - so that emergency calls will
+        // still work.
+        if (isPrivilegedDialerCalling(callingPackage)) {
+            return true;
+        }
+
         // Accessing phone state is gated by a special permission.
         mContext.enforceCallingOrSelfPermission(READ_PHONE_STATE, message);
 
@@ -1096,6 +1101,12 @@ public class TelecomServiceImpl {
     }
 
     private boolean canCallPhone(String callingPackage, String message) {
+        // The system/default dialer can always read phone state - so that emergency calls will
+        // still work.
+        if (isPrivilegedDialerCalling(callingPackage)) {
+            return true;
+        }
+
         // Accessing phone state is gated by a special permission.
         mContext.enforceCallingOrSelfPermission(CALL_PHONE, message);
 
