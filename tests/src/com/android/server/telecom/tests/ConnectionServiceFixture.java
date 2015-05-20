@@ -20,16 +20,18 @@ import com.android.internal.telecom.IConnectionService;
 import com.android.internal.telecom.IConnectionServiceAdapter;
 import com.android.internal.telecom.IVideoProvider;
 import com.android.internal.telecom.RemoteServiceCallback;
+import com.android.server.telecom.Log;
 
 import junit.framework.TestCase;
 
 import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 
 import android.content.ComponentName;
 import android.os.IBinder;
+import android.os.IInterface;
 import android.os.RemoteException;
+import android.telecom.AudioState;
+import android.telecom.CallAudioState;
 import android.telecom.Connection;
 import android.telecom.ConnectionRequest;
 import android.telecom.DisconnectCause;
@@ -46,9 +48,6 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.when;
 
 /**
  * Controls a test {@link IConnectionService} as would be provided by a source of connectivity
@@ -56,8 +55,103 @@ import static org.mockito.Mockito.when;
  */
 public class ConnectionServiceFixture implements TestFixture<IConnectionService> {
 
-    private IConnectionService.Stub mConnectionService =
-            Mockito.mock(IConnectionService.Stub.class);
+    public class FakeConnectionService extends IConnectionService.Stub {
+
+        @Override
+        public void addConnectionServiceAdapter(IConnectionServiceAdapter adapter)
+                throws RemoteException {
+            if (!mConnectionServiceAdapters.add(adapter)) {
+                throw new RuntimeException("Adapter already added: " + adapter);
+            }
+        }
+
+        @Override
+        public void removeConnectionServiceAdapter(IConnectionServiceAdapter adapter)
+                throws RemoteException {
+            if (!mConnectionServiceAdapters.remove(adapter)) {
+                throw new RuntimeException("Adapter never added: " + adapter);
+            }
+        }
+
+        @Override
+        public void createConnection(PhoneAccountHandle connectionManagerPhoneAccount,
+                String id,
+                ConnectionRequest request, boolean isIncoming, boolean isUnknown)
+                throws RemoteException {
+            Log.i(ConnectionServiceFixture.this, "xoxox createConnection --> " + id);
+
+            if (mConnectionById.containsKey(id)) {
+                throw new RuntimeException("Connection already exists: " + id);
+            }
+            mLatestConnectionId = id;
+            ConnectionInfo c = new ConnectionInfo();
+            c.connectionManagerPhoneAccount = connectionManagerPhoneAccount;
+            c.id = id;
+            c.request = request;
+            c.isIncoming = isIncoming;
+            c.isUnknown = isUnknown;
+            mConnectionById.put(id, c);
+        }
+
+        @Override
+        public void abort(String callId) throws RemoteException { }
+
+        @Override
+        public void answerVideo(String callId, int videoState) throws RemoteException { }
+
+        @Override
+        public void answer(String callId) throws RemoteException { }
+
+        @Override
+        public void reject(String callId) throws RemoteException { }
+
+        @Override
+        public void disconnect(String callId) throws RemoteException { }
+
+        @Override
+        public void hold(String callId) throws RemoteException { }
+
+        @Override
+        public void unhold(String callId) throws RemoteException { }
+
+        @Override
+        public void onCallAudioStateChanged(String activeCallId, CallAudioState audioState)
+                throws RemoteException { }
+
+        @Override
+        public void playDtmfTone(String callId, char digit) throws RemoteException { }
+
+        @Override
+        public void stopDtmfTone(String callId) throws RemoteException { }
+
+        @Override
+        public void conference(String conferenceCallId, String callId) throws RemoteException { }
+
+        @Override
+        public void splitFromConference(String callId) throws RemoteException { }
+
+        @Override
+        public void mergeConference(String conferenceCallId) throws RemoteException { }
+
+        @Override
+        public void swapConference(String conferenceCallId) throws RemoteException { }
+
+        @Override
+        public void onPostDialContinue(String callId, boolean proceed) throws RemoteException { }
+
+        @Override
+        public IBinder asBinder() {
+            return this;
+        }
+
+        @Override
+        public IInterface queryLocalInterface(String descriptor) {
+            return this;
+        }
+    };
+
+    private IConnectionService.Stub mConnectionService = new FakeConnectionService();
+    private IConnectionService.Stub mConnectionServiceSpy = Mockito.spy(mConnectionService);
 
     public class ConnectionInfo {
         PhoneAccountHandle connectionManagerPhoneAccount;
@@ -98,66 +192,11 @@ public class ConnectionServiceFixture implements TestFixture<IConnectionService>
     public final List<ComponentName> mRemoteConnectionServiceNames = new ArrayList<>();
     public final List<IBinder> mRemoteConnectionServices = new ArrayList<>();
 
-    public ConnectionServiceFixture() throws Exception {
-        doAnswer(new Answer<Object>() {
-            @Override
-            public Object answer(InvocationOnMock invocation) throws Throwable {
-                IConnectionServiceAdapter a = (IConnectionServiceAdapter)
-                        invocation.getArguments()[0];
-                if (!mConnectionServiceAdapters.add(a)) {
-                    throw new RuntimeException("Adapter already added: " + a);
-                }
-                return null;
-            }
-        }).when(mConnectionService).addConnectionServiceAdapter(
-                any(IConnectionServiceAdapter.class));
-
-        doAnswer(new Answer<Object>() {
-            @Override
-            public Object answer(InvocationOnMock invocation) throws Throwable {
-                IConnectionServiceAdapter a = (IConnectionServiceAdapter)
-                        invocation.getArguments()[0];
-                if (!mConnectionServiceAdapters.remove(a)) {
-                    throw new RuntimeException("Adapter never added: " + a);
-                }
-                return null;
-            }
-        }).when(mConnectionService).removeConnectionServiceAdapter(
-                any(IConnectionServiceAdapter.class));
-
-        doAnswer(new Answer<Object>() {
-            @Override
-            public Object answer(InvocationOnMock invocation) throws Throwable {
-                String id = (String) invocation.getArguments()[1];
-                if (mConnectionById.containsKey(id)) {
-                    throw new RuntimeException("Connection already exists: " + id);
-                }
-                mLatestConnectionId = id;
-                ConnectionInfo c = new ConnectionInfo();
-                c.connectionManagerPhoneAccount = (PhoneAccountHandle) invocation.getArguments()[0];
-                c.id = id;
-                c.request = (ConnectionRequest) invocation.getArguments()[2];
-                c.isIncoming = (boolean) invocation.getArguments()[3];
-                c.isUnknown = (boolean) invocation.getArguments()[4];
-                mConnectionById.put(id, c);
-                return null;
-            }
-        }).when(mConnectionService).createConnection(
-                any(PhoneAccountHandle.class),
-                any(String.class),
-                any(ConnectionRequest.class),
-                any(Boolean.TYPE),
-                any(Boolean.TYPE));
-
-        when(mConnectionService.asBinder())
-                .thenReturn(mConnectionService);
-        when(mConnectionService.queryLocalInterface(anyString()))
-                .thenReturn(mConnectionService);
-    }
+    public ConnectionServiceFixture() throws Exception { }
 
     @Override
     public IConnectionService getTestDouble() {
-        return mConnectionService;
+        return mConnectionServiceSpy;
     }
 
     public void sendHandleCreateConnectionComplete(String id) throws Exception {
