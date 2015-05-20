@@ -16,7 +16,6 @@
 
 package com.android.server.telecom.tests;
 
-import android.annotation.TargetApi;
 import android.os.Binder;
 
 import com.android.internal.telecom.IConnectionService;
@@ -30,7 +29,6 @@ import org.xmlpull.v1.XmlSerializer;
 
 import android.content.ComponentName;
 import android.content.Context;
-import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.Icon;
 import android.net.Uri;
@@ -96,6 +94,7 @@ public class PhoneAccountRegistrarTest extends TelecomTestCase {
                 .build();
         PhoneAccount result = roundTripXml(this, input, PhoneAccountRegistrar.sPhoneAccountXml,
                 mContext);
+
         assertPhoneAccountEquals(input, result);
     }
 
@@ -107,6 +106,11 @@ public class PhoneAccountRegistrarTest extends TelecomTestCase {
         assertStateEquals(input, result);
     }
 
+    private void registerAndEnableAccount(PhoneAccount account) {
+        mRegistrar.registerPhoneAccount(account);
+        mRegistrar.enablePhoneAccount(account.getAccountHandle(), true);
+    }
+
     public void testAccounts() throws Exception {
         int i = 0;
 
@@ -114,19 +118,19 @@ public class PhoneAccountRegistrarTest extends TelecomTestCase {
                 makeQuickConnectionServiceComponentName(),
                 Mockito.mock(IConnectionService.class));
 
-        mRegistrar.registerPhoneAccount(makeQuickAccountBuilder("id" + i, i++)
+        registerAndEnableAccount(makeQuickAccountBuilder("id" + i, i++)
                 .setCapabilities(PhoneAccount.CAPABILITY_CONNECTION_MANAGER
                         | PhoneAccount.CAPABILITY_CALL_PROVIDER)
                 .build());
-        mRegistrar.registerPhoneAccount(makeQuickAccountBuilder("id" + i, i++)
+        registerAndEnableAccount(makeQuickAccountBuilder("id" + i, i++)
                 .setCapabilities(PhoneAccount.CAPABILITY_CONNECTION_MANAGER
                         | PhoneAccount.CAPABILITY_CALL_PROVIDER)
                 .build());
-        mRegistrar.registerPhoneAccount(makeQuickAccountBuilder("id" + i, i++)
+        registerAndEnableAccount(makeQuickAccountBuilder("id" + i, i++)
                 .setCapabilities(PhoneAccount.CAPABILITY_CONNECTION_MANAGER
                         | PhoneAccount.CAPABILITY_CALL_PROVIDER)
                 .build());
-        mRegistrar.registerPhoneAccount(makeQuickAccountBuilder("id" + i, i++)
+        registerAndEnableAccount(makeQuickAccountBuilder("id" + i, i++)
                 .setCapabilities(PhoneAccount.CAPABILITY_CONNECTION_MANAGER)
                 .build());
 
@@ -146,7 +150,7 @@ public class PhoneAccountRegistrarTest extends TelecomTestCase {
                 .setCapabilities(PhoneAccount.CAPABILITY_CALL_PROVIDER
                         | PhoneAccount.CAPABILITY_CONNECTION_MANAGER)
                 .build();
-        mRegistrar.registerPhoneAccount(simManagerAccount);
+        registerAndEnableAccount(simManagerAccount);
         assertNull(mRegistrar.getSimCallManager());
 
         // Test the basic case
@@ -158,7 +162,7 @@ public class PhoneAccountRegistrarTest extends TelecomTestCase {
         assertNull(mRegistrar.getSimCallManager());
 
         // Re-registering it makes the setting come back
-        mRegistrar.registerPhoneAccount(simManagerAccount);
+        registerAndEnableAccount(simManagerAccount);
         assertEquals(simManager, mRegistrar.getSimCallManager());
 
         // Make sure that the manager has CAPABILITY_CONNECTION_MANAGER
@@ -185,7 +189,7 @@ public class PhoneAccountRegistrarTest extends TelecomTestCase {
 
         // Register one tel: account
         PhoneAccountHandle telAccount = makeQuickAccountHandle("tel_acct");
-        mRegistrar.registerPhoneAccount(new PhoneAccount.Builder(telAccount, "tel_acct")
+        registerAndEnableAccount(new PhoneAccount.Builder(telAccount, "tel_acct")
                 .setCapabilities(PhoneAccount.CAPABILITY_CALL_PROVIDER)
                 .addSupportedUriScheme(PhoneAccount.SCHEME_TEL)
                 .build());
@@ -195,7 +199,7 @@ public class PhoneAccountRegistrarTest extends TelecomTestCase {
 
         // Add a SIP account, make sure tel: doesn't change
         PhoneAccountHandle sipAccount = makeQuickAccountHandle("sip_acct");
-        mRegistrar.registerPhoneAccount(new PhoneAccount.Builder(sipAccount, "sip_acct")
+        registerAndEnableAccount(new PhoneAccount.Builder(sipAccount, "sip_acct")
                 .setCapabilities(PhoneAccount.CAPABILITY_CALL_PROVIDER)
                 .addSupportedUriScheme(PhoneAccount.SCHEME_SIP)
                 .build());
@@ -206,7 +210,7 @@ public class PhoneAccountRegistrarTest extends TelecomTestCase {
 
         // Add a connection manager, make sure tel: doesn't change
         PhoneAccountHandle connectionManager = makeQuickAccountHandle("mgr_acct");
-        mRegistrar.registerPhoneAccount(new PhoneAccount.Builder(connectionManager, "mgr_acct")
+        registerAndEnableAccount(new PhoneAccount.Builder(connectionManager, "mgr_acct")
                 .setCapabilities(PhoneAccount.CAPABILITY_CONNECTION_MANAGER)
                 .addSupportedUriScheme(PhoneAccount.SCHEME_TEL)
                 .build());
@@ -276,6 +280,7 @@ public class PhoneAccountRegistrarTest extends TelecomTestCase {
                 .setIcon(Icon.createWithResource(
                             "com.android.server.telecom.tests", R.drawable.stat_sys_phone_call))
                 .setShortDescription("desc" + idx)
+                .setIsEnabled(true)
                 .build();
     }
 
@@ -311,7 +316,7 @@ public class PhoneAccountRegistrarTest extends TelecomTestCase {
             data = baos.toByteArray();
         }
 
-        Log.d(self, "====== XML data ======\n%s", new String(data));
+        Log.i(self, "====== XML data ======\n%s", new String(data));
 
         T result = null;
         {
@@ -321,7 +326,7 @@ public class PhoneAccountRegistrarTest extends TelecomTestCase {
             result = xml.readFromXml(parser, MAX_VERSION, context);
         }
 
-        Log.d(self, "result = " + result);
+        Log.i(self, "result = " + result);
 
         return result;
     }
@@ -338,17 +343,31 @@ public class PhoneAccountRegistrarTest extends TelecomTestCase {
         }
     }
 
+    private static void assertIconEquals(Icon a, Icon b) {
+        if (a != b) {
+            if (a != null && b != null) {
+                assertEquals(a.toString(), b.toString());
+            } else {
+                fail("Icons not equal: " + a + ", " + b);
+            }
+        }
+    }
+
     private static void assertPhoneAccountEquals(PhoneAccount a, PhoneAccount b) {
         if (a != b) {
-            assertPhoneAccountHandleEquals(a.getAccountHandle(), b.getAccountHandle());
-            assertEquals(a.getAddress(), b.getAddress());
-            assertEquals(a.getSubscriptionAddress(), b.getSubscriptionAddress());
-            assertEquals(a.getCapabilities(), b.getCapabilities());
-            assertEquals(a.getIcon().toString(), b.getIcon().toString());
-            assertEquals(a.getHighlightColor(), b.getHighlightColor());
-            assertEquals(a.getLabel(), b.getLabel());
-            assertEquals(a.getShortDescription(), b.getShortDescription());
-            assertEquals(a.getSupportedUriSchemes(), b.getSupportedUriSchemes());
+            if (a != null && b != null) {
+                assertPhoneAccountHandleEquals(a.getAccountHandle(), b.getAccountHandle());
+                assertEquals(a.getAddress(), b.getAddress());
+                assertEquals(a.getSubscriptionAddress(), b.getSubscriptionAddress());
+                assertEquals(a.getCapabilities(), b.getCapabilities());
+                assertIconEquals(a.getIcon(), b.getIcon());
+                assertEquals(a.getHighlightColor(), b.getHighlightColor());
+                assertEquals(a.getLabel(), b.getLabel());
+                assertEquals(a.getShortDescription(), b.getShortDescription());
+                assertEquals(a.getSupportedUriSchemes(), b.getSupportedUriSchemes());
+            } else {
+                fail("Phone accounts not equal: " + a + ", " + b);
+            }
         }
     }
 
