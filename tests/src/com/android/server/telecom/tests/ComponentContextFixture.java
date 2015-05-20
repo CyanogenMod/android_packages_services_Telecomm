@@ -27,7 +27,6 @@ import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
-import android.annotation.TargetApi;
 import android.app.AppOpsManager;
 import android.app.NotificationManager;
 import android.content.BroadcastReceiver;
@@ -307,13 +306,6 @@ public class ComponentContextFixture implements TestFixture<Context> {
         when(mNotificationManager.matchesCallFilter(any(Bundle.class))).thenReturn(true);
 
         when(mUserManager.getSerialNumberForUser(any(UserHandle.class))).thenReturn(-1L);
-
-        try {
-            when(mApplicationContextSpy.getFilesDir())
-                    .thenReturn(new File(File.createTempFile("foo", "bar").getParent()));
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
     }
 
     @Override

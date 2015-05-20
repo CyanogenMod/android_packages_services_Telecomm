@@ -22,6 +22,7 @@ import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -117,7 +118,7 @@ public class TelecomSystemTest extends TelecomTestCase {
     final PhoneAccount mPhoneAccountB0 =
             PhoneAccount.builder(
                     new PhoneAccountHandle(
-                            mConnectionServiceComponentNameA,
+                            mConnectionServiceComponentNameB,
                             "id B 0"),
                     "Phone account service B ID 0")
                     .addSupportedUriScheme("tel")
@@ -132,6 +133,16 @@ public class TelecomSystemTest extends TelecomTestCase {
     CallerInfoAsyncQueryFactoryFixture mCallerInfoAsyncQueryFactoryFixture;
 
     TelecomSystem mTelecomSystem;
+
+    class IdPair {
+        final String mConnectionId;
+        final String mCallId;
+
+        public IdPair(String connectionId, String callId) {
+            this.mConnectionId = connectionId;
+            this.mCallId = callId;
+        }
+    }
 
     @Override
     public void setUp() throws Exception {
@@ -237,10 +248,26 @@ public class TelecomSystemTest extends TelecomTestCase {
                 mInCallServiceFixtureY.getTestDouble());
     }
 
-    private String startOutgoingPhoneCall(
+    private IdPair startOutgoingPhoneCall(
             String number,
             PhoneAccountHandle phoneAccountHandle,
             ConnectionServiceFixture connectionServiceFixture) throws Exception {
+        reset(
+                connectionServiceFixture.getTestDouble(),
+                mInCallServiceFixtureX.getTestDouble(),
+                mInCallServiceFixtureY.getTestDouble());
+
+        assertEquals(
+                mInCallServiceFixtureX.mCallById.size(),
+                mInCallServiceFixtureY.mCallById.size());
+        assertEquals(
+                (mInCallServiceFixtureX.mInCallAdapter != null),
+                (mInCallServiceFixtureY.mInCallAdapter != null));
+
+        int startingNumConnections = connectionServiceFixture.mConnectionById.size();
+        int startingNumCalls = mInCallServiceFixtureX.mCallById.size();
+        boolean hasInCallAdapter = mInCallServiceFixtureX.mInCallAdapter != null;
+
         Intent actionCallIntent = new Intent();
         actionCallIntent.setData(Uri.parse("tel:" + number));
         actionCallIntent.putExtra(Intent.EXTRA_PHONE_NUMBER, number);
@@ -252,6 +279,15 @@ public class TelecomSystemTest extends TelecomTestCase {
         }
 
         mTelecomSystem.getCallIntentProcessor().processIntent(actionCallIntent);
+
+        if (!hasInCallAdapter) {
+            verify(mInCallServiceFixtureX.getTestDouble())
+                    .setInCallAdapter(
+                            any(IInCallAdapter.class));
+            verify(mInCallServiceFixtureY.getTestDouble())
+                    .setInCallAdapter(
+                            any(IInCallAdapter.class));
+        }
 
         ArgumentCaptor<Intent> newOutgoingCallIntent =
                 ArgumentCaptor.forClass(Intent.class);
@@ -283,6 +319,8 @@ public class TelecomSystemTest extends TelecomTestCase {
                 mComponentContextFixture.getTestDouble(),
                 newOutgoingCallIntent.getValue());
 
+        assertEquals(startingNumConnections + 1, connectionServiceFixture.mConnectionById.size());
+
         verify(connectionServiceFixture.getTestDouble()).createConnection(
                 eq(phoneAccountHandle),
                 anyString(),
@@ -290,17 +328,41 @@ public class TelecomSystemTest extends TelecomTestCase {
                 anyBoolean(),
                 anyBoolean());
 
-        String id = connectionServiceFixture.mLatestConnectionId;
+        connectionServiceFixture.sendHandleCreateConnectionComplete(
+                connectionServiceFixture.mLatestConnectionId);
 
-        connectionServiceFixture.sendHandleCreateConnectionComplete(id);
+        assertEquals(startingNumCalls + 1, mInCallServiceFixtureX.mCallById.size());
+        assertEquals(startingNumCalls + 1, mInCallServiceFixtureY.mCallById.size());
 
-        return id;
+        assertEquals(
+                mInCallServiceFixtureX.mLatestCallId,
+                mInCallServiceFixtureY.mLatestCallId);
+
+        return new IdPair(
+                connectionServiceFixture.mLatestConnectionId,
+                mInCallServiceFixtureX.mLatestCallId);
     }
 
-    private String startIncomingPhoneCall(
+    private IdPair startIncomingPhoneCall(
             String number,
             PhoneAccountHandle phoneAccountHandle,
             ConnectionServiceFixture connectionServiceFixture) throws Exception {
+        reset(
+                connectionServiceFixture.getTestDouble(),
+                mInCallServiceFixtureX.getTestDouble(),
+                mInCallServiceFixtureY.getTestDouble());
+
+        assertEquals(
+                mInCallServiceFixtureX.mCallById.size(),
+                mInCallServiceFixtureY.mCallById.size());
+        assertEquals(
+                (mInCallServiceFixtureX.mInCallAdapter != null),
+                (mInCallServiceFixtureY.mInCallAdapter != null));
+
+        int startingNumConnections = connectionServiceFixture.mConnectionById.size();
+        int startingNumCalls = mInCallServiceFixtureX.mCallById.size();
+        boolean hasInCallAdapter = mInCallServiceFixtureX.mInCallAdapter != null;
+
         Bundle extras = new Bundle();
         extras.putParcelable(
                 TelephonyManager.EXTRA_INCOMING_NUMBER,
@@ -315,26 +377,31 @@ public class TelecomSystemTest extends TelecomTestCase {
                 eq(true),
                 eq(false));
 
-        String id = connectionServiceFixture.mLatestConnectionId;
-
-        connectionServiceFixture.sendHandleCreateConnectionComplete(id);
-        connectionServiceFixture.sendSetRinging(id);
+        connectionServiceFixture.sendHandleCreateConnectionComplete(
+                connectionServiceFixture.mLatestConnectionId);
+        connectionServiceFixture.sendSetRinging(
+                connectionServiceFixture.mLatestConnectionId);
 
         // For the case of incoming calls, Telecom connecting the InCall services and adding the
         // Call is triggered by the async completion of the CallerInfoAsyncQuery. Once the Call
         // is added, future interactions as triggered by the ConnectionService, through the various
         // test fixtures, will be synchronous.
 
-        verify(
-                mInCallServiceFixtureX.getTestDouble(),
-                timeout(TEST_TIMEOUT))
-                .setInCallAdapter(
-                        any(IInCallAdapter.class));
-        verify(
-                mInCallServiceFixtureY.getTestDouble(),
-                timeout(TEST_TIMEOUT))
-                .setInCallAdapter(
-                        any(IInCallAdapter.class));
+        if (!hasInCallAdapter) {
+            verify(
+                    mInCallServiceFixtureX.getTestDouble(),
+                    timeout(TEST_TIMEOUT))
+                    .setInCallAdapter(
+                            any(IInCallAdapter.class));
+            verify(
+                    mInCallServiceFixtureY.getTestDouble(),
+                    timeout(TEST_TIMEOUT))
+                    .setInCallAdapter(
+                            any(IInCallAdapter.class));
+        }
+
+        // Give the InCallService time to respond
+        pause();
 
         assertNotNull(mInCallServiceFixtureX.mInCallAdapter);
         assertNotNull(mInCallServiceFixtureY.mInCallAdapter);
@@ -350,7 +417,20 @@ public class TelecomSystemTest extends TelecomTestCase {
                 .addCall(
                         any(ParcelableCall.class));
 
-        return id;
+        // Give the InCallService time to respond
+        pause();
+
+        assertEquals(startingNumConnections + 1, connectionServiceFixture.mConnectionById.size());
+        assertEquals(startingNumCalls + 1, mInCallServiceFixtureX.mCallById.size());
+        assertEquals(startingNumCalls + 1, mInCallServiceFixtureY.mCallById.size());
+
+        assertEquals(
+                mInCallServiceFixtureX.mLatestCallId,
+                mInCallServiceFixtureY.mLatestCallId);
+
+        return new IdPair(
+                connectionServiceFixture.mLatestConnectionId,
+                mInCallServiceFixtureX.mLatestCallId);
     }
 
     private void rapidFire(Runnable... tasks) {
@@ -381,80 +461,95 @@ public class TelecomSystemTest extends TelecomTestCase {
 
     // A simple outgoing call, verifying that the appropriate connection service is contacted,
     // the proper lifecycle is followed, and both In-Call Services are updated correctly.
-    public void testSingleOutgoingCall() throws Exception {
-        String connectionId = startOutgoingPhoneCall(
+    private IdPair startAndMakeActiveOutgoingCall(
+            String number,
+            PhoneAccountHandle phoneAccountHandle,
+            ConnectionServiceFixture connectionServiceFixture) throws Exception {
+        IdPair ids = startOutgoingPhoneCall(number, phoneAccountHandle, connectionServiceFixture);
+
+        connectionServiceFixture.sendSetDialing(ids.mConnectionId);
+
+        assertEquals(Call.STATE_DIALING, mInCallServiceFixtureX.getCall(ids.mCallId).getState());
+        assertEquals(Call.STATE_DIALING, mInCallServiceFixtureY.getCall(ids.mCallId).getState());
+
+        connectionServiceFixture.sendSetActive(ids.mConnectionId);
+        assertEquals(Call.STATE_ACTIVE, mInCallServiceFixtureX.getCall(ids.mCallId).getState());
+        assertEquals(Call.STATE_ACTIVE, mInCallServiceFixtureY.getCall(ids.mCallId).getState());
+
+        return ids;
+    }
+
+    public void testSingleOutgoingCallLocalDisconnect() throws Exception {
+        IdPair ids = startAndMakeActiveOutgoingCall(
                 "650-555-1212",
                 mPhoneAccountA0.getAccountHandle(),
                 mConnectionServiceFixtureA);
 
-        assertEquals(1, mConnectionServiceFixtureA.mConnectionServiceAdapters.size());
-        assertEquals(1, mConnectionServiceFixtureA.mConnectionById.size());
+        mInCallServiceFixtureX.mInCallAdapter.disconnectCall(ids.mCallId);
+        assertEquals(Call.STATE_ACTIVE, mInCallServiceFixtureX.getCall(ids.mCallId).getState());
+        assertEquals(Call.STATE_ACTIVE, mInCallServiceFixtureY.getCall(ids.mCallId).getState());
 
-        mConnectionServiceFixtureA.sendSetDialing(connectionId);
+        mConnectionServiceFixtureA.sendSetDisconnected(ids.mConnectionId, DisconnectCause.LOCAL);
+        assertEquals(Call.STATE_DISCONNECTED, mInCallServiceFixtureX.getCall(ids.mCallId).getState());
+        assertEquals(Call.STATE_DISCONNECTED, mInCallServiceFixtureY.getCall(ids.mCallId).getState());
+    }
 
-        assertEquals(1, mInCallServiceFixtureX.mCallById.size());
-        String callId = mInCallServiceFixtureX.mLatestCallId;
+    public void testSingleOutgoingCallRemoteDisconnect() throws Exception {
+        IdPair ids = startAndMakeActiveOutgoingCall(
+                "650-555-1212",
+                mPhoneAccountA0.getAccountHandle(),
+                mConnectionServiceFixtureA);
 
-        assertEquals(Call.STATE_DIALING, mInCallServiceFixtureX.getCall(callId).getState());
-        assertEquals(Call.STATE_DIALING, mInCallServiceFixtureY.getCall(callId).getState());
-
-        mConnectionServiceFixtureA.sendSetActive(connectionId);
-
-        assertEquals(Call.STATE_ACTIVE, mInCallServiceFixtureX.getCall(callId).getState());
-        assertEquals(Call.STATE_ACTIVE, mInCallServiceFixtureY.getCall(callId).getState());
-
-        mInCallServiceFixtureX.mInCallAdapter.disconnectCall(callId);;
-        assertEquals(Call.STATE_ACTIVE, mInCallServiceFixtureX.getCall(callId).getState());
-        assertEquals(Call.STATE_ACTIVE, mInCallServiceFixtureY.getCall(callId).getState());
-
-        mConnectionServiceFixtureA.sendSetDisconnected(connectionId, DisconnectCause.LOCAL);
-        assertEquals(Call.STATE_DISCONNECTED, mInCallServiceFixtureX.getCall(callId).getState());
-        assertEquals(Call.STATE_DISCONNECTED, mInCallServiceFixtureY.getCall(callId).getState());
+        mConnectionServiceFixtureA.sendSetDisconnected(ids.mConnectionId, DisconnectCause.LOCAL);
+        assertEquals(Call.STATE_DISCONNECTED, mInCallServiceFixtureX.getCall(ids.mCallId).getState());
+        assertEquals(Call.STATE_DISCONNECTED, mInCallServiceFixtureY.getCall(ids.mCallId).getState());
     }
 
     // A simple incoming call, similar in scope to the previous test
-    public void testSingleIncomingCall() throws Exception {
-        String connectionId = startIncomingPhoneCall(
+    private IdPair startAndMakeActiveIncomingCall(
+            String number,
+            PhoneAccountHandle phoneAccountHandle,
+            ConnectionServiceFixture connectionServiceFixture) throws Exception {
+        IdPair ids = startIncomingPhoneCall(number, phoneAccountHandle, connectionServiceFixture);
+
+        assertEquals(Call.STATE_RINGING, mInCallServiceFixtureX.getCall(ids.mCallId).getState());
+        assertEquals(Call.STATE_RINGING, mInCallServiceFixtureY.getCall(ids.mCallId).getState());
+
+        connectionServiceFixture.sendSetActive(ids.mConnectionId);
+        assertEquals(Call.STATE_ACTIVE, mInCallServiceFixtureX.getCall(ids.mCallId).getState());
+        assertEquals(Call.STATE_ACTIVE, mInCallServiceFixtureY.getCall(ids.mCallId).getState());
+
+        return ids;
+    }
+
+    public void testSingleIncomingCallLocalDisconnect() throws Exception {
+        IdPair ids = startAndMakeActiveIncomingCall(
                 "650-555-1212",
                 mPhoneAccountA0.getAccountHandle(),
                 mConnectionServiceFixtureA);
 
-        assertEquals(1, mConnectionServiceFixtureA.mConnectionServiceAdapters.size());
-        assertEquals(1, mConnectionServiceFixtureA.mConnectionById.size());
+        mInCallServiceFixtureX.mInCallAdapter.disconnectCall(ids.mCallId);
+        assertEquals(Call.STATE_ACTIVE, mInCallServiceFixtureX.getCall(ids.mCallId).getState());
+        assertEquals(Call.STATE_ACTIVE, mInCallServiceFixtureY.getCall(ids.mCallId).getState());
 
-        assertEquals(1, mInCallServiceFixtureX.mCallById.size());
-        String callId = mInCallServiceFixtureX.mLatestCallId;
-
-        assertEquals(Call.STATE_RINGING, mInCallServiceFixtureX.getCall(callId).getState());
-        assertEquals(Call.STATE_RINGING, mInCallServiceFixtureY.getCall(callId).getState());
-
-        mConnectionServiceFixtureA.sendSetActive(connectionId);
-        assertEquals(Call.STATE_ACTIVE, mInCallServiceFixtureX.getCall(callId).getState());
-        assertEquals(Call.STATE_ACTIVE, mInCallServiceFixtureY.getCall(callId).getState());
-
-        mInCallServiceFixtureX.mInCallAdapter.disconnectCall(callId);;
-        assertEquals(Call.STATE_ACTIVE, mInCallServiceFixtureX.getCall(callId).getState());
-        assertEquals(Call.STATE_ACTIVE, mInCallServiceFixtureY.getCall(callId).getState());
-
-        mConnectionServiceFixtureA.sendSetDisconnected(connectionId, DisconnectCause.LOCAL);
-        assertEquals(Call.STATE_DISCONNECTED, mInCallServiceFixtureX.getCall(callId).getState());
-        assertEquals(Call.STATE_DISCONNECTED, mInCallServiceFixtureY.getCall(callId).getState());
+        mConnectionServiceFixtureA.sendSetDisconnected(ids.mConnectionId, DisconnectCause.LOCAL);
+        assertEquals(Call.STATE_DISCONNECTED, mInCallServiceFixtureX.getCall(ids.mCallId).getState());
+        assertEquals(Call.STATE_DISCONNECTED, mInCallServiceFixtureY.getCall(ids.mCallId).getState());
     }
 
-    public void testDeadlockOnOutgoingCall() throws Exception {
-        for (int i = 0; i < 100; i++) {
-            TelecomSystemTest test = new TelecomSystemTest();
-            test.setContext(getContext());
-            test.setTestContext(getTestContext());
-            test.setName(getName());
-            test.setUp();
-            test.do_testDeadlockOnOutgoingCall();
-            test.tearDown();
-        }
+    public void testSingleIncomingCallRemoteDisconnect() throws Exception {
+        IdPair ids = startAndMakeActiveIncomingCall(
+                "650-555-1212",
+                mPhoneAccountA0.getAccountHandle(),
+                mConnectionServiceFixtureA);
+
+        mConnectionServiceFixtureA.sendSetDisconnected(ids.mConnectionId, DisconnectCause.LOCAL);
+        assertEquals(Call.STATE_DISCONNECTED, mInCallServiceFixtureX.getCall(ids.mCallId).getState());
+        assertEquals(Call.STATE_DISCONNECTED, mInCallServiceFixtureY.getCall(ids.mCallId).getState());
     }
 
     public void do_testDeadlockOnOutgoingCall() throws Exception {
-        final String connectionId = startOutgoingPhoneCall(
+        final IdPair ids = startOutgoingPhoneCall(
                 "650-555-1212",
                 mPhoneAccountA0.getAccountHandle(),
                 mConnectionServiceFixtureA);
@@ -471,11 +566,55 @@ public class TelecomSystemTest extends TelecomTestCase {
                     @Override
                     public void run() {
                         try {
-                            mConnectionServiceFixtureA.sendSetActive(connectionId);
+                            mConnectionServiceFixtureA.sendSetActive(ids.mConnectionId);
                         } catch (Exception e) {
                             Log.e(this, e, "");
                         }
                     }
                 });
+    }
+
+    public void testDeadlockOnOutgoingCall() throws Exception {
+        for (int i = 0; i < 100; i++) {
+            TelecomSystemTest test = new TelecomSystemTest();
+            test.setContext(getContext());
+            test.setTestContext(getTestContext());
+            test.setName(getName());
+            test.setUp();
+            test.do_testDeadlockOnOutgoingCall();
+            test.tearDown();
+        }
+    }
+
+    public void testIncomingThenOutgoingCalls() throws Exception {
+        // TODO: We have to use the same PhoneAccount for both; see http://b/18461539
+        IdPair incoming = startAndMakeActiveIncomingCall(
+                "650-555-2323",
+                mPhoneAccountA0.getAccountHandle(),
+                mConnectionServiceFixtureA);
+        IdPair outgoing = startAndMakeActiveOutgoingCall(
+                "650-555-1212",
+                mPhoneAccountA0.getAccountHandle(),
+                mConnectionServiceFixtureA);
+    }
+
+    public void testOutgoingThenIncomingCalls() throws Exception {
+        // TODO: We have to use the same PhoneAccount for both; see http://b/18461539
+        IdPair outgoing = startAndMakeActiveOutgoingCall(
+                "650-555-1212",
+                mPhoneAccountA0.getAccountHandle(),
+                mConnectionServiceFixtureA);
+        IdPair incoming = startAndMakeActiveIncomingCall(
+                "650-555-2323",
+                mPhoneAccountA0.getAccountHandle(),
+                mConnectionServiceFixtureA);
+    }
+
+    protected static void pause() {
+        try {
+            Thread.sleep(TEST_TIMEOUT);
+        } catch (InterruptedException e) {
+            fail(e.toString());
+        }
     }
 }
