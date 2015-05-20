@@ -52,6 +52,7 @@ import android.os.UserManager;
 import android.telecom.ConnectionService;
 import android.telecom.InCallService;
 import android.telecom.PhoneAccount;
+import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
 import android.test.mock.MockContext;
 
@@ -147,6 +148,8 @@ public class ComponentContextFixture implements TestFixture<Context> {
                     return mNotificationManager;
                 case Context.USER_SERVICE:
                     return mUserManager;
+                case Context.TELEPHONY_SUBSCRIPTION_SERVICE:
+                    return mSubscriptionManager;
                 default:
                     return null;
             }
@@ -222,6 +225,12 @@ public class ComponentContextFixture implements TestFixture<Context> {
         }
 
         @Override
+        public void sendOrderedBroadcastAsUser(Intent intent, UserHandle user,
+                String receiverPermission, int appOp, BroadcastReceiver resultReceiver,
+                Handler scheduler, int initialCode, String initialData, Bundle initialExtras) {
+        }
+
+        @Override
         public Context createPackageContextAsUser(String packageName, int flags, UserHandle user)
                 throws PackageManager.NameNotFoundException {
             return this;
@@ -256,6 +265,7 @@ public class ComponentContextFixture implements TestFixture<Context> {
     private final AppOpsManager mAppOpsManager = mock(AppOpsManager.class);
     private final NotificationManager mNotificationManager = mock(NotificationManager.class);
     private final UserManager mUserManager = mock(UserManager.class);
+    private final SubscriptionManager mSubscriptionManager = mock(SubscriptionManager.class);
     private final Resources mResources = mock(Resources.class);
     private final Configuration mResourceConfiguration = new Configuration();
 
