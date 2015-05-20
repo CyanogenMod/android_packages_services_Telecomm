@@ -1235,7 +1235,7 @@ public final class PhoneAccountRegistrar {
                     // TODO: Need to set tint.
                 }
 
-                builder.build();
+                return builder.build();
             }
             return null;
         }
