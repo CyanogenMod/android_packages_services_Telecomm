@@ -228,6 +228,19 @@
             </intent-filter>
         </activity>
 
+        <activity-alias android:name="ProtectedEnableAccountPreferenceActivity"
+                  android:targetActivity=".settings.EnableAccountPreferenceActivity"
+                  android:label="@string/enable_account_preference_title"
+                  android:configChanges="orientation|screenSize|keyboardHidden"
+                  android:theme="@style/Theme.Telecom.DialerSettings"
+                  android:process=":ui"
+                  android:permission="android.permission.MODIFY_PHONE_STATE">
+            <intent-filter>
+                <action android:name="android.telecom.action.ENABLE_PHONE_ACCOUNT_SETTING" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity-alias>
+
         <activity android:name=".components.ErrorDialogActivity"
                 android:configChanges="orientation|screenSize|keyboardHidden"
                 android:excludeFromRecents="true"
