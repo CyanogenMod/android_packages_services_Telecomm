@@ -350,12 +350,16 @@ public final class PhoneAccountRegistrar {
 
     public void enablePhoneAccount(PhoneAccountHandle accountHandle, boolean isEnabled) {
         PhoneAccount account = getPhoneAccount(accountHandle);
-        if (account.hasCapabilities(PhoneAccount.CAPABILITY_SIM_SUBSCRIPTION)) {
+        if (account == null) {
+            Log.w(this, "Could not find account to enable: " + accountHandle);
+            return;
+        } else if (account.hasCapabilities(PhoneAccount.CAPABILITY_SIM_SUBSCRIPTION)) {
             // We never change the enabled state of SIM-based accounts.
+            Log.w(this, "Could not change enable state of SIM account: " + accountHandle);
             return;
         }
 
-        if (account != null && account.isEnabled() != isEnabled) {
+        if (account.isEnabled() != isEnabled) {
             account.setIsEnabled(isEnabled);
             write();
             fireAccountsChanged();
