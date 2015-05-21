@@ -16,7 +16,7 @@
 
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <string name="telecommAppLabel" product="default" msgid="3477737022166975496">"Nambari ya simu"</string>
+    <string name="telecommAppLabel" product="default" msgid="7207686803224752071">"Simu - Usimamizi wa Simu"</string>
     <string name="unknown" msgid="6878797917991465859">"Haijulikani"</string>
     <string name="notification_missedCallTitle" msgid="7554385905572364535">"Simu isiyojibiwa"</string>
     <string name="notification_missedCallsTitle" msgid="1361677948941502522">"Simu zisizojibiwa"</string>
@@ -35,6 +35,7 @@
     <string name="respond_via_sms_setting_summary" msgid="9150281183930613065"></string>
     <string name="respond_via_sms_edittext_dialog_title" msgid="20379890418289778">"Majibu ya haraka"</string>
     <string name="respond_via_sms_confirmation_format" msgid="7229149977515784269">"Ujumbe uliotumwa kwa <xliff:g id="PHONE_NUMBER">%s</xliff:g> ."</string>
+    <string name="enable_account_preference_title" msgid="2021848090086481720">"Akaunti za simu"</string>
     <string name="outgoing_call_not_allowed" msgid="7227847719229873744">"Ni simu za dharura pekee ndizo zinazoruhusiwa na mmiliki wa kifaa."</string>
     <string name="outgoing_call_error_no_phone_number_supplied" msgid="1940125199802007505">"Ili upige simu, weka nambari sahihi."</string>
     <string name="duplicate_video_call_not_allowed" msgid="3749211605014548386">"Hangout ya video haiwezi kuongezwa kwa wakati huu."</string>

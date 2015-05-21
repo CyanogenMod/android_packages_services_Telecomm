@@ -16,7 +16,7 @@
 
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <string name="telecommAppLabel" product="default" msgid="3477737022166975496">"ഫോണ്‍"</string>
+    <string name="telecommAppLabel" product="default" msgid="7207686803224752071">"ഫോൺ - കോൾ മാനേജുമെന്റ്"</string>
     <string name="unknown" msgid="6878797917991465859">"അജ്ഞാതം"</string>
     <string name="notification_missedCallTitle" msgid="7554385905572364535">"മിസ്‌ഡ് കോൾ"</string>
     <string name="notification_missedCallsTitle" msgid="1361677948941502522">"മിസ്‌ഡ് കോളുകൾ"</string>
@@ -35,6 +35,7 @@
     <string name="respond_via_sms_setting_summary" msgid="9150281183930613065"></string>
     <string name="respond_via_sms_edittext_dialog_title" msgid="20379890418289778">"ദ്രുത പ്രതികരണം"</string>
     <string name="respond_via_sms_confirmation_format" msgid="7229149977515784269">"<xliff:g id="PHONE_NUMBER">%s</xliff:g> എന്നതിലേക്ക് സന്ദേശമയച്ചു."</string>
+    <string name="enable_account_preference_title" msgid="2021848090086481720">"കോളുചെയ്യാനുള്ള അക്കൗണ്ട്"</string>
     <string name="outgoing_call_not_allowed" msgid="7227847719229873744">"ഉപകരണ ഉടമ അടിയന്തിര കോളുകൾ മാത്രമേ അനുവദിച്ചിട്ടുള്ളൂ."</string>
     <string name="outgoing_call_error_no_phone_number_supplied" msgid="1940125199802007505">"ഒരു കോൾ ചെയ്യുന്നതിന്, സാധുതയുള്ള നമ്പർ നൽകുക."</string>
     <string name="duplicate_video_call_not_allowed" msgid="3749211605014548386">"കോൾ ഇപ്പോൾ ചേർക്കാനാകില്ല."</string>
