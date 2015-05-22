@@ -71,7 +71,9 @@ public class TelecomService extends Service implements TelecomSystem.Component {
                                         String number,
                                         CallerInfoAsyncQuery.OnQueryCompleteListener listener,
                                         Object cookie) {
-                                    Log.i(TelecomSystem.getInstance(), "CallerInfoAsyncQuery.startQuery number=%s cookie=%s", number, cookie);
+                                    Log.i(TelecomSystem.getInstance(),
+                                            "CallerInfoAsyncQuery.startQuery number=%s cookie=%s",
+                                            Log.pii(number), cookie);
                                     return CallerInfoAsyncQuery.startQuery(
                                             token, context, number, listener, cookie);
                                 }
