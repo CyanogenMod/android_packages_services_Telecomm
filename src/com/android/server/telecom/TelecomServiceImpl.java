@@ -194,7 +194,7 @@ public class TelecomServiceImpl {
             synchronized (mLock) {
                 try {
                     if (!isVisibleToCaller(accountHandle)) {
-                        Log.w(this, "%s is not visible for the calling user", accountHandle);
+                        Log.w(this, "%s is not visible for the calling user [gPA]", accountHandle);
                         return null;
                     }
                     // TODO: Do we really want to return for *any* user?
@@ -259,7 +259,7 @@ public class TelecomServiceImpl {
                 try {
                     PhoneAccountHandle accountHandle = mPhoneAccountRegistrar.getSimCallManager();
                     if (!isVisibleToCaller(accountHandle)) {
-                        Log.w(this, "%s is not visible for the calling user", accountHandle);
+                        Log.w(this, "%s is not visible for the calling user [gsCM]", accountHandle);
                         return null;
                     }
                     return accountHandle;
@@ -387,7 +387,7 @@ public class TelecomServiceImpl {
                 }
 
                 if (!isVisibleToCaller(accountHandle)) {
-                    Log.w(this, "%s is not visible for the calling user", accountHandle);
+                    Log.w(this, "%s is not visible for the calling user [iVMN]", accountHandle);
                     return false;
                 }
 
@@ -415,7 +415,7 @@ public class TelecomServiceImpl {
 
                 try {
                     if (!isVisibleToCaller(accountHandle)) {
-                        Log.w(this, "%s is not visible for the calling user", accountHandle);
+                        Log.w(this, "%s is not visible for the calling user [gVMN]", accountHandle);
                         return null;
                     }
 
@@ -443,7 +443,7 @@ public class TelecomServiceImpl {
 
             synchronized (mLock) {
                 if (!isVisibleToCaller(accountHandle)) {
-                    Log.w(this, "%s is not visible for the calling user", accountHandle);
+                    Log.w(this, "%s is not visible for the calling user [gL1N]", accountHandle);
                     return null;
                 }
 
@@ -659,7 +659,7 @@ public class TelecomServiceImpl {
                 enforcePermissionOrPrivilegedDialer(MODIFY_PHONE_STATE, callingPackage);
 
                 if (!isVisibleToCaller(accountHandle)) {
-                    Log.w(this, "%s is not visible for the calling user", accountHandle);
+                    Log.w(this, "%s is not visible for the calling user [hMMI]", accountHandle);
                     return false;
                 }
 
@@ -688,7 +688,7 @@ public class TelecomServiceImpl {
                 enforcePermissionOrPrivilegedDialer(MODIFY_PHONE_STATE, callingPackage);
 
                 if (!isVisibleToCaller(accountHandle)) {
-                    Log.w(this, "%s is not visible for the calling user", accountHandle);
+                    Log.w(this, "%s is not visible for the calling user [gA4PA]", accountHandle);
                     return null;
                 }
 
