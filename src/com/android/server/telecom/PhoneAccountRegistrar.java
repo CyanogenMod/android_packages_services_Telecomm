@@ -421,7 +421,7 @@ public final class PhoneAccountRegistrar {
                 return pm.queryIntentServices(intent, 0);
             }
         } catch (SecurityException e) {
-            Log.v(this, "%s is not visible for the calling user", componentName);
+            Log.e(this, e, "%s is not visible for the calling user", componentName);
             return Collections.EMPTY_LIST;
         }
     }
