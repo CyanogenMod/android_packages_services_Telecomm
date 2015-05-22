@@ -287,6 +287,11 @@ public final class PhoneAccountRegistrar {
      * @return The {@link PhoneAccount}s which are visible to {@link #mCurrentUserHandle}.
      */
     public PhoneAccountHandle getSimCallManager() {
+        // If the "None" account was selected, return null (symmetry with setSimCallManager).
+        if (NO_ACCOUNT_SELECTED.equals(mState.simCallManager)) {
+            return null;
+        }
+
         PhoneAccount account = getPhoneAccountCheckCallingUser(mState.simCallManager);
 
         // Return the registered sim call manager iff it still exists (we keep a sticky
