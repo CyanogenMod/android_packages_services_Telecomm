@@ -19,14 +19,14 @@
   <string name="blacklist_title">Blokeatutako deitzaileen zerrenda</string>
   <string name="blacklist_summary_disabled">Ezgaituta</string>
   <string name="blacklist_summary">Ez duzu dei edo mezurik jasoko blokeatutako deitzaileen zerrendan dauden telefono zenbakietatik</string>
-  <string name="blacklist_call_notification">%s(r)en dei bat ukatu da</string>
-  <string name="blacklist_call_notification_private_number">Zenbaki pribatu baten deia ukatu da</string>
-  <string name="blacklist_call_notification_unknown_number">%s zenbaki ezezagunaren dei bat ukatu da</string>
-  <string name="blacklist_call_notification_multiple"><xliff:g id="count">%d</xliff:g> dei ukatu dira</string>
-  <string name="blacklist_message_notification">%s(r)en mezu bat ukatu da</string>
-  <string name="blacklist_message_notification_private_number">Zenbaki pribatu baten mezu bat ukatu da</string>
-  <string name="blacklist_message_notification_unknown_number">%s zenbaki ezezagunaren mezu bat ukatu egin da</string>
-  <string name="blacklist_message_notification_multiple"><xliff:g id="count">%d</xliff:g> mezu ukatu dira</string>
+  <string name="blacklist_call_notification">%s(r)en dei bat blokeatu da</string>
+  <string name="blacklist_call_notification_private_number">Zenbaki pribatu baten deia blokeatu da</string>
+  <string name="blacklist_call_notification_unknown_number">%s zenbaki ezezagunaren dei bat blokeatu da</string>
+  <string name="blacklist_call_notification_multiple"><xliff:g id="count">%d</xliff:g> dei blokeatu dira</string>
+  <string name="blacklist_message_notification">%s(r)en mezu bat blokeatu da</string>
+  <string name="blacklist_message_notification_private_number">Zenbaki pribatu baten mezu bat blokeatu da</string>
+  <string name="blacklist_message_notification_unknown_number">%s zenbaki ezezagunaren mezu bat blokeatu da</string>
+  <string name="blacklist_message_notification_multiple"><xliff:g id="count">%d</xliff:g> mezu blokeatu dira</string>
   <string name="blacklist_notification_list_private">Pribatua</string>
   <string name="unblock_number">Desblokeatu</string>
   <string name="video_call_not_allowed_if_tty_enabled">Ezgaitu TTY modua bideo-deiak egiteko.</string>

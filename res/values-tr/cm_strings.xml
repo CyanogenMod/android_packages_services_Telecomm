@@ -16,7 +16,9 @@
      limitations under the License.
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+  <string name="blacklist_title">Engellenen arayan listesi</string>
   <string name="blacklist_summary_disabled">Devre dışı</string>
+  <string name="blacklist_summary">Engellenen arayan listesindeki numaralardan gelen çağrıları ya da mesajları almayacaksınız</string>
   <string name="blacklist_call_notification">%s \'den gelen bir çağrı engellendi</string>
   <string name="blacklist_call_notification_private_number">Özel numaradan gelen bir çağrı engellendi</string>
   <string name="blacklist_call_notification_unknown_number">Bilinmeyen bir numaradan \'%s\' gelen bir çağrı engellendi</string>

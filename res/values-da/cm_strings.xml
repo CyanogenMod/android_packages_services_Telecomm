@@ -16,7 +16,9 @@
      limitations under the License.
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+  <string name="blacklist_title">Blokeret opkaldsliste</string>
   <string name="blacklist_summary_disabled">Deaktiveret</string>
+  <string name="blacklist_summary">Du vil ikke modtage indgående opkald eller beskeder fra telefonnumre på den blokeret opkaldsliste</string>
   <string name="blacklist_call_notification">Blokerede et opkald fra %s</string>
   <string name="blacklist_call_notification_private_number">Blokerede et opkald fra et privat nummer</string>
   <string name="blacklist_call_notification_unknown_number">Blokerede et opkald fra et ukendt nummer %s</string>

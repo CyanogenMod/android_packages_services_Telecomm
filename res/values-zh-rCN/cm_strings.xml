@@ -16,7 +16,9 @@
      limitations under the License.
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+  <string name="blacklist_title">呼叫黑名单列表</string>
   <string name="blacklist_summary_disabled">已禁用</string>
+  <string name="blacklist_summary">您将不会接到来自来电黑名单列表中的电话或短信</string>
   <string name="blacklist_call_notification">阻止来自 %s 的来电</string>
   <string name="blacklist_call_notification_private_number">阻挡了一个私人号码的来电</string>
   <string name="blacklist_call_notification_unknown_number">阻止了未知号码 %s 的来电</string>

@@ -16,7 +16,9 @@
      limitations under the License.
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+  <string name="blacklist_title">Листа блокираних саговорника</string>
   <string name="blacklist_summary_disabled">Онемогућено</string>
+  <string name="blacklist_summary">Нећеш примити позив или поруку са телефонског броја на листи блокираних саговорника</string>
   <string name="blacklist_call_notification">Блокирај позив од %s</string>
   <string name="blacklist_call_notification_private_number">Блокирај позив са приватног броја</string>
   <string name="blacklist_call_notification_unknown_number">Блокирај позив са непознатог броја %s</string>

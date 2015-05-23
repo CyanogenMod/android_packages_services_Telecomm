@@ -16,7 +16,9 @@
      limitations under the License.
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+  <string name="blacklist_title">Lys geblokkeerde oproepers</string>
   <string name="blacklist_summary_disabled">Gedeaktiveer</string>
+  <string name="blacklist_summary">Jy sal nie inkomende oproepe of boodskappe van persone ontvang op die lys van geblokkeerde oproepe</string>
   <string name="blacklist_call_notification">\'n Oproep van %s geblokkeer</string>
   <string name="blacklist_call_notification_private_number">\'n Oproep van \'n privaat nommer geblokkeer</string>
   <string name="blacklist_call_notification_unknown_number">\'n Oproep van onbekende nommer %s, geblokkeer</string>
