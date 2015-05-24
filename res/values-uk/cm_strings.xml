@@ -16,7 +16,9 @@
      limitations under the License.
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+  <string name="blacklist_title">Список заблокованих абонентів</string>
   <string name="blacklist_summary_disabled">Вимкнено</string>
+  <string name="blacklist_summary">Ви не будете отримувати вхідні дзвінки чи повідомлення від абонентів, які знаходяться у списку заблокованих</string>
   <string name="blacklist_call_notification">Виклик від %s заблоковано</string>
   <string name="blacklist_call_notification_private_number">Виклик з приватного номера заблоковано</string>
   <string name="blacklist_call_notification_unknown_number">Виклик з невідомого номера %s заблоковано</string>

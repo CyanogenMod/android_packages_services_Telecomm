@@ -16,7 +16,9 @@
      limitations under the License.
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+  <string name="blacklist_title">רשימת המתקשרים החסומים</string>
   <string name="blacklist_summary_disabled">מושבת</string>
+  <string name="blacklist_summary">לא יתקבלו שיחות נכנסות או הודעות ממספרי הטלפון הנמצאים ברשימת המתקשרים החסומים</string>
   <string name="blacklist_call_notification">שיחה נחסמה מ-%s</string>
   <string name="blacklist_call_notification_private_number">שיחה נחסמה ממספר חסוי</string>
   <string name="blacklist_call_notification_unknown_number">שיחה נחסמה ממספר לא ידוע %s</string>
