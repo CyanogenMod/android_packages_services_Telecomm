@@ -18,7 +18,9 @@ package com.android.server.telecom;
 
 import android.content.Context;
 import android.media.AudioManager;
-import android.os.Binder;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.Message;
 import android.telecom.CallAudioState;
 
 import com.android.internal.util.IndentingPrintWriter;
@@ -33,8 +35,80 @@ final class CallAudioManager extends CallsManagerListenerBase
         implements WiredHeadsetManager.Listener, DockManager.Listener {
     private static final int STREAM_NONE = -1;
 
+    private static final int MSG_AUDIO_MANAGER_INITIALIZE = 0;
+    private static final int MSG_AUDIO_MANAGER_TURN_ON_SPEAKER = 1;
+    private static final int MSG_AUDIO_MANAGER_ABANDON_AUDIO_FOCUS_FOR_CALL = 2;
+    private static final int MSG_AUDIO_MANAGER_SET_MICROPHONE_MUTE = 3;
+    private static final int MSG_AUDIO_MANAGER_REQUEST_AUDIO_FOCUS_FOR_CALL = 4;
+    private static final int MSG_AUDIO_MANAGER_SET_MODE = 5;
+
+    private final Handler mAudioManagerHandler = new Handler(Looper.getMainLooper()) {
+
+        private AudioManager mAudioManager;
+
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what) {
+                case MSG_AUDIO_MANAGER_INITIALIZE: {
+                    mAudioManager = (AudioManager) mContext.getSystemService(Context.AUDIO_SERVICE);
+                    break;
+                }
+                case MSG_AUDIO_MANAGER_TURN_ON_SPEAKER: {
+                    boolean on = (msg.arg1 != 0);
+                    // Wired headset and earpiece work the same way
+                    if (mAudioManager.isSpeakerphoneOn() != on) {
+                        Log.i(this, "turning speaker phone %s", on);
+                        mAudioManager.setSpeakerphoneOn(on);
+                    }
+                    break;
+                }
+                case MSG_AUDIO_MANAGER_ABANDON_AUDIO_FOCUS_FOR_CALL: {
+                    mAudioManager.abandonAudioFocusForCall();
+                    break;
+                }
+                case MSG_AUDIO_MANAGER_SET_MICROPHONE_MUTE: {
+                    boolean mute = (msg.arg1 != 0);
+                    if (mute != mAudioManager.isMicrophoneMute()) {
+                        Log.i(this, "changing microphone mute state to: %b", mute);
+                        mAudioManager.setMicrophoneMute(mute);
+                    }
+                    break;
+                }
+                case MSG_AUDIO_MANAGER_REQUEST_AUDIO_FOCUS_FOR_CALL: {
+                    int stream = msg.arg1;
+                    mAudioManager.requestAudioFocusForCall(
+                            stream,
+                            AudioManager.AUDIOFOCUS_GAIN_TRANSIENT);
+                    break;
+                }
+                case MSG_AUDIO_MANAGER_SET_MODE: {
+                    int newMode = msg.arg1;
+                    int oldMode = mAudioManager.getMode();
+                    Log.v(this, "Request to change audio mode from %d to %d", oldMode, newMode);
+
+                    if (oldMode != newMode) {
+                        if (oldMode == AudioManager.MODE_IN_CALL &&
+                                newMode == AudioManager.MODE_RINGTONE) {
+                            Log.i(this, "Transition from IN_CALL -> RINGTONE."
+                                    + "  Resetting to NORMAL first.");
+                            mAudioManager.setMode(AudioManager.MODE_NORMAL);
+                        }
+                        mAudioManager.setMode(newMode);
+                        synchronized (mLock) {
+                            mMostRecentlyUsedMode = newMode;
+                        }
+                    }
+                    break;
+                }
+                default:
+                    break;
+            }
+        }
+    };
+
+    private final Context mContext;
+    private final TelecomSystem.SyncRoot mLock;
     private final StatusBarNotifier mStatusBarNotifier;
-    private final AudioManager mAudioManager;
     private final BluetoothManager mBluetoothManager;
     private final WiredHeadsetManager mWiredHeadsetManager;
     private final DockManager mDockManager;
@@ -50,12 +124,15 @@ final class CallAudioManager extends CallsManagerListenerBase
 
     CallAudioManager(
             Context context,
+            TelecomSystem.SyncRoot lock,
             StatusBarNotifier statusBarNotifier,
             WiredHeadsetManager wiredHeadsetManager,
             DockManager dockManager,
             CallsManager callsManager) {
+        mContext = context;
+        mLock = lock;
+        mAudioManagerHandler.obtainMessage(MSG_AUDIO_MANAGER_INITIALIZE, 0, 0).sendToTarget();
         mStatusBarNotifier = statusBarNotifier;
-        mAudioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
         mBluetoothManager = new BluetoothManager(context, this);
         mWiredHeadsetManager = wiredHeadsetManager;
         mCallsManager = callsManager;
@@ -348,11 +425,11 @@ final class CallAudioManager extends CallsManagerListenerBase
         }
         Log.i(this, "changing audio state from %s to %s", oldAudioState, mCallAudioState);
 
-        // Mute.
-        if (mCallAudioState.isMuted() != mAudioManager.isMicrophoneMute()) {
-            Log.i(this, "changing microphone mute state to: %b", mCallAudioState.isMuted());
-            mAudioManager.setMicrophoneMute(mCallAudioState.isMuted());
-        }
+        mAudioManagerHandler.obtainMessage(
+                MSG_AUDIO_MANAGER_SET_MICROPHONE_MUTE,
+                mCallAudioState.isMuted() ? 1 : 0,
+                0)
+                .sendToTarget();
 
         // Audio route.
         if (mCallAudioState.getRoute() == CallAudioState.ROUTE_BLUETOOTH) {
@@ -374,11 +451,8 @@ final class CallAudioManager extends CallsManagerListenerBase
     }
 
     private void turnOnSpeaker(boolean on) {
-        // Wired headset and earpiece work the same way
-        if (mAudioManager.isSpeakerphoneOn() != on) {
-            Log.i(this, "turning speaker phone %s", on);
-            mAudioManager.setSpeakerphoneOn(on);
-        }
+        mAudioManagerHandler.obtainMessage(MSG_AUDIO_MANAGER_TURN_ON_SPEAKER, on ? 1 : 0, 0)
+                .sendToTarget();
     }
 
     private void turnOnBluetooth(boolean on) {
@@ -445,13 +519,11 @@ final class CallAudioManager extends CallsManagerListenerBase
         // it a hint about the purpose of our focus.
         if (mAudioFocusStreamType != stream) {
             Log.v(this, "requesting audio focus for stream: %d", stream);
-            long token = Binder.clearCallingIdentity();
-            try {
-                mAudioManager.requestAudioFocusForCall(stream,
-                        AudioManager.AUDIOFOCUS_GAIN_TRANSIENT);
-            } finally {
-                Binder.restoreCallingIdentity(token);
-            }
+            mAudioManagerHandler.obtainMessage(
+                    MSG_AUDIO_MANAGER_REQUEST_AUDIO_FOCUS_FOR_CALL,
+                    stream,
+                    0)
+                    .sendToTarget();
         }
         mAudioFocusStreamType = stream;
 
@@ -462,7 +534,8 @@ final class CallAudioManager extends CallsManagerListenerBase
         if (hasFocus()) {
             setMode(AudioManager.MODE_NORMAL);
             Log.v(this, "abandoning audio focus");
-            mAudioManager.abandonAudioFocusForCall();
+            mAudioManagerHandler.obtainMessage(MSG_AUDIO_MANAGER_ABANDON_AUDIO_FOCUS_FOR_CALL, 0, 0)
+                    .sendToTarget();
             mAudioFocusStreamType = STREAM_NONE;
             mCallToSpeedUpMTAudio = null;
         }
@@ -475,17 +548,7 @@ final class CallAudioManager extends CallsManagerListenerBase
      */
     private void setMode(int newMode) {
         Preconditions.checkState(hasFocus());
-        int oldMode = mAudioManager.getMode();
-        Log.v(this, "Request to change audio mode from %d to %d", oldMode, newMode);
-
-        if (oldMode != newMode) {
-            if (oldMode == AudioManager.MODE_IN_CALL && newMode == AudioManager.MODE_RINGTONE) {
-                Log.i(this, "Transition from IN_CALL -> RINGTONE. Resetting to NORMAL first.");
-                mAudioManager.setMode(AudioManager.MODE_NORMAL);
-            }
-            mAudioManager.setMode(newMode);
-            mMostRecentlyUsedMode = newMode;
-        }
+        mAudioManagerHandler.obtainMessage(MSG_AUDIO_MANAGER_SET_MODE, newMode, 0).sendToTarget();
     }
 
     private int selectWiredOrEarpiece(int route, int supportedRouteMask) {

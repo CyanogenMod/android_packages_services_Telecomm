@@ -29,6 +29,7 @@ import org.mockito.stubbing.Answer;
 
 import android.app.AppOpsManager;
 import android.app.NotificationManager;
+import android.app.StatusBarManager;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.ContentResolver;
@@ -48,6 +49,7 @@ import android.os.Handler;
 import android.os.IInterface;
 import android.os.UserHandle;
 import android.os.UserManager;
+import android.telecom.CallAudioState;
 import android.telecom.ConnectionService;
 import android.telecom.InCallService;
 import android.telecom.PhoneAccount;
@@ -81,7 +83,7 @@ import static org.mockito.Mockito.when;
  */
 public class ComponentContextFixture implements TestFixture<Context> {
 
-    public class TestApplicationContext extends MockContext {
+    public class FakeApplicationContext extends MockContext {
         @Override
         public PackageManager getPackageManager() {
             return mPackageManager;
@@ -145,6 +147,8 @@ public class ComponentContextFixture implements TestFixture<Context> {
                     return mAppOpsManager;
                 case Context.NOTIFICATION_SERVICE:
                     return mNotificationManager;
+                case Context.STATUS_BAR_SERVICE:
+                    return mStatusBarManager;
                 case Context.USER_SERVICE:
                     return mUserManager;
                 case Context.TELEPHONY_SUBSCRIPTION_SERVICE:
@@ -236,6 +240,47 @@ public class ComponentContextFixture implements TestFixture<Context> {
         }
     };
 
+    public class FakeAudioManager extends AudioManager {
+
+        private boolean mMute = false;
+        private boolean mSpeakerphoneOn = false;
+        private int mMode = AudioManager.MODE_NORMAL;
+
+        public FakeAudioManager(Context context) {
+            super(context);
+        }
+
+        @Override
+        public void setMicrophoneMute(boolean value) {
+            mMute = value;
+        }
+
+        @Override
+        public boolean isMicrophoneMute() {
+            return mMute;
+        }
+
+        @Override
+        public void setSpeakerphoneOn(boolean value) {
+            mSpeakerphoneOn = value;
+        }
+
+        @Override
+        public boolean isSpeakerphoneOn() {
+            return mSpeakerphoneOn;
+        }
+
+        @Override
+        public void setMode(int mode) {
+            mMode = mode;
+        }
+
+        @Override
+        public int getMode() {
+            return mMode;
+        }
+    }
+
     private final Multimap<String, ComponentName> mComponentNamesByAction =
             ArrayListMultimap.create();
     private final Map<ComponentName, IInterface> mServiceByComponentName = new HashMap<>();
@@ -248,24 +293,30 @@ public class ComponentContextFixture implements TestFixture<Context> {
         public Context getApplicationContext() {
             return mApplicationContextSpy;
         }
+
+        @Override
+        public Resources getResources() {
+            return mResources;
+        }
     };
 
     // The application context is the most important object this class provides to the system
     // under test.
-    private final Context mApplicationContext = new TestApplicationContext();
+    private final Context mApplicationContext = new FakeApplicationContext();
 
     // We then create a spy on the application context allowing standard Mockito-style
     // when(...) logic to be used to add specific little responses where needed.
 
+    private final Resources mResources = mock(Resources.class);
     private final Context mApplicationContextSpy = spy(mApplicationContext);
     private final PackageManager mPackageManager = mock(PackageManager.class);
-    private final AudioManager mAudioManager = mock(AudioManager.class);
+    private final AudioManager mAudioManager = spy(new FakeAudioManager(mContext));
     private final TelephonyManager mTelephonyManager = mock(TelephonyManager.class);
     private final AppOpsManager mAppOpsManager = mock(AppOpsManager.class);
     private final NotificationManager mNotificationManager = mock(NotificationManager.class);
     private final UserManager mUserManager = mock(UserManager.class);
+    private final StatusBarManager mStatusBarManager = mock(StatusBarManager.class);
     private final SubscriptionManager mSubscriptionManager = mock(SubscriptionManager.class);
-    private final Resources mResources = mock(Resources.class);
     private final Configuration mResourceConfiguration = new Configuration();
 
     public ComponentContextFixture() {
