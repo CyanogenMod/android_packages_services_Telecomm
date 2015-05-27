@@ -117,7 +117,7 @@ public final class PhoneAccountRegistrar {
 
     private static final String FILE_NAME = "phone-account-registrar-state.xml";
     @VisibleForTesting
-    public static final int EXPECTED_STATE_VERSION = 5;
+    public static final int EXPECTED_STATE_VERSION = 6;
 
     /** Keep in sync with the same in SipSettings.java */
     private static final String SIP_SHARED_PREFERENCES = "SIP_PREFERENCES";
@@ -1198,11 +1198,11 @@ public final class PhoneAccountRegistrar {
                     }
                 }
 
+                ComponentName sipComponentName = new ComponentName("com.android.phone",
+                        "com.android.services.telephony.sip.SipConnectionService");
+
                 // Upgrade older phone accounts to specify the supported URI schemes.
                 if (version < 2) {
-                    ComponentName sipComponentName = new ComponentName("com.android.phone",
-                            "com.android.services.telephony.sip.SipConnectionService");
-
                     supportedUriSchemes = new ArrayList<>();
 
                     // Handle the SIP connection service.
@@ -1223,6 +1223,13 @@ public final class PhoneAccountRegistrar {
                 if (version < 5) {
                     if (iconBitmap == null) {
                         iconPackageName = accountHandle.getComponentName().getPackageName();
+                    }
+                }
+
+                if (version < 6) {
+                    // Always enable all SIP accounts on upgrade to version 6
+                    if (accountHandle.getComponentName().equals(sipComponentName)) {
+                        enabled = true;
                     }
                 }
 
