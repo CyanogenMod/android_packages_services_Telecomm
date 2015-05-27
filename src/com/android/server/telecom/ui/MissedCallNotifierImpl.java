@@ -173,11 +173,11 @@ public class MissedCallNotifierImpl extends CallsManagerListenerBase implements 
 
             if (!TextUtils.isEmpty(handle)
                     && !TextUtils.equals(handle, mContext.getString(R.string.handle_restricted))) {
-                builder.addAction(R.drawable.stat_sys_phone_call,
+                builder.addAction(R.drawable.ic_phone_24dp,
                         mContext.getString(R.string.notification_missedCall_call_back),
                         createCallBackPendingIntent(handleUri));
 
-                builder.addAction(R.drawable.ic_text_holo_dark,
+                builder.addAction(R.drawable.ic_message_24dp,
                         mContext.getString(R.string.notification_missedCall_message),
                         createSendSmsFromNotificationPendingIntent(handleUri));
             }
