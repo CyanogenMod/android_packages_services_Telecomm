@@ -24,7 +24,6 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.os.RemoteException;
 import android.os.UserHandle;
-import android.telecom.AudioState;
 import android.telecom.CallAudioState;
 import android.telecom.Connection;
 import android.telecom.ConnectionRequest;
@@ -490,6 +489,25 @@ final class ConnectionServiceWrapper extends ServiceBinder {
         }
 
         @Override
+        public void setExtras(String callId, Bundle extras) {
+            long token = Binder.clearCallingIdentity();
+            try {
+                synchronized(mLock) {
+                    logIncoming("setExtras %s %s", callId, extras);
+                    if (mCallIdMapper.isValidCallId(callId)
+                            || mCallIdMapper.isValidConferenceId(callId)) {
+                        Call call = mCallIdMapper.getCall(callId);
+                        if (call != null) {
+                            call.setExtras(extras);
+                        }
+                    }
+                }
+            } finally {
+                Binder.restoreCallingIdentity(token);
+            }
+        }
+
+        @Override
         public void setAddress(String callId, Uri address, int presentation) {
             long token = Binder.clearCallingIdentity();
             try {
@@ -634,7 +652,7 @@ final class ConnectionServiceWrapper extends ServiceBinder {
                 mPendingResponses.put(callId, response);
 
                 GatewayInfo gatewayInfo = call.getGatewayInfo();
-                Bundle extras = call.getExtras();
+                Bundle extras = call.getIntentExtras();
                 if (gatewayInfo != null && gatewayInfo.getGatewayProviderPackageName() != null &&
                         gatewayInfo.getOriginalAddress() != null) {
                     extras = (Bundle) extras.clone();
