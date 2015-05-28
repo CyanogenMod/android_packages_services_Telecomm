@@ -27,6 +27,7 @@ import junit.framework.TestCase;
 import org.mockito.Mockito;
 
 import android.content.ComponentName;
+import android.os.Bundle;
 import android.os.IBinder;
 import android.os.IInterface;
 import android.os.RemoteException;
@@ -172,6 +173,7 @@ public class ConnectionServiceFixture implements TestFixture<IConnectionService>
         IVideoProvider videoProvider;
         int videoState;
         boolean isVoipAudioMode;
+        Bundle extras;
     }
 
     public class ConferenceInfo {
@@ -183,6 +185,7 @@ public class ConnectionServiceFixture implements TestFixture<IConnectionService>
         int videoState;
         long connectTimeMillis;
         StatusHints statusHints;
+        Bundle extras;
     }
 
     public String mLatestConnectionId;
@@ -376,7 +379,8 @@ public class ConnectionServiceFixture implements TestFixture<IConnectionService>
                 c.videoProvider,
                 c.videoState,
                 c.connectTimeMillis,
-                c.statusHints);
+                c.statusHints,
+                c.extras);
     }
 
     private ParcelableConnection parcelable(ConnectionInfo c) {
@@ -394,6 +398,7 @@ public class ConnectionServiceFixture implements TestFixture<IConnectionService>
                 false, /* voip audio mode */
                 c.statusHints,
                 c.disconnectCause,
-                c.conferenceableConnectionIds);
+                c.conferenceableConnectionIds,
+                c.extras);
     }
 }

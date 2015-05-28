@@ -97,6 +97,11 @@ public final class InCallController extends CallsManagerListenerBase {
         }
 
         @Override
+        public void onExtrasChanged(Call call) {
+            updateCall(call);
+        }
+
+        @Override
         public void onHandleChanged(Call call) {
             updateCall(call);
         }
@@ -325,7 +330,7 @@ public final class InCallController extends CallsManagerListenerBase {
                             bindFlags = Context.BIND_AUTO_CREATE | Context.BIND_IMPORTANT;
                             if (!call.isIncoming()) {
                                 intent.putExtra(TelecomManager.EXTRA_OUTGOING_CALL_EXTRAS,
-                                        call.getExtras());
+                                        call.getIntentExtras());
                                 intent.putExtra(TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE,
                                         call.getTargetPhoneAccount());
                             }
@@ -561,6 +566,7 @@ public final class InCallController extends CallsManagerListenerBase {
                 call.getStatusHints(),
                 call.getVideoState(),
                 conferenceableCallIds,
+                call.getIntentExtras(),
                 call.getExtras());
     }
 
