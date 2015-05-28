@@ -21,6 +21,7 @@ import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.timeout;
@@ -31,11 +32,13 @@ import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.media.AudioManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.UserHandle;
 import android.telecom.Call;
+import android.telecom.CallAudioState;
 import android.telecom.ConnectionRequest;
 import android.telecom.DisconnectCause;
 import android.telecom.ParcelableCall;
@@ -58,6 +61,7 @@ import com.android.server.telecom.TelecomSystem;
 
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
+import org.mockito.internal.verification.VerificationModeFactory;
 
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CountDownLatch;
@@ -608,6 +612,43 @@ public class TelecomSystemTest extends TelecomTestCase {
                 "650-555-2323",
                 mPhoneAccountA0.getAccountHandle(),
                 mConnectionServiceFixtureA);
+    }
+
+    public void testAudioManagerOperations() throws Exception {
+        AudioManager audioManager = (AudioManager) mComponentContextFixture.getTestDouble()
+                .getApplicationContext().getSystemService(Context.AUDIO_SERVICE);
+
+        IdPair outgoing = startAndMakeActiveOutgoingCall(
+                "650-555-1212",
+                mPhoneAccountA0.getAccountHandle(),
+                mConnectionServiceFixtureA);
+
+        verify(audioManager, timeout(TEST_TIMEOUT))
+                .requestAudioFocusForCall(anyInt(), anyInt());
+        verify(audioManager, timeout(TEST_TIMEOUT).atLeastOnce())
+                .setMode(AudioManager.MODE_IN_CALL);
+
+        mInCallServiceFixtureX.mInCallAdapter.mute(true);
+        verify(audioManager, timeout(TEST_TIMEOUT))
+                .setMicrophoneMute(true);
+        mInCallServiceFixtureX.mInCallAdapter.mute(false);
+        verify(audioManager, timeout(TEST_TIMEOUT))
+                .setMicrophoneMute(false);
+
+        mInCallServiceFixtureX.mInCallAdapter.setAudioRoute(CallAudioState.ROUTE_SPEAKER);
+        verify(audioManager, timeout(TEST_TIMEOUT))
+                .setSpeakerphoneOn(true);
+        mInCallServiceFixtureX.mInCallAdapter.setAudioRoute(CallAudioState.ROUTE_EARPIECE);
+        verify(audioManager, timeout(TEST_TIMEOUT))
+                .setSpeakerphoneOn(false);
+
+        mConnectionServiceFixtureA.
+                sendSetDisconnected(outgoing.mConnectionId, DisconnectCause.REMOTE);
+
+        verify(audioManager, timeout(TEST_TIMEOUT))
+                .abandonAudioFocusForCall();
+        verify(audioManager, timeout(TEST_TIMEOUT).atLeastOnce())
+                .setMode(AudioManager.MODE_NORMAL);
     }
 
     protected static void pause() {
