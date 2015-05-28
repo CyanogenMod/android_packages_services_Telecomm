@@ -30,7 +30,6 @@ import android.content.ComponentName;
 import android.os.IBinder;
 import android.os.IInterface;
 import android.os.RemoteException;
-import android.telecom.AudioState;
 import android.telecom.CallAudioState;
 import android.telecom.Connection;
 import android.telecom.ConnectionRequest;
@@ -90,6 +89,7 @@ public class ConnectionServiceFixture implements TestFixture<IConnectionService>
             c.request = request;
             c.isIncoming = isIncoming;
             c.isUnknown = isUnknown;
+            c.capabilities |= Connection.CAPABILITY_HOLD | Connection.CAPABILITY_SUPPORT_HOLD;
             mConnectionById.put(id, c);
         }
 

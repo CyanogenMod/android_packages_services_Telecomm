@@ -16,12 +16,13 @@
 
 package com.android.server.telecom.tests;
 
+import com.google.common.base.Predicate;
+
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.timeout;
@@ -39,12 +40,14 @@ import android.os.Handler;
 import android.os.UserHandle;
 import android.telecom.Call;
 import android.telecom.CallAudioState;
+import android.telecom.Connection;
 import android.telecom.ConnectionRequest;
 import android.telecom.DisconnectCause;
 import android.telecom.ParcelableCall;
 import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
 import android.telecom.TelecomManager;
+import android.telecom.VideoProfile;
 import android.telephony.TelephonyManager;
 
 import com.android.internal.telecom.IInCallAdapter;
@@ -61,7 +64,6 @@ import com.android.server.telecom.TelecomSystem;
 
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.internal.verification.VerificationModeFactory;
 
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CountDownLatch;
@@ -69,6 +71,7 @@ import java.util.concurrent.CyclicBarrier;
 
 public class TelecomSystemTest extends TelecomTestCase {
 
+    static final int TEST_POLL_INTERVAL = 10;  // milliseconds
     static final int TEST_TIMEOUT = 1000;  // milliseconds
 
     @Mock MissedCallNotifier mMissedCallNotifier;
@@ -310,9 +313,6 @@ public class TelecomSystemTest extends TelecomTestCase {
                         anyString(),
                         any(Bundle.class));
 
-        assertNotNull(mInCallServiceFixtureX.mInCallAdapter);
-        assertNotNull(mInCallServiceFixtureY.mInCallAdapter);
-
         // Pass on the new outgoing call Intent
         // Set a dummy PendingResult so the BroadcastReceiver agrees to accept onReceive()
         newOutgoingCallReceiver.getValue().setPendingResult(
@@ -350,7 +350,7 @@ public class TelecomSystemTest extends TelecomTestCase {
     private IdPair startIncomingPhoneCall(
             String number,
             PhoneAccountHandle phoneAccountHandle,
-            ConnectionServiceFixture connectionServiceFixture) throws Exception {
+            final ConnectionServiceFixture connectionServiceFixture) throws Exception {
         reset(
                 connectionServiceFixture.getTestDouble(),
                 mInCallServiceFixtureX.getTestDouble(),
@@ -363,8 +363,8 @@ public class TelecomSystemTest extends TelecomTestCase {
                 (mInCallServiceFixtureX.mInCallAdapter != null),
                 (mInCallServiceFixtureY.mInCallAdapter != null));
 
-        int startingNumConnections = connectionServiceFixture.mConnectionById.size();
-        int startingNumCalls = mInCallServiceFixtureX.mCallById.size();
+        final int startingNumConnections = connectionServiceFixture.mConnectionById.size();
+        final int startingNumCalls = mInCallServiceFixtureX.mCallById.size();
         boolean hasInCallAdapter = mInCallServiceFixtureX.mInCallAdapter != null;
 
         Bundle extras = new Bundle();
@@ -405,10 +405,20 @@ public class TelecomSystemTest extends TelecomTestCase {
         }
 
         // Give the InCallService time to respond
-        pause();
 
-        assertNotNull(mInCallServiceFixtureX.mInCallAdapter);
-        assertNotNull(mInCallServiceFixtureY.mInCallAdapter);
+        assertTrueWithTimeout(new Predicate<Void>() {
+            @Override
+            public boolean apply(Void v) {
+                return mInCallServiceFixtureX.mInCallAdapter != null;
+            }
+        });
+
+        assertTrueWithTimeout(new Predicate<Void>() {
+            @Override
+            public boolean apply(Void v) {
+                return mInCallServiceFixtureY.mInCallAdapter != null;
+            }
+        });
 
         verify(
                 mInCallServiceFixtureX.getTestDouble(),
@@ -422,11 +432,26 @@ public class TelecomSystemTest extends TelecomTestCase {
                         any(ParcelableCall.class));
 
         // Give the InCallService time to respond
-        pause();
 
-        assertEquals(startingNumConnections + 1, connectionServiceFixture.mConnectionById.size());
-        assertEquals(startingNumCalls + 1, mInCallServiceFixtureX.mCallById.size());
-        assertEquals(startingNumCalls + 1, mInCallServiceFixtureY.mCallById.size());
+        assertTrueWithTimeout(new Predicate<Void>() {
+            @Override
+            public boolean apply(Void v) {
+                return startingNumConnections + 1 ==
+                        connectionServiceFixture.mConnectionById.size();
+            }
+        });
+        assertTrueWithTimeout(new Predicate<Void>() {
+            @Override
+            public boolean apply(Void v) {
+                return startingNumCalls + 1 == mInCallServiceFixtureX.mCallById.size();
+            }
+        });
+        assertTrueWithTimeout(new Predicate<Void>() {
+            @Override
+            public boolean apply(Void v) {
+                return startingNumCalls + 1 == mInCallServiceFixtureY.mCallById.size();
+            }
+        });
 
         assertEquals(
                 mInCallServiceFixtureX.mLatestCallId,
@@ -472,7 +497,6 @@ public class TelecomSystemTest extends TelecomTestCase {
         IdPair ids = startOutgoingPhoneCall(number, phoneAccountHandle, connectionServiceFixture);
 
         connectionServiceFixture.sendSetDialing(ids.mConnectionId);
-
         assertEquals(Call.STATE_DIALING, mInCallServiceFixtureX.getCall(ids.mCallId).getState());
         assertEquals(Call.STATE_DIALING, mInCallServiceFixtureY.getCall(ids.mCallId).getState());
 
@@ -494,8 +518,10 @@ public class TelecomSystemTest extends TelecomTestCase {
         assertEquals(Call.STATE_ACTIVE, mInCallServiceFixtureY.getCall(ids.mCallId).getState());
 
         mConnectionServiceFixtureA.sendSetDisconnected(ids.mConnectionId, DisconnectCause.LOCAL);
-        assertEquals(Call.STATE_DISCONNECTED, mInCallServiceFixtureX.getCall(ids.mCallId).getState());
-        assertEquals(Call.STATE_DISCONNECTED, mInCallServiceFixtureY.getCall(ids.mCallId).getState());
+        assertEquals(Call.STATE_DISCONNECTED,
+                mInCallServiceFixtureX.getCall(ids.mCallId).getState());
+        assertEquals(Call.STATE_DISCONNECTED,
+                mInCallServiceFixtureY.getCall(ids.mCallId).getState());
     }
 
     public void testSingleOutgoingCallRemoteDisconnect() throws Exception {
@@ -505,8 +531,10 @@ public class TelecomSystemTest extends TelecomTestCase {
                 mConnectionServiceFixtureA);
 
         mConnectionServiceFixtureA.sendSetDisconnected(ids.mConnectionId, DisconnectCause.LOCAL);
-        assertEquals(Call.STATE_DISCONNECTED, mInCallServiceFixtureX.getCall(ids.mCallId).getState());
-        assertEquals(Call.STATE_DISCONNECTED, mInCallServiceFixtureY.getCall(ids.mCallId).getState());
+        assertEquals(Call.STATE_DISCONNECTED,
+                mInCallServiceFixtureX.getCall(ids.mCallId).getState());
+        assertEquals(Call.STATE_DISCONNECTED,
+                mInCallServiceFixtureY.getCall(ids.mCallId).getState());
     }
 
     // A simple incoming call, similar in scope to the previous test
@@ -518,6 +546,12 @@ public class TelecomSystemTest extends TelecomTestCase {
 
         assertEquals(Call.STATE_RINGING, mInCallServiceFixtureX.getCall(ids.mCallId).getState());
         assertEquals(Call.STATE_RINGING, mInCallServiceFixtureY.getCall(ids.mCallId).getState());
+
+        mInCallServiceFixtureX.mInCallAdapter
+                .answerCall(ids.mCallId, VideoProfile.STATE_AUDIO_ONLY);
+
+        verify(connectionServiceFixture.getTestDouble())
+                .answer(ids.mConnectionId);
 
         connectionServiceFixture.sendSetActive(ids.mConnectionId);
         assertEquals(Call.STATE_ACTIVE, mInCallServiceFixtureX.getCall(ids.mCallId).getState());
@@ -537,8 +571,10 @@ public class TelecomSystemTest extends TelecomTestCase {
         assertEquals(Call.STATE_ACTIVE, mInCallServiceFixtureY.getCall(ids.mCallId).getState());
 
         mConnectionServiceFixtureA.sendSetDisconnected(ids.mConnectionId, DisconnectCause.LOCAL);
-        assertEquals(Call.STATE_DISCONNECTED, mInCallServiceFixtureX.getCall(ids.mCallId).getState());
-        assertEquals(Call.STATE_DISCONNECTED, mInCallServiceFixtureY.getCall(ids.mCallId).getState());
+        assertEquals(Call.STATE_DISCONNECTED,
+                mInCallServiceFixtureX.getCall(ids.mCallId).getState());
+        assertEquals(Call.STATE_DISCONNECTED,
+                mInCallServiceFixtureY.getCall(ids.mCallId).getState());
     }
 
     public void testSingleIncomingCallRemoteDisconnect() throws Exception {
@@ -548,8 +584,10 @@ public class TelecomSystemTest extends TelecomTestCase {
                 mConnectionServiceFixtureA);
 
         mConnectionServiceFixtureA.sendSetDisconnected(ids.mConnectionId, DisconnectCause.LOCAL);
-        assertEquals(Call.STATE_DISCONNECTED, mInCallServiceFixtureX.getCall(ids.mCallId).getState());
-        assertEquals(Call.STATE_DISCONNECTED, mInCallServiceFixtureY.getCall(ids.mCallId).getState());
+        assertEquals(Call.STATE_DISCONNECTED,
+                mInCallServiceFixtureX.getCall(ids.mCallId).getState());
+        assertEquals(Call.STATE_DISCONNECTED,
+                mInCallServiceFixtureY.getCall(ids.mCallId).getState());
     }
 
     public void do_testDeadlockOnOutgoingCall() throws Exception {
@@ -612,6 +650,17 @@ public class TelecomSystemTest extends TelecomTestCase {
                 "650-555-2323",
                 mPhoneAccountA0.getAccountHandle(),
                 mConnectionServiceFixtureA);
+        verify(mConnectionServiceFixtureA.getTestDouble())
+                .hold(outgoing.mConnectionId);
+        mConnectionServiceFixtureA.mConnectionById.get(outgoing.mConnectionId).state =
+                Connection.STATE_HOLDING;
+        mConnectionServiceFixtureA.sendSetOnHold(outgoing.mConnectionId);
+        assertEquals(
+                Call.STATE_HOLDING,
+                mInCallServiceFixtureX.getCall(outgoing.mCallId).getState());
+        assertEquals(
+                Call.STATE_HOLDING,
+                mInCallServiceFixtureY.getCall(outgoing.mCallId).getState());
     }
 
     public void testAudioManagerOperations() throws Exception {
@@ -651,11 +700,20 @@ public class TelecomSystemTest extends TelecomTestCase {
                 .setMode(AudioManager.MODE_NORMAL);
     }
 
-    protected static void pause() {
-        try {
-            Thread.sleep(TEST_TIMEOUT);
-        } catch (InterruptedException e) {
-            fail(e.toString());
+    protected static void assertTrueWithTimeout(Predicate<Void> predicate) {
+        int elapsed = 0;
+        while (elapsed < TEST_TIMEOUT) {
+            if (predicate.apply(null)) {
+                return;
+            } else {
+                try {
+                    Thread.sleep(TEST_POLL_INTERVAL);
+                    elapsed += TEST_POLL_INTERVAL;
+                } catch (InterruptedException e) {
+                    fail(e.toString());
+                }
+            }
         }
+        fail("Timeout in assertTrueWithTimeout");
     }
 }
