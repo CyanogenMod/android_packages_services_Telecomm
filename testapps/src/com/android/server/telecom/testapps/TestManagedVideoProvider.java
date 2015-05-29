@@ -25,25 +25,25 @@ import android.view.Surface;
 
 public class TestManagedVideoProvider extends Connection.VideoProvider {
 
-    private final RemoteConnection.VideoProvider.Listener mRemoteListener =
-            new RemoteConnection.VideoProvider.Listener() {
+    private final RemoteConnection.VideoProvider.Callback mRemoteCallback =
+            new RemoteConnection.VideoProvider.Callback() {
         @Override
-        public void onReceiveSessionModifyRequest(RemoteConnection.VideoProvider rvp,
+        public void onSessionModifyRequestReceived(RemoteConnection.VideoProvider rvp,
                 VideoProfile videoProfile) {
-            super.onReceiveSessionModifyRequest(rvp, videoProfile);
+            super.onSessionModifyRequestReceived(rvp, videoProfile);
         }
 
         @Override
-        public void onReceiveSessionModifyResponse(RemoteConnection.VideoProvider rvp,
-        int status,
-        VideoProfile requestedProfile, VideoProfile responseProfile) {
-            super.onReceiveSessionModifyResponse(rvp, status, requestedProfile,
+        public void onSessionModifyResponseReceived(RemoteConnection.VideoProvider rvp,
+                int status,
+                VideoProfile requestedProfile, VideoProfile responseProfile) {
+            super.onSessionModifyResponseReceived(rvp, status, requestedProfile,
                     responseProfile);
         }
 
         @Override
-        public void onHandleCallSessionEvent(RemoteConnection.VideoProvider rvp, int event) {
-            super.onHandleCallSessionEvent(rvp, event);
+        public void onCallSessionEvent(RemoteConnection.VideoProvider rvp, int event) {
+            super.onCallSessionEvent(rvp, event);
         }
 
         @Override
@@ -68,7 +68,7 @@ public class TestManagedVideoProvider extends Connection.VideoProvider {
 
     public TestManagedVideoProvider(RemoteConnection.VideoProvider remoteVideoProvider) {
         mRemoteVideoProvider = remoteVideoProvider;
-        mRemoteVideoProvider.addListener(mRemoteListener);
+        mRemoteVideoProvider.registerCallback(mRemoteCallback);
     }
 
     @Override
