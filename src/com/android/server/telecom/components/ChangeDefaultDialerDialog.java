@@ -18,6 +18,7 @@ package com.android.server.telecom.components;
 
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
@@ -32,6 +33,13 @@ import com.android.internal.app.AlertActivity;
 import com.android.internal.app.AlertController;
 import com.android.server.telecom.R;
 
+/**
+ * Activity that shows a dialog for the user to confirm whether or not the default dialer should
+ * be changed.
+ *
+ * This dialog can be skipped directly for CTS tests using the adb command:
+ * adb shell am start -a android.telecom.action.CHANGE_DEFAULT_DIALER_PRIVILEGED -e android.telecom.extra.CHANGE_DEFAULT_DIALER_PACKAGE_NAME <packageName>
+ */
 public class ChangeDefaultDialerDialog extends AlertActivity implements
         DialogInterface.OnClickListener{
     private static final String TAG = ChangeDefaultDialerDialog.class.getSimpleName();
@@ -41,12 +49,17 @@ public class ChangeDefaultDialerDialog extends AlertActivity implements
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        final String packageName = getIntent().getStringExtra(
+        final String oldPackage = DefaultDialerManager.getDefaultDialerApplication(this);
+        mNewPackage = getIntent().getStringExtra(
                 TelecomManager.EXTRA_CHANGE_DEFAULT_DIALER_PACKAGE_NAME);
-
-        if (!buildDialog(packageName)) {
+        if (!canChangeToProvidedPackage(oldPackage, mNewPackage)) {
             setResult(RESULT_CANCELED);
             finish();
+        }
+
+        if (!maybeHandlePrivilegedOperation(getIntent(), mNewPackage)) {
+            // Show dialog to require user confirmation.
+            buildDialog(oldPackage, mNewPackage);
         }
     }
 
@@ -64,29 +77,48 @@ public class ChangeDefaultDialerDialog extends AlertActivity implements
         }
     }
 
-    private boolean buildDialog(String newPackage) {
-        mNewPackage = newPackage;
+    private boolean maybeHandlePrivilegedOperation(Intent intent, String newPackage) {
+        // Verify that both the launched activity aliases and the intent action are the privileged
+        // versions that can only be launched with the MODIFY_PHONE_STATE permission.
+        if (getClass().getName().equals(intent.getComponent().getClassName())) {
+            // Activity was not launched as privileged activity-alias.
+            return false;
+        }
+        if (!TelecomManager.ACTION_CHANGE_DEFAULT_DIALER_PRIVILEGED.equals(intent.getAction())) {
+            return false;
+        }
+
+        DefaultDialerManager.setDefaultDialerApplication(ChangeDefaultDialerDialog.this,
+                newPackage);
+        setResult(RESULT_OK);
+        finish();
+        return true;
+    }
+
+    private boolean canChangeToProvidedPackage(String oldPackage, String newPackage) {
         final TelephonyManager tm = (TelephonyManager)getSystemService(Context.TELEPHONY_SERVICE);
         if (!tm.isVoiceCapable()) {
             Log.w(TAG, "Dialog launched but device is not voice capable.");
             return false;
         }
 
-        if (!DefaultDialerManager.getInstalledDialerApplications(this).contains(mNewPackage)) {
+        if (!DefaultDialerManager.getInstalledDialerApplications(this).contains(newPackage)) {
             Log.w(TAG, "Provided package name does not correspond to an installed Dialer "
                     + "application.");
             return false;
         }
 
-        final String oldPackage = DefaultDialerManager.getDefaultDialerApplication(this);
-        if (!TextUtils.isEmpty(oldPackage) && TextUtils.equals(oldPackage, mNewPackage)) {
+        if (!TextUtils.isEmpty(oldPackage) && TextUtils.equals(oldPackage, newPackage)) {
             Log.w(TAG, "Provided package name is already the current default Dialer application.");
             return false;
         }
+        return true;
+    }
 
+    private boolean buildDialog(String oldPackage, String newPackage) {
         final PackageManager pm = getPackageManager();
         final String newPackageLabel =
-                getApplicationLabelForPackageName(pm, mNewPackage);
+                getApplicationLabelForPackageName(pm, newPackage);
         final AlertController.AlertParams p = mAlertParams;
         p.mTitle = getString(R.string.change_default_dialer_dialog_title);
         if (!TextUtils.isEmpty(oldPackage)) {
