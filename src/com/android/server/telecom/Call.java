@@ -83,6 +83,7 @@ public class Call implements CreateConnectionResponse {
         void onCallerInfoChanged(Call call);
         void onIsVoipAudioModeChanged(Call call);
         void onStatusHintsChanged(Call call);
+        void onExtrasChanged(Call call);
         void onHandleChanged(Call call);
         void onCallerDisplayNameChanged(Call call);
         void onVideoStateChanged(Call call);
@@ -128,6 +129,8 @@ public class Call implements CreateConnectionResponse {
         public void onIsVoipAudioModeChanged(Call call) {}
         @Override
         public void onStatusHintsChanged(Call call) {}
+        @Override
+        public void onExtrasChanged(Call call) {}
         @Override
         public void onHandleChanged(Call call) {}
         @Override
@@ -263,8 +266,7 @@ public class Call implements CreateConnectionResponse {
      */
     private DisconnectCause mDisconnectCause = new DisconnectCause(DisconnectCause.UNKNOWN);
 
-    /** Info used by the connection services. */
-    private Bundle mExtras = new Bundle();
+    private Bundle mIntentExtras = new Bundle();
 
     /** Set of listeners on this call.
      *
@@ -307,6 +309,7 @@ public class Call implements CreateConnectionResponse {
 
     private boolean mIsVoipAudioMode;
     private StatusHints mStatusHints;
+    private Bundle mExtras;
     private final ConnectionServiceRepository mRepository;
     private final ContactsAsyncHelper mContactsAsyncHelper;
     private final Context mContext;
@@ -862,6 +865,7 @@ public class Call implements CreateConnectionResponse {
         setRingbackRequested(connection.isRingbackRequested());
         setIsVoipAudioMode(connection.getIsVoipAudioMode());
         setStatusHints(connection.getStatusHints());
+        setExtras(connection.getExtras());
 
         mConferenceableCalls.clear();
         for (String id : connection.getConferenceableConnectionIds()) {
@@ -1088,6 +1092,17 @@ public class Call implements CreateConnectionResponse {
 
     void setExtras(Bundle extras) {
         mExtras = extras;
+        for (Listener l : mListeners) {
+            l.onExtrasChanged(this);
+        }
+    }
+
+    Bundle getIntentExtras() {
+        return mIntentExtras;
+    }
+
+    void setIntentExtras(Bundle extras) {
+        mIntentExtras = extras;
     }
 
     /**
