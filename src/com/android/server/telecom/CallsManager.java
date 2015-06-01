@@ -451,7 +451,7 @@ public class CallsManager extends Call.ListenerBase {
                 true /* isIncoming */,
                 false /* isConference */);
 
-        call.setExtras(extras);
+        call.setIntentExtras(extras);
         // TODO: Move this to be a part of addCall()
         call.addListener(this);
         call.startCreateConnection(mPhoneAccountRegistrar);
@@ -476,7 +476,7 @@ public class CallsManager extends Call.ListenerBase {
                 true /* isIncoming */,
                 false /* isConference */);
         call.setIsUnknown(true);
-        call.setExtras(extras);
+        call.setIntentExtras(extras);
         call.addListener(this);
         call.startCreateConnection(mPhoneAccountRegistrar);
     }
@@ -584,7 +584,7 @@ public class CallsManager extends Call.ListenerBase {
             call.setState(CallState.CONNECTING);
         }
 
-        call.setExtras(extras);
+        call.setIntentExtras(extras);
 
         // Do not add the call if it is a potential MMI code.
         if ((isPotentialMMICode(handle) || isPotentialInCallMMICode) && !needsAccountSelection) {
