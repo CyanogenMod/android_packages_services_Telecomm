@@ -40,8 +40,13 @@ import android.telecom.DisconnectCause;
 import android.telecom.PhoneAccount;
 import android.telephony.PhoneNumberUtils;
 import android.text.BidiFormatter;
+import android.text.SpannableStringBuilder;
 import android.text.TextDirectionHeuristics;
 import android.text.TextUtils;
+import android.text.format.DateUtils;
+import android.text.style.RelativeSizeSpan;
+
+import java.util.ArrayList;
 
 // TODO: Needed for move to system service: import com.android.internal.R;
 
@@ -76,8 +81,19 @@ class MissedCallNotifier extends CallsManagerListenerBase {
     private final Context mContext;
     private final NotificationManager mNotificationManager;
 
-    // Used to track the number of missed calls.
-    private int mMissedCallCount = 0;
+    // used to track missed calls
+    private static class MissedCallInfo {
+        String name;
+        String number;
+        long date;
+
+        MissedCallInfo(String name, String number, long date) {
+            this.name = name;
+            this.number = number;
+            this.date = date;
+        }
+    };
+    private ArrayList<MissedCallInfo> mMissedCalls = new ArrayList<MissedCallInfo>();
 
     MissedCallNotifier(Context context) {
         mContext = context;
@@ -123,39 +139,55 @@ class MissedCallNotifier extends CallsManagerListenerBase {
      * @param call The missed call.
      */
     void showMissedCallNotification(Call call) {
-        mMissedCallCount++;
-
-        final int titleResId;
-        final String expandedText;  // The text in the notification's line 1 and 2.
-
-        // Display the first line of the notification:
-        // 1 missed call: <caller name || handle>
-        // More than 1 missed call: <number of calls> + "missed calls"
-        if (mMissedCallCount == 1) {
-            titleResId = R.string.notification_missedCallTitle;
-            expandedText = getNameForCall(call);
-        } else {
-            titleResId = R.string.notification_missedCallsTitle;
-            expandedText =
-                    mContext.getString(R.string.notification_missedCallsMsg, mMissedCallCount);
-        }
+        final String callName = getNameForCall(call);
+        // keep track of the call, keeping list sorted from newest to oldest
+        mMissedCalls.add(0, new MissedCallInfo(callName,
+                    call.getNumber(), call.getCreationTimeMillis()));
 
         // Create the notification.
         Notification.Builder builder = new Notification.Builder(mContext);
         builder.setSmallIcon(android.R.drawable.stat_notify_missed_call)
                 .setColor(mContext.getResources().getColor(R.color.theme_color))
                 .setWhen(call.getCreationTimeMillis())
-                .setContentTitle(mContext.getText(titleResId))
-                .setContentText(expandedText)
                 .setContentIntent(createCallLogPendingIntent())
                 .setAutoCancel(true)
                 .setDeleteIntent(createClearMissedCallsPendingIntent());
+
+        // display the first line of the notification:
+        // 1 missed call: call name
+        // more than 1 missed call: <number of calls> + "missed calls" (+ list of calls)
+        if (mMissedCalls.size() == 1) {
+            builder.setContentTitle(mContext.getText(R.string.notification_missedCallTitle));
+            builder.setContentText(callName);
+        } else {
+            String message = mContext.getString(R.string.notification_missedCallsMsg,
+                    mMissedCalls.size());
+
+            builder.setContentTitle(mContext.getText(R.string.notification_missedCallsTitle));
+            builder.setContentText(message);
+
+            Notification.InboxStyle style = new Notification.InboxStyle(builder);
+            String number = call.getNumber();
+
+            for (MissedCallInfo info : mMissedCalls) {
+                style.addLine(formatSingleCallLine(info.name, info.date));
+
+                // only keep number if equal for all calls in order to hide actions
+                // if the calls came from different numbers
+                if (!TextUtils.equals(number, info.number)) {
+                    number = null;
+                }
+            }
+            style.setBigContentTitle(message);
+            style.setSummaryText(" ");
+            builder.setStyle(style);
+        }
 
         Uri handleUri = call.getHandle();
         String handle = handleUri == null ? null : handleUri.getSchemeSpecificPart();
 
         // Add additional actions when there is only 1 missed call, like call-back and SMS.
-        if (mMissedCallCount == 1) {
+        if (mMissedCalls.size() == 1) {
             Log.d(this, "Add actions with number %s.", Log.piiHandle(handle));
 
             if (!TextUtils.isEmpty(handle)
@@ -180,7 +212,7 @@ class MissedCallNotifier extends CallsManagerListenerBase {
             }
         } else {
             Log.d(this, "Suppress actions. handle: %s, missedCalls: %d.", Log.piiHandle(handle),
-                    mMissedCallCount);
+                    mMissedCalls.size());
         }
 
         Notification notification = builder.build();
@@ -193,9 +225,28 @@ class MissedCallNotifier extends CallsManagerListenerBase {
 
     /** Cancels the "missed call" notification. */
     private void cancelMissedCallNotification() {
-        // Reset the number of missed calls to 0.
-        mMissedCallCount = 0;
+        // Reset the list of missed calls
+        mMissedCalls.clear();
         mNotificationManager.cancel(MISSED_CALL_NOTIFICATION_ID);
+    }
+
+    private static final RelativeSizeSpan TIME_SPAN = new RelativeSizeSpan(0.7f);
+
+    private CharSequence formatSingleCallLine(String caller, long date) {
+        int flags = DateUtils.FORMAT_SHOW_TIME;
+        if (!DateUtils.isToday(date)) {
+            flags |= DateUtils.FORMAT_SHOW_WEEKDAY;
+        }
+
+        SpannableStringBuilder lineBuilder = new SpannableStringBuilder();
+        lineBuilder.append(caller);
+        lineBuilder.append("  ");
+
+        int timeIndex = lineBuilder.length();
+        lineBuilder.append(DateUtils.formatDateTime(mContext, date, flags));
+        lineBuilder.setSpan(TIME_SPAN, timeIndex, lineBuilder.length(), 0);
+
+        return lineBuilder;
     }
 
     /**
