@@ -81,15 +81,15 @@ abstract class ServiceBinder {
                 ServiceConnection connection = new ServiceBinderConnection();
 
                 Log.d(ServiceBinder.this, "Binding to service with intent: %s", serviceIntent);
-                final boolean binding;
+                final int bindingFlags = Context.BIND_AUTO_CREATE | Context.BIND_FOREGROUND_SERVICE;
+                final boolean isBound;
                 if (mUserHandle != null) {
-                    binding = mContext.bindServiceAsUser(serviceIntent, connection,
-                        Context.BIND_AUTO_CREATE, mUserHandle);
+                    isBound = mContext.bindServiceAsUser(serviceIntent, connection, bindingFlags,
+                            mUserHandle);
                 } else {
-                    binding = mContext.bindService(serviceIntent, connection,
-                        Context.BIND_AUTO_CREATE);
+                    isBound = mContext.bindService(serviceIntent, connection, bindingFlags);
                 }
-                if (!binding) {
+                if (!isBound) {
                     handleFailedConnection();
                     return;
                 }
