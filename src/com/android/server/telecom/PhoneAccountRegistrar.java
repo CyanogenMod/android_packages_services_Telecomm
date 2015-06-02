@@ -317,7 +317,7 @@ public final class PhoneAccountRegistrar {
 
             if (!resolveInfos.isEmpty()) {
                 // See if there is registered PhoneAccount by this component.
-                List<PhoneAccountHandle> handles = getAllPhoneAccountHandles();
+                List<PhoneAccountHandle> handles = getPhoneAccountHandles(0, null, null, true);
                 for (PhoneAccountHandle handle : handles) {
                     if (componentName.equals(handle.getComponentName())) {
                         return handle;
