@@ -261,6 +261,17 @@
             </intent-filter>
         </activity>
 
+        <activity-alias android:name="ProtectedChangeDefaultDialerActivity"
+                  android:targetActivity=".components.ChangeDefaultDialerDialog"
+                  android:label="@string/change_default_dialer_dialog_title"
+                  android:process=":ui"
+                  android:permission="android.permission.MODIFY_PHONE_STATE">
+            <intent-filter>
+                <action android:name="android.telecom.action.CHANGE_DEFAULT_DIALER_PRIVILEGED" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity-alias>
+
         <receiver android:name=".components.PrimaryCallReceiver"
                 android:exported="true"
                 android:permission="android.permission.MODIFY_PHONE_STATE"
