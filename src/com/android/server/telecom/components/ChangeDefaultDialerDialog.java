@@ -57,10 +57,8 @@ public class ChangeDefaultDialerDialog extends AlertActivity implements
             finish();
         }
 
-        if (!maybeHandlePrivilegedOperation(getIntent(), mNewPackage)) {
-            // Show dialog to require user confirmation.
-            buildDialog(oldPackage, mNewPackage);
-        }
+        // Show dialog to require user confirmation.
+         buildDialog(oldPackage, mNewPackage);
     }
 
     @Override
@@ -75,24 +73,6 @@ public class ChangeDefaultDialerDialog extends AlertActivity implements
                 setResult(RESULT_CANCELED);
                 break;
         }
-    }
-
-    private boolean maybeHandlePrivilegedOperation(Intent intent, String newPackage) {
-        // Verify that both the launched activity aliases and the intent action are the privileged
-        // versions that can only be launched with the MODIFY_PHONE_STATE permission.
-        if (getClass().getName().equals(intent.getComponent().getClassName())) {
-            // Activity was not launched as privileged activity-alias.
-            return false;
-        }
-        if (!TelecomManager.ACTION_CHANGE_DEFAULT_DIALER_PRIVILEGED.equals(intent.getAction())) {
-            return false;
-        }
-
-        DefaultDialerManager.setDefaultDialerApplication(ChangeDefaultDialerDialog.this,
-                newPackage);
-        setResult(RESULT_OK);
-        finish();
-        return true;
     }
 
     private boolean canChangeToProvidedPackage(String oldPackage, String newPackage) {

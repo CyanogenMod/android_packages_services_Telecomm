@@ -31,12 +31,6 @@ public class EnableAccountPreferenceActivity extends Activity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-
-        if (handleDirectChangeRequest()) {
-            finish();
-            return;
-        }
-
         getFragmentManager().beginTransaction()
                 .replace(android.R.id.content, new EnableAccountPreferenceFragment())
                 .commit();
@@ -44,54 +38,6 @@ public class EnableAccountPreferenceActivity extends Activity {
         ActionBar actionBar = getActionBar();
         if (actionBar != null) {
             actionBar.setDisplayHomeAsUpEnabled(true);
-        }
-    }
-
-    private boolean handleDirectChangeRequest() {
-        // Here we check to see if the intent action is the protected version which allows
-        // for immediate enabling/disabling of phone accounts. If it is, take the phone account
-        // handle and value and simply enable/disable the account. If any part is missing, then
-        // open the setting screen as normal.
-        Intent intent = getIntent();
-        String action = intent.getAction();
-        if (!TelecomManager.ACTION_ENABLE_PHONE_ACCOUNT_SETTING.equals(action)) {
-            return false;
-        }
-
-        if (!intent.hasExtra(TelecomManager.EXTRA_ENABLE_PHONE_ACCOUNT_VALUE)) {
-            Log.w(this, "Boolean extra value not found in %s",
-                    TelecomManager.EXTRA_ENABLE_PHONE_ACCOUNT_VALUE);
-            return false;
-        }
-
-        String desc = intent.getStringExtra(TelecomManager.EXTRA_PHONE_ACCOUNT_DESCRIPTION);
-        if (desc == null) {
-            Log.w(this, "Extra value not found or is null in %s",
-                    TelecomManager.EXTRA_PHONE_ACCOUNT_DESCRIPTION);
-            return false;
-        }
-
-        String[] parts = desc.split(";");
-        if (parts.length < 2) {
-            Log.w(this, "Description not split into two parts with semi-colon: %s", desc);
-            return false;
-        }
-
-        ComponentName component = ComponentName.unflattenFromString(parts[0]);
-        if (component == null) {
-            Log.w(this, "Value does not unflatten to ComponentName: %s", parts[0]);
-            return false;
-        }
-
-        PhoneAccountHandle handle = new PhoneAccountHandle(component, parts[1]);
-        boolean enabled = intent.getBooleanExtra(
-                TelecomManager.EXTRA_ENABLE_PHONE_ACCOUNT_VALUE, false);
-        try {
-            TelecomManager.from(this).enablePhoneAccount(handle, enabled);
-            return true;
-        } catch (Exception e) {
-            Log.e(this, e, "Exception enabling account %s, %s", parts[0], parts[1]);
-            return false;
         }
     }
 

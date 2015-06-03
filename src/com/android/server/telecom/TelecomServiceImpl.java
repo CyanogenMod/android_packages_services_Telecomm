@@ -22,6 +22,7 @@ import static android.Manifest.permission.READ_PHONE_STATE;
 import static android.Manifest.permission.REGISTER_CALL_PROVIDER;
 import static android.Manifest.permission.REGISTER_CONNECTION_MANAGER;
 import static android.Manifest.permission.REGISTER_SIM_SUBSCRIPTION;
+import static android.Manifest.permission.WRITE_SECURE_SETTINGS;
 
 import android.app.AppOpsManager;
 import android.content.ComponentName;
@@ -833,13 +834,27 @@ public class TelecomServiceImpl {
          * @see android.telecom.TelecomManager#enablePhoneAccount
          */
         @Override
-        public void enablePhoneAccount(PhoneAccountHandle accountHandle, boolean isEnabled) {
+        public boolean enablePhoneAccount(PhoneAccountHandle accountHandle, boolean isEnabled) {
             enforceModifyPermission();
             synchronized (mLock) {
                 long token  = Binder.clearCallingIdentity();
                 try {
                     // enable/disable phone account
-                    mPhoneAccountRegistrar.enablePhoneAccount(accountHandle, isEnabled);
+                    return mPhoneAccountRegistrar.enablePhoneAccount(accountHandle, isEnabled);
+                } finally {
+                    Binder.restoreCallingIdentity(token);
+                }
+            }
+        }
+
+        @Override
+        public boolean setDefaultDialer(String packageName) {
+            enforcePermission(MODIFY_PHONE_STATE);
+            enforcePermission(WRITE_SECURE_SETTINGS);
+            synchronized (mLock) {
+                long token  = Binder.clearCallingIdentity();
+                try {
+                    return DefaultDialerManager.setDefaultDialerApplication(mContext, packageName);
                 } finally {
                     Binder.restoreCallingIdentity(token);
                 }
