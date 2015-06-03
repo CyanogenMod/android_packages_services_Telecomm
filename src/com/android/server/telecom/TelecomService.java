@@ -437,19 +437,19 @@ public class TelecomService extends Service {
         }
 
         /**
-         * @see android.telecom.TelecomManager#hasVoiceMailNumber
+         * @see android.telecom.TelecomManager#getVoiceMailNumber
          */
         @Override
-        public boolean hasVoiceMailNumber(PhoneAccountHandle accountHandle) {
+        public String getVoiceMailNumber(PhoneAccountHandle accountHandle) {
             enforceReadPermissionOrDefaultDialer();
             try {
                 if (!isVisibleToCaller(accountHandle)) {
                     Log.w(this, "%s is not visible for the calling user", accountHandle);
-                    return false;
+                    return null;
                 }
 
                 int subId = mPhoneAccountRegistrar.getSubscriptionIdForPhoneAccount(accountHandle);
-                return !TextUtils.isEmpty(getTelephonyManager().getVoiceMailNumber(subId));
+                return getTelephonyManager().getVoiceMailNumber(subId);
             } catch (Exception e) {
                 Log.e(this, e, "getSubscriptionIdForPhoneAccount");
                 throw e;
