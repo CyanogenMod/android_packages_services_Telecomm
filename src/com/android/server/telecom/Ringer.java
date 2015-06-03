@@ -133,7 +133,6 @@ final class Ringer extends CallsManagerListenerBase {
     void silence() {
         // Remove all calls from the "ringing" set and then update the ringer.
         mRingingCalls.clear();
-        updateRinging();
     }
 
     private void onRespondedToIncomingCall(Call call) {
@@ -159,7 +158,7 @@ final class Ringer extends CallsManagerListenerBase {
 
     private void updateRinging() {
         if (mRingingCalls.isEmpty()) {
-            stopRinging();
+            stopRinging("No more ringing calls found");
             stopCallWaiting();
         } else {
             startRingingOrCallWaiting();
@@ -181,7 +180,7 @@ final class Ringer extends CallsManagerListenerBase {
             AudioManager audioManager =
                     (AudioManager) mContext.getSystemService(Context.AUDIO_SERVICE);
             if (audioManager.getStreamVolume(AudioManager.STREAM_RING) > 0) {
-                Log.v(this, "startRingingOrCallWaiting");
+                Log.event(foregroundCall, Log.Events.START_RINGER);
                 mCallAudioManager.setIsRinging(true);
 
                 // Because we wait until a contact info query to complete before processing a
@@ -206,7 +205,7 @@ final class Ringer extends CallsManagerListenerBase {
             Log.v(this, "Playing call-waiting tone.");
 
             // All incoming calls are in background so play call waiting.
-            stopRinging();
+            stopRinging("Stop for call-waiting");
 
             if (mCallWaitingPlayer == null) {
                 mCallWaitingPlayer =
@@ -226,8 +225,8 @@ final class Ringer extends CallsManagerListenerBase {
         return manager.matchesCallFilter(extras);
     }
 
-    private void stopRinging() {
-        Log.v(this, "stopRinging");
+    private void stopRinging(String reasonTag) {
+        Log.event(mCallsManager.getForegroundCall(), Log.Events.STOP_RINGER, reasonTag);
 
         mRingtonePlayer.stop();
 
