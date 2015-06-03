@@ -18,7 +18,6 @@ package com.android.server.telecom;
 
 import android.content.Context;
 import android.content.Intent;
-import android.Manifest.permission;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.provider.CallLog.Calls;
@@ -29,7 +28,6 @@ import android.telephony.PhoneNumberUtils;
 
 // TODO: Needed for move to system service: import com.android.internal.R;
 import com.android.internal.telephony.CallerInfo;
-import com.android.internal.telephony.PhoneConstants;
 
 /**
  * Helper class that provides functionality to write information about calls and their associated
@@ -207,7 +205,7 @@ final class CallLogManager extends CallsManagerListenerBase {
      * @return The call features.
      */
     private static int getCallFeatures(int videoState) {
-        if (VideoProfile.VideoState.isVideo(videoState)) {
+        if (VideoProfile.isVideo(videoState)) {
             return Calls.FEATURES_VIDEO;
         }
         return 0;

@@ -21,7 +21,6 @@ import com.android.server.telecom.Log;
 import com.android.server.telecom.R;
 import com.android.server.telecom.TelephonyUtil;
 
-import android.app.ActivityManager;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
@@ -107,18 +106,18 @@ public class UserCallIntentProcessor {
 
         int videoState = intent.getIntExtra(
                 TelecomManager.EXTRA_START_CALL_WITH_VIDEO_STATE,
-                VideoProfile.VideoState.AUDIO_ONLY);
+                VideoProfile.STATE_AUDIO_ONLY);
         Log.d(this, "processOutgoingCallIntent videoState = " + videoState);
 
-        if (VideoProfile.VideoState.isVideo(videoState)
+        if (VideoProfile.isVideo(videoState)
                 && TelephonyUtil.shouldProcessAsEmergency(mContext, handle)) {
             Log.d(this, "Emergency call...Converting video call to voice...");
-            videoState = VideoProfile.VideoState.AUDIO_ONLY;
+            videoState = VideoProfile.STATE_AUDIO_ONLY;
             intent.putExtra(TelecomManager.EXTRA_START_CALL_WITH_VIDEO_STATE,
                     videoState);
         }
 
-        if (VideoProfile.VideoState.isVideo(videoState) && isTtyModeEnabled()) {
+        if (VideoProfile.isVideo(videoState) && isTtyModeEnabled()) {
             Toast.makeText(mContext, mContext.getResources().getString(R.string.
                     video_call_not_allowed_if_tty_enabled), Toast.LENGTH_SHORT).show();
             Log.d(this, "Rejecting video calls as tty is enabled");
