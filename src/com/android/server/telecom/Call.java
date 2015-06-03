@@ -458,15 +458,15 @@ public class Call implements CreateConnectionResponse {
         StringBuilder sb = new StringBuilder();
         sb.append("A");
 
-        if (VideoProfile.VideoState.isTransmissionEnabled(videoState)) {
+        if (VideoProfile.isTransmissionEnabled(videoState)) {
             sb.append("T");
         }
 
-        if (VideoProfile.VideoState.isReceptionEnabled(videoState)) {
+        if (VideoProfile.isReceptionEnabled(videoState)) {
             sb.append("R");
         }
 
-        if (VideoProfile.VideoState.isPaused(videoState)) {
+        if (VideoProfile.isPaused(videoState)) {
             sb.append("P");
         }
 
@@ -1481,7 +1481,7 @@ public class Call implements CreateConnectionResponse {
 
     /**
      * The current video state for the call.
-     * Valid values: see {@link VideoProfile.VideoState}.
+     * See {@link VideoProfile} for a list of valid video states.
      */
     public int getVideoState() {
         return mVideoState;
@@ -1500,7 +1500,7 @@ public class Call implements CreateConnectionResponse {
     /**
      * Determines the current video state for the call.
      * For an outgoing call determines the desired video state for the call.
-     * Valid values: see {@link VideoProfile.VideoState}
+     * Valid values: see {@link VideoProfile}
      *
      * @param videoState The video state for the call.
      */
