@@ -472,6 +472,7 @@ public class TelecomServiceImpl {
 
                 long token = Binder.clearCallingIdentity();
                 try {
+                    Log.i(this, "Silence Ringer requested by %s", callingPackage);
                     mCallsManager.getRinger().silence();
                 } finally {
                     Binder.restoreCallingIdentity(token);
