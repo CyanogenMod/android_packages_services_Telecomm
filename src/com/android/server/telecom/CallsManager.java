@@ -1393,15 +1393,19 @@ public class CallsManager extends Call.ListenerBase {
             }
 
             if (hasMaximumOutgoingCalls()) {
-                // Disconnect the current outgoing call if it's not an emergency call. If the user
-                // tries to make two outgoing calls to different emergency call numbers, we will try
-                // to connect the first outgoing call.
-                if (isEmergency) {
-                    Call outgoingCall = getFirstCallWithState(OUTGOING_CALL_STATES);
-                    if (!outgoingCall.isEmergencyCall()) {
-                        outgoingCall.disconnect();
-                        return true;
-                    }
+                Call outgoingCall = getFirstCallWithState(OUTGOING_CALL_STATES);
+                if (isEmergency && !outgoingCall.isEmergencyCall()) {
+                    // Disconnect the current outgoing call if it's not an emergency call. If the
+                    // user tries to make two outgoing calls to different emergency call numbers,
+                    // we will try to connect the first outgoing call.
+                    outgoingCall.disconnect();
+                    return true;
+                }
+                if (outgoingCall.getState() == CallState.SELECT_PHONE_ACCOUNT) {
+                    // If there is an orphaned call in the {@link CallState#SELECT_PHONE_ACCOUNT}
+                    // state, just disconnect it since the user has explicitly started a new call.
+                    outgoingCall.disconnect();
+                    return true;
                 }
                 return false;
             }
