@@ -353,15 +353,19 @@ public final class PhoneAccountRegistrar {
         mCurrentUserHandle = userHandle;
     }
 
-    public void enablePhoneAccount(PhoneAccountHandle accountHandle, boolean isEnabled) {
+    /**
+     * @return {@code true} if the phone account was successfully enabled/disabled, {@code false}
+     *         otherwise.
+     */
+    public boolean enablePhoneAccount(PhoneAccountHandle accountHandle, boolean isEnabled) {
         PhoneAccount account = getPhoneAccount(accountHandle);
         if (account == null) {
             Log.w(this, "Could not find account to enable: " + accountHandle);
-            return;
+            return false;
         } else if (account.hasCapabilities(PhoneAccount.CAPABILITY_SIM_SUBSCRIPTION)) {
             // We never change the enabled state of SIM-based accounts.
             Log.w(this, "Could not change enable state of SIM account: " + accountHandle);
-            return;
+            return false;
         }
 
         if (account.isEnabled() != isEnabled) {
@@ -369,6 +373,7 @@ public final class PhoneAccountRegistrar {
             write();
             fireAccountsChanged();
         }
+        return true;
     }
 
     private boolean isVisibleForUser(PhoneAccount account) {
