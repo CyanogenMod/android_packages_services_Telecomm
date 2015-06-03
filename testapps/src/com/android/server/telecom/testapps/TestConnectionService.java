@@ -26,7 +26,6 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.v4.content.LocalBroadcastManager;
-import android.telecom.AudioState;
 import android.telecom.Conference;
 import android.telecom.Connection;
 import android.telecom.DisconnectCause;
@@ -352,8 +351,8 @@ public class TestConnectionService extends ConnectionService {
                     : providedHandle;
 
             int videoState = isVideoCall ?
-                    VideoProfile.VideoState.BIDIRECTIONAL :
-                    VideoProfile.VideoState.AUDIO_ONLY;
+                    VideoProfile.STATE_BIDIRECTIONAL :
+                    VideoProfile.STATE_AUDIO_ONLY;
             connection.setVideoState(videoState);
             setAddress(connection, address);
 

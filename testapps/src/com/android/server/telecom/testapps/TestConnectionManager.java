@@ -17,7 +17,6 @@
 package com.android.server.telecom.testapps;
 
 import android.net.Uri;
-import android.telecom.AudioState;
 import android.telecom.CallAudioState;
 import android.telecom.Conference;
 import android.telecom.Connection;
@@ -83,7 +82,7 @@ public class TestConnectionManager extends ConnectionService {
 
             @Override
             public void onVideoStateChanged(RemoteConnection connection, int videoState) {
-                if (videoState == VideoProfile.VideoState.BIDIRECTIONAL) {
+                if (videoState == VideoProfile.STATE_BIDIRECTIONAL) {
                     setVideoProvider(new TestManagedVideoProvider(connection.getVideoProvider()));
                 }
                 setVideoState(videoState);

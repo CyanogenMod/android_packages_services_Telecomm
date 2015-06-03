@@ -17,7 +17,6 @@
 package com.android.server.telecom;
 
 import android.app.AppOpsManager;
-import com.android.server.telecom.components.UserCallIntentProcessor;
 
 import android.app.Activity;
 import android.content.BroadcastReceiver;
@@ -142,7 +141,7 @@ class NewOutgoingCallIntentBroadcaster {
                     mIntent.getBooleanExtra(TelecomManager.EXTRA_START_CALL_WITH_SPEAKERPHONE,
                             false),
                     mIntent.getIntExtra(TelecomManager.EXTRA_START_CALL_WITH_VIDEO_STATE,
-                            VideoProfile.VideoState.AUDIO_ONLY));
+                            VideoProfile.STATE_AUDIO_ONLY));
             Trace.endSection();
         }
     }
@@ -183,7 +182,7 @@ class NewOutgoingCallIntentBroadcaster {
                 boolean speakerphoneOn = mIntent.getBooleanExtra(
                         TelecomManager.EXTRA_START_CALL_WITH_SPEAKERPHONE, false);
                 mCallsManager.placeOutgoingCall(mCall, handle, null, speakerphoneOn,
-                        VideoProfile.VideoState.AUDIO_ONLY);
+                        VideoProfile.STATE_AUDIO_ONLY);
 
                 return DisconnectCause.NOT_DISCONNECTED;
             } else {
@@ -244,7 +243,7 @@ class NewOutgoingCallIntentBroadcaster {
                     TelecomManager.EXTRA_START_CALL_WITH_SPEAKERPHONE, false);
             int videoState = mIntent.getIntExtra(
                     TelecomManager.EXTRA_START_CALL_WITH_VIDEO_STATE,
-                    VideoProfile.VideoState.AUDIO_ONLY);
+                    VideoProfile.STATE_AUDIO_ONLY);
             mCallsManager.placeOutgoingCall(mCall, Uri.fromParts(scheme, number, null), null,
                     speakerphoneOn, videoState);
 
