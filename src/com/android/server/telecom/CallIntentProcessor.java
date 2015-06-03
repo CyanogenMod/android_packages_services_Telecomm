@@ -185,8 +185,8 @@ public class CallIntentProcessor {
             CallsManager callsManager,
             Intent intent) {
         int intentVideoState = intent.getIntExtra(TelecomManager.EXTRA_START_CALL_WITH_VIDEO_STATE,
-                VideoProfile.VideoState.AUDIO_ONLY);
-        if (intentVideoState == VideoProfile.VideoState.AUDIO_ONLY
+                VideoProfile.STATE_AUDIO_ONLY);
+        if (intentVideoState == VideoProfile.STATE_AUDIO_ONLY
                 || !callsManager.hasVideoCall()) {
             return false;
         } else {

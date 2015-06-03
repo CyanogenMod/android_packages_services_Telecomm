@@ -32,7 +32,6 @@ import android.telecom.DisconnectCause;
 import android.telecom.GatewayInfo;
 import android.telecom.ParcelableConference;
 import android.telecom.ParcelableConnection;
-import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
 import android.telecom.StatusHints;
 import android.telecom.TelecomManager;
@@ -763,7 +762,7 @@ final class ConnectionServiceWrapper extends ServiceBinder {
         if (callId != null && isServiceValid("answer")) {
             try {
                 logOutgoing("answer %s %d", callId, videoState);
-                if (videoState == VideoProfile.VideoState.AUDIO_ONLY) {
+                if (videoState == VideoProfile.STATE_AUDIO_ONLY) {
                     mServiceInterface.answer(callId);
                 } else {
                     mServiceInterface.answerVideo(callId, videoState);

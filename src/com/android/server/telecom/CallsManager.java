@@ -24,7 +24,6 @@ import android.os.Looper;
 import android.os.SystemProperties;
 import android.os.Trace;
 import android.provider.CallLog.Calls;
-import android.telecom.AudioState;
 import android.telecom.CallAudioState;
 import android.telecom.Conference;
 import android.telecom.Connection;
@@ -400,7 +399,7 @@ public class CallsManager extends Call.ListenerBase {
 
     boolean hasVideoCall() {
         for (Call call : mCalls) {
-            if (call.getVideoState() != VideoProfile.VideoState.AUDIO_ONLY) {
+            if (call.getVideoState() != VideoProfile.STATE_AUDIO_ONLY) {
                 return true;
             }
         }
@@ -708,7 +707,7 @@ public class CallsManager extends Call.ListenerBase {
             // We do not update the UI until we get confirmation of the answer() through
             // {@link #markCallAsActive}.
             call.answer(videoState);
-            if (VideoProfile.VideoState.isVideo(videoState) &&
+            if (VideoProfile.isVideo(videoState) &&
                 !mWiredHeadsetManager.isPluggedIn() &&
                 !mCallAudioManager.isBluetoothDeviceAvailable() &&
                 isSpeakerEnabledForVideoCalls()) {
