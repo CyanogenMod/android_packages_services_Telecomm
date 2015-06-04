@@ -66,6 +66,8 @@ public class Log {
         public static final String REQUEST_REJECT = "REQUEST_REJECT";
         public static final String START_DTMF = "START_DTMF";
         public static final String STOP_DTMF = "STOP_DTMF";
+        public static final String START_RINGER = "START_RINGER";
+        public static final String STOP_RINGER = "STOP_RINGER";
 
         /**
          * Maps from a request to a response.  The same event could be listed as the
@@ -199,6 +201,10 @@ public class Log {
     }
 
     public static void event(Call call, String event, Object data) {
+        if (call == null) {
+            Log.i(TAG, "Non-call EVENT: %s, %s", event, data);
+            return;
+        }
         synchronized (mCallEventRecords) {
             if (!mCallEventRecordMap.containsKey(call)) {
                 // First remove the oldest entry if no new ones exist.
