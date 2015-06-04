@@ -459,6 +459,8 @@ public final class BluetoothPhoneServiceImpl {
         } else if (chld == CHLD_TYPE_HOLDACTIVE_ACCEPTHELD) {
             if (activeCall != null && activeCall.can(Connection.CAPABILITY_SWAP_CONFERENCE)) {
                 activeCall.swapConference();
+                Log.i(TAG, "CDMA calls in conference swapped, updating headset");
+                updateHeadsetWithCallState(true /* force */);
                 return true;
             } else if (ringingCall != null) {
                 mCallsManager.answerCall(ringingCall, 0);
@@ -628,6 +630,7 @@ public final class BluetoothPhoneServiceImpl {
 
         int numActiveCalls = activeCall == null ? 0 : 1;
         int numHeldCalls = mCallsManager.getNumHeldCalls();
+        boolean callsSwitched = (numHeldCalls == 2);
 
         // For conference calls which support swapping the active call within the conference
         // (namely CDMA calls) we need to expose that as a held call in order for the BT device
@@ -660,7 +663,7 @@ public final class BluetoothPhoneServiceImpl {
                  !TextUtils.equals(ringingAddress, mRingingAddress) ||
                  ringingAddressType != mRingingAddressType ||
                  (heldCall != mOldHeldCall && !ignoreHeldCallChange) ||
-                 force)) {
+                 force) && !callsSwitched) {
 
             // If the call is transitioning into the alerting state, send DIALING first.
             // Some devices expect to see a DIALING state prior to seeing an ALERTING state
