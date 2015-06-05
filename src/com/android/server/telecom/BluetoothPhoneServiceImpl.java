@@ -90,7 +90,7 @@ public final class BluetoothPhoneServiceImpl {
                     Log.i(TAG, "BT - answering call");
                     Call call = mCallsManager.getRingingCall();
                     if (call != null) {
-                        mCallsManager.answerCall(call, 0);
+                        mCallsManager.answerCall(call, call.getVideoState());
                         return true;
                     }
                     return false;
@@ -450,7 +450,7 @@ public final class BluetoothPhoneServiceImpl {
             if (activeCall != null) {
                 mCallsManager.disconnectCall(activeCall);
                 if (ringingCall != null) {
-                    mCallsManager.answerCall(ringingCall, 0);
+                    mCallsManager.answerCall(ringingCall, ringingCall.getVideoState());
                 } else if (heldCall != null) {
                     mCallsManager.unholdCall(heldCall);
                 }
@@ -463,7 +463,7 @@ public final class BluetoothPhoneServiceImpl {
                 updateHeadsetWithCallState(true /* force */);
                 return true;
             } else if (ringingCall != null) {
-                mCallsManager.answerCall(ringingCall, 0);
+                mCallsManager.answerCall(ringingCall, ringingCall.getVideoState());
                 return true;
             } else if (heldCall != null) {
                 // CallsManager will hold any active calls when unhold() is called on a
