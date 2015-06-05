@@ -184,18 +184,12 @@ public final class BluetoothPhoneServiceImpl {
                     }
                     if (TextUtils.isEmpty(address)) {
                         address = TelephonyManager.from(mContext).getLine1Number();
+                        if (address == null) address = "";
                     }
                     return address;
                 } finally {
                     Binder.restoreCallingIdentity(token);
                 }
-
-                if (TextUtils.isEmpty(address)) {
-                    address = TelephonyManager.from(mContext).getLine1Number();
-                    if (address == null) address = "";
-                }
-
-                return address;
             }
         }
 
