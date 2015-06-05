@@ -312,14 +312,8 @@ public class TelecomServiceImpl {
                 try {
                     enforcePhoneAccountModificationForPackage(
                             account.getAccountHandle().getComponentName().getPackageName());
-                    if (account.hasCapabilities(PhoneAccount.CAPABILITY_CALL_PROVIDER)) {
-                        enforceRegisterCallProviderPermission();
-                    }
                     if (account.hasCapabilities(PhoneAccount.CAPABILITY_SIM_SUBSCRIPTION)) {
                         enforceRegisterSimSubscriptionPermission();
-                    }
-                    if (account.hasCapabilities(PhoneAccount.CAPABILITY_CONNECTION_MANAGER)) {
-                        enforceRegisterConnectionManagerPermission();
                     }
                     if (account.hasCapabilities(PhoneAccount.CAPABILITY_MULTI_USER)) {
                         enforceRegisterMultiUser();
