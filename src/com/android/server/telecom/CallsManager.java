@@ -435,7 +435,11 @@ public class CallsManager extends Call.ListenerBase {
      */
     void processIncomingCallIntent(PhoneAccountHandle phoneAccountHandle, Bundle extras) {
         Log.d(this, "processIncomingCallIntent");
-        Uri handle = extras.getParcelable(TelephonyManager.EXTRA_INCOMING_NUMBER);
+        Uri handle = extras.getParcelable(TelecomManager.EXTRA_INCOMING_CALL_ADDRESS);
+        if (handle == null) {
+            // Required for backwards compatibility
+            handle = extras.getParcelable(TelephonyManager.EXTRA_INCOMING_NUMBER);
+        }
         Call call = new Call(
                 mContext,
                 this,

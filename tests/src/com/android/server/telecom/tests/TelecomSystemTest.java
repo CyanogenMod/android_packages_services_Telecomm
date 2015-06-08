@@ -369,7 +369,7 @@ public class TelecomSystemTest extends TelecomTestCase {
 
         Bundle extras = new Bundle();
         extras.putParcelable(
-                TelephonyManager.EXTRA_INCOMING_NUMBER,
+                TelecomManager.EXTRA_INCOMING_CALL_ADDRESS,
                 Uri.fromParts(PhoneAccount.SCHEME_TEL, number, null));
         mTelecomSystem.getTelecomServiceImpl().getBinder()
                 .addNewIncomingCall(phoneAccountHandle, extras);
