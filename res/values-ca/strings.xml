@@ -40,8 +40,8 @@
     <string name="outgoing_call_error_no_phone_number_supplied" msgid="1940125199802007505">"Per realitzar una trucada, introdueix un número vàlid."</string>
     <string name="duplicate_video_call_not_allowed" msgid="3749211605014548386">"En aquest moment no es pot afegir la trucada."</string>
     <string name="video_call_not_allowed_if_tty_enabled" msgid="7593649283571253283">"Desactiva el mode de TTY per fer videotrucades."</string>
-    <string name="no_vm_number" msgid="4164780423805688336">"Falta el número de correu de veu"</string>
-    <string name="no_vm_number_msg" msgid="1300729501030053828">"No hi ha cap número de correu de veu emmagatzemat a la targeta SIM."</string>
+    <string name="no_vm_number" msgid="4164780423805688336">"Falta el número de la bústia de veu"</string>
+    <string name="no_vm_number_msg" msgid="1300729501030053828">"No hi ha cap número de bústia de veu emmagatzemat a la targeta SIM."</string>
     <string name="add_vm_number_str" msgid="4676479471644687453">"Afegeix número"</string>
     <string name="change_default_dialer_dialog_title" msgid="4430590714918044425">"Vols canviar l\'aplicació de marcador predeterminada?"</string>
     <string name="change_default_dialer_with_previous_app_set_text" msgid="3213396537499337949">"Vols fer servir <xliff:g id="NEW_APP">%1$s</xliff:g> en lloc de <xliff:g id="CURRENT_APP">%2$s</xliff:g> com a aplicació de marcador predeterminada?"</string>

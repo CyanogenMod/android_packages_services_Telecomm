@@ -22,7 +22,7 @@
     <string name="notification_missedCallsTitle" msgid="1361677948941502522">"Apeluri nepreluate"</string>
     <string name="notification_missedCallsMsg" msgid="4575787816055205600">"<xliff:g id="NUM_MISSED_CALLS">%s</xliff:g> (de) apeluri nepreluate"</string>
     <string name="notification_missedCallTicker" msgid="504686252427747209">"Apel nepreluat de la <xliff:g id="MISSED_CALL_FROM">%s</xliff:g>"</string>
-    <string name="notification_missedCall_call_back" msgid="2684890353590890187">"Sunaţi înapoi"</string>
+    <string name="notification_missedCall_call_back" msgid="2684890353590890187">"Sunați"</string>
     <string name="notification_missedCall_message" msgid="3049928912736917988">"Mesaj"</string>
     <string name="accessibility_call_muted" msgid="2776111226185342220">"Apel cu sunet dezactivat."</string>
     <string name="accessibility_speakerphone_enabled" msgid="1988512040421036359">"Difuzor activat."</string>
