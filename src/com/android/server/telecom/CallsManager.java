@@ -399,7 +399,7 @@ public class CallsManager extends Call.ListenerBase {
 
     boolean hasVideoCall() {
         for (Call call : mCalls) {
-            if (call.getVideoState() != VideoProfile.STATE_AUDIO_ONLY) {
+            if (VideoProfile.isVideo(call.getVideoState())) {
                 return true;
             }
         }
