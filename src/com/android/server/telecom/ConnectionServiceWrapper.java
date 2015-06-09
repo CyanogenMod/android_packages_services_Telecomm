@@ -762,7 +762,7 @@ final class ConnectionServiceWrapper extends ServiceBinder {
         if (callId != null && isServiceValid("answer")) {
             try {
                 logOutgoing("answer %s %d", callId, videoState);
-                if (videoState == VideoProfile.STATE_AUDIO_ONLY) {
+                if (VideoProfile.isAudioOnly(videoState)) {
                     mServiceInterface.answer(callId);
                 } else {
                     mServiceInterface.answerVideo(callId, videoState);

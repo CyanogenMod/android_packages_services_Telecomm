@@ -186,7 +186,7 @@ public class CallIntentProcessor {
             Intent intent) {
         int intentVideoState = intent.getIntExtra(TelecomManager.EXTRA_START_CALL_WITH_VIDEO_STATE,
                 VideoProfile.STATE_AUDIO_ONLY);
-        if (intentVideoState == VideoProfile.STATE_AUDIO_ONLY
+        if (VideoProfile.isAudioOnly(intentVideoState)
                 || !callsManager.hasVideoCall()) {
             return false;
         } else {
