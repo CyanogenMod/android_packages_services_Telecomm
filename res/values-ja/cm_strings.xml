@@ -16,7 +16,9 @@
      limitations under the License.
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+  <string name="blacklist_title">着信拒否リスト</string>
   <string name="blacklist_summary_disabled">無効</string>
+  <string name="blacklist_summary">着信拒否リストにある電話番号からの着信やメッセージを受け取らないようにする</string>
   <string name="blacklist_call_notification">%sからの着信をブロックしました</string>
   <string name="blacklist_call_notification_private_number">非通知番号からの着信をブロックしました</string>
   <string name="blacklist_call_notification_unknown_number">不明な番号「%s」からの着信をブロックしました</string>
