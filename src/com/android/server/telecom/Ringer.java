@@ -133,6 +133,7 @@ final class Ringer extends CallsManagerListenerBase {
     void silence() {
         // Remove all calls from the "ringing" set and then update the ringer.
         mRingingCalls.clear();
+        updateRinging();
     }
 
     private void onRespondedToIncomingCall(Call call) {
