@@ -349,7 +349,7 @@ public class MissedCallNotifierImpl extends CallsManagerListenerBase implements 
                                         null, null, null, null, true, false);
                                 call.setDisconnectCause(
                                         new DisconnectCause(DisconnectCause.MISSED));
-                                call.setState(CallState.DISCONNECTED);
+                                call.setState(CallState.DISCONNECTED, "throw away call");
                                 call.setCreationTimeMillis(date);
 
                                 // Listen for the update to the caller information before posting

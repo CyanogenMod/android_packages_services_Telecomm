@@ -215,7 +215,7 @@ public class CallsManager extends Call.ListenerBase {
     public void onSuccessfulOutgoingCall(Call call, int callState) {
         Log.v(this, "onSuccessfulOutgoingCall, %s", call);
 
-        setCallState(call, callState);
+        setCallState(call, callState, "successful outgoing call");
         if (!mCalls.contains(call)) {
             // Call was not added previously in startOutgoingCall due to it being a potential MMI
             // code, so add it now.
@@ -240,7 +240,7 @@ public class CallsManager extends Call.ListenerBase {
     @Override
     public void onSuccessfulIncomingCall(Call incomingCall) {
         Log.d(this, "onSuccessfulIncomingCall");
-        setCallState(incomingCall, CallState.RINGING);
+        setCallState(incomingCall, CallState.RINGING, "successful incoming call");
 
         if (hasMaximumRingingCalls()) {
             incomingCall.reject(false, null);
@@ -255,13 +255,13 @@ public class CallsManager extends Call.ListenerBase {
 
     @Override
     public void onFailedIncomingCall(Call call) {
-        setCallState(call, CallState.DISCONNECTED);
+        setCallState(call, CallState.DISCONNECTED, "failed incoming call");
         call.removeListener(this);
     }
 
     @Override
     public void onSuccessfulUnknownCall(Call call, int callState) {
-        setCallState(call, callState);
+        setCallState(call, callState, "successful unknown call");
         Log.i(this, "onSuccessfulUnknownCall for call %s", call);
         addCall(call);
     }
@@ -269,7 +269,7 @@ public class CallsManager extends Call.ListenerBase {
     @Override
     public void onFailedUnknownCall(Call call) {
         Log.i(this, "onFailedUnknownCall for call %s", call);
-        setCallState(call, CallState.DISCONNECTED);
+        setCallState(call, CallState.DISCONNECTED, "failed unknown call");
         call.removeListener(this);
     }
 
@@ -579,12 +579,12 @@ public class CallsManager extends Call.ListenerBase {
 
         if (needsAccountSelection) {
             // This is the state where the user is expected to select an account
-            call.setState(CallState.SELECT_PHONE_ACCOUNT);
+            call.setState(CallState.SELECT_PHONE_ACCOUNT, "needs account selection");
             // Create our own instance to modify (since extras may be Bundle.EMPTY)
             extras = new Bundle(extras);
             extras.putParcelableList(android.telecom.Call.AVAILABLE_PHONE_ACCOUNTS, accounts);
         } else {
-            call.setState(CallState.CONNECTING);
+            call.setState(CallState.CONNECTING, phoneAccountHandle.toString());
         }
 
         call.setIntentExtras(extras);
@@ -903,21 +903,21 @@ public class CallsManager extends Call.ListenerBase {
     }
 
     void markCallAsRinging(Call call) {
-        setCallState(call, CallState.RINGING);
+        setCallState(call, CallState.RINGING, "ringing set explicitly");
     }
 
     void markCallAsDialing(Call call) {
-        setCallState(call, CallState.DIALING);
+        setCallState(call, CallState.DIALING, "dialing set explicitly");
         maybeMoveToSpeakerPhone(call);
     }
 
     void markCallAsActive(Call call) {
-        setCallState(call, CallState.ACTIVE);
+        setCallState(call, CallState.ACTIVE, "active set explicitly");
         maybeMoveToSpeakerPhone(call);
     }
 
     void markCallAsOnHold(Call call) {
-        setCallState(call, CallState.ON_HOLD);
+        setCallState(call, CallState.ON_HOLD, "on-hold set explicitly");
     }
 
     /**
@@ -928,7 +928,7 @@ public class CallsManager extends Call.ListenerBase {
      */
     void markCallAsDisconnected(Call call, DisconnectCause disconnectCause) {
         call.setDisconnectCause(disconnectCause);
-        setCallState(call, CallState.DISCONNECTED);
+        setCallState(call, CallState.DISCONNECTED, "disconnected set explicitly");
     }
 
     /**
@@ -1117,7 +1117,8 @@ public class CallsManager extends Call.ListenerBase {
                 true /* isConference */,
                 connectTime);
 
-        setCallState(call, Call.getStateFromConnectionState(parcelableConference.getState()));
+        setCallState(call, Call.getStateFromConnectionState(parcelableConference.getState()),
+                "new conference call");
         call.setConnectionCapabilities(parcelableConference.getConnectionCapabilities());
         call.setVideoState(parcelableConference.getVideoState());
         call.setVideoProvider(parcelableConference.getVideoProvider());
@@ -1218,7 +1219,7 @@ public class CallsManager extends Call.ListenerBase {
      * @param call The call.
      * @param newState The new state of the call.
      */
-    private void setCallState(Call call, int newState) {
+    private void setCallState(Call call, int newState, String tag) {
         if (call == null) {
             return;
         }
@@ -1233,7 +1234,7 @@ public class CallsManager extends Call.ListenerBase {
             // into a well-defined state machine.
             // TODO: Define expected state transitions here, and log when an
             // unexpected transition occurs.
-            call.setState(newState);
+            call.setState(newState, tag);
 
             Trace.beginSection("onCallStateChanged");
             // Only broadcast state change for calls that are being tracked.
@@ -1486,7 +1487,8 @@ public class CallsManager extends Call.ListenerBase {
                 false /* isIncoming */,
                 false /* isConference */);
 
-        setCallState(call, Call.getStateFromConnectionState(connection.getState()));
+        setCallState(call, Call.getStateFromConnectionState(connection.getState()),
+                "existing connection");
         call.setConnectionCapabilities(connection.getConnectionCapabilities());
         call.setCallerDisplayName(connection.getCallerDisplayName(),
                 connection.getCallerDisplayNamePresentation());

@@ -529,6 +529,9 @@ public final class PhoneAccountRegistrar {
         if (oldAccount != null) {
             mState.accounts.remove(oldAccount);
             isEnabled = oldAccount.isEnabled();
+            Log.i(this, getAccountDiffString(account, oldAccount));
+        } else {
+            Log.i(this, "New phone account registered: " + account);
         }
 
         mState.accounts.add(account);
@@ -607,6 +610,39 @@ public final class PhoneAccountRegistrar {
     private void fireSimCallManagerChanged() {
         for (Listener l : mListeners) {
             l.onSimCallManagerChanged(this);
+        }
+    }
+
+    private String getAccountDiffString(PhoneAccount account1, PhoneAccount account2) {
+        if (account1 == null || account2 == null) {
+            return "Diff: " + account1 + ", " + account2;
+        }
+
+        StringBuffer sb = new StringBuffer();
+        sb.append("[").append(account1.getAccountHandle());
+        appendDiff(sb, "addr", account1.getAddress(), account2.getAddress());
+        appendDiff(sb, "cap", account1.getCapabilities(), account2.getCapabilities());
+        appendDiff(sb, "hl", account1.getHighlightColor(), account2.getHighlightColor());
+        appendDiff(sb, "icon", account1.getIcon(), account2.getIcon());
+        appendDiff(sb, "lbl", account1.getLabel(), account2.getLabel());
+        appendDiff(sb, "desc", account1.getShortDescription(), account2.getShortDescription());
+        appendDiff(sb, "subAddr", account1.getSubscriptionAddress(),
+                account2.getSubscriptionAddress());
+        appendDiff(sb, "uris", account1.getSupportedUriSchemes(),
+                account2.getSupportedUriSchemes());
+        sb.append("]");
+        return sb.toString();
+    }
+
+    private void appendDiff(StringBuffer sb, String attrName, Object obj1, Object obj2) {
+        if (!Objects.equals(obj1, obj2)) {
+            sb.append("(")
+                .append(attrName)
+                .append(": ")
+                .append(obj1)
+                .append(" -> ")
+                .append(obj2)
+                .append(")");
         }
     }
 

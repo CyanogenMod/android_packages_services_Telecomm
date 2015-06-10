@@ -505,7 +505,7 @@ public class Call implements CreateConnectionResponse {
      * misbehave and they do this very often. The result is that we do not enforce state transitions
      * and instead keep the code resilient to unexpected state changes.
      */
-    public void setState(int newState) {
+    public void setState(int newState, String tag) {
         if (mState != newState) {
             Log.v(this, "setState %s -> %s", mState, newState);
 
@@ -543,6 +543,46 @@ public class Call implements CreateConnectionResponse {
                     mDisconnectCause.getCode() == DisconnectCause.MISSED) {
                 // Ensure when an incoming call is missed that the video state history is updated.
                 mVideoStateHistory |= mVideoState;
+            }
+
+            // Log the state transition event
+            String event = null;
+            Object data = null;
+            switch (newState) {
+                case CallState.ACTIVE:
+                    event = Log.Events.SET_ACTIVE;
+                    break;
+                case CallState.CONNECTING:
+                    event = Log.Events.SET_CONNECTING;
+                    break;
+                case CallState.DIALING:
+                    event = Log.Events.SET_DIALING;
+                    break;
+                case CallState.DISCONNECTED:
+                    event = Log.Events.SET_DISCONNECTED;
+                    data = getDisconnectCause();
+                    break;
+                case CallState.DISCONNECTING:
+                    event = Log.Events.SET_DISCONNECTING;
+                    break;
+                case CallState.ON_HOLD:
+                    event = Log.Events.SET_HOLD;
+                    break;
+                case CallState.SELECT_PHONE_ACCOUNT:
+                    event = Log.Events.SET_SELECT_PHONE_ACCOUNT;
+                    break;
+                case CallState.RINGING:
+                    event = Log.Events.SET_RINGING;
+                    break;
+            }
+            if (event != null) {
+                // The string data should be just the tag.
+                String stringData = tag;
+                if (data != null) {
+                    // If data exists, add it to tag.  If no tag, just use data.toString().
+                    stringData = stringData == null ? data.toString() : stringData + "> " + data;
+                }
+                Log.event(this, event, stringData);
             }
         }
     }
@@ -821,7 +861,7 @@ public class Call implements CreateConnectionResponse {
                 Log.i(this, "Directing call to voicemail: %s.", this);
                 // TODO: Once we move State handling from CallsManager to Call, we
                 // will not need to set STATE_RINGING state prior to calling reject.
-                setState(CallState.RINGING);
+                setState(CallState.RINGING, "directing to voicemail");
                 reject(false, null);
             } else {
                 // TODO: Make this class (not CallsManager) responsible for changing
