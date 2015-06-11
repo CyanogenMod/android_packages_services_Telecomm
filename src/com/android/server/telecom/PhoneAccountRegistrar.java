@@ -117,7 +117,7 @@ public final class PhoneAccountRegistrar {
 
     private static final String FILE_NAME = "phone-account-registrar-state.xml";
     @VisibleForTesting
-    public static final int EXPECTED_STATE_VERSION = 6;
+    public static final int EXPECTED_STATE_VERSION = 7;
 
     /** Keep in sync with the same in SipSettings.java */
     private static final String SIP_SHARED_PREFERENCES = "SIP_PREFERENCES";
@@ -1203,6 +1203,8 @@ public final class PhoneAccountRegistrar {
                     }
                 }
 
+                ComponentName pstnComponentName = new ComponentName("com.android.phone",
+                        "com.android.services.telephony.TelephonyConnectionService");
                 ComponentName sipComponentName = new ComponentName("com.android.phone",
                         "com.android.services.telephony.sip.SipConnectionService");
 
@@ -1234,6 +1236,12 @@ public final class PhoneAccountRegistrar {
                 if (version < 6) {
                     // Always enable all SIP accounts on upgrade to version 6
                     if (accountHandle.getComponentName().equals(sipComponentName)) {
+                        enabled = true;
+                    }
+                }
+                if (version < 7) {
+                    // Always enabled all PSTN acocunts on upgrade to version 7
+                    if (accountHandle.getComponentName().equals(pstnComponentName)) {
                         enabled = true;
                     }
                 }
