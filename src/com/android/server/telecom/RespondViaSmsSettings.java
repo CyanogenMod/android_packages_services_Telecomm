@@ -24,6 +24,7 @@ import android.os.Bundle;
 import android.preference.EditTextPreference;
 import android.preference.Preference;
 import android.preference.PreferenceActivity;
+import android.preference.PreferenceScreen;
 import android.view.Menu;
 import android.view.MenuItem;
 
@@ -37,6 +38,9 @@ import android.view.MenuItem;
  */
 public class RespondViaSmsSettings extends PreferenceActivity
         implements Preference.OnPreferenceChangeListener {
+
+    private SharedPreferences mPrefs;
+
     @Override
     protected void onCreate(Bundle icicle) {
         super.onCreate(icicle);
@@ -47,8 +51,18 @@ public class RespondViaSmsSettings extends PreferenceActivity
         // old QuickResponses in Telephony pre L.
         QuickResponseUtils.maybeMigrateLegacyQuickResponses(this);
 
-        getPreferenceManager().setSharedPreferencesName(
-                QuickResponseUtils.SHARED_PREFERENCES_NAME);
+        getPreferenceManager().setSharedPreferencesName(QuickResponseUtils.SHARED_PREFERENCES_NAME);
+        mPrefs = getPreferenceManager().getSharedPreferences();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+
+        PreferenceScreen preferenceScreen = getPreferenceScreen();
+        if (preferenceScreen != null) {
+            preferenceScreen.removeAll();
+        }
 
         // This preference screen is ultra-simple; it's just 4 plain
         // <EditTextPreference>s, one for each of the 4 "canned responses".
@@ -62,27 +76,10 @@ public class RespondViaSmsSettings extends PreferenceActivity
         // title any time the user edits one of the strings.)
 
         addPreferencesFromResource(R.xml.respond_via_sms_settings);
-
-        EditTextPreference pref;
-        pref = (EditTextPreference) findPreference(
-                QuickResponseUtils.KEY_CANNED_RESPONSE_PREF_1);
-        pref.setTitle(pref.getText());
-        pref.setOnPreferenceChangeListener(this);
-
-        pref = (EditTextPreference) findPreference(
-                QuickResponseUtils.KEY_CANNED_RESPONSE_PREF_2);
-        pref.setTitle(pref.getText());
-        pref.setOnPreferenceChangeListener(this);
-
-        pref = (EditTextPreference) findPreference(
-                QuickResponseUtils.KEY_CANNED_RESPONSE_PREF_3);
-        pref.setTitle(pref.getText());
-        pref.setOnPreferenceChangeListener(this);
-
-        pref = (EditTextPreference) findPreference(
-                QuickResponseUtils.KEY_CANNED_RESPONSE_PREF_4);
-        pref.setTitle(pref.getText());
-        pref.setOnPreferenceChangeListener(this);
+        initPref(findPreference(QuickResponseUtils.KEY_CANNED_RESPONSE_PREF_1));
+        initPref(findPreference(QuickResponseUtils.KEY_CANNED_RESPONSE_PREF_2));
+        initPref(findPreference(QuickResponseUtils.KEY_CANNED_RESPONSE_PREF_3));
+        initPref(findPreference(QuickResponseUtils.KEY_CANNED_RESPONSE_PREF_4));
 
         ActionBar actionBar = getActionBar();
         if (actionBar != null) {
@@ -106,6 +103,10 @@ public class RespondViaSmsSettings extends PreferenceActivity
         // rather than pref.getText().)
         pref.setTitle((String) newValue);
 
+        // Save the new preference value.
+        SharedPreferences.Editor editor = mPrefs.edit();
+        editor.putString(pref.getKey(), (String) newValue).commit();
+
         return true;  // means it's OK to update the state of the Preference with the new value
     }
 
@@ -126,5 +127,15 @@ public class RespondViaSmsSettings extends PreferenceActivity
      */
     public static void goUpToTopLevelSetting(Activity activity) {
         activity.finish();
-     }
+    }
+
+    /**
+     * Initialize the preference to the persisted preference value or default text.
+     */
+    private void initPref(Preference preference) {
+        EditTextPreference pref = (EditTextPreference) preference;
+        pref.setText(mPrefs.getString(pref.getKey(), pref.getText()));
+        pref.setTitle(pref.getText());
+        pref.setOnPreferenceChangeListener(this);
+    }
 }
