@@ -68,6 +68,8 @@ public class Log {
         public static final String STOP_DTMF = "STOP_DTMF";
         public static final String START_RINGER = "START_RINGER";
         public static final String STOP_RINGER = "STOP_RINGER";
+        public static final String START_CALL_WAITING_TONE = "START_CALL_WAITING_TONE";
+        public static final String STOP_CALL_WAITING_TONE = "STOP_CALL_WAITING_TONE";
 
         /**
          * Maps from a request to a response.  The same event could be listed as the
