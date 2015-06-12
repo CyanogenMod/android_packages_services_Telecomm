@@ -23,11 +23,13 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.RemoteException;
 import android.os.Trace;
 import android.provider.ContactsContract.Contacts;
 import android.telecom.DisconnectCause;
 import android.telecom.Connection;
 import android.telecom.GatewayInfo;
+import android.telecom.InCallService.VideoCall;
 import android.telecom.ParcelableConnection;
 import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
@@ -306,6 +308,7 @@ public class Call implements CreateConnectionResponse {
     private boolean mCannedSmsResponsesLoadingStarted = false;
 
     private IVideoProvider mVideoProvider;
+    private VideoProviderProxy mVideoProviderProxy;
 
     private boolean mIsVoipAudioMode;
     private StatusHints mStatusHints;
@@ -1466,17 +1469,41 @@ public class Call implements CreateConnectionResponse {
      * Sets a video call provider for the call.
      */
     public void setVideoProvider(IVideoProvider videoProvider) {
+        Log.v(this, "setVideoProvider");
+
+        if (videoProvider != null ) {
+            try {
+                mVideoProviderProxy = new VideoProviderProxy(mLock, videoProvider, this);
+            } catch (RemoteException ignored) {
+                // Ignore RemoteException.
+            }
+        } else {
+            mVideoProviderProxy = null;
+        }
+
         mVideoProvider = videoProvider;
+
         for (Listener l : mListeners) {
             l.onVideoCallProviderChanged(Call.this);
         }
     }
 
     /**
-     * @return Return the {@link Connection.VideoProvider} binder.
+     * @return The {@link Connection.VideoProvider} binder.
      */
     public IVideoProvider getVideoProvider() {
-        return mVideoProvider;
+        if (mVideoProviderProxy == null) {
+            return null;
+        }
+
+        return mVideoProviderProxy.getInterface();
+    }
+
+    /**
+     * @return The {@link VideoProviderProxy} for this call.
+     */
+    public VideoProviderProxy getVideoProviderProxy() {
+        return mVideoProviderProxy;
     }
 
     /**
