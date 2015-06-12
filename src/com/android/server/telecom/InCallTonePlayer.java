@@ -60,6 +60,7 @@ public final class InCallTonePlayer extends Thread {
     public static final int TONE_RING_BACK = 11;
     public static final int TONE_UNOBTAINABLE_NUMBER = 12;
     public static final int TONE_VOICE_PRIVACY = 13;
+    public static final int TONE_VIDEO_UPGRADE = 14;
 
     private static final int RELATIVE_VOLUME_EMERGENCY = 100;
     private static final int RELATIVE_VOLUME_HIPRI = 80;
@@ -183,6 +184,12 @@ public final class InCallTonePlayer extends Thread {
                 case TONE_VOICE_PRIVACY:
                     // TODO: fill in.
                     throw new IllegalStateException("Voice privacy tone NYI.");
+                case TONE_VIDEO_UPGRADE:
+                    // Similar to the call waiting tone, but does not repeat.
+                    toneType = ToneGenerator.TONE_SUP_CALL_WAITING;
+                    toneVolume = RELATIVE_VOLUME_HIPRI;
+                    toneLengthMillis = 4000;
+                    break;
                 default:
                     throw new IllegalStateException("Bad toneId: " + mToneId);
             }
