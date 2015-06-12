@@ -34,6 +34,12 @@ public class TestInCallServiceBroadcastReceiver extends BroadcastReceiver {
             "android.server.telecom.testapps.ACTION_SEND_UPDATE_REQUEST_FROM_TEST_INCALL_SERVICE";
 
     /**
+     * Sends an a response to an upgrade to video request.
+     */
+    public static final String ACTION_SEND_UPGRADE_RESPONSE =
+            "android.server.telecom.testapps.ACTION_SEND_UPGRADE_RESPONSE";
+
+    /**
      * Handles broadcasts directed at the {@link TestInCallServiceImpl}.
      *
      * @param context The Context in which the receiver is running.
@@ -47,6 +53,9 @@ public class TestInCallServiceBroadcastReceiver extends BroadcastReceiver {
         if (ACTION_SEND_UPDATE_REQUEST_FROM_TEST_INCALL_SERVICE.equals(action)) {
             final int videoState = Integer.parseInt(intent.getData().getSchemeSpecificPart());
             TestCallList.getInstance().sendUpgradeToVideoRequest(videoState);
+        } else if (ACTION_SEND_UPGRADE_RESPONSE.equals(action)) {
+            final int videoState = Integer.parseInt(intent.getData().getSchemeSpecificPart());
+            TestCallList.getInstance().sendUpgradeToVideoResponse(videoState);
         }
     }
 }
