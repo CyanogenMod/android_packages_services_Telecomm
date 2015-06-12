@@ -144,6 +144,26 @@ public class TestCallList extends Call.Listener {
         }
     }
 
+    /**
+     * For any video calls which are active, sends an upgrade to video response with the specified
+     * video state.
+     *
+     * @param videoState The video state to respond with.
+     */
+    public void sendUpgradeToVideoResponse(int videoState) {
+        Log.v(TAG, "sendUpgradeToVideoResponse : videoState = " + videoState);
+
+        for (Call call : mCalls) {
+            InCallService.VideoCall videoCall = call.getVideoCall();
+            if (videoCall == null) {
+                continue;
+            }
+
+            Log.v(TAG, "send upgrade to video response for call: " + call);
+            videoCall.sendSessionModifyResponse(new VideoProfile(videoState));
+        }
+    }
+
     @Override
     public void onVideoCallChanged(Call call, InCallService.VideoCall videoCall) {
         Log.v(TAG, "onVideoCallChanged: call = " + call + " " + System.identityHashCode(this));
