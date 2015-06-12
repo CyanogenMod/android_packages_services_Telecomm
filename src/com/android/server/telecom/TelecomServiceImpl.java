@@ -309,6 +309,11 @@ public class TelecomServiceImpl {
         @Override
         public void registerPhoneAccount(PhoneAccount account) {
             synchronized (mLock) {
+                if (!mContext.getApplicationContext().getResources().getBoolean(
+                        com.android.internal.R.bool.config_voice_capable)) {
+                    Log.w(this, "registerPhoneAccount not allowed on non-voice capable device.");
+                    return;
+                }
                 try {
                     enforcePhoneAccountModificationForPackage(
                             account.getAccountHandle().getComponentName().getPackageName());
