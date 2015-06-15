@@ -18,7 +18,6 @@ package com.android.server.telecom.components;
 
 import android.content.Context;
 import android.content.DialogInterface;
-import android.content.Intent;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
@@ -65,8 +64,7 @@ public class ChangeDefaultDialerDialog extends AlertActivity implements
     public void onClick(DialogInterface dialog, int which) {
         switch (which) {
             case BUTTON_POSITIVE:
-                DefaultDialerManager.setDefaultDialerApplication(ChangeDefaultDialerDialog.this,
-                        mNewPackage);
+                TelecomManager.from(this).setDefaultDialer(mNewPackage);
                 setResult(RESULT_OK);
                 break;
             case BUTTON_NEGATIVE:

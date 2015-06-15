@@ -24,6 +24,7 @@ import static android.Manifest.permission.REGISTER_CONNECTION_MANAGER;
 import static android.Manifest.permission.REGISTER_SIM_SUBSCRIPTION;
 import static android.Manifest.permission.WRITE_SECURE_SETTINGS;
 
+import android.app.ActivityManager;
 import android.app.AppOpsManager;
 import android.content.ComponentName;
 import android.content.Context;
@@ -859,7 +860,17 @@ public class TelecomServiceImpl {
             synchronized (mLock) {
                 long token  = Binder.clearCallingIdentity();
                 try {
-                    return DefaultDialerManager.setDefaultDialerApplication(mContext, packageName);
+                    final boolean result =
+                            DefaultDialerManager.setDefaultDialerApplication(mContext, packageName);
+                    if (result) {
+                        final Intent intent =
+                                new Intent(TelecomManager.ACTION_DEFAULT_DIALER_CHANGED);
+                        intent.putExtra(TelecomManager.EXTRA_CHANGE_DEFAULT_DIALER_PACKAGE_NAME,
+                                packageName);
+                        mContext.sendBroadcastAsUser(intent,
+                                new UserHandle(ActivityManager.getCurrentUser()));
+                    }
+                    return result;
                 } finally {
                     Binder.restoreCallingIdentity(token);
                 }
