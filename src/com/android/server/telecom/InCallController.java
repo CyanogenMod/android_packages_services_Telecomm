@@ -273,7 +273,11 @@ public final class InCallController extends CallsManagerListenerBase {
         while (iterator.hasNext()) {
             final Map.Entry<ComponentName, InCallServiceConnection> entry = iterator.next();
             Log.i(this, "Unbinding from InCallService %s", entry.getKey());
-            mContext.unbindService(entry.getValue());
+            try {
+                mContext.unbindService(entry.getValue());
+            } catch (Exception e) {
+                Log.e(this, e, "Exception while unbinding from InCallService");
+            }
             iterator.remove();
         }
         mInCallServices.clear();
