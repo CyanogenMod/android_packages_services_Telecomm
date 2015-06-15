@@ -745,14 +745,19 @@ public class TelecomServiceImpl {
                 Log.i(this, "Adding new incoming call with phoneAccountHandle %s",
                         phoneAccountHandle);
                 if (phoneAccountHandle != null && phoneAccountHandle.getComponentName() != null) {
-                    mAppOpsManager.checkPackage(
-                            Binder.getCallingUid(),
-                            phoneAccountHandle.getComponentName().getPackageName());
+                    // TODO(sail): Add unit tests for adding incoming calls from a SIM call manager.
+                    if (isCallerSimCallManager() && TelephonyUtil.isPstnComponentName(
+                            phoneAccountHandle.getComponentName())) {
+                        Log.v(this, "Allowing call manager to add incoming call with PSTN handle");
+                    } else {
+                        mAppOpsManager.checkPackage(
+                                Binder.getCallingUid(),
+                                phoneAccountHandle.getComponentName().getPackageName());
+                        // Make sure it doesn't cross the UserHandle boundary
+                        enforceUserHandleMatchesCaller(phoneAccountHandle);
+                    }
 
-                    // Make sure it doesn't cross the UserHandle boundary
-                    enforceUserHandleMatchesCaller(phoneAccountHandle);
                     long token = Binder.clearCallingIdentity();
-
                     try {
                         Intent intent = new Intent(TelecomManager.ACTION_INCOMING_CALL);
                         intent.putExtra(TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE,
