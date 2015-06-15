@@ -19,8 +19,6 @@ package com.android.server.telecom;
 import static android.Manifest.permission.CALL_PHONE;
 import static android.Manifest.permission.MODIFY_PHONE_STATE;
 import static android.Manifest.permission.READ_PHONE_STATE;
-import static android.Manifest.permission.REGISTER_CALL_PROVIDER;
-import static android.Manifest.permission.REGISTER_CONNECTION_MANAGER;
 import static android.Manifest.permission.REGISTER_SIM_SUBSCRIPTION;
 import static android.Manifest.permission.WRITE_SECURE_SETTINGS;
 
@@ -1084,16 +1082,8 @@ public class TelecomServiceImpl {
         enforceFeature(PackageManager.FEATURE_CONNECTION_SERVICE);
     }
 
-    private void enforceRegisterCallProviderPermission() {
-        enforcePermission(REGISTER_CALL_PROVIDER);
-    }
-
     private void enforceRegisterSimSubscriptionPermission() {
         enforcePermission(REGISTER_SIM_SUBSCRIPTION);
-    }
-
-    private void enforceRegisterConnectionManagerPermission() {
-        enforcePermission(REGISTER_CONNECTION_MANAGER);
     }
 
     private void enforceModifyPermission() {
