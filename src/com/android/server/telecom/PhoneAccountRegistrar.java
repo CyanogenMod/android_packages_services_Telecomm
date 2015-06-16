@@ -29,6 +29,7 @@ import android.graphics.BitmapFactory;
 import android.graphics.drawable.Icon;
 import android.net.Uri;
 import android.os.Binder;
+import android.os.PersistableBundle;
 import android.os.Process;
 import android.os.UserHandle;
 import android.os.UserManager;
@@ -36,6 +37,7 @@ import android.provider.Settings;
 import android.telecom.ConnectionService;
 import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
+import android.telephony.CarrierConfigManager;
 import android.telephony.PhoneNumberUtils;
 import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
@@ -300,11 +302,24 @@ public final class PhoneAccountRegistrar {
             return mState.simCallManager;
         }
 
-        // We have no set call manager, but check to see if the OEM has specified a default one.
-        String defaultConnectionMgr =
-                mContext.getResources().getString(R.string.default_connection_manager_component);
-        if (!TextUtils.isEmpty(defaultConnectionMgr)) {
-            ComponentName componentName = ComponentName.unflattenFromString(defaultConnectionMgr);
+        // Check carrier config.
+        String defaultSimCallManager = null;
+        CarrierConfigManager configManager = (CarrierConfigManager) mContext.getSystemService(
+                Context.CARRIER_CONFIG_SERVICE);
+        PersistableBundle configBundle = configManager.getConfig();
+        if (configBundle != null) {
+            defaultSimCallManager = configBundle.getString(
+                    CarrierConfigManager.KEY_DEFAULT_SIM_CALL_MANAGER_STRING);
+        }
+
+        // Check OEM config. TODO: Remove this once the carrier config value is set.
+        if (TextUtils.isEmpty(defaultSimCallManager)) {
+            defaultSimCallManager = mContext.getResources().getString(
+                    R.string.default_connection_manager_component);
+        }
+
+        if (!TextUtils.isEmpty(defaultSimCallManager)) {
+            ComponentName componentName = ComponentName.unflattenFromString(defaultSimCallManager);
             if (componentName == null) {
                 return null;
             }
