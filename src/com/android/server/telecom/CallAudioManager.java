@@ -312,6 +312,15 @@ final class CallAudioManager extends CallsManagerListenerBase
         if (wasNotVoiceCall && mAudioFocusStreamType == AudioManager.STREAM_VOICE_CALL) {
             setInitialAudioState(call, true /* force */);
         }
+
+        if (call != null
+                && mAudioManager.getRingerMode() != AudioManager.RINGER_MODE_NORMAL
+                && call.getState() == CallState.RINGING
+                && mAudioFocusStreamType != AudioManager.STREAM_RING) {
+            // HeadStateMachine will actually suspend a2dp while there's an incoming call.
+            // sync up the audio mode here so any playing media will pause itself
+            requestAudioFocusAndSetMode(AudioManager.STREAM_RING, AudioManager.MODE_RINGTONE);
+        }
     }
 
     private void setSystemAudioState(boolean isMuted, int route, int supportedRouteMask) {
