@@ -312,12 +312,6 @@ public final class PhoneAccountRegistrar {
                     CarrierConfigManager.KEY_DEFAULT_SIM_CALL_MANAGER_STRING);
         }
 
-        // Check OEM config. TODO: Remove this once the carrier config value is set.
-        if (TextUtils.isEmpty(defaultSimCallManager)) {
-            defaultSimCallManager = mContext.getResources().getString(
-                    R.string.default_connection_manager_component);
-        }
-
         if (!TextUtils.isEmpty(defaultSimCallManager)) {
             ComponentName componentName = ComponentName.unflattenFromString(defaultSimCallManager);
             if (componentName == null) {
