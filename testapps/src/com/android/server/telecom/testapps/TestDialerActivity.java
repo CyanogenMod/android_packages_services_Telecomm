@@ -9,6 +9,7 @@ import android.os.Bundle;
 import android.provider.CallLog.Calls;
 import android.telecom.PhoneAccount;
 import android.telecom.TelecomManager;
+import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.EditText;
@@ -91,7 +92,7 @@ public class TestDialerActivity extends Activity {
         final TelecomManager telecomManager =
                 (TelecomManager) getSystemService(Context.TELECOM_SERVICE);
         telecomManager.placeCall(Uri.fromParts(PhoneAccount.SCHEME_TEL,
-                mNumberView.getText().toString(), null), null);
+                mNumberView.getText().toString(), null), createCallIntentExtras());
     }
 
     private void testVoicemail() {
@@ -122,5 +123,15 @@ public class TestDialerActivity extends Activity {
             return;
         }
         Toast.makeText(this, "Privileged dialer operation succeeded", Toast.LENGTH_SHORT).show();
+    }
+
+    private Bundle createCallIntentExtras() {
+        Bundle extras = new Bundle();
+        extras.putString("com.android.server.telecom.testapps.CALL_EXTRAS", "Yorke was here");
+
+        Bundle intentExtras = new Bundle();
+        intentExtras.putBundle(TelecomManager.EXTRA_OUTGOING_CALL_EXTRAS, extras);
+        Log.i("Santos xtr", intentExtras.toString());
+        return intentExtras;
     }
 }
