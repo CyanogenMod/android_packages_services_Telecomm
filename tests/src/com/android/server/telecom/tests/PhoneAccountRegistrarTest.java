@@ -141,42 +141,7 @@ public class PhoneAccountRegistrarTest extends TelecomTestCase {
     }
 
     public void testSimCallManager() throws Exception {
-        mComponentContextFixture.addConnectionService(
-                makeQuickConnectionServiceComponentName(),
-                Mockito.mock(IConnectionService.class));
-
-        PhoneAccountHandle simManager = makeQuickAccountHandle("sim_mgr");
-        PhoneAccount simManagerAccount = new PhoneAccount.Builder(simManager, "sim_mgr")
-                .setCapabilities(PhoneAccount.CAPABILITY_CALL_PROVIDER
-                        | PhoneAccount.CAPABILITY_CONNECTION_MANAGER)
-                .build();
-        registerAndEnableAccount(simManagerAccount);
-        assertNull(mRegistrar.getSimCallManager());
-
-        // Test the basic case
-        mRegistrar.setSimCallManager(simManager);
-        assertEquals(simManager, mRegistrar.getSimCallManager());
-
-        // Make sure clearing it works, too
-        mRegistrar.unregisterPhoneAccount(simManager);
-        assertNull(mRegistrar.getSimCallManager());
-
-        // Re-registering it makes the setting come back
-        registerAndEnableAccount(simManagerAccount);
-        assertEquals(simManager, mRegistrar.getSimCallManager());
-
-        // Make sure that the manager has CAPABILITY_CONNECTION_MANAGER
-        PhoneAccountHandle simManagerImposter = makeQuickAccountHandle("imposter");
-        PhoneAccount simManagerImposterAccount =
-                new PhoneAccount.Builder(simManagerImposter, "imposter")
-                .setCapabilities(PhoneAccount.CAPABILITY_CALL_PROVIDER)
-                .build();
-        mRegistrar.registerPhoneAccount(simManagerImposterAccount);
-
-        mRegistrar.setSimCallManager(null);
-        assertNull(mRegistrar.getSimCallManager());
-        mRegistrar.setSimCallManager(simManagerImposter);
-        assertNull(mRegistrar.getSimCallManager());
+        // TODO
     }
 
     public void testDefaultOutgoing() throws Exception {
@@ -374,7 +339,6 @@ public class PhoneAccountRegistrarTest extends TelecomTestCase {
     private static void assertStateEquals(
             PhoneAccountRegistrar.State a, PhoneAccountRegistrar.State b) {
         assertPhoneAccountHandleEquals(a.defaultOutgoing, b.defaultOutgoing);
-        assertPhoneAccountHandleEquals(a.simCallManager, b.simCallManager);
         assertEquals(a.accounts.size(), b.accounts.size());
         for (int i = 0; i < a.accounts.size(); i++) {
             assertPhoneAccountEquals(a.accounts.get(i), b.accounts.get(i));
@@ -387,7 +351,6 @@ public class PhoneAccountRegistrarTest extends TelecomTestCase {
         s.accounts.add(makeQuickAccount("id1", 1));
         s.accounts.add(makeQuickAccount("id2", 2));
         s.defaultOutgoing = new PhoneAccountHandle(new ComponentName("pkg0", "cls0"), "id0");
-        s.simCallManager = new PhoneAccountHandle(new ComponentName("pkg0", "cls0"), "id1");
         return s;
     }
 }

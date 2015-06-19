@@ -35,6 +35,7 @@ import android.os.UserHandle;
 import android.os.UserManager;
 import android.provider.Settings;
 import android.telecom.ConnectionService;
+import android.telecom.DefaultDialerManager;
 import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
 import android.telephony.CarrierConfigManager;
@@ -264,43 +265,18 @@ public final class PhoneAccountRegistrar {
                 SubscriptionManager.getDefaultSmsSubId();
     }
 
-    public void setSimCallManager(PhoneAccountHandle callManager) {
-        if (callManager != null) {
-            // TODO: Do we really want to return for *any* user?
-            PhoneAccount callManagerAccount = getPhoneAccount(callManager);
-            if (callManagerAccount == null) {
-                Log.d(this, "setSimCallManager: Nonexistent call manager: %s", callManager);
-                return;
-            } else if (!callManagerAccount.hasCapabilities(
-                    PhoneAccount.CAPABILITY_CONNECTION_MANAGER)) {
-                Log.d(this, "setSimCallManager: Not a call manager: %s", callManagerAccount);
-                return;
-            }
-        } else {
-            callManager = NO_ACCOUNT_SELECTED;
-        }
-        mState.simCallManager = callManager;
-
-        write();
-        fireSimCallManagerChanged();
-    }
-
     /**
-     * @return The {@link PhoneAccount}s which are visible to {@link #mCurrentUserHandle}.
+     * Returns the {@link PhoneAccountHandle} corresponding to the currently active SIM Call
+     * Manager. SIM Call Manager returned corresponds to the following priority order:
+     * 1. If a SIM Call Manager {@link PhoneAccount} is registered for the same package as the
+     * default dialer, then that one is returned.
+     * 2. If there is a SIM Call Manager {@link PhoneAccount} registered which matches the
+     * carrier configuration's default, then that one is returned.
+     * 3. Otherwise, we return null.
      */
     public PhoneAccountHandle getSimCallManager() {
-        // If the "None" account was selected, return null (symmetry with setSimCallManager).
-        if (NO_ACCOUNT_SELECTED.equals(mState.simCallManager)) {
-            return null;
-        }
-
-        PhoneAccount account = getPhoneAccountCheckCallingUser(mState.simCallManager);
-
-        // Return the registered sim call manager iff it still exists (we keep a sticky
-        // setting to survive account deletion and re-addition)
-        if (account != null && !resolveComponent(mState.simCallManager).isEmpty()) {
-            return mState.simCallManager;
-        }
+        // Get the default dialer in case it has a connection manager associated with it.
+        String dialerPackage = DefaultDialerManager.getDefaultDialerApplication(mContext);
 
         // Check carrier config.
         String defaultSimCallManager = null;
@@ -312,33 +288,39 @@ public final class PhoneAccountRegistrar {
                     CarrierConfigManager.KEY_DEFAULT_SIM_CALL_MANAGER_STRING);
         }
 
-        if (!TextUtils.isEmpty(defaultSimCallManager)) {
-            ComponentName componentName = ComponentName.unflattenFromString(defaultSimCallManager);
-            if (componentName == null) {
-                return null;
-            }
+        ComponentName systemSimCallManagerComponent = TextUtils.isEmpty(defaultSimCallManager) ?
+                null : ComponentName.unflattenFromString(defaultSimCallManager);
 
-            // Make sure that the component can be resolved.
-            List<ResolveInfo> resolveInfos = resolveComponent(componentName, null);
-            if (resolveInfos.isEmpty()) {
-                resolveInfos = resolveComponent(componentName, Binder.getCallingUserHandle());
-            }
+        PhoneAccountHandle dialerSimCallManager = null;
+        PhoneAccountHandle systemSimCallManager = null;
 
-            if (!resolveInfos.isEmpty()) {
-                // See if there is registered PhoneAccount by this component.
-                List<PhoneAccountHandle> handles = getPhoneAccountHandles(0, null, null, true);
-                for (PhoneAccountHandle handle : handles) {
-                    if (componentName.equals(handle.getComponentName())) {
-                        return handle;
-                    }
+        if (!TextUtils.isEmpty(dialerPackage) || systemSimCallManagerComponent != null) {
+            // loop through and look for any connection manager in the same package.
+            List<PhoneAccountHandle> allSimCallManagers = getPhoneAccountHandles(
+                    PhoneAccount.CAPABILITY_CONNECTION_MANAGER, null, null,
+                    true /* includeDisabledAccounts */);
+            for (PhoneAccountHandle accountHandle : allSimCallManagers) {
+                ComponentName component = accountHandle.getComponentName();
+
+                // Store the system connection manager if found
+                if (systemSimCallManager == null
+                        && Objects.equals(component, systemSimCallManagerComponent)
+                        && !resolveComponent(accountHandle).isEmpty()) {
+                    systemSimCallManager = accountHandle;
+
+                // Store the dialer connection manager if found
+                } else if (dialerSimCallManager == null
+                        && Objects.equals(component.getPackageName(), dialerPackage)
+                        && !resolveComponent(accountHandle).isEmpty()) {
+                    dialerSimCallManager = accountHandle;
                 }
-                Log.d(this, "%s does not have a PhoneAccount; not using as default", componentName);
-            } else {
-                Log.d(this, "%s could not be resolved; not using as default", componentName);
             }
-        } else {
-            Log.v(this, "No default connection manager specified");
         }
+
+        PhoneAccountHandle retval = dialerSimCallManager != null ?
+                dialerSimCallManager : systemSimCallManager;
+
+        Log.i(this, "SimCallManager queried, returning: %s", retval);
 
         return null;
     }
@@ -493,15 +475,6 @@ public final class PhoneAccountRegistrar {
      */
     public List<PhoneAccountHandle> getPhoneAccountsForPackage(String packageName) {
         return getPhoneAccountHandles(0, null, packageName, false);
-    }
-
-    /**
-     * Retrieves a list of all phone account handles with the connection manager capability.
-     *
-     * @return The phone account handles.
-     */
-    public List<PhoneAccountHandle> getConnectionManagerPhoneAccounts() {
-        return getPhoneAccountHandles(PhoneAccount.CAPABILITY_CONNECTION_MANAGER, null, null, true);
     }
 
     // TODO: Should we implement an artificial limit for # of accounts associated with a single
@@ -801,12 +774,6 @@ public final class PhoneAccountRegistrar {
         public PhoneAccountHandle defaultOutgoing = null;
 
         /**
-         * A {@code PhoneAccount} having {@link PhoneAccount#CAPABILITY_CONNECTION_MANAGER} which
-         * manages and optimizes a user's PSTN SIM connections.
-         */
-        public PhoneAccountHandle simCallManager;
-
-        /**
          * The complete list of {@code PhoneAccount}s known to the Telecom subsystem.
          */
         public final List<PhoneAccount> accounts = new ArrayList<>();
@@ -827,8 +794,7 @@ public final class PhoneAccountRegistrar {
             pw.println("xmlVersion: " + mState.versionNumber);
             pw.println("defaultOutgoing: " + (mState.defaultOutgoing == null ? "none" :
                     mState.defaultOutgoing));
-            pw.println("simCallManager: " + (mState.simCallManager == null ? "none" :
-                    mState.simCallManager));
+            pw.println("simCallManager: " + getSimCallManager());
             pw.println("phoneAccounts:");
             pw.increaseIndent();
             for (PhoneAccount phoneAccount : mState.accounts) {
@@ -1058,7 +1024,6 @@ public final class PhoneAccountRegistrar {
             new XmlSerialization<State>() {
         private static final String CLASS_STATE = "phone_account_registrar_state";
         private static final String DEFAULT_OUTGOING = "default_outgoing";
-        private static final String SIM_CALL_MANAGER = "sim_call_manager";
         private static final String ACCOUNTS = "accounts";
         private static final String VERSION = "version";
 
@@ -1073,12 +1038,6 @@ public final class PhoneAccountRegistrar {
                     serializer.startTag(null, DEFAULT_OUTGOING);
                     sPhoneAccountHandleXml.writeToXml(o.defaultOutgoing, serializer, context);
                     serializer.endTag(null, DEFAULT_OUTGOING);
-                }
-
-                if (o.simCallManager != null) {
-                    serializer.startTag(null, SIM_CALL_MANAGER);
-                    sPhoneAccountHandleXml.writeToXml(o.simCallManager, serializer, context);
-                    serializer.endTag(null, SIM_CALL_MANAGER);
                 }
 
                 serializer.startTag(null, ACCOUNTS);
@@ -1107,17 +1066,6 @@ public final class PhoneAccountRegistrar {
                         parser.nextTag();
                         s.defaultOutgoing = sPhoneAccountHandleXml.readFromXml(parser,
                                 s.versionNumber, context);
-                    } else if (parser.getName().equals(SIM_CALL_MANAGER)) {
-                        parser.nextTag();
-                        s.simCallManager = sPhoneAccountHandleXml.readFromXml(parser,
-                                s.versionNumber, context);
-                        if (s.simCallManager.getUserHandle() == null) {
-                            // This should never happen, but handle the upgrade case.
-                            s.simCallManager = new PhoneAccountHandle(
-                                    s.simCallManager.getComponentName(),
-                                    s.simCallManager.getId(),
-                                    Process.myUserHandle());
-                        }
                     } else if (parser.getName().equals(ACCOUNTS)) {
                         int accountsDepth = parser.getDepth();
                         while (XmlUtils.nextElementWithin(parser, accountsDepth)) {

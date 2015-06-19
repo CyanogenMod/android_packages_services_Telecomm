@@ -257,7 +257,17 @@ public class TelecomServiceImpl {
         public PhoneAccountHandle getSimCallManager() {
             synchronized (mLock) {
                 try {
-                    PhoneAccountHandle accountHandle = mPhoneAccountRegistrar.getSimCallManager();
+                    PhoneAccountHandle accountHandle = null;
+
+                    long token = Binder.clearCallingIdentity();
+                    try {
+                        accountHandle = mPhoneAccountRegistrar.getSimCallManager();
+                    } finally {
+                        // We restore early so that isVisibleToCaller invocation below uses the
+                        // right user context.
+                        Binder.restoreCallingIdentity(token);
+                    }
+
                     if (!isVisibleToCaller(accountHandle)) {
                         Log.d(this, "%s is not visible for the calling user [gsCM]", accountHandle);
                         return null;
@@ -266,41 +276,6 @@ public class TelecomServiceImpl {
                 } catch (Exception e) {
                     Log.e(this, e, "getSimCallManager");
                     throw e;
-                }
-            }
-        }
-
-        @Override
-        public void setSimCallManager(PhoneAccountHandle accountHandle) {
-            synchronized (mLock) {
-                enforceModifyPermission();
-                try {
-                    mPhoneAccountRegistrar.setSimCallManager(accountHandle);
-                } catch (Exception e) {
-                    Log.e(this, e, "setSimCallManager");
-                    throw e;
-                }
-            }
-        }
-
-        @Override
-        public List<PhoneAccountHandle> getSimCallManagers(String callingPackage) {
-            synchronized (mLock) {
-                if (!canReadPhoneState(callingPackage, "getSimCallManagers")) {
-                    return Collections.emptyList();
-                }
-
-                long token = Binder.clearCallingIdentity();
-                try {
-                    // TODO: Does this isVisible check actually work considering we are clearing
-                    // the calling identity?
-                    return filterForAccountsVisibleToCaller(
-                            mPhoneAccountRegistrar.getConnectionManagerPhoneAccounts());
-                } catch (Exception e) {
-                    Log.e(this, e, "getSimCallManagers");
-                    throw e;
-                } finally {
-                    Binder.restoreCallingIdentity(token);
                 }
             }
         }
