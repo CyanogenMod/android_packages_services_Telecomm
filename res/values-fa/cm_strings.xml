@@ -16,9 +16,18 @@
      limitations under the License.
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+  <string name="blacklist_title">لیست تماس گیرنده مسدود</string>
   <string name="blacklist_summary_disabled">غیرفعال</string>
+  <string name="blacklist_summary">شما تماس یا پیامی از شماره تلفن‌های لیست تماس گیرنده مسدود دریافت نخواهید کرد</string>
   <string name="blacklist_call_notification">تماس از %s مسدود شد</string>
+  <string name="blacklist_call_notification_private_number">تماس از شماره خصوصی مسدود شد</string>
+  <string name="blacklist_call_notification_unknown_number">تماس از شماره ناشناخته %s مسدود شد</string>
   <string name="blacklist_call_notification_multiple"><xliff:g id="count">%d </xliff:g> تماس مسدود شد</string>
+  <string name="blacklist_message_notification">پیام از %s مسدود شد</string>
+  <string name="blacklist_message_notification_private_number">پیام از شماره خصوصی مسدود شد</string>
+  <string name="blacklist_message_notification_unknown_number">پیام از شماره ناشناخته %s مسدود شد</string>
+  <string name="blacklist_message_notification_multiple"><xliff:g id="count">%d </xliff:g> پیام مسدود شد</string>
   <string name="blacklist_notification_list_private">خصوصی</string>
   <string name="unblock_number">برداشتن انسداد</string>
+  <string name="video_call_not_allowed_if_tty_enabled">لطفا حالت TTY را برای برقراری تماس ویدیویی غیرفعال کنید.</string>
 </resources>

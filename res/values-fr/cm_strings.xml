@@ -16,7 +16,9 @@
      limitations under the License.
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+  <string name="blacklist_title">Liste des appelants bloqués</string>
   <string name="blacklist_summary_disabled">Désactivé</string>
+  <string name="blacklist_summary">Vous ne recevrez pas d’appels ou de messages de numéros présents dans la liste des appelants bloqués</string>
   <string name="blacklist_call_notification">Appel de %s bloqué</string>
   <string name="blacklist_call_notification_private_number">Appel bloqué d\'un numéro privé</string>
   <string name="blacklist_call_notification_unknown_number">Appel bloqué d\'un numéro inconnu %s</string>
