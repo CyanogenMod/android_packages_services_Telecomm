@@ -30,7 +30,9 @@ import android.os.IBinder;
 import android.os.RemoteException;
 import android.telecom.Connection;
 import android.telecom.PhoneAccount;
+import android.telecom.PhoneAccountHandle;
 import android.telephony.PhoneNumberUtils;
+import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 import android.os.UserHandle;
@@ -40,6 +42,7 @@ import android.telecom.TelecomManager;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.server.telecom.CallsManager.CallsManagerListener;
 
+import java.lang.NumberFormatException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -166,14 +169,30 @@ public class BluetoothPhoneServiceImpl {
                 long token = Binder.clearCallingIdentity();
                 try {
                     Log.i(TAG, "getNetworkOperator");
+                    String label = null;
                     PhoneAccount account = getBestPhoneAccount();
-                    if (account != null && account.getLabel() != null) {
-                        return account.getLabel().toString();
+                    if (account != null) {
+                        PhoneAccountHandle ph = account.getAccountHandle();
+                        if (ph != null) {
+                            String subId = ph.getId();
+                            int sub;
+                            try {
+                                sub = Integer.parseInt(subId);
+                            } catch (NumberFormatException e){
+                                Log.w(this, " NumberFormatException " + e);
+                                sub = SubscriptionManager.getDefaultVoiceSubscriptionId();
+                            }
+                            label = TelephonyManager.from(mContext)
+                                    .getNetworkOperatorName(sub);
+                        } else {
+                            Log.w(this, "Phone Account Handle is NULL");
+                        }
                     } else {
                         // Finally, just get the network name from telephony.
-                        return TelephonyManager.from(mContext)
+                        label = TelephonyManager.from(mContext)
                                 .getNetworkOperatorName();
                     }
+                    return label;
                 } finally {
                     Binder.restoreCallingIdentity(token);
                     Log.endSession();
