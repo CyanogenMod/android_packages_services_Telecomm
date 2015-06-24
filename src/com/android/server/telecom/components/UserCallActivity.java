@@ -58,8 +58,12 @@ public class UserCallActivity extends Activity implements TelecomSystem.Componen
         verifyCallAction(intent);
         final UserManager userManager = (UserManager) getSystemService(Context.USER_SERVICE);
         final UserHandle userHandle = new UserHandle(userManager.getUserHandle());
+        // Once control flow has passed to this activity, it is no longer guaranteed that we can
+        // accurately determine whether the calling package has the CALL_PHONE runtime permission.
+        // At this point in time we trust that the ActivityManager has already performed this
+        // validation before starting this activity.
         new UserCallIntentProcessor(this, userHandle).processIntent(getIntent(),
-                getCallingPackage());
+                getCallingPackage(), true /* hasCallAppOp*/);
         finish();
     }
 

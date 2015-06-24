@@ -21,8 +21,10 @@ import com.android.server.telecom.Log;
 import com.android.server.telecom.R;
 import com.android.server.telecom.TelephonyUtil;
 
+import android.app.AppOpsManager;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.UserHandle;
 import android.os.UserManager;
@@ -68,7 +70,7 @@ public class UserCallIntentProcessor {
      *
      * @param intent The intent.
      */
-    public void processIntent(Intent intent, String callingPackageName) {
+    public void processIntent(Intent intent, String callingPackageName, boolean hasCallAppOp) {
         // Ensure call intents are not processed on devices that are not capable of calling.
         if (!isVoiceCapable()) {
             return;
@@ -79,11 +81,12 @@ public class UserCallIntentProcessor {
         if (Intent.ACTION_CALL.equals(action) ||
                 Intent.ACTION_CALL_PRIVILEGED.equals(action) ||
                 Intent.ACTION_CALL_EMERGENCY.equals(action)) {
-            processOutgoingCallIntent(intent, callingPackageName);
+            processOutgoingCallIntent(intent, callingPackageName, hasCallAppOp);
         }
     }
 
-    private void processOutgoingCallIntent(Intent intent, String callingPackageName) {
+    private void processOutgoingCallIntent(Intent intent, String callingPackageName,
+            boolean hasCallAppOp) {
         Uri handle = intent.getData();
         String scheme = handle.getScheme();
         String uriString = handle.getSchemeSpecificPart();
@@ -93,14 +96,28 @@ public class UserCallIntentProcessor {
                     PhoneAccount.SCHEME_SIP : PhoneAccount.SCHEME_TEL, uriString, null);
         }
 
-        UserManager userManager = (UserManager) mContext.getSystemService(Context.USER_SERVICE);
+        final UserManager userManager =
+                (UserManager) mContext.getSystemService(Context.USER_SERVICE);
         if (userManager.hasUserRestriction(UserManager.DISALLOW_OUTGOING_CALLS, mUserHandle)
                 && !TelephonyUtil.shouldProcessAsEmergency(mContext, handle)) {
             // Only emergency calls are allowed for users with the DISALLOW_OUTGOING_CALLS
             // restriction.
-            showErrorDialogForRestrictedOutgoingCall(mContext);
+            showErrorDialogForRestrictedOutgoingCall(mContext,
+                    R.string.outgoing_call_not_allowed_user_restriction);
             Log.w(this, "Rejecting non-emergency phone call due to DISALLOW_OUTGOING_CALLS "
                     + "restriction");
+            return;
+        }
+
+        PackageManager packageManager = mContext.getPackageManager();
+        final boolean callDisallowed = !hasCallAppOp ||
+                packageManager.checkPermission(android.Manifest.permission.CALL_PHONE,
+                        callingPackageName) != PackageManager.PERMISSION_GRANTED;
+        if (callDisallowed && !TelephonyUtil.shouldProcessAsEmergency(mContext, handle)) {
+            showErrorDialogForRestrictedOutgoingCall(mContext,
+                    R.string.outgoing_call_not_allowed_no_permission);
+            Log.w(this, "Rejecting non-emergency phone call because "
+                    + android.Manifest.permission.CALL_PHONE + " permission is not granted.");
             return;
         }
 
@@ -174,11 +191,10 @@ public class UserCallIntentProcessor {
         return true;
     }
 
-    private static void showErrorDialogForRestrictedOutgoingCall(Context context) {
+    private static void showErrorDialogForRestrictedOutgoingCall(Context context, int stringId) {
         final Intent intent = new Intent(context, ErrorDialogActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        intent.putExtra(ErrorDialogActivity.ERROR_MESSAGE_ID_EXTRA,
-                R.string.outgoing_call_not_allowed);
+        intent.putExtra(ErrorDialogActivity.ERROR_MESSAGE_ID_EXTRA, stringId);
         context.startActivityAsUser(intent, UserHandle.CURRENT);
     }
 }
