@@ -70,6 +70,7 @@ public class Log {
         public static final String STOP_RINGER = "STOP_RINGER";
         public static final String START_CALL_WAITING_TONE = "START_CALL_WAITING_TONE";
         public static final String STOP_CALL_WAITING_TONE = "STOP_CALL_WAITING_TONE";
+        public static final String ERROR_LOG = "ERROR";
 
         /**
          * Maps from a request to a response.  The same event could be listed as the
@@ -152,7 +153,7 @@ public class Log {
                 pw.print(" - ");
                 pw.print(event.eventId);
                 if (event.data != null) {
-                    pw.print("(");
+                    pw.print(" (");
                     pw.print(event.data);
                     pw.print(")");
                 }
