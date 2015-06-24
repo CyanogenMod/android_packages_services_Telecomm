@@ -795,6 +795,9 @@ public class TelecomServiceImpl {
                         + " is not allowed to place phone calls");
             }
 
+            final boolean hasCallAppOp = mAppOpsManager.noteOp(AppOpsManager.OP_CALL_PHONE,
+                    Binder.getCallingUid(), callingPackage) == AppOpsManager.MODE_ALLOWED;
+
             synchronized (mLock) {
                 final UserHandle userHandle = Binder.getCallingUserHandle();
                 long token = Binder.clearCallingIdentity();
@@ -802,7 +805,7 @@ public class TelecomServiceImpl {
                     final Intent intent = new Intent(Intent.ACTION_CALL, handle);
                     intent.putExtras(extras);
                     new UserCallIntentProcessor(mContext, userHandle).processIntent(intent,
-                            callingPackage);
+                            callingPackage, hasCallAppOp);
                 } finally {
                     Binder.restoreCallingIdentity(token);
                 }
