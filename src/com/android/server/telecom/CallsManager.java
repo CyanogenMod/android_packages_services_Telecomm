@@ -624,7 +624,9 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
             extras = new Bundle(extras);
             extras.putParcelableList(android.telecom.Call.AVAILABLE_PHONE_ACCOUNTS, accounts);
         } else {
-            call.setState(CallState.CONNECTING, phoneAccountHandle.toString());
+            call.setState(
+                    CallState.CONNECTING,
+                    phoneAccountHandle == null ? "no-handle" : phoneAccountHandle.toString());
         }
 
         call.setIntentExtras(extras);
