@@ -797,7 +797,7 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
      * @return {@code true} if the speakerphone should be enabled.
      */
     private boolean isSpeakerphoneAutoEnabled(int videoState) {
-        return VideoProfile.VideoState.isVideo(videoState) &&
+        return VideoProfile.isVideo(videoState) &&
             !mWiredHeadsetManager.isPluggedIn() &&
             !mCallAudioManager.isBluetoothDeviceAvailable() &&
             isSpeakerEnabledForVideoCalls();
