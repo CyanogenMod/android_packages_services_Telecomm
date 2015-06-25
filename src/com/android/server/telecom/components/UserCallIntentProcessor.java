@@ -109,11 +109,7 @@ public class UserCallIntentProcessor {
             return;
         }
 
-        PackageManager packageManager = mContext.getPackageManager();
-        final boolean callDisallowed = !hasCallAppOp ||
-                packageManager.checkPermission(android.Manifest.permission.CALL_PHONE,
-                        callingPackageName) != PackageManager.PERMISSION_GRANTED;
-        if (callDisallowed && !TelephonyUtil.shouldProcessAsEmergency(mContext, handle)) {
+        if (!hasCallAppOp && !TelephonyUtil.shouldProcessAsEmergency(mContext, handle)) {
             showErrorDialogForRestrictedOutgoingCall(mContext,
                     R.string.outgoing_call_not_allowed_no_permission);
             Log.w(this, "Rejecting non-emergency phone call because "
