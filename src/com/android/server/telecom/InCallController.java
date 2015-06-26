@@ -26,7 +26,9 @@ import android.content.pm.ResolveInfo;
 import android.content.pm.ServiceInfo;
 import android.content.res.Resources;
 import android.net.Uri;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 import android.os.RemoteException;
 import android.os.Trace;
 import android.os.UserHandle;
@@ -192,8 +194,25 @@ public final class InCallController extends CallsManagerListenerBase {
     public void onCallRemoved(Call call) {
         Log.i(this, "onCallRemoved: %s", call);
         if (mCallsManager.getCalls().isEmpty()) {
-            // TODO: Wait for all messages to be delivered to the service before unbinding.
-            unbindFromServices();
+            /** Let's add a 2 second delay before we send unbind to the services to hopefully
+             *  give them enough time to process all the pending messages.
+             */
+            Handler handler = new Handler(Looper.getMainLooper());
+            final Runnable runnableUnbind = new Runnable() {
+                @Override
+                public void run() {
+                    synchronized (mLock) {
+                        // Check again to make sure there are no active calls.
+                        if (mCallsManager.getCalls().isEmpty()) {
+                            unbindFromServices();
+                        }
+                    }
+                }
+            };
+            handler.postDelayed(
+                    runnableUnbind,
+                    Timeouts.getCallRemoveUnbindInCallServicesDelay(
+                            mContext.getContentResolver()));
         }
         call.removeListener(mCallListener);
         mCallIdMapper.removeCall(call);
