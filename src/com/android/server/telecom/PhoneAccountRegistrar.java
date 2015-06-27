@@ -322,7 +322,7 @@ public final class PhoneAccountRegistrar {
 
         Log.i(this, "SimCallManager queried, returning: %s", retval);
 
-        return null;
+        return retval;
     }
 
     /**
