@@ -551,7 +551,7 @@ public final class PhoneAccountRegistrar {
             if (Objects.equals(packageName, handle.getComponentName().getPackageName())
                     && Objects.equals(userHandle, handle.getUserHandle())) {
                 Log.i(this, "Removing phone account " + phoneAccount.getLabel());
-                it.remove();
+                mState.accounts.remove(phoneAccount);
                 accountsRemoved = true;
             }
         }
@@ -776,7 +776,7 @@ public final class PhoneAccountRegistrar {
         /**
          * The complete list of {@code PhoneAccount}s known to the Telecom subsystem.
          */
-        public final List<PhoneAccount> accounts = new ArrayList<>();
+        public final List<PhoneAccount> accounts = new CopyOnWriteArrayList<>();
 
         /**
          * The version number of the State data.
