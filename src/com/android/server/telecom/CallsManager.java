@@ -37,6 +37,7 @@ import android.telecom.TelecomManager;
 import android.telecom.VideoProfile;
 import android.telephony.PhoneNumberUtils;
 import android.telephony.TelephonyManager;
+import android.text.TextUtils;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.telephony.PhoneConstants;
@@ -524,16 +525,31 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
         call.startCreateConnection(mPhoneAccountRegistrar);
     }
 
+    private boolean areHandlesEqual(Uri handle1, Uri handle2) {
+        if (handle1 == null || handle2 == null) {
+            return handle1 == handle2;
+        }
+
+        if (!TextUtils.equals(handle1.getScheme(), handle2.getScheme())) {
+            return false;
+        }
+
+        final String number1 = PhoneNumberUtils.normalizeNumber(handle1.getSchemeSpecificPart());
+        final String number2 = PhoneNumberUtils.normalizeNumber(handle2.getSchemeSpecificPart());
+        return TextUtils.equals(number1, number2);
+    }
+
     private Call getNewOutgoingCall(Uri handle) {
         // First check to see if we can reuse any of the calls that are waiting to disconnect.
         // See {@link Call#abort} and {@link #onCanceledViaNewOutgoingCall} for more information.
         Call reusedCall = null;
         for (Call pendingCall : mPendingCallsToDisconnect) {
-            if (reusedCall == null && Objects.equals(pendingCall.getHandle(), handle)) {
+            if (reusedCall == null && areHandlesEqual(pendingCall.getHandle(), handle)) {
                 mPendingCallsToDisconnect.remove(pendingCall);
                 Log.i(this, "Reusing disconnected call %s", pendingCall);
                 reusedCall = pendingCall;
             } else {
+                Log.i(this, "Not reusing disconnected call %s", pendingCall);
                 pendingCall.disconnect();
             }
         }
