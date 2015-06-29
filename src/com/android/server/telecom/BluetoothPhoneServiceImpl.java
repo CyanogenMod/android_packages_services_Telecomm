@@ -501,7 +501,11 @@ public final class BluetoothPhoneServiceImpl {
         Collection<Call> mCalls = mCallsManager.getCalls();
         for (Call call : mCalls) {
             // We don't send the parent conference call to the bluetooth device.
-            if (!call.isConference()) {
+            // We do, however want to send conferences that have no children to the bluetooth
+            // device (e.g. IMS Conference).
+            if (!call.isConference() ||
+                    (call.isConference() && call
+                            .can(Connection.CAPABILITY_CONFERENCE_HAS_NO_CHILDREN))) {
                 sendClccForCall(call, shouldLog);
             }
         }
@@ -515,6 +519,8 @@ public final class BluetoothPhoneServiceImpl {
         boolean isForeground = mCallsManager.getForegroundCall() == call;
         int state = convertCallState(call.getState(), isForeground);
         boolean isPartOfConference = false;
+        boolean isConferenceWithNoChildren = call.isConference() && call
+                .can(Connection.CAPABILITY_CONFERENCE_HAS_NO_CHILDREN);
 
         if (state == CALL_STATE_IDLE) {
             return;
@@ -551,6 +557,11 @@ public final class BluetoothPhoneServiceImpl {
                     }
                 }
             }
+        } else if (isConferenceWithNoChildren) {
+            // Handle the special case of an IMS conference call without conference event package
+            // support.  The call will be marked as a conference, but the conference will not have
+            // child calls where conference event packages are not used by the carrier.
+            isPartOfConference = true;
         }
 
         int index = getIndexForCall(call);
@@ -637,7 +648,8 @@ public final class BluetoothPhoneServiceImpl {
         // (namely CDMA calls) we need to expose that as a held call in order for the BT device
         // to show "swap" and "merge" functionality.
         boolean ignoreHeldCallChange = false;
-        if (activeCall != null && activeCall.isConference()) {
+        if (activeCall != null && activeCall.isConference() &&
+                !activeCall.can(Connection.CAPABILITY_CONFERENCE_HAS_NO_CHILDREN)) {
             if (activeCall.can(Connection.CAPABILITY_SWAP_CONFERENCE)) {
                 // Indicate that BT device should show SWAP command by indicating that there is a
                 // call on hold, but only if the conference wasn't previously merged.
