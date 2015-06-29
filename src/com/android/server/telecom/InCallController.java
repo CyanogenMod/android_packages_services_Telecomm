@@ -171,6 +171,8 @@ public final class InCallController extends CallsManagerListenerBase {
         if (!isBoundToServices()) {
             bindToServices(call);
         } else {
+            adjustServiceBindingsForEmergency();
+
             Log.i(this, "onCallAdded: %s", call);
             // Track the call if we don't already know about it.
             addCall(call);
@@ -349,7 +351,11 @@ public final class InCallController extends CallsManagerListenerBase {
 
         // Attempt to bind to the default-dialer InCallService first.
         if (inCallUIService != null) {
-            if (!bindToInCallService(inCallUIService, call, "def-dialer")) {
+            // skip default dialer if we have an emergency call or if it failed binding.
+            if (mCallsManager.hasEmergencyCall()) {
+                Log.i(this, "Skipping default-dialer because of emergency call");
+                inCallUIService = null;
+            } else if (!bindToInCallService(inCallUIService, call, "def-dialer")) {
                 Log.event(call, Log.Events.ERROR_LOG,
                         "InCallService UI failed binding: " + inCallUIService);
                 inCallUIService = null;
@@ -389,7 +395,7 @@ public final class InCallController extends CallsManagerListenerBase {
 
         Intent intent = new Intent(InCallService.SERVICE_INTERFACE);
         intent.setComponent(componentName);
-        if (!call.isIncoming()){
+        if (call != null && !call.isIncoming()){
             intent.putExtra(TelecomManager.EXTRA_OUTGOING_CALL_EXTRAS,
                     call.getIntentExtras());
             intent.putExtra(TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE,
@@ -406,6 +412,17 @@ public final class InCallController extends CallsManagerListenerBase {
         }
 
         return false;
+    }
+
+    private void adjustServiceBindingsForEmergency() {
+        if (!Objects.equals(mInCallUIComponentName, mSystemInCallComponentName)) {
+            // The connected UI is not the system UI, so lets check if we should switch them
+            // if there exists an emergency number.
+            if (mCallsManager.hasEmergencyCall()) {
+                // Lets fake a failure here in order to trigger the switch to the system UI.
+                onInCallServiceFailure(mInCallUIComponentName, "emergency adjust");
+            }
+        }
     }
 
     /**
@@ -432,6 +449,7 @@ public final class InCallController extends CallsManagerListenerBase {
         } catch (RemoteException e) {
             Log.e(this, e, "Failed to set the in-call adapter.");
             Trace.endSection();
+            onInCallServiceFailure(componentName, "setInCallAdapter");
             return;
         }
 
@@ -468,30 +486,38 @@ public final class InCallController extends CallsManagerListenerBase {
 
         mInCallServices.remove(disconnectedComponent);
         if (mServiceConnections.containsKey(disconnectedComponent)) {
-            // One of the services that we were bound to has disconnected. If the default in-call UI
-            // has disconnected, disconnect all calls and un-bind all other InCallService
-            // implementations.
-            if (disconnectedComponent.equals(mInCallUIComponentName)) {
-                Log.i(this, "In-call UI %s disconnected.", disconnectedComponent);
+            // One of the services that we were bound to has unexpectedly disconnected.
+            onInCallServiceFailure(disconnectedComponent, "onDisconnect");
+        }
+    }
 
-                // TODO: We need to not disconnect all calls if there exists an emergency call.
-                // TODO: IF the default-dialer crashed, we need to rebind to the system UI.
-                mCallsManager.disconnectAllCalls();
+    /**
+     * Handles non-recoverable failures by the InCallService. This method performs cleanup and
+     * special handling when the failure is to the UI InCallService.
+     */
+    private void onInCallServiceFailure(ComponentName componentName, String tag) {
+        Log.i(this, "Cleaning up a failed InCallService [%s]: %s", tag, componentName);
+
+        // We always clean up the connections here. Even in the case where we rebind to the UI
+        // because binding is count based and we could end up double-bound.
+        mInCallServices.remove(componentName);
+        InCallServiceConnection serviceConnection = mServiceConnections.remove(componentName);
+        if (serviceConnection != null) {
+            // We still need to call unbind even though it disconnected.
+            mContext.unbindService(serviceConnection);
+        }
+
+        if (Objects.equals(mInCallUIComponentName, componentName)) {
+            if (!mCallsManager.hasAnyCalls()) {
+                // No calls are left anyway. Lets just disconnect all of them.
                 unbindFromServices();
-            } else {
-                Log.i(this, "In-Call Service %s suddenly disconnected", disconnectedComponent);
-                // Else, if it wasn't the default in-call UI, then one of the other in-call services
-                // disconnected and, well, that's probably their fault.  Clear their state and
-                // ignore.
-                InCallServiceConnection serviceConnection =
-                        mServiceConnections.get(disconnectedComponent);
-
-                // We still need to call unbind even though it disconnected.
-                mContext.unbindService(serviceConnection);
-
-                mServiceConnections.remove(disconnectedComponent);
-                mInCallServices.remove(disconnectedComponent);
+                return;
             }
+
+            // Whenever the UI crashes, we automatically revert to the System UI for the
+            // remainder of the active calls.
+            mInCallUIComponentName = mSystemInCallComponentName;
+            bindToInCallService(mInCallUIComponentName, null, "reconnecting");
         }
     }
 
