@@ -1134,8 +1134,14 @@ public class TelecomServiceImpl {
     }
 
     private boolean isCallerSimCallManager() {
-        PhoneAccountHandle accountHandle = TelecomSystem.getInstance().getPhoneAccountRegistrar()
-                .getSimCallManager();
+        PhoneAccountHandle accountHandle = null;
+        long token = Binder.clearCallingIdentity();
+        try {
+            accountHandle = mPhoneAccountRegistrar.getSimCallManager();
+        } finally {
+            Binder.restoreCallingIdentity(token);
+        }
+
         if (accountHandle != null) {
             try {
                 mAppOpsManager.checkPackage(
