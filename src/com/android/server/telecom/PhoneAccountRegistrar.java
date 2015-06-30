@@ -564,7 +564,7 @@ public final class PhoneAccountRegistrar {
 
     public boolean isVoiceMailNumber(PhoneAccountHandle accountHandle, String number) {
         int subId = getSubscriptionIdForPhoneAccount(accountHandle);
-        return PhoneNumberUtils.isVoiceMailNumber(subId, number);
+        return PhoneNumberUtils.isVoiceMailNumber(mContext, subId, number);
     }
 
     public void addListener(Listener l) {
