@@ -19,13 +19,13 @@
   <string name="blacklist_title">רשימת המתקשרים החסומים</string>
   <string name="blacklist_summary_disabled">מושבת</string>
   <string name="blacklist_summary">לא יתקבלו שיחות נכנסות או הודעות ממספרי הטלפון הנמצאים ברשימת המתקשרים החסומים</string>
-  <string name="blacklist_call_notification">שיחה נחסמה מ-%s</string>
-  <string name="blacklist_call_notification_private_number">שיחה נחסמה ממספר חסוי</string>
-  <string name="blacklist_call_notification_unknown_number">שיחה נחסמה ממספר לא ידוע %s</string>
+  <string name="blacklist_call_notification">נחסמה שיחה מ-%s</string>
+  <string name="blacklist_call_notification_private_number">נחסמה שיחה ממספר חסוי</string>
+  <string name="blacklist_call_notification_unknown_number">נחסמה שיחה ממספר לא ידוע %s</string>
   <string name="blacklist_call_notification_multiple"><xliff:g id="count">%d</xliff:g> שיחות נחסמו</string>
-  <string name="blacklist_message_notification">הודעה נחסמה מ-%s</string>
-  <string name="blacklist_message_notification_private_number">הודעה נחסמה ממספר חסוי</string>
-  <string name="blacklist_message_notification_unknown_number">הודעה נחסמה ממספר לא ידוע %s</string>
+  <string name="blacklist_message_notification">נחסמה הודעה מ-%s</string>
+  <string name="blacklist_message_notification_private_number">נחסמה הודעה ממספר חסוי</string>
+  <string name="blacklist_message_notification_unknown_number">נחסמה הודעה ממספר לא ידוע %s</string>
   <string name="blacklist_message_notification_multiple"><xliff:g id="count">%d</xliff:g> הודעות נחסמו</string>
   <string name="blacklist_notification_list_private">פרטי</string>
   <string name="unblock_number">הורד חסימה</string>
