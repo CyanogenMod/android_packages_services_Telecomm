@@ -26,7 +26,7 @@
     <string name="notification_missedCall_message" msgid="3049928912736917988">"Порука"</string>
     <string name="accessibility_call_muted" msgid="2776111226185342220">"Звук позива је искључен."</string>
     <string name="accessibility_speakerphone_enabled" msgid="1988512040421036359">"Спикерфон је омогућен."</string>
-    <string name="respond_via_sms_canned_response_1" msgid="2461606462788380215">"У гужви сам. Шта је у питању?"</string>
+    <string name="respond_via_sms_canned_response_1" msgid="2461606462788380215">"У гужви сам. О чему се ради?"</string>
     <string name="respond_via_sms_canned_response_2" msgid="4074450431532859214">"Позваћу те ускоро."</string>
     <string name="respond_via_sms_canned_response_3" msgid="3496079065723960450">"Позваћу те касније."</string>
     <string name="respond_via_sms_canned_response_4" msgid="1698989243040062190">"У гужви сам. Да се чујемо касније?"</string>
