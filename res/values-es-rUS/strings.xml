@@ -22,7 +22,7 @@
     <string name="notification_missedCallsTitle" msgid="1361677948941502522">"Llamadas perdidas"</string>
     <string name="notification_missedCallsMsg" msgid="4575787816055205600">"<xliff:g id="NUM_MISSED_CALLS">%s</xliff:g> llamadas perdidas"</string>
     <string name="notification_missedCallTicker" msgid="504686252427747209">"Se perdieron las llamadas de <xliff:g id="MISSED_CALL_FROM">%s</xliff:g>"</string>
-    <string name="notification_missedCall_call_back" msgid="2684890353590890187">"Devolver llamada"</string>
+    <string name="notification_missedCall_call_back" msgid="2684890353590890187">"Llamar"</string>
     <string name="notification_missedCall_message" msgid="3049928912736917988">"Mensaje"</string>
     <string name="accessibility_call_muted" msgid="2776111226185342220">"Llamada silenciada"</string>
     <string name="accessibility_speakerphone_enabled" msgid="1988512040421036359">"Altavoz habilitado"</string>
