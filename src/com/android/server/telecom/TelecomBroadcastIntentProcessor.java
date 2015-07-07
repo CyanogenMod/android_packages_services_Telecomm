@@ -56,7 +56,7 @@ public final class TelecomBroadcastIntentProcessor {
 
             Intent callIntent = new Intent(Intent.ACTION_SENDTO, intent.getData());
             callIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            mContext.startActivity(callIntent);
+            mContext.startActivityAsUser(callIntent, UserHandle.CURRENT);
 
         // Call back recent caller from the missed call notification.
         } else if (ACTION_CALL_BACK_FROM_NOTIFICATION.equals(action)) {
@@ -67,7 +67,7 @@ public final class TelecomBroadcastIntentProcessor {
             Intent callIntent = new Intent(Intent.ACTION_CALL_PRIVILEGED, intent.getData());
             callIntent.setFlags(
                     Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS);
-            mContext.startActivity(callIntent);
+            mContext.startActivityAsUser(callIntent, UserHandle.CURRENT);
 
         // Clear the missed call notification and call log entries.
         } else if (ACTION_CLEAR_MISSED_CALLS.equals(action)) {
