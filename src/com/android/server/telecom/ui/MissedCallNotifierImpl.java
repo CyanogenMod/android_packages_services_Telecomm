@@ -122,8 +122,13 @@ public class MissedCallNotifierImpl extends CallsManagerListenerBase implements 
                 where.append(" = 1 AND ");
                 where.append(Calls.TYPE);
                 where.append(" = ?");
-                mContext.getContentResolver().update(Calls.CONTENT_URI, values, where.toString(),
-                        new String[]{ Integer.toString(Calls.MISSED_TYPE) });
+                try {
+                    mContext.getContentResolver().update(Calls.CONTENT_URI, values,
+                            where.toString(), new String[]{ Integer.toString(Calls.
+                            MISSED_TYPE) });
+                } catch (IllegalArgumentException e) {
+                    Log.w(this, "ContactsProvider update command failed", e);
+                }
             }
         });
         cancelMissedCallNotification();
