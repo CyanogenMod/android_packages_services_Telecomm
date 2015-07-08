@@ -220,7 +220,8 @@ public class MissedCallNotifierImpl extends CallsManagerListenerBase implements 
         mMissedCallCount = 0;
         long token = Binder.clearCallingIdentity();
         try {
-            mNotificationManager.cancel(MISSED_CALL_NOTIFICATION_ID);
+            mNotificationManager.cancelAsUser(null, MISSED_CALL_NOTIFICATION_ID,
+                    UserHandle.CURRENT);
         } finally {
             Binder.restoreCallingIdentity(token);
         }
@@ -259,7 +260,7 @@ public class MissedCallNotifierImpl extends CallsManagerListenerBase implements 
         TaskStackBuilder taskStackBuilder = TaskStackBuilder.create(mContext);
         taskStackBuilder.addNextIntent(intent);
 
-        return taskStackBuilder.getPendingIntent(0, 0);
+        return taskStackBuilder.getPendingIntent(0, 0, null, UserHandle.CURRENT);
     }
 
     /**
