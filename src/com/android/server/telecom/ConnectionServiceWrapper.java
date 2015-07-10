@@ -663,6 +663,7 @@ final class ConnectionServiceWrapper extends ServiceBinder {
                             gatewayInfo.getOriginalAddress());
                 }
 
+                Log.event(call, Log.Events.START_CONNECTION, Log.piiHandle(call.getHandle()));
                 try {
                     mServiceInterface.createConnection(
                             call.getConnectionManagerPhoneAccount(),
@@ -688,7 +689,7 @@ final class ConnectionServiceWrapper extends ServiceBinder {
             }
         };
 
-        mBinder.bind(callback);
+        mBinder.bind(callback, call);
     }
 
     /** @see IConnectionService#abort(String) */
@@ -1018,7 +1019,7 @@ final class ConnectionServiceWrapper extends ServiceBinder {
                         setRemoteServices(callback, simServiceComponentNames, simServiceBinders);
                     }
                 }
-            });
+            }, null);
         }
     }
 

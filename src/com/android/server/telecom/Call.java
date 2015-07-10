@@ -1182,6 +1182,7 @@ public class Call implements CreateConnectionResponse {
         if (mConnectionService == null) {
             Log.w(this, "conference requested on a call without a connection service.");
         } else {
+            Log.event(this, Log.Events.CONFERENCE_WITH, otherCall);
             mConnectionService.conference(this, otherCall);
         }
     }
@@ -1190,6 +1191,7 @@ public class Call implements CreateConnectionResponse {
         if (mConnectionService == null) {
             Log.w(this, "splitting from conference call without a connection service");
         } else {
+            Log.event(this, Log.Events.SPLIT_CONFERENCE);
             mConnectionService.splitFromConference(this);
         }
     }
@@ -1198,6 +1200,7 @@ public class Call implements CreateConnectionResponse {
         if (mConnectionService == null) {
             Log.w(this, "merging conference calls without a connection service.");
         } else if (can(Connection.CAPABILITY_MERGE_CONFERENCE)) {
+            Log.event(this, Log.Events.CONFERENCE_WITH);
             mConnectionService.mergeConference(this);
             mWasConferencePreviouslyMerged = true;
         }
@@ -1207,6 +1210,7 @@ public class Call implements CreateConnectionResponse {
         if (mConnectionService == null) {
             Log.w(this, "swapping conference calls without a connection service.");
         } else if (can(Connection.CAPABILITY_SWAP_CONFERENCE)) {
+            Log.event(this, Log.Events.SWAP);
             mConnectionService.swapConference(this);
             switch (mChildCalls.size()) {
                 case 1:
@@ -1245,6 +1249,7 @@ public class Call implements CreateConnectionResponse {
             mParentCall.addChildCall(this);
         }
 
+        Log.event(this, Log.Events.SET_PARENT, mParentCall);
         for (Listener l : mListeners) {
             l.onParentChanged(this);
         }
@@ -1274,6 +1279,8 @@ public class Call implements CreateConnectionResponse {
             mConferenceLevelActiveCall = call;
             mChildCalls.add(call);
 
+            Log.event(this, Log.Events.ADD_CHILD, call);
+
             for (Listener l : mListeners) {
                 l.onChildrenChanged(this);
             }
@@ -1282,6 +1289,7 @@ public class Call implements CreateConnectionResponse {
 
     private void removeChildCall(Call call) {
         if (mChildCalls.remove(call)) {
+            Log.event(this, Log.Events.REMOVE_CHILD, call);
             for (Listener l : mListeners) {
                 l.onChildrenChanged(this);
             }
