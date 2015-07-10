@@ -28,8 +28,6 @@ import android.telephony.PhoneNumberUtils;
  * differently from 3rd party services in some situations (emergency calls, audio focus, etc...).
  */
 public final class TelephonyUtil {
-    private static final String TAG = TelephonyUtil.class.getSimpleName();
-
     private static final String TELEPHONY_PACKAGE_NAME = "com.android.phone";
 
     private static final String PSTN_CALL_SERVICE_CLASS_NAME =
@@ -63,7 +61,7 @@ public final class TelephonyUtil {
     }
 
     public static boolean shouldProcessAsEmergency(Context context, Uri handle) {
-        return handle != null && PhoneNumberUtils.isPotentialLocalEmergencyNumber(
+        return handle != null && PhoneNumberUtils.isLocalEmergencyNumber(
                 context, handle.getSchemeSpecificPart());
     }
 }
