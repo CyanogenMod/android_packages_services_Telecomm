@@ -27,7 +27,7 @@
   <string name="blacklist_message_notification_private_number">נחסמה הודעה ממספר חסוי</string>
   <string name="blacklist_message_notification_unknown_number">נחסמה הודעה ממספר לא ידוע %s</string>
   <string name="blacklist_message_notification_multiple"><xliff:g id="count">%d</xliff:g> הודעות נחסמו</string>
-  <string name="blacklist_notification_list_private">פרטי</string>
+  <string name="blacklist_notification_list_private">חסוי</string>
   <string name="unblock_number">הורד חסימה</string>
   <string name="video_call_not_allowed_if_tty_enabled">אנא בטל את מצב TTY כדי לבצע שיחות וידאו.</string>
 </resources>
