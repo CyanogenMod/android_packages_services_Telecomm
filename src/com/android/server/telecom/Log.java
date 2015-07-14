@@ -70,6 +70,17 @@ public class Log {
         public static final String STOP_RINGER = "STOP_RINGER";
         public static final String START_CALL_WAITING_TONE = "START_CALL_WAITING_TONE";
         public static final String STOP_CALL_WAITING_TONE = "STOP_CALL_WAITING_TONE";
+        public static final String START_CONNECTION = "START_CONNECTION";
+        public static final String BIND_CS = "BIND_CS";
+        public static final String CS_BOUND = "CS_BOUND";
+        public static final String CONFERENCE_WITH = "CONF_WITH";
+        public static final String SPLIT_CONFERENCE = "CONF_SPLIT";
+        public static final String SWAP = "SWAP";
+        public static final String ADD_CHILD = "ADD_CHILD";
+        public static final String REMOVE_CHILD = "REMOVE_CHILD";
+        public static final String SET_PARENT = "SET_PARENT";
+        public static final String MUTE = "MUTE";
+        public static final String AUDIO_ROUTE = "AUDIO_ROUTE";
         public static final String ERROR_LOG = "ERROR";
 
         /**
@@ -85,6 +96,8 @@ public class Log {
                     put(REQUEST_DISCONNECT, SET_DISCONNECTED);
                     put(REQUEST_HOLD, SET_HOLD);
                     put(REQUEST_UNHOLD, SET_ACTIVE);
+                    put(START_CONNECTION, SET_DIALING);
+                    put(BIND_CS, CS_BOUND);
                 }};
     }
 
@@ -154,7 +167,18 @@ public class Log {
                 pw.print(event.eventId);
                 if (event.data != null) {
                     pw.print(" (");
-                    pw.print(event.data);
+                    Object data = event.data;
+
+                    if (data instanceof Call) {
+                        // If the data is another call, then change the data to the call's CallEvent
+                        // ID instead.
+                        CallEventRecord record = mCallEventRecordMap.get(data);
+                        if (record != null) {
+                            data = "Call " + record.mId;
+                        }
+                    }
+
+                    pw.print(data);
                     pw.print(")");
                 }
 
