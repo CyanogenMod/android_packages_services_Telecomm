@@ -62,8 +62,9 @@ abstract class ServiceBinder {
          * specified callback.
          *
          * @param callback The callback to notify of the binding's success or failure.
+         * @param call The call for which we are being bound.
          */
-        void bind(BindCallback callback) {
+        void bind(BindCallback callback, Call call) {
             Log.d(ServiceBinder.this, "bind()");
 
             // Reset any abort request if we're asked to bind again.
@@ -78,9 +79,9 @@ abstract class ServiceBinder {
             mCallbacks.add(callback);
             if (mServiceConnection == null) {
                 Intent serviceIntent = new Intent(mServiceAction).setComponent(mComponentName);
-                ServiceConnection connection = new ServiceBinderConnection();
+                ServiceConnection connection = new ServiceBinderConnection(call);
 
-                Log.d(ServiceBinder.this, "Binding to service with intent: %s", serviceIntent);
+                Log.event(call, Log.Events.BIND_CS, mComponentName);
                 final int bindingFlags = Context.BIND_AUTO_CREATE | Context.BIND_FOREGROUND_SERVICE;
                 final boolean isBound;
                 if (mUserHandle != null) {
@@ -102,10 +103,22 @@ abstract class ServiceBinder {
     }
 
     private final class ServiceBinderConnection implements ServiceConnection {
+        /**
+         * The initial call for which the service was bound.
+         */
+        private Call mCall;
+
+        ServiceBinderConnection(Call call) {
+            mCall = call;
+        }
+
         @Override
         public void onServiceConnected(ComponentName componentName, IBinder binder) {
             synchronized (mLock) {
                 Log.i(this, "Service bound %s", componentName);
+
+                Log.event(mCall, Log.Events.CS_BOUND, componentName);
+                mCall = null;
 
                 // Unbind request was queued so unbind immediately.
                 if (mIsBindingAborted) {
