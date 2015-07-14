@@ -319,6 +319,11 @@ final class CallAudioManager extends CallsManagerListenerBase
         }
 
         if (mCallAudioState.isMuted() != shouldMute) {
+            // We user CallsManager's foreground call so that we dont ignore ringing calls
+            // for logging purposes
+            Log.event(mCallsManager.getForegroundCall(), Log.Events.MUTE,
+                    shouldMute ? "on" : "off");
+
             setSystemAudioState(shouldMute, mCallAudioState.getRoute(),
                     mCallAudioState.getSupportedRouteMask());
         }
@@ -440,7 +445,10 @@ final class CallAudioManager extends CallsManagerListenerBase
         if (!force && Objects.equals(oldAudioState, mCallAudioState)) {
             return;
         }
+
         Log.i(this, "setSystemAudioState: changing from %s to %s", oldAudioState, mCallAudioState);
+        Log.event(mCallsManager.getForegroundCall(), Log.Events.AUDIO_ROUTE,
+                CallAudioState.audioRouteToString(mCallAudioState.getRoute()));
 
         mAudioManagerHandler.obtainMessage(
                 MSG_AUDIO_MANAGER_SET_MICROPHONE_MUTE,
