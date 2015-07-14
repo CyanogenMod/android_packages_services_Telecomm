@@ -19,6 +19,7 @@ package com.android.server.telecom;
 import static android.Manifest.permission.CALL_PHONE;
 import static android.Manifest.permission.MODIFY_PHONE_STATE;
 import static android.Manifest.permission.READ_PHONE_STATE;
+import static android.Manifest.permission.READ_PRIVILEGED_PHONE_STATE;
 import static android.Manifest.permission.REGISTER_SIM_SUBSCRIPTION;
 import static android.Manifest.permission.WRITE_SECURE_SETTINGS;
 
@@ -1110,12 +1111,18 @@ public class TelecomServiceImpl {
             return true;
         }
 
-        // Accessing phone state is gated by a special permission.
-        mContext.enforceCallingOrSelfPermission(READ_PHONE_STATE, message);
+        try {
+            mContext.enforceCallingPermission(READ_PHONE_STATE, message);
+            // SKIP checking run-time OP_READ_PHONE_STATE since using PRIVILEGED
+            return true;
+        } catch (SecurityException e) {
+            // Accessing phone state is gated by a special permission.
+            mContext.enforceCallingOrSelfPermission(READ_PHONE_STATE, message);
 
-        // Some apps that have the permission can be restricted via app ops.
-        return mAppOpsManager.noteOp(AppOpsManager.OP_READ_PHONE_STATE,
-                Binder.getCallingUid(), callingPackage) == AppOpsManager.MODE_ALLOWED;
+            // Some apps that have the permission can be restricted via app ops.
+            return mAppOpsManager.noteOp(AppOpsManager.OP_READ_PHONE_STATE,
+                    Binder.getCallingUid(), callingPackage) == AppOpsManager.MODE_ALLOWED;
+        }
     }
 
     private boolean canCallPhone(String callingPackage, String message) {
