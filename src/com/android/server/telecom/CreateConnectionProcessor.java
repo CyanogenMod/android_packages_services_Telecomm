@@ -206,7 +206,6 @@ final class CreateConnectionProcessor {
                 mCall.setConnectionService(service);
                 setTimeoutIfNeeded(service, attempt);
 
-                Log.i(this, "Attempting to call from %s", service.getComponentName());
                 service.createConnection(mCall, new Response(service));
             }
         } else {
