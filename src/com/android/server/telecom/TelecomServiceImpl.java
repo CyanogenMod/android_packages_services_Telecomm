@@ -1112,7 +1112,7 @@ public class TelecomServiceImpl {
         }
 
         try {
-            mContext.enforceCallingPermission(READ_PHONE_STATE, message);
+            mContext.enforceCallingPermission(READ_PRIVILEGED_PHONE_STATE, message);
             // SKIP checking run-time OP_READ_PHONE_STATE since using PRIVILEGED
             return true;
         } catch (SecurityException e) {
