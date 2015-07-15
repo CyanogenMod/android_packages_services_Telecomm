@@ -22,7 +22,7 @@
     <string name="notification_missedCallsTitle" msgid="1361677948941502522">"தவறிய அழைப்புகள்"</string>
     <string name="notification_missedCallsMsg" msgid="4575787816055205600">"<xliff:g id="NUM_MISSED_CALLS">%s</xliff:g> தவறிய அழைப்புகள்"</string>
     <string name="notification_missedCallTicker" msgid="504686252427747209">"<xliff:g id="MISSED_CALL_FROM">%s</xliff:g> இடமிருந்து தவறிய அழைப்பு"</string>
-    <string name="notification_missedCall_call_back" msgid="2684890353590890187">"திருப்பி அழை"</string>
+    <string name="notification_missedCall_call_back" msgid="2684890353590890187">"அழை"</string>
     <string name="notification_missedCall_message" msgid="3049928912736917988">"செய்தி"</string>
     <string name="accessibility_call_muted" msgid="2776111226185342220">"அழைப்பு முடக்கப்பட்டது."</string>
     <string name="accessibility_speakerphone_enabled" msgid="1988512040421036359">"ஸ்பீக்கர்ஃபோன் இயக்கப்பட்டது."</string>
