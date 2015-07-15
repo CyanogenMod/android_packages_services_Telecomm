@@ -1543,7 +1543,8 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
                 null /* connectionManagerPhoneAccount */,
                 connection.getPhoneAccount(), /* targetPhoneAccountHandle */
                 false /* isIncoming */,
-                false /* isConference */);
+                false /* isConference */,
+                connection.getConnectTimeMillis() /* connectTimeMillis */);
 
         setCallState(call, Call.getStateFromConnectionState(connection.getState()),
                 "existing connection");
