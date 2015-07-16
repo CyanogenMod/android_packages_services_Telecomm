@@ -396,6 +396,7 @@ public class ConnectionServiceFixture implements TestFixture<IConnectionService>
                 c.videoState,
                 false, /* ringback requested */
                 false, /* voip audio mode */
+                0, /* Connect Time for conf call on this connection */
                 c.statusHints,
                 c.disconnectCause,
                 c.conferenceableConnectionIds,
