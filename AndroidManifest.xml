@@ -51,7 +51,7 @@
 
     <!-- Declare which SDK level this application was built against. This is needed so that IDEs
          can check for incompatible APIs. -->
-    <uses-sdk android:minSdkVersion="19" />
+    <uses-sdk android:minSdkVersion="22" />
 
     <application android:label="@string/telecommAppLabel"
             android:icon="@mipmap/ic_launcher_phone"
