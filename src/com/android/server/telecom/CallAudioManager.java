@@ -360,12 +360,17 @@ final class CallAudioManager extends CallsManagerListenerBase
         }
     }
 
-    void setIsRinging(boolean isRinging) {
+    /**
+     * Sets the audio stream and mode based on whether a call is ringing.
+     *
+     * @param call The call which changed ringing state.
+     * @param isRinging {@code true} if the call is ringing, {@code false} otherwise.
+     */
+    void setIsRinging(Call call, boolean isRinging) {
         if (mIsRinging != isRinging) {
-            Log.i(this, "setIsRinging %b -> %b", mIsRinging, isRinging);
+            Log.i(this, "setIsRinging %b -> %b (call = %s)", mIsRinging, isRinging, call);
             mIsRinging = isRinging;
-
-            updateAudioStreamAndMode();
+            updateAudioStreamAndMode(call);
         }
     }
 
