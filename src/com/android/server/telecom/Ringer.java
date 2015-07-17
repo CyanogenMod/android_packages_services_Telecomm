@@ -196,7 +196,7 @@ final class Ringer extends CallsManagerListenerBase {
                     Log.event(call, Log.Events.START_RINGER);
                     mState = STATE_RINGING;
                 }
-                mCallAudioManager.setIsRinging(true);
+                mCallAudioManager.setIsRinging(call, true);
 
                 // Because we wait until a contact info query to complete before processing a
                 // call (for the purposes of direct-to-voicemail), the information about custom
@@ -261,7 +261,7 @@ final class Ringer extends CallsManagerListenerBase {
 
         // Even though stop is asynchronous it's ok to update the audio manager. Things like audio
         // focus are voluntary so releasing focus too early is not detrimental.
-        mCallAudioManager.setIsRinging(false);
+        mCallAudioManager.setIsRinging(call, false);
     }
 
     private void stopCallWaiting(Call call) {
