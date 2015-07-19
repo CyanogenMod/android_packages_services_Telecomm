@@ -16,7 +16,9 @@
      limitations under the License.
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+  <string name="blacklist_title">Daftar penelepon yang diblokir</string>
   <string name="blacklist_summary_disabled">Nonaktif</string>
+  <string name="blacklist_summary">Anda tidak akan menerima panggilan atau pesan dari nomor telepon yang ada di daftar penelepon yang diblokir</string>
   <string name="blacklist_call_notification">Memblokir panggilan dari %s</string>
   <string name="blacklist_call_notification_private_number">Memblokir panggilan dari nomor pribadi</string>
   <string name="blacklist_call_notification_unknown_number">Memblokir panggilan dari nomor tak dikenal %s</string>
