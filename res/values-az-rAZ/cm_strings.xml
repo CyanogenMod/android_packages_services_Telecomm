@@ -16,7 +16,7 @@
      limitations under the License.
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-  <string name="blacklist_summary_disabled">Ləğv edilib</string>
+  <string name="blacklist_summary_disabled">Ləğv edildi</string>
   <string name="blacklist_call_notification">%s nömrәsindәn gələn zәng əngəlləndi</string>
   <string name="blacklist_call_notification_private_number">Gizli nömrədən gələn zəng əngəlləndi</string>
   <string name="blacklist_call_notification_unknown_number">Bilinməyən %s nömrәsindәn gələn zәng əngəlləndi</string>
