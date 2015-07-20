@@ -18,8 +18,10 @@ package com.android.server.telecom;
 
 import android.content.Context;
 import android.media.AudioManager;
+import android.os.SystemProperties;
 import android.telecom.AudioState;
 import android.telecom.CallState;
+import android.telephony.SubscriptionManager;
 
 import com.android.internal.util.IndentingPrintWriter;
 import com.android.internal.util.Preconditions;
@@ -444,6 +446,20 @@ final class CallAudioManager extends CallsManagerListenerBase
         }
     }
 
+    private void setAudioParameters(Call call, int mode) {
+        switch (mode) {
+            case AudioManager.MODE_RINGTONE:
+            case AudioManager.MODE_IN_CALL:
+            case AudioManager.MODE_IN_COMMUNICATION:
+                int phoneId = SubscriptionManager.getPhoneId(
+                        Integer.valueOf(call.getTargetPhoneAccount().getId()));
+                mAudioManager.setParameters(phoneId == 1 ? "phone_type=cp2" : "phone_type=cp1");
+                break;
+            default:
+                break;
+        }
+    }
+
     /**
      * Sets the audio mode.
      *
@@ -452,12 +468,19 @@ final class CallAudioManager extends CallsManagerListenerBase
     private void setMode(int newMode) {
         Preconditions.checkState(hasFocus());
         int oldMode = mAudioManager.getMode();
+
+        Call call = CallsManager.getInstance().getForegroundCall();
+        boolean isSamsungDualSims = SystemProperties.getBoolean("ro.multisim.samsung", false);
+
         Log.v(this, "Request to change audio mode from %d to %d", oldMode, newMode);
 
         if (oldMode != newMode) {
             if (oldMode == AudioManager.MODE_IN_CALL && newMode == AudioManager.MODE_RINGTONE) {
                 Log.i(this, "Transition from IN_CALL -> RINGTONE. Resetting to NORMAL first.");
                 mAudioManager.setMode(AudioManager.MODE_NORMAL);
+            }
+            if (call != null && isSamsungDualSims) {
+                setAudioParameters(call, newMode);
             }
             mAudioManager.setMode(newMode);
             Log.d(this, "SetMode Done");
