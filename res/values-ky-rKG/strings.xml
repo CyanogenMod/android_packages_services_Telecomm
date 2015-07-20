@@ -16,7 +16,7 @@
 
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-    <string name="telecommAppLabel" product="default" msgid="7207686803224752071">"Телефон - Чалууларды башкаруу"</string>
+    <string name="telecommAppLabel" product="default" msgid="9166784827254469057">"Телефон чалууларды башкаруу"</string>
     <!-- no translation found for unknown (6878797917991465859) -->
     <skip />
     <!-- no translation found for notification_missedCallTitle (7554385905572364535) -->
