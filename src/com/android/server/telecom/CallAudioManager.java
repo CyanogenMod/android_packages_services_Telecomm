@@ -18,8 +18,10 @@ package com.android.server.telecom;
 
 import android.content.Context;
 import android.media.AudioManager;
+import android.os.SystemProperties;
 import android.telecom.AudioState;
 import android.telecom.CallState;
+import android.telephony.SubscriptionManager;
 
 import com.android.internal.util.IndentingPrintWriter;
 import com.android.internal.util.Preconditions;
@@ -444,6 +446,42 @@ final class CallAudioManager extends CallsManagerListenerBase
         }
     }
 
+    private static int getPhoneId(Call call) {
+        int id = SubscriptionManager.getDefaultSubId();
+        int ret = 0;
+
+        if (call.getTargetPhoneAccount() == null)
+            return id;
+        id = Integer.parseInt(call.getTargetPhoneAccount().getId());
+
+        ret = SubscriptionManager.getPhoneId(id);
+        if (!SubscriptionManager.isValidPhoneId(ret))
+            ret = 0;
+
+        return ret;
+    }
+
+    private void setAudioParameters(Call call, int mode) {
+        Log.v(this, "setAudioParameters : mode = " + mode);
+
+        switch (mode) {
+            case AudioManager.MODE_RINGTONE:
+            case AudioManager.MODE_IN_CALL:
+            case AudioManager.MODE_IN_COMMUNICATION:
+                if (getPhoneId(call) == 1) {
+                    Log.i(this, "setAudioParameters phone_type=cp2");
+                    mAudioManager.setParameters("phone_type=cp2");
+                    return;
+                } else {
+                    Log.i(this, "setAudioParameters phone_type=cp1");
+                    mAudioManager.setParameters("phone_type=cp1");
+                    return;
+                }
+            default:
+                return;
+        }
+    }
+
     /**
      * Sets the audio mode.
      *
@@ -452,7 +490,16 @@ final class CallAudioManager extends CallsManagerListenerBase
     private void setMode(int newMode) {
         Preconditions.checkState(hasFocus());
         int oldMode = mAudioManager.getMode();
+
+        Call call = CallsManager.getInstance().getForegroundCall();
+        boolean isSamsungDualSims = (SystemProperties.get("ro.product.manufacturer")).equals("samsung") &&
+            SystemProperties.getInt("ro.multisim.simslotcount", 1) == 2;
+
         Log.v(this, "Request to change audio mode from %d to %d", oldMode, newMode);
+
+        if (oldMode != newMode && call != null && isSamsungDualSims) {
+            setAudioParameters(call, newMode);
+        }
 
         if (oldMode != newMode) {
             if (oldMode == AudioManager.MODE_IN_CALL && newMode == AudioManager.MODE_RINGTONE) {
