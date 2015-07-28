@@ -22,6 +22,7 @@ import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.SystemProperties;
 import android.os.Trace;
 import android.provider.ContactsContract.Contacts;
 import android.telecom.CallState;
@@ -324,6 +325,13 @@ final class Call implements CreateConnectionResponse {
     private Call mConferenceLevelActiveCall = null;
 
     private boolean mIsLocallyDisconnecting = false;
+    /**
+     * Applicable for MT call, whether to show MT call instantly to user or wait for 500ms for
+     * reading direct-to-voicemail value to decide whether to route MT call to voicemail or
+     * show to user.
+     */
+    private boolean mShowCallInstantly = SystemProperties
+            .getBoolean("persist.radio.showcallinstantly", true);
 
     /**
      * Persists the specified parameters and initializes the new instance.
@@ -803,7 +811,7 @@ final class Call implements CreateConnectionResponse {
                 // will not need to set STATE_RINGING state prior to calling reject.
                 setState(CallState.RINGING);
                 reject(false, null);
-            } else {
+            } else if (!mShowCallInstantly) {
                 // TODO: Make this class (not CallsManager) responsible for changing
                 // the call state to STATE_RINGING.
 
@@ -864,6 +872,12 @@ final class Call implements CreateConnectionResponse {
             // the user or if we want to reject the call.
             mDirectToVoicemailQueryPending = true;
 
+            if (mShowCallInstantly) {
+                for (Listener l : mListeners) {
+                    Log.d(this, "show incoming call instantly");
+                    l.onSuccessfulIncomingCall(this);
+                }
+            }
             // Timeout the direct-to-voicemail lookup execution so that we dont wait too long before
             // showing the user the incoming call screen.
             mHandler.postDelayed(mDirectToVoicemailRunnable, Timeouts.getDirectToVoicemailMillis(
