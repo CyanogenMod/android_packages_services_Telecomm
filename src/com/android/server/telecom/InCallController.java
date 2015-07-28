@@ -490,6 +490,10 @@ public final class InCallController extends CallsManagerListenerBase {
      * @param call The {@link Call}.
      */
     private void updateCall(Call call) {
+        if (call.getState() == CallState.CONNECTING) {
+            Log.d(this, "updateCall skip update for CONNECTING");
+            return;
+        }
         if (!mInCallServices.isEmpty()) {
             for (Map.Entry<ComponentName, IInCallService> entry : mInCallServices.entrySet()) {
                 ComponentName componentName = entry.getKey();
