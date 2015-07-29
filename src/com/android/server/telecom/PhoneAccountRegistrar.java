@@ -16,6 +16,7 @@
 
 package com.android.server.telecom;
 
+import android.app.ActivityManager;
 import android.Manifest;
 import android.content.ComponentName;
 import android.content.Context;
@@ -275,8 +276,28 @@ public final class PhoneAccountRegistrar {
      * 3. Otherwise, we return null.
      */
     public PhoneAccountHandle getSimCallManager() {
+        long token = Binder.clearCallingIdentity();
+        int user;
+        try {
+            user = ActivityManager.getCurrentUser();
+        } finally {
+            Binder.restoreCallingIdentity(token);
+        }
+        return getSimCallManager(user);
+    }
+
+    /**
+     * Returns the {@link PhoneAccountHandle} corresponding to the currently active SIM Call
+     * Manager. SIM Call Manager returned corresponds to the following priority order:
+     * 1. If a SIM Call Manager {@link PhoneAccount} is registered for the same package as the
+     * default dialer, then that one is returned.
+     * 2. If there is a SIM Call Manager {@link PhoneAccount} registered which matches the
+     * carrier configuration's default, then that one is returned.
+     * 3. Otherwise, we return null.
+     */
+    public PhoneAccountHandle getSimCallManager(int user) {
         // Get the default dialer in case it has a connection manager associated with it.
-        String dialerPackage = DefaultDialerManager.getDefaultDialerApplication(mContext);
+        String dialerPackage = DefaultDialerManager.getDefaultDialerApplication(mContext, user);
 
         // Check carrier config.
         String defaultSimCallManager = null;
