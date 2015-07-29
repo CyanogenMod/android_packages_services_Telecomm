@@ -256,13 +256,25 @@ public class TelecomServiceImpl {
 
         @Override
         public PhoneAccountHandle getSimCallManager() {
+            long token  = Binder.clearCallingIdentity();
+            int user;
+            try {
+                user = ActivityManager.getCurrentUser();
+            } finally {
+                Binder.restoreCallingIdentity(token);
+            }
+            return getSimCallManagerForUser(user);
+        }
+
+        @Override
+        public PhoneAccountHandle getSimCallManagerForUser(int user) {
             synchronized (mLock) {
                 try {
                     PhoneAccountHandle accountHandle = null;
 
                     long token = Binder.clearCallingIdentity();
                     try {
-                        accountHandle = mPhoneAccountRegistrar.getSimCallManager();
+                        accountHandle = mPhoneAccountRegistrar.getSimCallManager(user);
                     } finally {
                         // We restore early so that isVisibleToCaller invocation below uses the
                         // right user context.
