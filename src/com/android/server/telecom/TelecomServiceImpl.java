@@ -1124,8 +1124,9 @@ public class TelecomServiceImpl {
         }
 
         try {
-            mContext.enforceCallingPermission(READ_PRIVILEGED_PHONE_STATE, message);
-            // SKIP checking run-time OP_READ_PHONE_STATE since using PRIVILEGED
+            mContext.enforceCallingOrSelfPermission(READ_PRIVILEGED_PHONE_STATE, message);
+            // SKIP checking run-time OP_READ_PHONE_STATE since caller or self has PRIVILEGED
+            // permission
             return true;
         } catch (SecurityException e) {
             // Accessing phone state is gated by a special permission.
