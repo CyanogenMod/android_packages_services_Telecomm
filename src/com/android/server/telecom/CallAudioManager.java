@@ -390,17 +390,18 @@ final class CallAudioManager extends CallsManagerListenerBase
             Call foregroundCall = getForegroundCall();
             Call waitingForAccountSelectionCall =
                     CallsManager.getInstance().getFirstCallWithState(CallState.PRE_DIAL_WAIT);
-            if (foregroundCall != null && waitingForAccountSelectionCall == null
-                    && foregroundCall.getState() != CallState.DISCONNECTED) {
+            if (foregroundCall != null && waitingForAccountSelectionCall == null) {
                 // In the case where there is a call that is waiting for account selection,
                 // this will fall back to abandonAudioFocus() below, which temporarily exits
                 // the in-call audio mode. This is to allow TalkBack to speak the "Call with"
                 // dialog information at media volume as opposed to through the earpiece.
                 // Once exiting the "Call with" dialog, the audio focus will return to an in-call
                 // audio mode when this method (updateAudioStreamAndMode) is called again.
-                int mode = foregroundCall.getIsVoipAudioMode() ?
-                        AudioManager.MODE_IN_COMMUNICATION : AudioManager.MODE_IN_CALL;
-                requestAudioFocusAndSetMode(AudioManager.STREAM_VOICE_CALL, mode);
+                if (foregroundCall.getState() != CallState.DISCONNECTED) {
+                    int mode = foregroundCall.getIsVoipAudioMode() ?
+                            AudioManager.MODE_IN_COMMUNICATION : AudioManager.MODE_IN_CALL;
+                    requestAudioFocusAndSetMode(AudioManager.STREAM_VOICE_CALL, mode);
+                }
             } else if (mIsTonePlaying) {
                 // There is no call, however, we are still playing a tone, so keep focus.
                 // Since there is no call from which to determine the mode, use the most
