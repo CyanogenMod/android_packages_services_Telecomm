@@ -36,6 +36,7 @@ import android.telecom.PhoneAccountHandle;
 import android.telecom.TelecomManager;
 import android.telecom.VideoProfile;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.android.server.telecom.testapps.R;
 
@@ -299,6 +300,13 @@ public class TestConnectionService extends ConnectionService {
         String gatewayPackage = extras.getString(TelecomManager.GATEWAY_PROVIDER_PACKAGE);
         Uri originalHandle = extras.getParcelable(TelecomManager.GATEWAY_ORIGINAL_ADDRESS);
 
+        if (extras.containsKey(TelecomManager.EXTRA_CALL_SUBJECT)) {
+            String callSubject = extras.getString(TelecomManager.EXTRA_CALL_SUBJECT);
+            log("Got subject: " + callSubject);
+            Toast.makeText(getApplicationContext(), "Got subject :" + callSubject,
+                    Toast.LENGTH_SHORT).show();
+        }
+
         log("gateway package [" + gatewayPackage + "], original handle [" +
                 originalHandle + "]");
 
@@ -354,6 +362,24 @@ public class TestConnectionService extends ConnectionService {
                     VideoProfile.STATE_BIDIRECTIONAL :
                     VideoProfile.STATE_AUDIO_ONLY;
             connection.setVideoState(videoState);
+
+            Bundle connectionExtras = connection.getExtras();
+            if (connectionExtras == null) {
+                connectionExtras = new Bundle();
+            }
+
+            // Randomly choose a varying length call subject.
+            int subjectFormat = mRandom.nextInt(3);
+            if (subjectFormat == 0) {
+                connectionExtras.putString(Connection.EXTRA_CALL_SUBJECT,
+                        "This is a test of call subject lines. Subjects for a call can be long " +
+                                " and can go even longer.");
+            } else if (subjectFormat == 1) {
+                connectionExtras.putString(Connection.EXTRA_CALL_SUBJECT,
+                        "This is a test of call subject lines.");
+            }
+            connection.setExtras(connectionExtras);
+
             setAddress(connection, address);
 
             addVideoProvider(connection);
