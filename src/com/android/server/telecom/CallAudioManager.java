@@ -390,8 +390,7 @@ final class CallAudioManager extends CallsManagerListenerBase
             Call foregroundCall = getForegroundCall();
             Call waitingForAccountSelectionCall =
                     CallsManager.getInstance().getFirstCallWithState(CallState.PRE_DIAL_WAIT);
-            if (foregroundCall != null && waitingForAccountSelectionCall == null
-                    && foregroundCall.getState() != CallState.DISCONNECTED) {
+            if (foregroundCall != null && waitingForAccountSelectionCall == null) {
                 // In the case where there is a call that is waiting for account selection,
                 // this will fall back to abandonAudioFocus() below, which temporarily exits
                 // the in-call audio mode. This is to allow TalkBack to speak the "Call with"
