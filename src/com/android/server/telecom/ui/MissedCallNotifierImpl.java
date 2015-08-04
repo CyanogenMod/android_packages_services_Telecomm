@@ -386,6 +386,7 @@ public class MissedCallNotifierImpl extends CallsManagerListenerBase implements 
         StringBuilder where = new StringBuilder("type=");
         where.append(Calls.MISSED_TYPE);
         where.append(" AND new=1");
+        where.append(" AND is_read=0");
 
         // start the query
         queryHandler.startQuery(0, null, Calls.CONTENT_URI, CALL_LOG_PROJECTION,
