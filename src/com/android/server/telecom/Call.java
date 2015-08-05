@@ -48,6 +48,7 @@ import com.android.internal.telephony.SmsApplication;
 import com.android.server.telecom.ContactsAsyncHelper.OnImageLoadCompleteListener;
 import com.android.internal.util.Preconditions;
 
+import java.lang.String;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -664,6 +665,10 @@ public class Call implements CreateConnectionResponse {
 
     public String getName() {
         return mCallerInfo == null ? null : mCallerInfo.name;
+    }
+
+    public String getPhoneNumber() {
+        return mCallerInfo == null ? null : mCallerInfo.phoneNumber;
     }
 
     public Bitmap getPhotoIcon() {
