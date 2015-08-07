@@ -469,7 +469,7 @@ final class CallAudioManager extends CallsManagerListenerBase
         int oldMode = mAudioManager.getMode();
 
         Call call = CallsManager.getInstance().getForegroundCall();
-        boolean isSamsungDualSims = SystemProperties.getBoolean("ro.multisim.samsung", false);
+        boolean setMsimAudioParams = SystemProperties.getBoolean("ro.multisim.set_audio_params", false);
 
         Log.v(this, "Request to change audio mode from %d to %d", oldMode, newMode);
 
@@ -478,7 +478,7 @@ final class CallAudioManager extends CallsManagerListenerBase
                 Log.i(this, "Transition from IN_CALL -> RINGTONE. Resetting to NORMAL first.");
                 mAudioManager.setMode(AudioManager.MODE_NORMAL);
             }
-            if (call != null && isSamsungDualSims) {
+            if (call != null && setMsimAudioParams) {
                 setAudioParameters(call, newMode);
             }
             mAudioManager.setMode(newMode);
