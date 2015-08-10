@@ -590,9 +590,19 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
 
         Log.v(this, "startOutgoingCall found accounts = " + accounts);
 
-        if (mForegroundCall != null && mForegroundCall.getTargetPhoneAccount() != null) {
+        if (mForegroundCall != null) {
+            Call ongoingCall = mForegroundCall;
             // If there is an ongoing call, use the same phone account to place this new call.
-            phoneAccountHandle = mForegroundCall.getTargetPhoneAccount();
+            // If the ongoing call is a conference call, we fetch the phone account from the
+            // child calls because we don't have targetPhoneAccount set on Conference calls.
+            // TODO: Set targetPhoneAccount for all conference calls (b/23035408).
+            if (ongoingCall.getTargetPhoneAccount() == null &&
+                    !ongoingCall.getChildCalls().isEmpty()) {
+                ongoingCall = ongoingCall.getChildCalls().get(0);
+            }
+            if (ongoingCall.getTargetPhoneAccount() != null) {
+                phoneAccountHandle = ongoingCall.getTargetPhoneAccount();
+            }
         }
 
         // Only dial with the requested phoneAccount if it is still valid. Otherwise treat this call
