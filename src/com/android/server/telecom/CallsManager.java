@@ -1494,10 +1494,27 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
 
             // We have room for at least one more holding call at this point.
 
+            // TODO: Remove once b/23035408 has been corrected.
+            // If the live call is a conference, it will not have a target phone account set.  This
+            // means the check to see if the live call has the same target phone account as the new
+            // call will not cause us to bail early.  As a result, we'll end up holding the
+            // ongoing conference call.  However, the ConnectionService is already doing that.  This
+            // has caused problems with some carriers.  As a workaround until b/23035408 is
+            // corrected, we will try and get the target phone account for one of the conference's
+            // children and use that instead.
+            PhoneAccountHandle liveCallPhoneAccount = liveCall.getTargetPhoneAccount();
+            if (liveCallPhoneAccount == null && liveCall.isConference() &&
+                    !liveCall.getChildCalls().isEmpty()) {
+                liveCallPhoneAccount = getFirstChildPhoneAccount(liveCall);
+                Log.i(this, "makeRoomForOutgoingCall: using child call PhoneAccount = " +
+                        liveCallPhoneAccount);
+            }
+
             // First thing, if we are trying to make a call with the same phone account as the live
             // call, then allow it so that the connection service can make its own decision about
             // how to handle the new call relative to the current one.
-            if (Objects.equals(liveCall.getTargetPhoneAccount(), call.getTargetPhoneAccount())) {
+            if (Objects.equals(liveCallPhoneAccount, call.getTargetPhoneAccount())) {
+                Log.i(this, "makeRoomForOutgoingCall: phoneAccount matches.");
                 return true;
             } else if (call.getTargetPhoneAccount() == null) {
                 // Without a phone account, we can't say reliably that the call will fail.
@@ -1511,6 +1528,7 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
 
             // Try to hold the live call before attempting the new outgoing call.
             if (liveCall.can(Connection.CAPABILITY_HOLD)) {
+                Log.i(this, "makeRoomForOutgoingCall: holding live call.");
                 liveCall.hold();
                 return true;
             }
@@ -1519,6 +1537,22 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
             return false;
         }
         return true;
+    }
+
+    /**
+     * Given a call, find the first non-null phone account handle of its children.
+     *
+     * @param parentCall The parent call.
+     * @return The first non-null phone account handle of the children, or {@code null} if none.
+     */
+    private PhoneAccountHandle getFirstChildPhoneAccount(Call parentCall) {
+        for (Call childCall : parentCall.getChildCalls()) {
+            PhoneAccountHandle childPhoneAccount = childCall.getTargetPhoneAccount();
+            if (childPhoneAccount != null) {
+                return childPhoneAccount;
+            }
+        }
+        return null;
     }
 
     /**
