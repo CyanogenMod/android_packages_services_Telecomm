@@ -20,6 +20,10 @@
          and app info screens. -->
     <string name="telecommAppLabel" product="default">Phone Call Management</string>
 
+    <!-- Title used for the activity for placing a call. This name appears
+         in activity disambig dialogs -->
+    <string name="userCallActivityLabel" product="default">Phone</string>
+
     <!-- Name for an "unknown" caller. -->
     <string name="unknown">Unknown</string>
 
