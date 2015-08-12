@@ -297,7 +297,7 @@ final class CreateConnectionProcessor {
     // If we are possibly attempting to call a local emergency number, ensure that the
     // plain PSTN connection services are listed, and nothing else.
     private void adjustAttemptsForEmergency()  {
-        if (TelephonyUtil.shouldProcessAsEmergency(mContext, mCall.getHandle())) {
+        if (mCall.isEmergencyCall()) {
             Log.i(this, "Emergency number detected");
             mAttemptRecords.clear();
             List<PhoneAccount> allAccounts = mPhoneAccountRegistrar.getAllPhoneAccounts();
