@@ -121,7 +121,7 @@ public final class PhoneAccountRegistrar {
 
     private static final String FILE_NAME = "phone-account-registrar-state.xml";
     @VisibleForTesting
-    public static final int EXPECTED_STATE_VERSION = 7;
+    public static final int EXPECTED_STATE_VERSION = 8;
 
     /** Keep in sync with the same in SipSettings.java */
     private static final String SIP_SHARED_PREFERENCES = "SIP_PREFERENCES";
@@ -1257,6 +1257,18 @@ public final class PhoneAccountRegistrar {
                     // Always enabled all PSTN acocunts on upgrade to version 7
                     if (accountHandle.getComponentName().equals(pstnComponentName)) {
                         enabled = true;
+                    }
+                }
+                if (version < 8) {
+                    // Migrate the SIP account handle ids to use SIP username instead of SIP URI.
+                    if (accountHandle.getComponentName().equals(sipComponentName)) {
+                        Uri accountUri = Uri.parse(accountHandle.getId());
+                        if (accountUri.getScheme() != null &&
+                            accountUri.getScheme().equals(PhoneAccount.SCHEME_SIP)) {
+                            accountHandle = new PhoneAccountHandle(accountHandle.getComponentName(),
+                                    accountUri.getSchemeSpecificPart(),
+                                    accountHandle.getUserHandle());
+                        }
                     }
                 }
 
