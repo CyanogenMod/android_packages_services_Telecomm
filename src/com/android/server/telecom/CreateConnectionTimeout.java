@@ -53,7 +53,7 @@ final class CreateConnectionTimeout extends PhoneStateListener implements Runnab
     boolean isTimeoutNeededForCall(Collection<PhoneAccountHandle> accounts,
             PhoneAccountHandle currentAccount) {
         // Non-emergency calls timeout automatically at the radio layer. No need for a timeout here.
-        if (!TelephonyUtil.shouldProcessAsEmergency(mContext, mCall.getHandle())) {
+        if (!mCall.isEmergencyCall()) {
             return false;
         }
 
