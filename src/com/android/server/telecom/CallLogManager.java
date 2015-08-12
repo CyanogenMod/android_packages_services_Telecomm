@@ -148,7 +148,8 @@ final class CallLogManager extends CallsManagerListenerBase {
         // TODO(vt): Once data usage is available, wire it up here.
         int callFeatures = getCallFeatures(call.getVideoStateHistory());
         logCall(call.getCallerInfo(), logNumber, call.getHandlePresentation(),
-                callLogType, callFeatures, accountHandle, creationTime, age, null);
+                callLogType, callFeatures, accountHandle, creationTime, age, null,
+                call.isEmergencyCall());
     }
 
     /**
@@ -162,6 +163,7 @@ final class CallLogManager extends CallsManagerListenerBase {
      * @param start The start time of the call, in milliseconds.
      * @param duration The duration of the call, in milliseconds.
      * @param dataUsage The data usage for the call, null if not applicable.
+     * @param isEmergency {@code true} if this is an emergency call, {@code false} otherwise.
      */
     private void logCall(
             CallerInfo callerInfo,
@@ -172,8 +174,8 @@ final class CallLogManager extends CallsManagerListenerBase {
             PhoneAccountHandle accountHandle,
             long start,
             long duration,
-            Long dataUsage) {
-        boolean isEmergencyNumber = PhoneNumberUtils.isLocalEmergencyNumber(mContext, number);
+            Long dataUsage,
+            boolean isEmergency) {
 
         // On some devices, to avoid accidental redialing of emergency numbers, we *never* log
         // emergency calls to the Call Log.  (This behavior is set on a per-product basis, based
@@ -182,7 +184,7 @@ final class CallLogManager extends CallsManagerListenerBase {
                 mContext.getResources().getBoolean(R.bool.allow_emergency_numbers_in_call_log);
 
         // Don't log emergency numbers if the device doesn't allow it.
-        final boolean isOkToLogThisCall = !isEmergencyNumber || okToLogEmergencyNumber;
+        final boolean isOkToLogThisCall = !isEmergency || okToLogEmergencyNumber;
 
         sendAddCallBroadcast(callType, duration);
 
