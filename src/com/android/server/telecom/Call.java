@@ -633,8 +633,12 @@ public class Call implements CreateConnectionResponse {
                 }
             }
 
-            mIsEmergencyCall = mHandle != null && PhoneNumberUtils.isLocalEmergencyNumber(mContext,
-                    mHandle.getSchemeSpecificPart());
+            // Let's not allow resetting of the emergency flag. Once a call becomes an emergency
+            // call, it will remain so for the rest of it's lifetime.
+            if (!mIsEmergencyCall) {
+                mIsEmergencyCall = mHandle != null && PhoneNumberUtils.isLocalEmergencyNumber(
+                        mContext, mHandle.getSchemeSpecificPart());
+            }
             startCallerInfoLookup();
             for (Listener l : mListeners) {
                 l.onHandleChanged(this);
