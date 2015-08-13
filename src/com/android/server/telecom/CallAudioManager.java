@@ -206,14 +206,8 @@ final class CallAudioManager extends CallsManagerListenerBase
         Log.v(this, "onIncomingCallAnswered");
         int route = mCallAudioState.getRoute();
 
-        // We do two things:
-        // (1) If this is the first call, then we can to turn on bluetooth if available.
-        // (2) Unmute the audio for the new incoming call.
-        boolean isOnlyCall = mCallsManager.getCalls().size() == 1;
-        if (isOnlyCall && mBluetoothManager.isBluetoothAvailable()) {
-            mBluetoothManager.connectBluetoothAudio();
-            route = CallAudioState.ROUTE_BLUETOOTH;
-        }
+        // BT stack will connect audio upon receiving active call state.
+        // We unmute the audio for the new incoming call.
 
         setSystemAudioState(false /* isMute */, route, mCallAudioState.getSupportedRouteMask());
 
