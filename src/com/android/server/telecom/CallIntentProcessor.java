@@ -63,10 +63,6 @@ public class CallIntentProcessor {
             Context context,
             CallsManager callsManager,
             Intent intent) {
-        if (shouldPreventDuplicateVideoCall(context, callsManager, intent)) {
-            return;
-        }
-
         Uri handle = intent.getData();
         String scheme = handle.getScheme();
         String uriString = handle.getSchemeSpecificPart();
