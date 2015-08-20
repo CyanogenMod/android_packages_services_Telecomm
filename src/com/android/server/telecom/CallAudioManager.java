@@ -478,7 +478,7 @@ final class CallAudioManager extends CallsManagerListenerBase
                 Log.i(this, "Transition from IN_CALL -> RINGTONE. Resetting to NORMAL first.");
                 mAudioManager.setMode(AudioManager.MODE_NORMAL);
             }
-            if (call != null && setMsimAudioParams) {
+            if (call != null && call.getTargetPhoneAccount() != null && setMsimAudioParams) {
                 setAudioParameters(call, newMode);
             }
             mAudioManager.setMode(newMode);
