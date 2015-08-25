@@ -623,14 +623,15 @@ public final class PhoneAccountRegistrar {
 
         StringBuffer sb = new StringBuffer();
         sb.append("[").append(account1.getAccountHandle());
-        appendDiff(sb, "addr", account1.getAddress(), account2.getAddress());
+        appendDiff(sb, "addr", Log.piiHandle(account1.getAddress()),
+                Log.piiHandle(account2.getAddress()));
         appendDiff(sb, "cap", account1.getCapabilities(), account2.getCapabilities());
         appendDiff(sb, "hl", account1.getHighlightColor(), account2.getHighlightColor());
         appendDiff(sb, "icon", account1.getIcon(), account2.getIcon());
         appendDiff(sb, "lbl", account1.getLabel(), account2.getLabel());
         appendDiff(sb, "desc", account1.getShortDescription(), account2.getShortDescription());
-        appendDiff(sb, "subAddr", account1.getSubscriptionAddress(),
-                account2.getSubscriptionAddress());
+        appendDiff(sb, "subAddr", Log.piiHandle(account1.getSubscriptionAddress()),
+                Log.piiHandle(account2.getSubscriptionAddress()));
         appendDiff(sb, "uris", account1.getSupportedUriSchemes(),
                 account2.getSupportedUriSchemes());
         sb.append("]");
