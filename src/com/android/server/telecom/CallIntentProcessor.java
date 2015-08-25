@@ -83,6 +83,10 @@ public class CallIntentProcessor {
             clientExtras = new Bundle();
         }
 
+        final int videoState = intent.getIntExtra( TelecomManager.EXTRA_START_CALL_WITH_VIDEO_STATE,
+                VideoProfile.STATE_AUDIO_ONLY);
+        clientExtras.putInt(TelecomManager.EXTRA_START_CALL_WITH_VIDEO_STATE, videoState);
+
         final boolean isPrivilegedDialer = intent.getBooleanExtra(KEY_IS_PRIVILEGED_DIALER, false);
 
         // Send to CallsManager to ensure the InCallUI gets kicked off before the broadcast returns

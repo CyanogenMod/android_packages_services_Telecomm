@@ -585,6 +585,11 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
     Call startOutgoingCall(Uri handle, PhoneAccountHandle phoneAccountHandle, Bundle extras) {
         Call call = getNewOutgoingCall(handle);
 
+        if (extras!=null) {
+            call.setVideoState(extras.getInt(TelecomManager.EXTRA_START_CALL_WITH_VIDEO_STATE,
+                    VideoProfile.STATE_AUDIO_ONLY));
+        }
+
         List<PhoneAccountHandle> accounts =
                 mPhoneAccountRegistrar.getCallCapablePhoneAccounts(handle.getScheme(), false);
 
