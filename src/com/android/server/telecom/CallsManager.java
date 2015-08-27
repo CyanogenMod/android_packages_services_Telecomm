@@ -88,6 +88,7 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
     private static final int MAXIMUM_LIVE_CALLS = 1;
     private static final int MAXIMUM_HOLD_CALLS = 1;
     private static final int MAXIMUM_RINGING_CALLS = 1;
+    private static final int MAXIMUM_DIALING_CALLS = 1;
     private static final int MAXIMUM_OUTGOING_CALLS = 1;
     private static final int MAXIMUM_TOP_LEVEL_CALLS = 2;
 
@@ -244,7 +245,7 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
         Log.d(this, "onSuccessfulIncomingCall");
         setCallState(incomingCall, CallState.RINGING, "successful incoming call");
 
-        if (hasMaximumRingingCalls()) {
+        if (hasMaximumRingingCalls() || hasMaximumDialingCalls()) {
             incomingCall.reject(false, null);
             // since the call was not added to the list of calls, we have to call the missed
             // call notifier and the call logger manually.
@@ -1452,6 +1453,10 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
 
     private boolean hasMaximumOutgoingCalls() {
         return MAXIMUM_OUTGOING_CALLS <= getNumCallsWithState(OUTGOING_CALL_STATES);
+    }
+
+    private boolean hasMaximumDialingCalls() {
+        return MAXIMUM_DIALING_CALLS <= getNumCallsWithState(CallState.DIALING);
     }
 
     private boolean makeRoomForOutgoingCall(Call call, boolean isEmergency) {
