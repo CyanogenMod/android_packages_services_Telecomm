@@ -520,7 +520,9 @@ final class CallAudioManager extends CallsManagerListenerBase
                 Log.v(this, "updateAudioStreamAndMode : no foreground, speeding up MT audio.");
                 requestAudioFocusAndSetMode(AudioManager.STREAM_VOICE_CALL,
                                                          AudioManager.MODE_IN_CALL);
-            } else if (foregroundCall != null && waitingForAccountSelectionCall == null) {
+            } else if (foregroundCall != null &&
+                    foregroundCall.getState() != CallState.DISCONNECTED  &&
+                    waitingForAccountSelectionCall == null) {
                 // In the case where there is a call that is waiting for account selection,
                 // this will fall back to abandonAudioFocus() below, which temporarily exits
                 // the in-call audio mode. This is to allow TalkBack to speak the "Call with"
