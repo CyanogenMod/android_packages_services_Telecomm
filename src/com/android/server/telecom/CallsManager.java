@@ -1131,6 +1131,10 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
         return count;
     }
 
+    Call getOutgoingCall() {
+        return getFirstCallWithState(OUTGOING_CALL_STATES);
+    }
+
     Call getFirstCallWithState(int... states) {
         return getFirstCallWithState(null, states);
     }
