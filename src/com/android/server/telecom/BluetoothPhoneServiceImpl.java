@@ -642,7 +642,10 @@ public final class BluetoothPhoneServiceImpl {
 
         int numActiveCalls = activeCall == null ? 0 : 1;
         int numHeldCalls = mCallsManager.getNumHeldCalls();
-        boolean callsSwitched = (numHeldCalls == 2);
+        // Intermediate state for GSM calls which are in the process of being swapped.
+        // TODO: Should we be hardcoding this value to 2 or should we check if all top level calls
+        //       are held?
+        boolean callsPendingSwitch = (numHeldCalls == 2);
 
         // For conference calls which support swapping the active call within the conference
         // (namely CDMA calls) we need to expose that as a held call in order for the BT device
@@ -670,13 +673,14 @@ public final class BluetoothPhoneServiceImpl {
         }
 
         if (mBluetoothHeadset != null &&
-                (numActiveCalls != mNumActiveCalls ||
-                 numHeldCalls != mNumHeldCalls ||
-                 bluetoothCallState != mBluetoothCallState ||
-                 !TextUtils.equals(ringingAddress, mRingingAddress) ||
-                 ringingAddressType != mRingingAddressType ||
-                 (heldCall != mOldHeldCall && !ignoreHeldCallChange) ||
-                 force) && !callsSwitched) {
+                (force ||
+                        (!callsPendingSwitch &&
+                                (numActiveCalls != mNumActiveCalls ||
+                                 numHeldCalls != mNumHeldCalls ||
+                                 bluetoothCallState != mBluetoothCallState ||
+                                 !TextUtils.equals(ringingAddress, mRingingAddress) ||
+                                 ringingAddressType != mRingingAddressType ||
+                                 (heldCall != mOldHeldCall && !ignoreHeldCallChange))))) {
 
             // If the call is transitioning into the alerting state, send DIALING first.
             // Some devices expect to see a DIALING state prior to seeing an ALERTING state
@@ -738,7 +742,7 @@ public final class BluetoothPhoneServiceImpl {
     private int getBluetoothCallStateForUpdate() {
         CallsManager callsManager = mCallsManager;
         Call ringingCall = mCallsManager.getRingingCall();
-        Call dialingCall = mCallsManager.getDialingCall();
+        Call dialingCall = mCallsManager.getOutgoingCall();
 
         //
         // !! WARNING !!
