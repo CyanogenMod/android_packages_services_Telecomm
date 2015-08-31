@@ -107,6 +107,9 @@ public class ConnectionServiceFixture implements TestFixture<IConnectionService>
         public void reject(String callId) throws RemoteException { }
 
         @Override
+        public void rejectWithMessage(String callId, String message) throws RemoteException { }
+
+        @Override
         public void disconnect(String callId) throws RemoteException { }
 
         @Override
