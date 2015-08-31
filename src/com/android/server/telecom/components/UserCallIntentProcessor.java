@@ -70,7 +70,8 @@ public class UserCallIntentProcessor {
      *
      * @param intent The intent.
      */
-    public void processIntent(Intent intent, String callingPackageName, boolean hasCallAppOp) {
+    public void processIntent(Intent intent, String callingPackageName,
+            boolean canCallNonEmergency) {
         // Ensure call intents are not processed on devices that are not capable of calling.
         if (!isVoiceCapable()) {
             return;
@@ -81,12 +82,12 @@ public class UserCallIntentProcessor {
         if (Intent.ACTION_CALL.equals(action) ||
                 Intent.ACTION_CALL_PRIVILEGED.equals(action) ||
                 Intent.ACTION_CALL_EMERGENCY.equals(action)) {
-            processOutgoingCallIntent(intent, callingPackageName, hasCallAppOp);
+            processOutgoingCallIntent(intent, callingPackageName, canCallNonEmergency);
         }
     }
 
     private void processOutgoingCallIntent(Intent intent, String callingPackageName,
-            boolean hasCallAppOp) {
+            boolean canCallNonEmergency) {
         Uri handle = intent.getData();
         String scheme = handle.getScheme();
         String uriString = handle.getSchemeSpecificPart();
@@ -109,7 +110,7 @@ public class UserCallIntentProcessor {
             return;
         }
 
-        if (!hasCallAppOp && !TelephonyUtil.shouldProcessAsEmergency(mContext, handle)) {
+        if (!canCallNonEmergency && !TelephonyUtil.shouldProcessAsEmergency(mContext, handle)) {
             showErrorDialogForRestrictedOutgoingCall(mContext,
                     R.string.outgoing_call_not_allowed_no_permission);
             Log.w(this, "Rejecting non-emergency phone call because "
