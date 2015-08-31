@@ -18,7 +18,7 @@
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
   <string name="blacklist_title">لیست تماس گیرندگان مسدودشده</string>
   <string name="blacklist_summary_disabled">غیرفعال</string>
-  <string name="blacklist_summary">شما تماس یا پیامی از شماره‌های لیست تماس گیرندگان مسدودشده دریافت نخواهید کرد</string>
+  <string name="blacklist_summary">شما تماس یا پیامی از شماره‌های لیست تماس گیرندگان مسدود دریافت نخواهید کرد</string>
   <string name="blacklist_call_notification">تماسی از %s مسدود شد</string>
   <string name="blacklist_call_notification_private_number">تماسی از یک شماره خصوصی مسدود شد</string>
   <string name="blacklist_call_notification_unknown_number">تماسی از شماره ناشناس %s مسدود شد</string>
