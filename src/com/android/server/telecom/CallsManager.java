@@ -1432,6 +1432,7 @@ public class CallsManager extends Call.ListenerBase
 
     void markCallAsDialing(Call call) {
         setCallState(call, CallState.DIALING, "dialing set explicitly");
+        maybeMoveToEarpiece(call);
         maybeMoveToSpeakerPhone(call);
         setActiveSubscription(call.getTargetPhoneAccount().getId());
     }
@@ -2189,6 +2190,13 @@ public class CallsManager extends Call.ListenerBase
         if (call.getStartWithSpeakerphoneOn()) {
             setAudioRoute(CallAudioState.ROUTE_SPEAKER);
             call.setStartWithSpeakerphoneOn(false);
+        }
+    }
+
+    private void maybeMoveToEarpiece(Call call) {
+        if (!call.getStartWithSpeakerphoneOn() && !mWiredHeadsetManager.isPluggedIn() &&
+                !mBluetoothManager.isBluetoothAvailable()) {
+            setAudioRoute(CallAudioState.ROUTE_EARPIECE);
         }
     }
 
