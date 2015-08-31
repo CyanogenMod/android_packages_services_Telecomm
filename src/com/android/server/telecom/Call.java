@@ -1091,7 +1091,7 @@ public class Call implements CreateConnectionResponse {
             // Ensure video state history tracks video state at time of rejection.
             mVideoStateHistory |= mVideoState;
 
-            mConnectionService.reject(this);
+            mConnectionService.reject(this, rejectWithMessage, textMessage);
             Log.event(this, Log.Events.REQUEST_REJECT);
         }
     }
