@@ -730,16 +730,10 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
         call.setHandle(uriHandle);
         call.setGatewayInfo(gatewayInfo);
         // Auto-enable speakerphone if the originating intent specified to do so, or if the call
-        // is a video call.
-        call.setStartWithSpeakerphoneOn(speakerphoneOn || isSpeakerphoneAutoEnabled(videoState));
+        // is a video call or if the phone is docked.
+        call.setStartWithSpeakerphoneOn(speakerphoneOn || isSpeakerphoneAutoEnabled(videoState)
+                || mDockManager.isDocked());
         call.setVideoState(videoState);
-
-        if (speakerphoneOn) {
-            Log.i(this, "%s Starting with speakerphone as requested", call);
-        } else {
-            Log.i(this, "%s Starting with speakerphone because car is docked.", call);
-        }
-        call.setStartWithSpeakerphoneOn(speakerphoneOn || mDockManager.isDocked());
 
         boolean isEmergencyCall = TelephonyUtil.shouldProcessAsEmergency(mContext,
                 call.getHandle());
@@ -1051,6 +1045,7 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
 
     void markCallAsDialing(Call call) {
         setCallState(call, CallState.DIALING, "dialing set explicitly");
+        maybeMoveToEarpiece(call);
         maybeMoveToSpeakerPhone(call);
         setActiveSubscription(call.getTargetPhoneAccount().getId());
     }
@@ -1849,6 +1844,13 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
         if (call.getStartWithSpeakerphoneOn()) {
             setAudioRoute(CallAudioState.ROUTE_SPEAKER);
             call.setStartWithSpeakerphoneOn(false);
+        }
+    }
+
+    private void maybeMoveToEarpiece(Call call) {
+        if (!call.getStartWithSpeakerphoneOn() && !mWiredHeadsetManager.isPluggedIn() &&
+                !mCallAudioManager.isBluetoothDeviceAvailable()) {
+            setAudioRoute(CallAudioState.ROUTE_EARPIECE);
         }
     }
 
