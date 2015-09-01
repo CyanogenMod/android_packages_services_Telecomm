@@ -18,6 +18,10 @@
           coreApp="true"
           package="com.android.server.telecom.testapps">
 
+    <uses-sdk
+        android:minSdkVersion="23"
+        android:targetSdkVersion="23" />
+
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.CALL_PHONE" />
     <uses-permission android:name="android.permission.CONTROL_INCALL_EXPERIENCE" />
