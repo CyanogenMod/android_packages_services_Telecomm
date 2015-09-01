@@ -808,8 +808,18 @@ public class TelecomServiceImpl {
                         + " is not allowed to place phone calls");
             }
 
+            // Note: we can still get here for the default/system dialer, even if the Phone
+            // permission is turned off. This is because the default/system dialer is always
+            // allowed to attempt to place a call (regardless of permission state), in case
+            // it turns out to be an emergency call. If the permission is denied and the
+            // call is being made to a non-emergency number, the call will be denied later on
+            // by {@link UserCallIntentProcessor}.
+
             final boolean hasCallAppOp = mAppOpsManager.noteOp(AppOpsManager.OP_CALL_PHONE,
                     Binder.getCallingUid(), callingPackage) == AppOpsManager.MODE_ALLOWED;
+
+            final boolean hasCallPermission = mContext.checkCallingPermission(CALL_PHONE) ==
+                    PackageManager.PERMISSION_GRANTED;
 
             synchronized (mLock) {
                 final UserHandle userHandle = Binder.getCallingUserHandle();
@@ -818,7 +828,7 @@ public class TelecomServiceImpl {
                     final Intent intent = new Intent(Intent.ACTION_CALL, handle);
                     intent.putExtras(extras);
                     new UserCallIntentProcessor(mContext, userHandle).processIntent(intent,
-                            callingPackage, hasCallAppOp);
+                            callingPackage, hasCallAppOp && hasCallPermission);
                 } finally {
                     Binder.restoreCallingIdentity(token);
                 }
