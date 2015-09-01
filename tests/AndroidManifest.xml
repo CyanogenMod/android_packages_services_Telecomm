@@ -19,6 +19,10 @@
           package="com.android.server.telecom.tests"
           android:debuggable="true">
 
+    <uses-sdk
+        android:minSdkVersion="23"
+        android:targetSdkVersion="23" />
+
     <!-- TODO: Needed because we call BluetoothAdapter.getDefaultAdapter() statically, and
          BluetoothAdapter is a final class. -->
     <uses-permission android:name="android.permission.BLUETOOTH" />
