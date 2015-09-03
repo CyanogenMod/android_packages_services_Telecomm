@@ -1672,4 +1672,13 @@ public class Call implements CreateConnectionResponse {
         }
         return CallState.DISCONNECTED;
     }
+
+    /**
+     * Determines if this call is in disconnected state and waiting to be destroyed.
+     *
+     * @return {@code true} if this call is disconected.
+     */
+    public boolean isDisconnected() {
+        return (getState() == CallState.DISCONNECTED || getState() == CallState.ABORTED);
+    }
 }
