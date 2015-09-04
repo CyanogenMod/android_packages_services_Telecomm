@@ -439,6 +439,15 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
         return false;
     }
 
+    boolean hasOnlyDisconnectedCalls() {
+        for (Call call : mCalls) {
+            if (!call.isDisconnected()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     boolean hasVideoCall() {
         for (Call call : mCalls) {
             if (VideoProfile.isVideo(call.getVideoState())) {
