@@ -1252,7 +1252,7 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
         call.addListener(this);
         mCalls.add(call);
 
-        // TODO: Update mForegroundCall prior to invoking
+        updateCallsManagerState();
         // onCallAdded for calls which immediately take the foreground (like the first call).
         for (CallsManagerListener listener : mListeners) {
             if (Log.SYSTRACE_DEBUG) {
@@ -1263,7 +1263,6 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
                 Trace.endSection();
             }
         }
-        updateCallsManagerState();
         Trace.endSection();
     }
 
@@ -1285,6 +1284,7 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
 
         // Only broadcast changes for calls that are being tracked.
         if (shouldNotify) {
+            updateCallsManagerState();
             for (CallsManagerListener listener : mListeners) {
                 if (Log.SYSTRACE_DEBUG) {
                     Trace.beginSection(listener.getClass().toString() + " onCallRemoved");
@@ -1294,7 +1294,6 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
                     Trace.endSection();
                 }
             }
-            updateCallsManagerState();
         }
         Trace.endSection();
     }
@@ -1325,6 +1324,7 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
             Trace.beginSection("onCallStateChanged");
             // Only broadcast state change for calls that are being tracked.
             if (mCalls.contains(call)) {
+                updateCallsManagerState();
                 for (CallsManagerListener listener : mListeners) {
                     if (Log.SYSTRACE_DEBUG) {
                         Trace.beginSection(listener.getClass().toString() + " onCallStateChanged");
@@ -1334,7 +1334,6 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
                         Trace.endSection();
                     }
                 }
-                updateCallsManagerState();
             }
             Trace.endSection();
         }
