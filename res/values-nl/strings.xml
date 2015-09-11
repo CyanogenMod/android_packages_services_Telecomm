@@ -39,7 +39,7 @@
     <string name="enable_account_preference_title" msgid="2021848090086481720">"Oproepaccounts"</string>
     <string name="outgoing_call_not_allowed_user_restriction" msgid="8504993498756056279">"Alleen noodoproepen zijn toegestaan door de apparaateigenaar."</string>
     <string name="outgoing_call_not_allowed_no_permission" msgid="1996571596464271228">"Deze app kan geen uitgaande oproepen starten zonder telefoonrechten."</string>
-    <string name="outgoing_call_error_no_phone_number_supplied" msgid="1940125199802007505">"Als u wilt bellen, moet u een geldig nummer invoeren."</string>
+    <string name="outgoing_call_error_no_phone_number_supplied" msgid="1940125199802007505">"Als je wilt bellen, moet je een geldig nummer invoeren."</string>
     <string name="duplicate_video_call_not_allowed" msgid="3749211605014548386">"Oproep kan momenteel niet worden toegevoegd."</string>
     <string name="video_call_not_allowed_if_tty_enabled" msgid="7593649283571253283">"Schakel de TTY-modus uit om videogesprekken te voeren."</string>
     <string name="no_vm_number" msgid="4164780423805688336">"Voicemailnummer ontbreekt"</string>
