@@ -122,6 +122,27 @@ final class ConnectionServiceWrapper extends ServiceBinder {
         }
 
         @Override
+        public void resetCdmaConnectionTime(String callId) {
+            long token = Binder.clearCallingIdentity();
+            try {
+                synchronized (mLock) {
+                    logIncoming("resetCdmaConnectionTime %s", callId);
+                    if (mCallIdMapper.isValidCallId(callId) ||
+                            mCallIdMapper.isValidConferenceId(callId)) {
+                        Call call = mCallIdMapper.getCall(callId);
+                        if (call != null) {
+                            mCallsManager.resetCdmaConnectionTime(call);
+                        } else {
+                            // Log.w(this, "resetCdmaConnectionTime, unknown call id: %s", msg.obj);
+                        }
+                    }
+                }
+            } finally {
+                Binder.restoreCallingIdentity(token);
+            }
+        }
+
+        @Override
         public void setVideoProvider(String callId, IVideoProvider videoProvider) {
             long token = Binder.clearCallingIdentity();
             try {
