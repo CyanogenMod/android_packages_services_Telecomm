@@ -69,14 +69,6 @@ final class CreateConnectionTimeout extends PhoneStateListener implements Runnab
             return false;
         }
 
-        // To reduce the number of scenarios where a timeout is needed, only use a timeout if
-        // we're connected to Wi-Fi. This ensures that the fallback connection manager has an
-        // alternate route to place the call. TODO: remove this condition or allow connection
-        // managers to specify transports. See http://b/19199181.
-        if (!isConnectedToWifi()) {
-            return false;
-        }
-
         Log.d(this, "isTimeoutNeededForCall, returning true");
         return true;
     }
