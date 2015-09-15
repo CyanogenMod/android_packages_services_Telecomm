@@ -34,7 +34,6 @@ import android.telecom.TelecomManager;
 import android.telecom.VideoProfile;
 import android.telephony.PhoneNumberUtils;
 import android.text.TextUtils;
-import android.widget.Toast;
 
 // TODO: Needed for move to system service: import com.android.internal.R;
 
@@ -134,8 +133,8 @@ public class UserCallIntentProcessor {
         if (VideoProfile.isVideo(videoState) && isTtyModeEnabled() &&
                 !TelephonyUtil.shouldProcessAsEmergency(mContext, handle)) {
 
-            Toast.makeText(mContext, mContext.getResources().getString(R.string.
-                    video_call_not_allowed_if_tty_enabled), Toast.LENGTH_SHORT).show();
+            showErrorDialogForRestrictedOutgoingCall(mContext,
+                    R.string.video_call_not_allowed_if_tty_enabled);
             Log.d(this, "Rejecting video calls as tty is enabled");
             return;
         }
