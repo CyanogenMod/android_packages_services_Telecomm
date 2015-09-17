@@ -409,9 +409,10 @@ public class MissedCallNotifierImpl extends CallsManagerListenerBase implements 
                             synchronized (lock) {
 
                                 // Convert the data to a call object
-                                Call call = new Call(mContext, callsManager, lock,
-                                        null, contactsAsyncHelper, callerInfoAsyncQueryFactory,
-                                        null, null, null, null, true, false);
+                                Call call = new Call(Call.CALL_ID_UNKNOWN, mContext, callsManager,
+                                        lock, null, contactsAsyncHelper,
+                                        callerInfoAsyncQueryFactory, null, null, null, null, true,
+                                        false);
                                 call.setDisconnectCause(
                                         new DisconnectCause(DisconnectCause.MISSED));
                                 call.setState(CallState.DISCONNECTED, "throw away call");
