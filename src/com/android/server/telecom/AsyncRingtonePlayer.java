@@ -59,6 +59,10 @@ class AsyncRingtonePlayer {
     /** Plays the ringtone. */
     void play(Uri ringtone) {
         Log.d(this, "Posting play.");
+        if (ringtone == Uri.EMPTY) {
+            Log.i(this, "Uri.EMPTY (silence -- not playing anything)");
+            return;
+        }
         postMessage(EVENT_PLAY, true /* shouldCreateHandler */, ringtone);
     }
 
