@@ -45,13 +45,11 @@ class InCallAdapter extends IInCallAdapter.Stub {
         try {
             synchronized (mLock) {
                 Log.d(this, "answerCall(%s,%d)", callId, videoState);
-                if (mCallIdMapper.isValidCallId(callId)) {
-                    Call call = mCallIdMapper.getCall(callId);
-                    if (call != null) {
-                        mCallsManager.answerCall(call, videoState);
-                    } else {
-                        Log.w(this, "answerCall, unknown call id: %s", callId);
-                    }
+                Call call = mCallIdMapper.getCall(callId);
+                if (call != null) {
+                    mCallsManager.answerCall(call, videoState);
+                } else {
+                    Log.w(this, "answerCall, unknown call id: %s", callId);
                 }
             }
         } finally {
@@ -65,13 +63,11 @@ class InCallAdapter extends IInCallAdapter.Stub {
         try {
             synchronized (mLock) {
                 Log.d(this, "rejectCall(%s,%b,%s)", callId, rejectWithMessage, textMessage);
-                if (mCallIdMapper.isValidCallId(callId)) {
-                    Call call = mCallIdMapper.getCall(callId);
-                    if (call != null) {
-                        mCallsManager.rejectCall(call, rejectWithMessage, textMessage);
-                    } else {
-                        Log.w(this, "setRingback, unknown call id: %s", callId);
-                    }
+                Call call = mCallIdMapper.getCall(callId);
+                if (call != null) {
+                    mCallsManager.rejectCall(call, rejectWithMessage, textMessage);
+                } else {
+                    Log.w(this, "setRingback, unknown call id: %s", callId);
                 }
             }
         } finally {
@@ -85,13 +81,11 @@ class InCallAdapter extends IInCallAdapter.Stub {
         try {
             synchronized (mLock) {
                 Log.d(this, "playDtmfTone(%s,%c)", callId, digit);
-                if (mCallIdMapper.isValidCallId(callId)) {
-                    Call call = mCallIdMapper.getCall(callId);
-                    if (call != null) {
-                        mCallsManager.playDtmfTone(call, digit);
-                    } else {
-                        Log.w(this, "playDtmfTone, unknown call id: %s", callId);
-                    }
+                Call call = mCallIdMapper.getCall(callId);
+                if (call != null) {
+                    mCallsManager.playDtmfTone(call, digit);
+                } else {
+                    Log.w(this, "playDtmfTone, unknown call id: %s", callId);
                 }
             }
         } finally {
@@ -105,13 +99,11 @@ class InCallAdapter extends IInCallAdapter.Stub {
         try {
             synchronized (mLock) {
                 Log.d(this, "stopDtmfTone(%s)", callId);
-                if (mCallIdMapper.isValidCallId(callId)) {
-                    Call call = mCallIdMapper.getCall(callId);
-                    if (call != null) {
-                        mCallsManager.stopDtmfTone(call);
-                    } else {
-                        Log.w(this, "stopDtmfTone, unknown call id: %s", callId);
-                    }
+                Call call = mCallIdMapper.getCall(callId);
+                if (call != null) {
+                    mCallsManager.stopDtmfTone(call);
+                } else {
+                    Log.w(this, "stopDtmfTone, unknown call id: %s", callId);
                 }
             }
         } finally {
@@ -125,13 +117,11 @@ class InCallAdapter extends IInCallAdapter.Stub {
         try {
             synchronized (mLock) {
                 Log.d(this, "postDialContinue(%s)", callId);
-                if (mCallIdMapper.isValidCallId(callId)) {
-                    Call call = mCallIdMapper.getCall(callId);
-                    if (call != null) {
-                        mCallsManager.postDialContinue(call, proceed);
-                    } else {
-                        Log.w(this, "postDialContinue, unknown call id: %s", callId);
-                    }
+                Call call = mCallIdMapper.getCall(callId);
+                if (call != null) {
+                    mCallsManager.postDialContinue(call, proceed);
+                } else {
+                    Log.w(this, "postDialContinue, unknown call id: %s", callId);
                 }
             }
         } finally {
@@ -145,13 +135,11 @@ class InCallAdapter extends IInCallAdapter.Stub {
         try {
             synchronized (mLock) {
                 Log.v(this, "disconnectCall: %s", callId);
-                if (mCallIdMapper.isValidCallId(callId)) {
-                    Call call = mCallIdMapper.getCall(callId);
-                    if (call != null) {
-                        mCallsManager.disconnectCall(call);
-                    } else {
-                        Log.w(this, "disconnectCall, unknown call id: %s", callId);
-                    }
+                Call call = mCallIdMapper.getCall(callId);
+                if (call != null) {
+                    mCallsManager.disconnectCall(call);
+                } else {
+                    Log.w(this, "disconnectCall, unknown call id: %s", callId);
                 }
             }
         } finally {
@@ -164,13 +152,11 @@ class InCallAdapter extends IInCallAdapter.Stub {
         long token = Binder.clearCallingIdentity();
         try {
             synchronized (mLock) {
-                if (mCallIdMapper.isValidCallId(callId)) {
-                    Call call = mCallIdMapper.getCall(callId);
-                    if (call != null) {
-                        mCallsManager.holdCall(call);
-                    } else {
-                        Log.w(this, "holdCall, unknown call id: %s", callId);
-                    }
+                Call call = mCallIdMapper.getCall(callId);
+                if (call != null) {
+                    mCallsManager.holdCall(call);
+                } else {
+                    Log.w(this, "holdCall, unknown call id: %s", callId);
                 }
             }
         } finally {
@@ -183,13 +169,11 @@ class InCallAdapter extends IInCallAdapter.Stub {
         long token = Binder.clearCallingIdentity();
         try {
             synchronized (mLock) {
-                if (mCallIdMapper.isValidCallId(callId)) {
-                    Call call = mCallIdMapper.getCall(callId);
-                    if (call != null) {
-                        mCallsManager.unholdCall(call);
-                    } else {
-                        Log.w(this, "unholdCall, unknown call id: %s", callId);
-                    }
+                Call call = mCallIdMapper.getCall(callId);
+                if (call != null) {
+                    mCallsManager.unholdCall(call);
+                } else {
+                    Log.w(this, "unholdCall, unknown call id: %s", callId);
                 }
             }
         } finally {
@@ -203,13 +187,11 @@ class InCallAdapter extends IInCallAdapter.Stub {
         long token = Binder.clearCallingIdentity();
         try {
             synchronized (mLock) {
-                if (mCallIdMapper.isValidCallId(callId)) {
-                    Call call = mCallIdMapper.getCall(callId);
-                    if (call != null) {
-                        mCallsManager.phoneAccountSelected(call, accountHandle, setDefault);
-                    } else {
-                        Log.w(this, "phoneAccountSelected, unknown call id: %s", callId);
-                    }
+                Call call = mCallIdMapper.getCall(callId);
+                if (call != null) {
+                    mCallsManager.phoneAccountSelected(call, accountHandle, setDefault);
+                } else {
+                    Log.w(this, "phoneAccountSelected, unknown call id: %s", callId);
                 }
             }
         } finally {
@@ -246,16 +228,12 @@ class InCallAdapter extends IInCallAdapter.Stub {
         long token = Binder.clearCallingIdentity();
         try {
             synchronized (mLock) {
-                if (mCallIdMapper.isValidCallId(callId) &&
-                        mCallIdMapper.isValidCallId(otherCallId)) {
-                    Call call = mCallIdMapper.getCall(callId);
-                    Call otherCall = mCallIdMapper.getCall(otherCallId);
-                    if (call != null && otherCall != null) {
-                        mCallsManager.conference(call, otherCall);
-                    } else {
-                        Log.w(this, "conference, unknown call id: %s or %s", callId, otherCallId);
-                    }
-
+                Call call = mCallIdMapper.getCall(callId);
+                Call otherCall = mCallIdMapper.getCall(otherCallId);
+                if (call != null && otherCall != null) {
+                    mCallsManager.conference(call, otherCall);
+                } else {
+                    Log.w(this, "conference, unknown call id: %s or %s", callId, otherCallId);
                 }
             }
         } finally {
@@ -268,13 +246,11 @@ class InCallAdapter extends IInCallAdapter.Stub {
         long token = Binder.clearCallingIdentity();
         try {
             synchronized (mLock) {
-                if (mCallIdMapper.isValidCallId(callId)) {
-                    Call call = mCallIdMapper.getCall(callId);
-                    if (call != null) {
-                        call.splitFromConference();
-                    } else {
-                        Log.w(this, "splitFromConference, unknown call id: %s", callId);
-                    }
+                Call call = mCallIdMapper.getCall(callId);
+                if (call != null) {
+                    call.splitFromConference();
+                } else {
+                    Log.w(this, "splitFromConference, unknown call id: %s", callId);
                 }
             }
         } finally {
@@ -287,13 +263,11 @@ class InCallAdapter extends IInCallAdapter.Stub {
         long token = Binder.clearCallingIdentity();
         try {
             synchronized (mLock) {
-                if (mCallIdMapper.isValidCallId(callId)) {
-                    Call call = mCallIdMapper.getCall(callId);
-                    if (call != null) {
-                        call.mergeConference();
-                    } else {
-                        Log.w(this, "mergeConference, unknown call id: %s", callId);
-                    }
+                Call call = mCallIdMapper.getCall(callId);
+                if (call != null) {
+                    call.mergeConference();
+                } else {
+                    Log.w(this, "mergeConference, unknown call id: %s", callId);
                 }
             }
         } finally {
@@ -306,13 +280,11 @@ class InCallAdapter extends IInCallAdapter.Stub {
         long token = Binder.clearCallingIdentity();
         try {
             synchronized (mLock) {
-                if (mCallIdMapper.isValidCallId(callId)) {
-                    Call call = mCallIdMapper.getCall(callId);
-                    if (call != null) {
-                        call.swapConference();
-                    } else {
-                        Log.w(this, "swapConference, unknown call id: %s", callId);
-                    }
+                Call call = mCallIdMapper.getCall(callId);
+                if (call != null) {
+                    call.swapConference();
+                } else {
+                    Log.w(this, "swapConference, unknown call id: %s", callId);
                 }
             }
         } finally {

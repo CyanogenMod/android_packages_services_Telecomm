@@ -65,6 +65,8 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @VisibleForTesting
 public class Call implements CreateConnectionResponse {
+    public final static String CALL_ID_UNKNOWN = "-1";
+
     /**
      * Listener for events on the call.
      */
@@ -320,6 +322,7 @@ public class Call implements CreateConnectionResponse {
     private final CallsManager mCallsManager;
     private final TelecomSystem.SyncRoot mLock;
     private final CallerInfoAsyncQueryFactory mCallerInfoAsyncQueryFactory;
+    private final String mId;
 
     private boolean mWasConferencePreviouslyMerged = false;
 
@@ -346,6 +349,7 @@ public class Call implements CreateConnectionResponse {
      * @param isIncoming True if this is an incoming call.
      */
     public Call(
+            String callId,
             Context context,
             CallsManager callsManager,
             TelecomSystem.SyncRoot lock,
@@ -358,6 +362,7 @@ public class Call implements CreateConnectionResponse {
             PhoneAccountHandle targetPhoneAccountHandle,
             boolean isIncoming,
             boolean isConference) {
+        mId = callId;
         mState = isConference ? CallState.ACTIVE : CallState.NEW;
         mContext = context;
         mCallsManager = callsManager;
@@ -392,6 +397,7 @@ public class Call implements CreateConnectionResponse {
      * @param connectTimeMillis The connection time of the call.
      */
     Call(
+            String callId,
             Context context,
             CallsManager callsManager,
             TelecomSystem.SyncRoot lock,
@@ -405,7 +411,7 @@ public class Call implements CreateConnectionResponse {
             boolean isIncoming,
             boolean isConference,
             long connectTimeMillis) {
-        this(context, callsManager, lock, repository, contactsAsyncHelper,
+        this(callId, context, callsManager, lock, repository, contactsAsyncHelper,
                 callerInfoAsyncQueryFactory, handle, gatewayInfo,
                 connectionManagerPhoneAccountHandle, targetPhoneAccountHandle, isIncoming,
                 isConference);
@@ -438,7 +444,7 @@ public class Call implements CreateConnectionResponse {
 
 
         return String.format(Locale.US, "[%s, %s, %s, %s, %s, childs(%d), has_parent(%b), [%s]]",
-                System.identityHashCode(this),
+                mId,
                 CallState.toString(mState),
                 component,
                 Log.piiHandle(mHandle),
@@ -500,6 +506,14 @@ public class Call implements CreateConnectionResponse {
         // Continue processing if the current attempt failed or timed out.
         return mDisconnectCause.getCode() == DisconnectCause.ERROR ||
             mCreateConnectionProcessor.isCallTimedOut();
+    }
+
+    /**
+     * Returns the unique ID for this call as it exists in Telecom.
+     * @return The call ID.
+     */
+    public String getId() {
+        return mId;
     }
 
     /**

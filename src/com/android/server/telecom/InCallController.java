@@ -146,7 +146,7 @@ public final class InCallController extends CallsManagerListenerBase {
      */
     private ComponentName mInCallUIComponentName;
 
-    private final CallIdMapper mCallIdMapper = new CallIdMapper("InCall");
+    private final CallIdMapper mCallIdMapper = new CallIdMapper();
 
     /** The {@link ComponentName} of the default InCall UI. */
     private final ComponentName mSystemInCallComponentName;

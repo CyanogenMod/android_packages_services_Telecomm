@@ -118,11 +118,9 @@ public class Log {
         private static int sNextId = 1;
         private final List<CallEvent> mEvents = new LinkedList<>();
         private final Call mCall;
-        private final int mId;
 
         public CallEventRecord(Call call) {
             mCall = call;
-            mId = ++sNextId;
         }
 
         public Call getCall() {
@@ -131,14 +129,14 @@ public class Log {
 
         public void addEvent(String event, Object data) {
             mEvents.add(new CallEvent(event, System.currentTimeMillis(), data));
-            Log.i("Event", "Call %d: %s, %s", mId, event, data);
+            Log.i("Event", "Call %s: %s, %s", mCall.getId(), event, data);
         }
 
         public void dump(IndentingPrintWriter pw) {
             Map<String, CallEvent> pendingResponses = new HashMap<>();
 
             pw.print("Call ");
-            pw.print(mId);
+            pw.print(mCall.getId());
             pw.print(" [");
             pw.print(sDateFormat.format(new Date(mCall.getCreationTimeMillis())));
             pw.print("]");
@@ -174,7 +172,7 @@ public class Log {
                         // ID instead.
                         CallEventRecord record = mCallEventRecordMap.get(data);
                         if (record != null) {
-                            data = "Call " + record.mId;
+                            data = "Call " + record.mCall.getId();
                         }
                     }
 

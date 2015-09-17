@@ -70,10 +70,8 @@ final class ConnectionServiceWrapper extends ServiceBinder {
             try {
                 synchronized (mLock) {
                     logIncoming("handleCreateConnectionComplete %s", callId);
-                    if (mCallIdMapper.isValidCallId(callId)) {
-                        ConnectionServiceWrapper.this
-                                .handleCreateConnectionComplete(callId, request, connection);
-                    }
+                    ConnectionServiceWrapper.this
+                            .handleCreateConnectionComplete(callId, request, connection);
                 }
             } finally {
                 Binder.restoreCallingIdentity(token);
@@ -86,14 +84,11 @@ final class ConnectionServiceWrapper extends ServiceBinder {
             try {
                 synchronized (mLock) {
                     logIncoming("setActive %s", callId);
-                    if (mCallIdMapper.isValidCallId(callId) || mCallIdMapper
-                            .isValidConferenceId(callId)) {
-                        Call call = mCallIdMapper.getCall(callId);
-                        if (call != null) {
-                            mCallsManager.markCallAsActive(call);
-                        } else {
-                            // Log.w(this, "setActive, unknown call id: %s", msg.obj);
-                        }
+                    Call call = mCallIdMapper.getCall(callId);
+                    if (call != null) {
+                        mCallsManager.markCallAsActive(call);
+                    } else {
+                        // Log.w(this, "setActive, unknown call id: %s", msg.obj);
                     }
                 }
             } finally {
@@ -107,13 +102,11 @@ final class ConnectionServiceWrapper extends ServiceBinder {
             try {
                 synchronized (mLock) {
                     logIncoming("setRinging %s", callId);
-                    if (mCallIdMapper.isValidCallId(callId)) {
-                        Call call = mCallIdMapper.getCall(callId);
-                        if (call != null) {
-                            mCallsManager.markCallAsRinging(call);
-                        } else {
-                            // Log.w(this, "setRinging, unknown call id: %s", msg.obj);
-                        }
+                    Call call = mCallIdMapper.getCall(callId);
+                    if (call != null) {
+                        mCallsManager.markCallAsRinging(call);
+                    } else {
+                        // Log.w(this, "setRinging, unknown call id: %s", msg.obj);
                     }
                 }
             } finally {
@@ -127,12 +120,9 @@ final class ConnectionServiceWrapper extends ServiceBinder {
             try {
                 synchronized (mLock) {
                     logIncoming("setVideoProvider %s", callId);
-                    if (mCallIdMapper.isValidCallId(callId)
-                            || mCallIdMapper.isValidConferenceId(callId)) {
-                        Call call = mCallIdMapper.getCall(callId);
-                        if (call != null) {
-                            call.setVideoProvider(videoProvider);
-                        }
+                    Call call = mCallIdMapper.getCall(callId);
+                    if (call != null) {
+                        call.setVideoProvider(videoProvider);
                     }
                 }
             } finally {
@@ -146,13 +136,11 @@ final class ConnectionServiceWrapper extends ServiceBinder {
             try {
                 synchronized (mLock) {
                     logIncoming("setDialing %s", callId);
-                    if (mCallIdMapper.isValidCallId(callId)) {
-                        Call call = mCallIdMapper.getCall(callId);
-                        if (call != null) {
-                            mCallsManager.markCallAsDialing(call);
-                        } else {
-                            // Log.w(this, "setDialing, unknown call id: %s", msg.obj);
-                        }
+                    Call call = mCallIdMapper.getCall(callId);
+                    if (call != null) {
+                        mCallsManager.markCallAsDialing(call);
+                    } else {
+                        // Log.w(this, "setDialing, unknown call id: %s", msg.obj);
                     }
                 }
             } finally {
@@ -166,15 +154,12 @@ final class ConnectionServiceWrapper extends ServiceBinder {
             try {
                 synchronized (mLock) {
                     logIncoming("setDisconnected %s %s", callId, disconnectCause);
-                    if (mCallIdMapper.isValidCallId(callId) || mCallIdMapper
-                            .isValidConferenceId(callId)) {
-                        Call call = mCallIdMapper.getCall(callId);
-                        Log.d(this, "disconnect call %s %s", disconnectCause, call);
-                        if (call != null) {
-                            mCallsManager.markCallAsDisconnected(call, disconnectCause);
-                        } else {
-                            // Log.w(this, "setDisconnected, unknown call id: %s", args.arg1);
-                        }
+                    Call call = mCallIdMapper.getCall(callId);
+                    Log.d(this, "disconnect call %s %s", disconnectCause, call);
+                    if (call != null) {
+                        mCallsManager.markCallAsDisconnected(call, disconnectCause);
+                    } else {
+                        // Log.w(this, "setDisconnected, unknown call id: %s", args.arg1);
                     }
                 }
             } finally {
@@ -188,14 +173,11 @@ final class ConnectionServiceWrapper extends ServiceBinder {
             try {
                 synchronized (mLock) {
                     logIncoming("setOnHold %s", callId);
-                    if (mCallIdMapper.isValidCallId(callId) || mCallIdMapper
-                            .isValidConferenceId(callId)) {
-                        Call call = mCallIdMapper.getCall(callId);
-                        if (call != null) {
-                            mCallsManager.markCallAsOnHold(call);
-                        } else {
-                            // Log.w(this, "setOnHold, unknown call id: %s", msg.obj);
-                        }
+                    Call call = mCallIdMapper.getCall(callId);
+                    if (call != null) {
+                        mCallsManager.markCallAsOnHold(call);
+                    } else {
+                        // Log.w(this, "setOnHold, unknown call id: %s", msg.obj);
                     }
                 }
             } finally {
@@ -209,13 +191,11 @@ final class ConnectionServiceWrapper extends ServiceBinder {
             try {
                 synchronized (mLock) {
                     logIncoming("setRingbackRequested %s %b", callId, ringback);
-                    if (mCallIdMapper.isValidCallId(callId)) {
-                        Call call = mCallIdMapper.getCall(callId);
-                        if (call != null) {
-                            call.setRingbackRequested(ringback);
-                        } else {
-                            // Log.w(this, "setRingback, unknown call id: %s", args.arg1);
-                        }
+                    Call call = mCallIdMapper.getCall(callId);
+                    if (call != null) {
+                        call.setRingbackRequested(ringback);
+                    } else {
+                        // Log.w(this, "setRingback, unknown call id: %s", args.arg1);
                     }
                 }
             } finally {
@@ -229,16 +209,13 @@ final class ConnectionServiceWrapper extends ServiceBinder {
             try {
                 synchronized (mLock) {
                     logIncoming("removeCall %s", callId);
-                    if (mCallIdMapper.isValidCallId(callId) || mCallIdMapper
-                            .isValidConferenceId(callId)) {
-                        Call call = mCallIdMapper.getCall(callId);
-                        if (call != null) {
-                            if (call.isAlive()) {
-                                mCallsManager.markCallAsDisconnected(
-                                        call, new DisconnectCause(DisconnectCause.REMOTE));
-                            } else {
-                                mCallsManager.markCallAsRemoved(call);
-                            }
+                    Call call = mCallIdMapper.getCall(callId);
+                    if (call != null) {
+                        if (call.isAlive()) {
+                            mCallsManager.markCallAsDisconnected(
+                                    call, new DisconnectCause(DisconnectCause.REMOTE));
+                        } else {
+                            mCallsManager.markCallAsRemoved(call);
                         }
                     }
                 }
@@ -253,15 +230,12 @@ final class ConnectionServiceWrapper extends ServiceBinder {
             try {
                 synchronized (mLock) {
                     logIncoming("setConnectionCapabilities %s %d", callId, connectionCapabilities);
-                    if (mCallIdMapper.isValidCallId(callId) || mCallIdMapper
-                            .isValidConferenceId(callId)) {
-                        Call call = mCallIdMapper.getCall(callId);
-                        if (call != null) {
-                            call.setConnectionCapabilities(connectionCapabilities);
-                        } else {
-                            // Log.w(ConnectionServiceWrapper.this,
-                            // "setConnectionCapabilities, unknown call id: %s", msg.obj);
-                        }
+                    Call call = mCallIdMapper.getCall(callId);
+                    if (call != null) {
+                        call.setConnectionCapabilities(connectionCapabilities);
+                    } else {
+                        // Log.w(ConnectionServiceWrapper.this,
+                        // "setConnectionCapabilities, unknown call id: %s", msg.obj);
                     }
                 }
             } finally {
@@ -299,26 +273,23 @@ final class ConnectionServiceWrapper extends ServiceBinder {
             try {
                 synchronized (mLock) {
                     logIncoming("setConferenceMergeFailed %s", callId);
-                    if (mCallIdMapper.isValidCallId(callId)) {
-                        // TODO: we should move the UI for indication a merge failure here
-                        // from CallNotifier.onSuppServiceFailed(). This way the InCallUI can
-                        // deliver the message anyway that they want. b/20530631.
-                        Call call = mCallIdMapper.getCall(callId);
-                        if (call != null) {
-                            // Just refresh the connection capabilities so that the UI
-                            // is forced to reenable the merge button as the capability
-                            // is still on the connection. Note when b/20530631 is fixed, we need
-                            // to revisit this fix to remove this hacky way of unhiding the merge
-                            // button (side effect of reprocessing the capabilities) and plumb
-                            // the failure event all the way to InCallUI instead of stopping
-                            // it here. That way we can also handle the UI of notifying that
-                            // the merged has failed.
-                            call.setConnectionCapabilities(call.getConnectionCapabilities(), true);
-                        } else {
-                            Log.w(this, "setConferenceMergeFailed, unknown call id: %s", callId);
-                        }
+                    // TODO: we should move the UI for indication a merge failure here
+                    // from CallNotifier.onSuppServiceFailed(). This way the InCallUI can
+                    // deliver the message anyway that they want. b/20530631.
+                    Call call = mCallIdMapper.getCall(callId);
+                    if (call != null) {
+                        // Just refresh the connection capabilities so that the UI
+                        // is forced to reenable the merge button as the capability
+                        // is still on the connection. Note when b/20530631 is fixed, we need
+                        // to revisit this fix to remove this hacky way of unhiding the merge
+                        // button (side effect of reprocessing the capabilities) and plumb
+                        // the failure event all the way to InCallUI instead of stopping
+                        // it here. That way we can also handle the UI of notifying that
+                        // the merged has failed.
+                        call.setConnectionCapabilities(call.getConnectionCapabilities(), true);
+                    } else {
+                        Log.w(this, "setConferenceMergeFailed, unknown call id: %s", callId);
                     }
-
                 }
             } finally {
                 Binder.restoreCallingIdentity(token);
@@ -358,7 +329,7 @@ final class ConnectionServiceWrapper extends ServiceBinder {
                             parcelableConference.getPhoneAccount() != null) {
                         phAcc = parcelableConference.getPhoneAccount();
                     }
-                    Call conferenceCall = mCallsManager.createConferenceCall(
+                    Call conferenceCall = mCallsManager.createConferenceCall(callId,
                             phAcc, parcelableConference);
                     mCallIdMapper.addCall(conferenceCall, callId);
                     conferenceCall.setConnectionService(ConnectionServiceWrapper.this);
@@ -384,13 +355,11 @@ final class ConnectionServiceWrapper extends ServiceBinder {
             try {
                 synchronized (mLock) {
                     logIncoming("onPostDialWait %s %s", callId, remaining);
-                    if (mCallIdMapper.isValidCallId(callId)) {
-                        Call call = mCallIdMapper.getCall(callId);
-                        if (call != null) {
-                            call.onPostDialWait(remaining);
-                        } else {
-                            // Log.w(this, "onPostDialWait, unknown call id: %s", args.arg1);
-                        }
+                    Call call = mCallIdMapper.getCall(callId);
+                    if (call != null) {
+                        call.onPostDialWait(remaining);
+                    } else {
+                        // Log.w(this, "onPostDialWait, unknown call id: %s", args.arg1);
                     }
                 }
             } finally {
@@ -404,13 +373,11 @@ final class ConnectionServiceWrapper extends ServiceBinder {
             try {
                 synchronized (mLock) {
                     logIncoming("onPostDialChar %s %s", callId, nextChar);
-                    if (mCallIdMapper.isValidCallId(callId)) {
-                        Call call = mCallIdMapper.getCall(callId);
-                        if (call != null) {
-                            call.onPostDialChar(nextChar);
-                        } else {
-                            // Log.w(this, "onPostDialChar, unknown call id: %s", args.arg1);
-                        }
+                    Call call = mCallIdMapper.getCall(callId);
+                    if (call != null) {
+                        call.onPostDialChar(nextChar);
+                    } else {
+                        // Log.w(this, "onPostDialChar, unknown call id: %s", args.arg1);
                     }
                 }
             } finally {
@@ -437,12 +404,9 @@ final class ConnectionServiceWrapper extends ServiceBinder {
             try {
                 synchronized (mLock) {
                     logIncoming("setVideoState %s %d", callId, videoState);
-                    if (mCallIdMapper.isValidCallId(callId)
-                            || mCallIdMapper.isValidConferenceId(callId)) {
-                        Call call = mCallIdMapper.getCall(callId);
-                        if (call != null) {
-                            call.setVideoState(videoState);
-                        }
+                    Call call = mCallIdMapper.getCall(callId);
+                    if (call != null) {
+                        call.setVideoState(videoState);
                     }
                 }
             } finally {
@@ -456,11 +420,9 @@ final class ConnectionServiceWrapper extends ServiceBinder {
             try {
                 synchronized (mLock) {
                     logIncoming("setIsVoipAudioMode %s %b", callId, isVoip);
-                    if (mCallIdMapper.isValidCallId(callId)) {
-                        Call call = mCallIdMapper.getCall(callId);
-                        if (call != null) {
-                            call.setIsVoipAudioMode(isVoip);
-                        }
+                    Call call = mCallIdMapper.getCall(callId);
+                    if (call != null) {
+                        call.setIsVoipAudioMode(isVoip);
                     }
                 }
             } finally {
@@ -474,12 +436,9 @@ final class ConnectionServiceWrapper extends ServiceBinder {
             try {
                 synchronized (mLock) {
                     logIncoming("setStatusHints %s %s", callId, statusHints);
-                    if (mCallIdMapper.isValidCallId(callId)
-                            || mCallIdMapper.isValidConferenceId(callId)) {
-                        Call call = mCallIdMapper.getCall(callId);
-                        if (call != null) {
-                            call.setStatusHints(statusHints);
-                        }
+                    Call call = mCallIdMapper.getCall(callId);
+                    if (call != null) {
+                        call.setStatusHints(statusHints);
                     }
                 }
             } finally {
@@ -493,12 +452,9 @@ final class ConnectionServiceWrapper extends ServiceBinder {
             try {
                 synchronized(mLock) {
                     logIncoming("setExtras %s %s", callId, extras);
-                    if (mCallIdMapper.isValidCallId(callId)
-                            || mCallIdMapper.isValidConferenceId(callId)) {
-                        Call call = mCallIdMapper.getCall(callId);
-                        if (call != null) {
-                            call.setExtras(extras);
-                        }
+                    Call call = mCallIdMapper.getCall(callId);
+                    if (call != null) {
+                        call.setExtras(extras);
                     }
                 }
             } finally {
@@ -512,11 +468,9 @@ final class ConnectionServiceWrapper extends ServiceBinder {
             try {
                 synchronized (mLock) {
                     logIncoming("setAddress %s %s %d", callId, address, presentation);
-                    if (mCallIdMapper.isValidCallId(callId)) {
-                        Call call = mCallIdMapper.getCall(callId);
-                        if (call != null) {
-                            call.setHandle(address, presentation);
-                        }
+                    Call call = mCallIdMapper.getCall(callId);
+                    if (call != null) {
+                        call.setHandle(address, presentation);
                     }
                 }
             } finally {
@@ -532,11 +486,9 @@ final class ConnectionServiceWrapper extends ServiceBinder {
                 synchronized (mLock) {
                     logIncoming("setCallerDisplayName %s %s %d", callId, callerDisplayName,
                             presentation);
-                    if (mCallIdMapper.isValidCallId(callId)) {
-                        Call call = mCallIdMapper.getCall(callId);
-                        if (call != null) {
-                            call.setCallerDisplayName(callerDisplayName, presentation);
-                        }
+                    Call call = mCallIdMapper.getCall(callId);
+                    if (call != null) {
+                        call.setCallerDisplayName(callerDisplayName, presentation);
                     }
                 }
             } finally {
@@ -552,20 +504,17 @@ final class ConnectionServiceWrapper extends ServiceBinder {
                 synchronized (mLock) {
                     logIncoming("setConferenceableConnections %s %s", callId,
                             conferenceableCallIds);
-                    if (mCallIdMapper.isValidCallId(callId) ||
-                            mCallIdMapper.isValidConferenceId(callId)) {
-                        Call call = mCallIdMapper.getCall(callId);
-                        if (call != null) {
-                            List<Call> conferenceableCalls =
-                                    new ArrayList<>(conferenceableCallIds.size());
-                            for (String otherId : conferenceableCallIds) {
-                                Call otherCall = mCallIdMapper.getCall(otherId);
-                                if (otherCall != null && otherCall != call) {
-                                    conferenceableCalls.add(otherCall);
-                                }
+                    Call call = mCallIdMapper.getCall(callId);
+                    if (call != null) {
+                        List<Call> conferenceableCalls =
+                                new ArrayList<>(conferenceableCallIds.size());
+                        for (String otherId : conferenceableCallIds) {
+                            Call otherCall = mCallIdMapper.getCall(otherId);
+                            if (otherCall != null && otherCall != call) {
+                                conferenceableCalls.add(otherCall);
                             }
-                            call.setConferenceableCalls(conferenceableCalls);
                         }
+                        call.setConferenceableCalls(conferenceableCalls);
                     }
                 }
             } finally {
@@ -591,7 +540,7 @@ final class ConnectionServiceWrapper extends ServiceBinder {
     }
 
     private final Adapter mAdapter = new Adapter();
-    private final CallIdMapper mCallIdMapper = new CallIdMapper("ConnectionService");
+    private final CallIdMapper mCallIdMapper = new CallIdMapper();
     private final Map<String, CreateConnectionResponse> mPendingResponses = new HashMap<>();
 
     private Binder2 mBinder = new Binder2();
@@ -672,7 +621,8 @@ final class ConnectionServiceWrapper extends ServiceBinder {
                                     call.getTargetPhoneAccount(),
                                     call.getHandle(),
                                     extras,
-                                    call.getVideoState()),
+                                    call.getVideoState(),
+                                    callId),
                             call.isIncoming(),
                             call.isUnknown());
                 } catch (RemoteException e) {

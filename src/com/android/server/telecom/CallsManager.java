@@ -97,6 +97,7 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
 
     private static final int[] LIVE_CALL_STATES =
             {CallState.CONNECTING, CallState.SELECT_PHONE_ACCOUNT, CallState.DIALING, CallState.ACTIVE};
+    public static final String TELECOM_CALL_ID_PREFIX = "TC@";
 
     /**
      * The main call repository. Keeps an instance of all live calls. New incoming and outgoing
@@ -108,6 +109,13 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
      */
     private final Set<Call> mCalls = Collections.newSetFromMap(
             new ConcurrentHashMap<Call, Boolean>(8, 0.9f, 1));
+
+    /**
+     * The current telecom call ID.  Used when creating new instances of {@link Call}.  Should
+     * only be accessed using the {@link #getNextCallId()} method which synchronizes on the
+     * {@link #mLock} sync root.
+     */
+    private int mCallId = 0;
 
     private final ConnectionServiceRepository mConnectionServiceRepository;
     private final DtmfLocalTonePlayer mDtmfLocalTonePlayer;
@@ -492,6 +500,7 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
             handle = extras.getParcelable(TelephonyManager.EXTRA_INCOMING_NUMBER);
         }
         Call call = new Call(
+                getNextCallId(),
                 mContext,
                 this,
                 mLock,
@@ -515,6 +524,7 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
         Uri handle = extras.getParcelable(TelecomManager.EXTRA_UNKNOWN_CALL_HANDLE);
         Log.i(this, "addNewUnknownCall with handle: %s", Log.pii(handle));
         Call call = new Call(
+                getNextCallId(),
                 mContext,
                 this,
                 mLock,
@@ -570,6 +580,7 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
         // Create a call with original handle. The handle may be changed when the call is attached
         // to a connection service, but in most cases will remain the same.
         return new Call(
+                getNextCallId(),
                 mContext,
                 this,
                 mLock,
@@ -1178,6 +1189,7 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
     }
 
     Call createConferenceCall(
+            String callId,
             PhoneAccountHandle phoneAccount,
             ParcelableConference parcelableConference) {
 
@@ -1189,6 +1201,7 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
                         parcelableConference.getConnectTimeMillis();
 
         Call call = new Call(
+                callId,
                 mContext,
                 this,
                 mLock,
@@ -1597,6 +1610,7 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
      */
     Call createCallForExistingConnection(String callId, ParcelableConnection connection) {
         Call call = new Call(
+                getNextCallId(),
                 mContext,
                 this,
                 mLock,
@@ -1621,6 +1635,15 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
         addCall(call);
 
         return call;
+    }
+
+    /**
+     * @return A new unique telecom call Id.
+     */
+    private String getNextCallId() {
+        synchronized(mLock) {
+            return TELECOM_CALL_ID_PREFIX + (++mCallId);
+        }
     }
 
     /**
