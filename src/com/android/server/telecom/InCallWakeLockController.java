@@ -40,6 +40,7 @@ public class InCallWakeLockController extends CallsManagerListenerBase {
 
         PowerManager powerManager = (PowerManager) mContext.getSystemService(Context.POWER_SERVICE);
         mFullWakeLock = powerManager.newWakeLock(PowerManager.FULL_WAKE_LOCK, TAG);
+        mFullWakeLock.setReferenceCounted(false);
 
         callsManager.addListener(this);
     }
