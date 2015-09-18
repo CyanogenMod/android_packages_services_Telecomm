@@ -73,7 +73,7 @@ public class Call implements CreateConnectionResponse {
     interface Listener {
         void onSuccessfulOutgoingCall(Call call, int callState);
         void onFailedOutgoingCall(Call call, DisconnectCause disconnectCause);
-        void onSuccessfulIncomingCall(Call call);
+        void onSuccessfulIncomingCall(Call call, boolean shouldSendToVoicemail);
         void onFailedIncomingCall(Call call);
         void onSuccessfulUnknownCall(Call call, int callState);
         void onFailedUnknownCall(Call call);
@@ -105,7 +105,7 @@ public class Call implements CreateConnectionResponse {
         @Override
         public void onFailedOutgoingCall(Call call, DisconnectCause disconnectCause) {}
         @Override
-        public void onSuccessfulIncomingCall(Call call) {}
+        public void onSuccessfulIncomingCall(Call call, boolean shouldSendToVoicemail) {}
         @Override
         public void onFailedIncomingCall(Call call) {}
         @Override
@@ -882,20 +882,20 @@ public class Call implements CreateConnectionResponse {
 
     private void processDirectToVoicemail() {
         if (mDirectToVoicemailQueryPending) {
+            boolean shouldSendToVoicemail;
             if (mCallerInfo != null && mCallerInfo.shouldSendToVoicemail) {
                 Log.i(this, "Directing call to voicemail: %s.", this);
                 // TODO: Once we move State handling from CallsManager to Call, we
                 // will not need to set STATE_RINGING state prior to calling reject.
-                setState(CallState.RINGING, "directing to voicemail");
-                reject(false, null);
+                shouldSendToVoicemail = true;
             } else {
-                // TODO: Make this class (not CallsManager) responsible for changing
-                // the call state to STATE_RINGING.
-
-                // TODO: Replace this with state transition to STATE_RINGING.
-                for (Listener l : mListeners) {
-                    l.onSuccessfulIncomingCall(this);
-                }
+                shouldSendToVoicemail = false;
+            }
+            // TODO: Make this class (not CallsManager) responsible for changing
+            // the call state to STATE_RINGING.
+            // TODO: Replace this with state transition to STATE_RINGING.
+            for (Listener l : mListeners) {
+                l.onSuccessfulIncomingCall(this, shouldSendToVoicemail);
             }
 
             mDirectToVoicemailQueryPending = false;

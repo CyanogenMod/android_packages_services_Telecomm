@@ -249,14 +249,16 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
     }
 
     @Override
-    public void onSuccessfulIncomingCall(Call incomingCall) {
+    public void onSuccessfulIncomingCall(Call incomingCall, boolean shouldSendToVoicemail) {
         Log.d(this, "onSuccessfulIncomingCall");
-        setCallState(incomingCall, CallState.RINGING, "successful incoming call");
+        setCallState(incomingCall, CallState.RINGING,
+                shouldSendToVoicemail ? "directing to voicemail" : "successful incoming call");
 
-        if (hasMaximumRingingCalls() || hasMaximumDialingCalls()) {
+        if (hasMaximumRingingCalls() || hasMaximumDialingCalls() || shouldSendToVoicemail) {
             incomingCall.reject(false, null);
-            // since the call was not added to the list of calls, we have to call the missed
+            // Since the call was not added to the list of calls, we have to call the missed
             // call notifier and the call logger manually.
+            // Do we need missed call notification for direct to Voicemail calls?
             mMissedCallNotifier.showMissedCallNotification(incomingCall);
             mCallLogManager.logCall(incomingCall, Calls.MISSED_TYPE);
         } else {
