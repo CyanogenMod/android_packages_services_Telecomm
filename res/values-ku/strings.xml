@@ -36,13 +36,5 @@
   <string name="no_vm_number">ژمارەی دەنگەپۆست نییە</string>
   <string name="no_vm_number_msg">هیچ ژمارەیەکی دەنگەپۆستی لەسەر سیمکارت کۆگا نەکراوە.</string>
   <string name="add_vm_number_str">زیاکردنی ژمارە</string>
-  <string name="test_account_0_label">Q Mobile</string>
-  <string name="test_account_1_label">بێتەل بازاڕ</string>
-  <string name="test_account_2_label">Sonoma Circles Talk Plus</string>
-  <string name="test_account_3_label">Bay Voice Chat Pro</string>
-  <string name="test_account_0_short_description">هەژمار لەگەڵ Q Mobile</string>
-  <string name="test_account_1_short_description">هەژمار لەگەڵ بێتەل بازاڕ</string>
-  <string name="test_account_2_short_description">لەگەڵ هەرکەسێکی ناو بازنەکەت قسە بکە!</string>
-  <string name="test_account_3_short_description">دەمەتەقێ لەگەڵ بەکارهێنەرانی تۆڕ</string>
   <string name="handle_restricted">سنووردارە</string>
 </resources>

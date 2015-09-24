@@ -16,5 +16,18 @@
      limitations under the License.
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+  <string name="blacklist_title">Danh sách người gọi đã bị chặn</string>
   <string name="blacklist_summary_disabled">Đã tắt</string>
+  <string name="blacklist_summary">Bạn sẽ không nhận được cuộc gọi đến hoặc tin nhắn từ số điện thoại trong danh sách chặn người gọi</string>
+  <string name="blacklist_call_notification">Đã chặn một cuộc gọi từ %s</string>
+  <string name="blacklist_call_notification_private_number">Đã chặn một cuộc gọi từ một số riêng</string>
+  <string name="blacklist_call_notification_unknown_number">Đã chặn một cuộc gọi từ số không quen %s</string>
+  <string name="blacklist_call_notification_multiple"><xliff:g id="count">%d</xliff:g> cuộc gọi đã bị chặn</string>
+  <string name="blacklist_message_notification">Chặn tin nhắn từ %s</string>
+  <string name="blacklist_message_notification_private_number">Đã chặn một tin nhắn từ số riêng tư</string>
+  <string name="blacklist_message_notification_unknown_number">Đã chặn một tin nhắn từ số không quen %s</string>
+  <string name="blacklist_message_notification_multiple"><xliff:g id="count">%d</xliff:g> tin nhắn đã bị chặn</string>
+  <string name="blacklist_notification_list_private">Riêng tư</string>
+  <string name="unblock_number">Bỏ chặn</string>
+  <string name="video_call_not_allowed_if_tty_enabled">Hãy tắt chế độ TTY để thực hiện cuộc gọi video.</string>
 </resources>
