@@ -18,10 +18,19 @@ package com.android.server.telecom;
 
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
+import android.content.res.Resources;
 import android.net.Uri;
+import android.telecom.InCallService;
 import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
 import android.telephony.PhoneNumberUtils;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * Utilities to deal with the system telephony services. The system telephony services are treated
@@ -63,5 +72,39 @@ public final class TelephonyUtil {
     static boolean shouldProcessAsEmergency(Context context, Uri handle) {
         return handle != null && PhoneNumberUtils.isPotentialLocalEmergencyNumber(
                 context, handle.getSchemeSpecificPart());
+    }
+
+    static ComponentName getDialerComponentName(Context context) {
+        Resources resources = context.getResources();
+        PackageManager packageManager = context.getPackageManager();
+        Intent i = new Intent(Intent.ACTION_DIAL);
+        List<ResolveInfo> resolveInfo = packageManager.queryIntentActivities(i, 0);
+        List<String> entries = Arrays.asList(resources.getStringArray(
+                R.array.dialer_default_classes));
+        for (ResolveInfo info : resolveInfo) {
+            ComponentName componentName = new ComponentName(info.activityInfo.packageName,
+                    info.activityInfo.name);
+            if (entries.contains(componentName.flattenToString())) {
+                return componentName;
+            }
+        }
+        return null;
+    }
+
+    static ComponentName getInCallComponentName(Context context) {
+        Resources resources = context.getResources();
+        PackageManager packageManager = context.getPackageManager();
+        Intent i = new Intent(InCallService.SERVICE_INTERFACE);
+        List<ResolveInfo> resolveInfo = packageManager.queryIntentServices(i, 0);
+        List<String> entries = Arrays.asList(resources.getStringArray(
+                R.array.incall_default_classes));
+        for (ResolveInfo info : resolveInfo) {
+            ComponentName componentName = new ComponentName(info.serviceInfo.packageName,
+                    info.serviceInfo.name);
+            if (entries.contains(componentName.flattenToString())) {
+                return componentName;
+            }
+        }
+        return null;
     }
 }
