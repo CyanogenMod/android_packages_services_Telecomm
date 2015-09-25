@@ -501,10 +501,7 @@ public class TelecomService extends Service {
          */
         @Override
         public ComponentName getDefaultPhoneApp() {
-            Resources resources = mContext.getResources();
-            return new ComponentName(
-                    resources.getString(R.string.ui_default_package),
-                    resources.getString(R.string.dialer_default_class));
+            return TelephonyUtil.getDialerComponentName(mContext);
         }
 
         /**
@@ -974,10 +971,7 @@ public class TelecomService extends Service {
     }
 
     private ComponentName getDefaultPhoneAppInternal() {
-        Resources resources = mContext.getResources();
-        return new ComponentName(
-                resources.getString(R.string.ui_default_package),
-                resources.getString(R.string.dialer_default_class));
+        return TelephonyUtil.getDialerComponentName(mContext);
     }
 
     private TelephonyManager getTelephonyManager() {
