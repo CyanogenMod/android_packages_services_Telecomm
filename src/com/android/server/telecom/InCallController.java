@@ -163,9 +163,7 @@ public final class InCallController extends CallsManagerListenerBase {
         mCallsManager = callsManager;
         Resources resources = mContext.getResources();
 
-        mSystemInCallComponentName = new ComponentName(
-                resources.getString(R.string.ui_default_package),
-                resources.getString(R.string.incall_default_class));
+        mSystemInCallComponentName = TelephonyUtil.getInCallComponentName(context);
     }
 
     @Override
