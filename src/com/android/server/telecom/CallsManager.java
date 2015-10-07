@@ -82,6 +82,7 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
         void onVideoStateChanged(Call call);
         void onCanAddCallChanged(boolean canAddCall);
         void onSessionModifyRequestReceived(Call call, VideoProfile videoProfile);
+        void onMergeFailed(Call call);
     }
 
     private static final String TAG = "CallsManager";
@@ -2294,6 +2295,14 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
                 listener.onCallStateChanged(call, CallState.ACTIVE, CallState.ACTIVE);
             }
             updateForegroundCall();
+        }
+    }
+
+    void onMergeFailed(Call call) {
+        if (mCalls.contains(call)) {
+            for (CallsManagerListener listener : mListeners) {
+                listener.onMergeFailed(call);
+            }
         }
     }
 }

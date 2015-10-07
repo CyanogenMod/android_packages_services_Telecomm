@@ -113,6 +113,11 @@ public class InCallServiceFixture implements TestFixture<IInCallService> {
         public IInterface queryLocalInterface(String descriptor) {
             return this;
         }
+
+        @Override
+        public void onMergeFailed(ParcelableCall call) {
+
+        }
     }
 
     private IInCallService.Stub mInCallServiceFake = new FakeInCallService();
