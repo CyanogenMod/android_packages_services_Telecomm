@@ -16,6 +16,7 @@
 
 package com.android.server.telecom.tests;
 
+import android.graphics.Rect;
 import android.os.Binder;
 
 import com.android.internal.telecom.IConnectionService;
@@ -32,6 +33,7 @@ import android.content.Context;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.Icon;
 import android.net.Uri;
+import android.os.Bundle;
 import android.os.Parcel;
 import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
@@ -43,6 +45,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.util.Arrays;
+import java.util.Set;
 
 public class PhoneAccountRegistrarTest extends TelecomTestCase {
 
@@ -88,14 +91,55 @@ public class PhoneAccountRegistrarTest extends TelecomTestCase {
     }
 
     public void testPhoneAccount() throws Exception {
+        Bundle testBundle = new Bundle();
+        testBundle.putInt("EXTRA_INT_1", 1);
+        testBundle.putInt("EXTRA_INT_100", 100);
+        testBundle.putBoolean("EXTRA_BOOL_TRUE", true);
+        testBundle.putBoolean("EXTRA_BOOL_FALSE", false);
+        testBundle.putString("EXTRA_STR1", "Hello");
+        testBundle.putString("EXTRA_STR2", "There");
+
         PhoneAccount input = makeQuickAccountBuilder("id0", 0)
                 .addSupportedUriScheme(PhoneAccount.SCHEME_TEL)
                 .addSupportedUriScheme(PhoneAccount.SCHEME_VOICEMAIL)
+                .setExtras(testBundle)
                 .build();
         PhoneAccount result = roundTripXml(this, input, PhoneAccountRegistrar.sPhoneAccountXml,
                 mContext);
 
         assertPhoneAccountEquals(input, result);
+    }
+
+    /**
+     * Test to ensure non-supported balues
+     * @throws Exception
+     */
+    public void testPhoneAccountExtrasEdge() throws Exception {
+        Bundle testBundle = new Bundle();
+        // Ensure null values for string are not persisted.
+        testBundle.putString("EXTRA_STR2", null);
+        //
+
+        // Ensure unsupported data types are not persisted.
+        testBundle.putShort("EXTRA_SHORT", (short) 2);
+        testBundle.putByte("EXTRA_BYTE", (byte) 1);
+        testBundle.putParcelable("EXTRA_PARC", new Rect(1, 1, 1, 1));
+        // Put in something valid so the bundle exists.
+        testBundle.putString("EXTRA_OK", "OK");
+
+        PhoneAccount input = makeQuickAccountBuilder("id0", 0)
+                .addSupportedUriScheme(PhoneAccount.SCHEME_TEL)
+                .addSupportedUriScheme(PhoneAccount.SCHEME_VOICEMAIL)
+                .setExtras(testBundle)
+                .build();
+        PhoneAccount result = roundTripXml(this, input, PhoneAccountRegistrar.sPhoneAccountXml,
+                mContext);
+
+        Bundle extras = result.getExtras();
+        assertFalse(extras.keySet().contains("EXTRA_STR2"));
+        assertFalse(extras.keySet().contains("EXTRA_SHORT"));
+        assertFalse(extras.keySet().contains("EXTRA_BYTE"));
+        assertFalse(extras.keySet().contains("EXTRA_PARC"));
     }
 
     public void testState() throws Exception {
@@ -330,9 +374,28 @@ public class PhoneAccountRegistrarTest extends TelecomTestCase {
                 assertEquals(a.getLabel(), b.getLabel());
                 assertEquals(a.getShortDescription(), b.getShortDescription());
                 assertEquals(a.getSupportedUriSchemes(), b.getSupportedUriSchemes());
+                assertBundlesEqual(a.getExtras(), b.getExtras());
             } else {
                 fail("Phone accounts not equal: " + a + ", " + b);
             }
+        }
+    }
+
+    private static void assertBundlesEqual(Bundle a, Bundle b) {
+        if (a == null && b == null) {
+            return;
+        }
+
+        assertNotNull(a);
+        assertNotNull(b);
+        Set<String> keySetA = a.keySet();
+        Set<String> keySetB = b.keySet();
+
+        assertTrue("Bundle keys not the same", keySetA.containsAll(keySetB));
+        assertTrue("Bundle keys not the same", keySetB.containsAll(keySetA));
+
+        for (String keyA : keySetA) {
+            assertEquals("Bundle value not the same", a.get(keyA), b.get(keyA));
         }
     }
 

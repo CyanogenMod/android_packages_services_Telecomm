@@ -30,6 +30,7 @@ import android.graphics.BitmapFactory;
 import android.graphics.drawable.Icon;
 import android.net.Uri;
 import android.os.Binder;
+import android.os.Bundle;
 import android.os.PersistableBundle;
 import android.os.Process;
 import android.os.UserHandle;
@@ -924,8 +925,13 @@ public final class PhoneAccountRegistrar {
 
     @VisibleForTesting
     public abstract static class XmlSerialization<T> {
-        private static final String LENGTH_ATTRIBUTE = "length";
-        private static final String VALUE_TAG = "value";
+        private static final String TAG_VALUE = "value";
+        private static final String ATTRIBUTE_LENGTH = "length";
+        private static final String ATTRIBUTE_KEY = "key";
+        private static final String ATTRIBUTE_VALUE_TYPE = "type";
+        private static final String VALUE_TYPE_STRING = "string";
+        private static final String VALUE_TYPE_INTEGER = "integer";
+        private static final String VALUE_TYPE_BOOLEAN = "boolean";
 
         /**
          * Write the supplied object to XML
@@ -966,16 +972,51 @@ public final class PhoneAccountRegistrar {
 
             serializer.startTag(null, tagName);
             if (values != null) {
-                serializer.attribute(null, LENGTH_ATTRIBUTE, Objects.toString(values.size()));
+                serializer.attribute(null, ATTRIBUTE_LENGTH, Objects.toString(values.size()));
                 for (String toSerialize : values) {
-                    serializer.startTag(null, VALUE_TAG);
+                    serializer.startTag(null, TAG_VALUE);
                     if (toSerialize != null ){
                         serializer.text(toSerialize);
                     }
-                    serializer.endTag(null, VALUE_TAG);
+                    serializer.endTag(null, TAG_VALUE);
                 }
             } else {
-                serializer.attribute(null, LENGTH_ATTRIBUTE, "0");
+                serializer.attribute(null, ATTRIBUTE_LENGTH, "0");
+            }
+            serializer.endTag(null, tagName);
+        }
+
+        protected void writeBundle(String tagName, Bundle values, XmlSerializer serializer)
+            throws IOException {
+
+            serializer.startTag(null, tagName);
+            if (values != null) {
+                for (String key : values.keySet()) {
+                    Object value = values.get(key);
+
+                    if (value == null) {
+                        continue;
+                    }
+
+                    String valueType;
+                    if (value instanceof String) {
+                        valueType = VALUE_TYPE_STRING;
+                    } else if (value instanceof Integer) {
+                        valueType = VALUE_TYPE_INTEGER;
+                    } else if (value instanceof Boolean) {
+                        valueType = VALUE_TYPE_BOOLEAN;
+                    } else {
+                        Log.w(this,
+                                "PhoneAccounts support only string, integer and boolean extras TY.");
+                        continue;
+                    }
+
+                    serializer.startTag(null, TAG_VALUE);
+                    serializer.attribute(null, ATTRIBUTE_KEY, key);
+                    serializer.attribute(null, ATTRIBUTE_VALUE_TYPE, valueType);
+                    serializer.text(Objects.toString(value));
+                    serializer.endTag(null, TAG_VALUE);
+                }
             }
             serializer.endTag(null, tagName);
         }
@@ -1012,7 +1053,7 @@ public final class PhoneAccountRegistrar {
         protected List<String> readStringList(XmlPullParser parser)
                 throws IOException, XmlPullParserException {
 
-            int length = Integer.parseInt(parser.getAttributeValue(null, LENGTH_ATTRIBUTE));
+            int length = Integer.parseInt(parser.getAttributeValue(null, ATTRIBUTE_LENGTH));
             List<String> arrayEntries = new ArrayList<String>(length);
             String value = null;
 
@@ -1022,7 +1063,7 @@ public final class PhoneAccountRegistrar {
 
             int outerDepth = parser.getDepth();
             while (XmlUtils.nextElementWithin(parser, outerDepth)) {
-                if (parser.getName().equals(VALUE_TAG)) {
+                if (parser.getName().equals(TAG_VALUE)) {
                     parser.next();
                     value = parser.getText();
                     arrayEntries.add(value);
@@ -1030,6 +1071,55 @@ public final class PhoneAccountRegistrar {
             }
 
             return arrayEntries;
+        }
+
+        /**
+         * Reads a bundle from the XML parser.
+         *
+         * @param parser The XML parser.
+         * @return Bundle containing the parsed values.
+         * @throws IOException Exception related to IO.
+         * @throws XmlPullParserException Exception related to parsing.
+         */
+        protected Bundle readBundle(XmlPullParser parser)
+                throws IOException, XmlPullParserException {
+
+            Bundle bundle = null;
+            int outerDepth = parser.getDepth();
+            while (XmlUtils.nextElementWithin(parser, outerDepth)) {
+                if (parser.getName().equals(TAG_VALUE)) {
+                    String valueType = parser.getAttributeValue(null, ATTRIBUTE_VALUE_TYPE);
+                    String key = parser.getAttributeValue(null, ATTRIBUTE_KEY);
+                    parser.next();
+                    String value = parser.getText();
+
+                    if (bundle == null) {
+                        bundle = new Bundle();
+                    }
+
+                    // Do not write null values to the bundle.
+                    if (value == null) {
+                        continue;
+                    }
+
+                    if (VALUE_TYPE_STRING.equals(valueType)) {
+                        bundle.putString(key, value);
+                    } else if (VALUE_TYPE_INTEGER.equals(valueType)) {
+                        try {
+                            int intValue = Integer.parseInt(value);
+                            bundle.putInt(key, intValue);
+                        } catch (NumberFormatException nfe) {
+                            Log.w(this, "Invalid integer PhoneAccount extra.");
+                        }
+                    } else if (VALUE_TYPE_BOOLEAN.equals(valueType)) {
+                        boolean boolValue = Boolean.parseBoolean(value);
+                        bundle.putBoolean(key, boolValue);
+                    } else {
+                        Log.w(this, "Invalid type " + valueType + " for PhoneAccount bundle.");
+                    }
+                }
+            }
+            return bundle;
         }
 
         protected Bitmap readBitmap(XmlPullParser parser) {
@@ -1126,6 +1216,7 @@ public final class PhoneAccountRegistrar {
         private static final String SHORT_DESCRIPTION = "short_description";
         private static final String SUPPORTED_URI_SCHEMES = "supported_uri_schemes";
         private static final String ICON = "icon";
+        private static final String EXTRAS = "extras";
         private static final String ENABLED = "enabled";
 
         @Override
@@ -1149,6 +1240,7 @@ public final class PhoneAccountRegistrar {
                 writeTextIfNonNull(LABEL, o.getLabel(), serializer);
                 writeTextIfNonNull(SHORT_DESCRIPTION, o.getShortDescription(), serializer);
                 writeStringList(SUPPORTED_URI_SCHEMES, o.getSupportedUriSchemes(), serializer);
+                writeBundle(EXTRAS, o.getExtras(), serializer);
                 writeTextIfNonNull(ENABLED, o.isEnabled() ? "true" : "false" , serializer);
 
                 serializer.endTag(null, CLASS_PHONE_ACCOUNT);
@@ -1173,6 +1265,7 @@ public final class PhoneAccountRegistrar {
                 List<String> supportedUriSchemes = null;
                 Icon icon = null;
                 boolean enabled = false;
+                Bundle extras = null;
 
                 while (XmlUtils.nextElementWithin(parser, outerDepth)) {
                     if (parser.getName().equals(ACCOUNT_HANDLE)) {
@@ -1218,6 +1311,9 @@ public final class PhoneAccountRegistrar {
                     } else if (parser.getName().equals(ENABLED)) {
                         parser.next();
                         enabled = "true".equalsIgnoreCase(parser.getText());
+                    } else if (parser.getName().equals(EXTRAS)) {
+                        parser.next();
+                        extras = readBundle(parser);
                     }
                 }
 
@@ -1283,6 +1379,7 @@ public final class PhoneAccountRegistrar {
                         .setShortDescription(shortDescription)
                         .setSupportedUriSchemes(supportedUriSchemes)
                         .setHighlightColor(highlightColor)
+                        .setExtras(extras)
                         .setIsEnabled(enabled);
 
                 if (icon != null) {

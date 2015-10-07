@@ -29,6 +29,7 @@ import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.drawable.Icon;
 import android.net.Uri;
+import android.os.Bundle;
 import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
 import android.telecom.TelecomManager;
@@ -103,6 +104,14 @@ public class CallServiceNotifier {
 
         telecomManager.clearAccounts();
 
+        Bundle testBundle = new Bundle();
+        testBundle.putInt("EXTRA_INT_1", 1);
+        testBundle.putInt("EXTRA_INT_100", 100);
+        testBundle.putBoolean("EXTRA_BOOL_TRUE", true);
+        testBundle.putBoolean("EXTRA_BOOL_FALSE", false);
+        testBundle.putString("EXTRA_STR1", "Hello");
+        testBundle.putString("EXTRA_STR2", "There");
+
         telecomManager.registerPhoneAccount(PhoneAccount.builder(
                 new PhoneAccountHandle(
                         new ComponentName(context, TestConnectionService.class),
@@ -115,10 +124,11 @@ public class CallServiceNotifier {
                         PhoneAccount.CAPABILITY_CALL_SUBJECT)
                 .setIcon(Icon.createWithResource(
                         context.getResources(), R.drawable.stat_sys_phone_call))
-                // TODO: Add icon tint (Color.RED)
                 .setHighlightColor(Color.RED)
+                // TODO: Add icon tint (Color.RED)
                 .setShortDescription("a short description for the call provider")
                 .setSupportedUriSchemes(Arrays.asList("tel"))
+                .setExtras(testBundle)
                 .build());
 
         telecomManager.registerPhoneAccount(PhoneAccount.builder(
@@ -134,8 +144,8 @@ public class CallServiceNotifier {
                         PhoneAccount.CAPABILITY_CALL_SUBJECT)
                 .setIcon(Icon.createWithResource(
                         context.getResources(), R.drawable.stat_sys_phone_call))
-                // TODO: Add icon tint (Color.GREEN)
                 .setHighlightColor(Color.GREEN)
+                // TODO: Add icon tint (Color.GREEN)
                 .setShortDescription("a short description for the sim subscription")
                 .build());
 
