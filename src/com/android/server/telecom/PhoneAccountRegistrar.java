@@ -865,6 +865,9 @@ public final class PhoneAccountRegistrar {
         if (versionChanged || !badAccounts.isEmpty()) {
             write();
         }
+
+        // Initialize subscription voice prompt status
+        setDefaultVoicePhoneAccount(mState.defaultOutgoing);
     }
 
     private static void writeToXml(State state, XmlSerializer serializer, Context context)
