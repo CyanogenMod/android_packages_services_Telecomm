@@ -205,6 +205,10 @@ public class TelecomSystemTest extends TelecomTestCase {
                 proximitySensorManagerFactory,
                 inCallWakeLockControllerFactory);
 
+        mComponentContextFixture.setTelecomManager(new TelecomManager(
+                mComponentContextFixture.getTestDouble(),
+                mTelecomSystem.getTelecomServiceImpl().getBinder()));
+
         verify(headsetMediaButtonFactory).create(
                 eq(mComponentContextFixture.getTestDouble().getApplicationContext()),
                 any(CallsManager.class),

@@ -53,6 +53,8 @@ import android.telecom.CallAudioState;
 import android.telecom.ConnectionService;
 import android.telecom.InCallService;
 import android.telecom.PhoneAccount;
+import android.telecom.TelecomManager;
+import android.telephony.CarrierConfigManager;
 import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
 import android.test.mock.MockContext;
@@ -153,6 +155,10 @@ public class ComponentContextFixture implements TestFixture<Context> {
                     return mUserManager;
                 case Context.TELEPHONY_SUBSCRIPTION_SERVICE:
                     return mSubscriptionManager;
+                case Context.TELECOM_SERVICE:
+                    return mTelecomManager;
+                case Context.CARRIER_CONFIG_SERVICE:
+                    return mCarrierConfigManager;
                 default:
                     return null;
             }
@@ -317,7 +323,10 @@ public class ComponentContextFixture implements TestFixture<Context> {
     private final UserManager mUserManager = mock(UserManager.class);
     private final StatusBarManager mStatusBarManager = mock(StatusBarManager.class);
     private final SubscriptionManager mSubscriptionManager = mock(SubscriptionManager.class);
+    private final CarrierConfigManager mCarrierConfigManager = mock(CarrierConfigManager.class);
     private final Configuration mResourceConfiguration = new Configuration();
+
+    private TelecomManager mTelecomManager = null;
 
     public ComponentContextFixture() {
         MockitoAnnotations.initMocks(this);
@@ -390,6 +399,10 @@ public class ComponentContextFixture implements TestFixture<Context> {
 
     public void putResource(int id, String value) {
         when(mResources.getString(eq(id))).thenReturn(value);
+    }
+
+    public void setTelecomManager(TelecomManager telecomManager) {
+        mTelecomManager = telecomManager;
     }
 
     private void addService(String action, ComponentName name, IInterface service) {

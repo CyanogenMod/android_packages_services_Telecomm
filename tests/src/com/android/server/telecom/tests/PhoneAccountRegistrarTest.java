@@ -16,28 +16,30 @@
 
 package com.android.server.telecom.tests;
 
+import android.content.ComponentName;
+import android.content.Context;
+import android.graphics.BitmapFactory;
 import android.graphics.Rect;
+import android.graphics.drawable.Icon;
+import android.net.Uri;
 import android.os.Binder;
+import android.os.Bundle;
+import android.os.Parcel;
+import android.telecom.PhoneAccount;
+import android.telecom.PhoneAccountHandle;
+import android.telecom.TelecomManager;
+import android.util.Xml;
 
 import com.android.internal.telecom.IConnectionService;
 import com.android.internal.util.FastXmlSerializer;
 import com.android.server.telecom.Log;
 import com.android.server.telecom.PhoneAccountRegistrar;
 
+import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlSerializer;
-
-import android.content.ComponentName;
-import android.content.Context;
-import android.graphics.BitmapFactory;
-import android.graphics.drawable.Icon;
-import android.net.Uri;
-import android.os.Bundle;
-import android.os.Parcel;
-import android.telecom.PhoneAccount;
-import android.telecom.PhoneAccountHandle;
-import android.util.Xml;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -47,16 +49,22 @@ import java.io.File;
 import java.util.Arrays;
 import java.util.Set;
 
+import static org.mockito.Mockito.when;
+
 public class PhoneAccountRegistrarTest extends TelecomTestCase {
 
     private static final int MAX_VERSION = Integer.MAX_VALUE;
     private static final String FILE_NAME = "phone-account-registrar-test-1223.xml";
     private PhoneAccountRegistrar mRegistrar;
+    @Mock
+    private TelecomManager mTelecomManager;
 
     @Override
     public void setUp() throws Exception {
         super.setUp();
+        MockitoAnnotations.initMocks(this);
         mComponentContextFixture = new ComponentContextFixture();
+        mComponentContextFixture.setTelecomManager(mTelecomManager);
         new File(
                 mComponentContextFixture.getTestDouble().getApplicationContext().getFilesDir(),
                 FILE_NAME)
