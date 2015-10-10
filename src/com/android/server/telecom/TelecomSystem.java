@@ -17,6 +17,7 @@
 package com.android.server.telecom;
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.server.telecom.ui.ViceNotificationImpl;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -74,6 +75,7 @@ public final class TelecomSystem {
      * {@link TelecomBroadcastReceiver}.
      */
     private final BlacklistCallNotifier mBlacklistCallNotifier;
+    private final ViceNotifier mViceNotifier;
 
     private final BroadcastReceiver mUserSwitchedReceiver = new BroadcastReceiver() {
         @Override
@@ -103,11 +105,13 @@ public final class TelecomSystem {
             CallerInfoAsyncQueryFactory callerInfoAsyncQueryFactory,
             HeadsetMediaButtonFactory headsetMediaButtonFactory,
             ProximitySensorManagerFactory proximitySensorManagerFactory,
-            InCallWakeLockControllerFactory inCallWakeLockControllerFactory) {
+            InCallWakeLockControllerFactory inCallWakeLockControllerFactory,
+            ViceNotifier vicenotifier) {
         mContext = context.getApplicationContext();
 
         mMissedCallNotifier = missedCallNotifier;
         mCallInfoProvider = callInfoProvider;
+        mViceNotifier = vicenotifier;
         mPhoneAccountRegistrar = new PhoneAccountRegistrar(mContext);
         mContactsAsyncHelper = new ContactsAsyncHelper(mLock);
         mBlacklistCallNotifier = new BlacklistCallNotifier(mContext);
@@ -123,7 +127,8 @@ public final class TelecomSystem {
                 proximitySensorManagerFactory,
                 inCallWakeLockControllerFactory,
                 mBlacklistCallNotifier,
-                mCallInfoProvider);
+                mCallInfoProvider,
+                mViceNotifier);
 
         mRespondViaSmsManager = new RespondViaSmsManager(mCallsManager, mLock);
         mCallsManager.setRespondViaSmsManager(mRespondViaSmsManager);

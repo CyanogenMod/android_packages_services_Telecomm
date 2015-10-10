@@ -38,7 +38,9 @@ import com.android.server.telecom.InCallWakeLockController;
 import com.android.server.telecom.Log;
 import com.android.server.telecom.ProximitySensorManager;
 import com.android.server.telecom.TelecomSystem;
+import com.android.server.telecom.ViceNotifier;
 import com.android.server.telecom.ui.MissedCallNotifierImpl;
+import com.android.server.telecom.ui.ViceNotificationImpl;
 
 import java.util.Locale;
 
@@ -124,6 +126,14 @@ public class TelecomService extends Service implements TelecomSystem.Component {
                                 public InCallWakeLockController create(Context context,
                                         CallsManager callsManager) {
                                     return new InCallWakeLockController(context, callsManager);
+                                }
+                            },
+                            new ViceNotifier() {
+                                @Override
+                                public ViceNotificationImpl create(Context context,
+                                        CallsManager callsManager) {
+                                    return new ViceNotificationImpl(
+                                            context.getApplicationContext(), callsManager);
                                 }
                             }));
         }
