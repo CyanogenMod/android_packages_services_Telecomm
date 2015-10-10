@@ -44,6 +44,7 @@ import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.telephony.PhoneConstants;
 import com.android.internal.telephony.TelephonyProperties;
 import com.android.internal.util.IndentingPrintWriter;
+import com.android.server.telecom.ui.ViceNotificationImpl;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -139,6 +140,7 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
     private final CallerInfoAsyncQueryFactory mCallerInfoAsyncQueryFactory;
     private final PhoneAccountRegistrar mPhoneAccountRegistrar;
     private final MissedCallNotifier mMissedCallNotifier;
+    private final ViceNotificationImpl mViceNotificationImpl;
     private final Set<Call> mLocallyDisconnectingCalls = new HashSet<>();
     private final Set<Call> mPendingCallsToDisconnect = new HashSet<>();
     /* Handler tied to thread in which CallManager was initialized. */
@@ -181,7 +183,8 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
             PhoneAccountRegistrar phoneAccountRegistrar,
             HeadsetMediaButtonFactory headsetMediaButtonFactory,
             ProximitySensorManagerFactory proximitySensorManagerFactory,
-            InCallWakeLockControllerFactory inCallWakeLockControllerFactory) {
+            InCallWakeLockControllerFactory inCallWakeLockControllerFactory,
+            ViceNotifier viceNotifier) {
         mContext = context;
         mLock = lock;
         mContactsAsyncHelper = contactsAsyncHelper;
@@ -206,6 +209,7 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
         mConnectionServiceRepository =
                 new ConnectionServiceRepository(mPhoneAccountRegistrar, mContext, mLock, this);
         mInCallWakeLockController = inCallWakeLockControllerFactory.create(context, this);
+        mViceNotificationImpl = viceNotifier.create(mContext, this);
 
         mListeners.add(statusBarNotifier);
         mListeners.add(mCallLogManager);
@@ -219,9 +223,14 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
         mListeners.add(mDtmfLocalTonePlayer);
         mListeners.add(mHeadsetMediaButton);
         mListeners.add(mProximitySensorManager);
+        mListeners.add(mViceNotificationImpl);
 
         mMissedCallNotifier.updateOnStartup(
                 mLock, this, mContactsAsyncHelper, mCallerInfoAsyncQueryFactory);
+    }
+
+    ViceNotificationImpl getViceNotificationImpl() {
+        return mViceNotificationImpl;
     }
 
     public void setRespondViaSmsManager(RespondViaSmsManager respondViaSmsManager) {
