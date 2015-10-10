@@ -142,6 +142,13 @@ public class CallIntentProcessor {
             clientExtras.putBoolean(TelephonyProperties.ADD_PARTICIPANT_KEY, isAddParticipant);
         }
 
+        boolean isCallPull = intent.getBooleanExtra(TelephonyProperties.EXTRA_IS_CALL_PULL, false);
+        if (isCallPull) {
+            clientExtras.putBoolean(TelephonyProperties.EXTRA_IS_CALL_PULL, isCallPull);
+        }
+
+        Log.i(CallIntentProcessor.class, " processOutgoingCallIntent isCallPull = " + isCallPull);
+
         // Ensure call subject is passed on to the connection service.
         if (intent.hasExtra(TelecomManager.EXTRA_CALL_SUBJECT)) {
             String callsubject = intent.getStringExtra(TelecomManager.EXTRA_CALL_SUBJECT);

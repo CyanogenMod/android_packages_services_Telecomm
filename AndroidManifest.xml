@@ -209,6 +209,7 @@
                 <action android:name="com.android.server.telecom.ACTION_CLEAR_MISSED_CALLS" />
                 <action android:name="com.android.server.telecom.ACTION_CALL_BACK_FROM_NOTIFICATION" />
                 <action android:name="com.android.server.telecom.ACTION_SEND_SMS_FROM_NOTIFICATION" />
+                <action android:name="org.codeaurora.ims.ACTION_CALL_PULL" />
             </intent-filter>
         </receiver>
 

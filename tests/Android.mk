@@ -21,7 +21,8 @@ LOCAL_STATIC_JAVA_LIBRARIES := \
         android-ex-camera2 \
         android-support-v4 \
         guava \
-        mockito-target
+        mockito-target \
+        ims-ext-common
 
 LOCAL_SRC_FILES := \
         $(call all-java-files-under, src) \
@@ -34,7 +35,8 @@ LOCAL_RESOURCE_DIR := \
 LOCAL_JAVA_LIBRARIES := \
         android.test.runner \
         telephony-common \
-        telephony-ext
+        telephony-ext \
+        ims-common
 
 LOCAL_AAPT_FLAGS := \
     --auto-add-overlay \

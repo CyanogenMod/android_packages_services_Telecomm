@@ -68,6 +68,8 @@ import com.android.server.telecom.callfiltering.IncomingCallFilter;
 import com.android.server.telecom.components.ErrorDialogActivity;
 
 import java.util.ArrayList;
+import com.android.server.telecom.ui.ViceNotificationImpl;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
@@ -197,6 +199,7 @@ public class CallsManager extends Call.ListenerBase
     private final CallerInfoLookupHelper mCallerInfoLookupHelper;
     private final DefaultDialerManagerAdapter mDefaultDialerManagerAdapter;
     private final Timeouts.Adapter mTimeoutsAdapter;
+    private final ViceNotificationImpl mViceNotificationImpl;
     private final Set<Call> mLocallyDisconnectingCalls = new HashSet<>();
     private final Set<Call> mPendingCallsToDisconnect = new HashSet<>();
     /* Handler tied to thread in which CallManager was initialized. */
@@ -245,7 +248,8 @@ public class CallsManager extends Call.ListenerBase
             SystemStateProvider systemStateProvider,
             DefaultDialerManagerAdapter defaultDialerAdapter,
             Timeouts.Adapter timeoutsAdapter,
-            AsyncRingtonePlayer asyncRingtonePlayer) {
+            AsyncRingtonePlayer asyncRingtonePlayer,
+            ViceNotifier viceNotifier) {
         mContext = context;
         mLock = lock;
         mContactsAsyncHelper = contactsAsyncHelper;
@@ -305,6 +309,7 @@ public class CallsManager extends Call.ListenerBase
         mConnectionServiceRepository =
                 new ConnectionServiceRepository(mPhoneAccountRegistrar, mContext, mLock, this);
         mInCallWakeLockController = inCallWakeLockControllerFactory.create(context, this);
+        mViceNotificationImpl = viceNotifier.create(mContext, this);
 
         mListeners.add(mInCallWakeLockController);
         mListeners.add(statusBarNotifier);
@@ -315,6 +320,7 @@ public class CallsManager extends Call.ListenerBase
         mListeners.add(missedCallNotifier);
         mListeners.add(mHeadsetMediaButton);
         mListeners.add(mProximitySensorManager);
+        mListeners.add(mViceNotificationImpl);
 
         // There is no USER_SWITCHED broadcast for user 0, handle it here explicitly.
         final UserManager userManager = UserManager.get(mContext);
@@ -322,6 +328,10 @@ public class CallsManager extends Call.ListenerBase
         if (userManager.isPrimaryUser()) {
             onUserSwitch(Process.myUserHandle());
         }
+    }
+
+    ViceNotificationImpl getViceNotificationImpl() {
+        return mViceNotificationImpl;
     }
 
     public void setRespondViaSmsManager(RespondViaSmsManager respondViaSmsManager) {
