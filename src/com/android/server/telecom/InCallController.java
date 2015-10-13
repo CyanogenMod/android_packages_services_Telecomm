@@ -226,6 +226,20 @@ public final class InCallController extends CallsManagerListenerBase {
     }
 
     @Override
+    public void onMergeFailed(Call call) {
+        if (!mInCallServices.isEmpty()) {
+            Log.i(this, "onMergeFailed :" + call);
+            for (IInCallService inCallService : mInCallServices.values()) {
+                try {
+                    inCallService.onMergeFailed(toParcelableCall(call, true));
+                } catch (RemoteException ignored) {
+                    Log.i(this, "onMergeFailed exception:" + ignored);
+                }
+            }
+        }
+    }
+
+    @Override
     public void onConnectionServiceChanged(
             Call call,
             ConnectionServiceWrapper oldService,
