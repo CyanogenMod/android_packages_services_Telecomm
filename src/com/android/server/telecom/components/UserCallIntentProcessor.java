@@ -184,7 +184,7 @@ public class UserCallIntentProcessor {
         intent.setFlags(Intent.FLAG_RECEIVER_FOREGROUND);
         intent.setClass(mContext, PrimaryCallReceiver.class);
         Log.d(this, "Sending broadcast as user to CallReceiver");
-        mContext.sendBroadcastAsUser(intent, UserHandle.OWNER);
+        mContext.sendBroadcastAsUser(intent, UserHandle.SYSTEM);
         return true;
     }
 

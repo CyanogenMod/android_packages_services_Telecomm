@@ -417,21 +417,12 @@ public final class PhoneAccountRegistrar {
             return true;
         }
 
-        // Special check for work profiles.
+        // Special check for work profiles, any user could have a profile.
         // Unlike in TelecomServiceImpl, we only care about *profiles* here. We want to make sure
         // that we don't resolve PhoneAccount across *users*, but resolving across *profiles* is
         // fine.
-        if (UserHandle.getCallingUserId() == UserHandle.USER_OWNER) {
-            List<UserInfo> profileUsers =
-                    mUserManager.getProfiles(mCurrentUserHandle.getIdentifier());
-            for (UserInfo profileInfo : profileUsers) {
-                if (profileInfo.getUserHandle().equals(phoneAccountUserHandle)) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
+        return mUserManager.isSameProfileGroup(
+                mCurrentUserHandle.getIdentifier(), phoneAccountUserHandle.getIdentifier());
     }
 
     private List<ResolveInfo> resolveComponent(PhoneAccountHandle phoneAccountHandle) {
