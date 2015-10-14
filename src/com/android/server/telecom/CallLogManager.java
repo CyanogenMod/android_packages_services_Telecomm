@@ -51,12 +51,13 @@ final class CallLogManager extends CallsManagerListenerBase {
          * @param durationInMillis Duration of the call (milliseconds).
          * @param dataUsage Data usage in bytes, or null if not applicable.
          */
-        public AddCallArgs(Context context, CallerInfo callerInfo, String number,
+        public AddCallArgs(Context context, CallerInfo callerInfo, String number, String postDialDigits,
                 int presentation, int callType, int features, PhoneAccountHandle accountHandle,
                 long creationDate, long durationInMillis, Long dataUsage) {
             this.context = context;
             this.callerInfo = callerInfo;
             this.number = number;
+            this.postDialDigits = postDialDigits;
             this.presentation = presentation;
             this.callType = callType;
             this.features = features;
@@ -70,6 +71,7 @@ final class CallLogManager extends CallsManagerListenerBase {
         public final Context context;
         public final CallerInfo callerInfo;
         public final String number;
+        public final String postDialDigits;
         public final int presentation;
         public final int callType;
         public final int features;
@@ -147,9 +149,9 @@ final class CallLogManager extends CallsManagerListenerBase {
 
         // TODO(vt): Once data usage is available, wire it up here.
         int callFeatures = getCallFeatures(call.getVideoStateHistory());
-        logCall(call.getCallerInfo(), logNumber, call.getHandlePresentation(),
-                callLogType, callFeatures, accountHandle, creationTime, age, null,
-                call.isEmergencyCall());
+        logCall(call.getCallerInfo(), logNumber, call.getPostDialDigits(),
+                call.getHandlePresentation(), callLogType, callFeatures, accountHandle,
+                creationTime, age, null, call.isEmergencyCall());
     }
 
     /**
@@ -157,6 +159,8 @@ final class CallLogManager extends CallsManagerListenerBase {
      *
      * @param callerInfo Caller details.
      * @param number The number the call was made to or from.
+     * @param postDialDigits The post-dial digits that were dialed after the number,
+     *                       if it was an outgoing call. Otherwise ''.
      * @param presentation
      * @param callType The type of call.
      * @param features The features of the call.
@@ -168,6 +172,7 @@ final class CallLogManager extends CallsManagerListenerBase {
     private void logCall(
             CallerInfo callerInfo,
             String number,
+            String postDialDigits,
             int presentation,
             int callType,
             int features,
@@ -192,8 +197,8 @@ final class CallLogManager extends CallsManagerListenerBase {
             Log.d(TAG, "Logging Calllog entry: " + callerInfo + ", "
                     + Log.pii(number) + "," + presentation + ", " + callType
                     + ", " + start + ", " + duration);
-            AddCallArgs args = new AddCallArgs(mContext, callerInfo, number, presentation,
-                    callType, features, accountHandle, start, duration, dataUsage);
+            AddCallArgs args = new AddCallArgs(mContext, callerInfo, number, postDialDigits,
+                    presentation, callType, features, accountHandle, start, duration, dataUsage);
             logCallAsync(args);
         } else {
           Log.d(TAG, "Not adding emergency call to call log.");
@@ -260,9 +265,9 @@ final class CallLogManager extends CallsManagerListenerBase {
 
                 try {
                     // May block.
-                    result[i] = Calls.addCall(c.callerInfo, c.context, c.number, c.presentation,
-                            c.callType, c.features, c.accountHandle, c.timestamp, c.durationInSec,
-                            c.dataUsage, true /* addForAllUsers */);
+                    result[i] = Calls.addCall(c.callerInfo, c.context, c.number, c.postDialDigits,
+                            c.presentation, c.callType, c.features, c.accountHandle, c.timestamp,
+                            c.durationInSec, c.dataUsage, true /* addForAllUsers */);
                 } catch (Exception e) {
                     // This is very rare but may happen in legitimate cases.
                     // E.g. If the phone is encrypted and thus write request fails, it may cause

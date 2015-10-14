@@ -29,7 +29,6 @@ import android.provider.ContactsContract.Contacts;
 import android.telecom.DisconnectCause;
 import android.telecom.Connection;
 import android.telecom.GatewayInfo;
-import android.telecom.InCallService.VideoCall;
 import android.telecom.ParcelableConnection;
 import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
@@ -199,6 +198,11 @@ public class Call implements CreateConnectionResponse {
      *  and did not originate via the regular incoming/outgoing call code paths.
      */
     private boolean mIsUnknown;
+
+    /**
+     * The post-dial digits that were dialed after the network portion of the number
+     */
+    private final String mPostDialDigits;
 
     /**
      * The time this call was created. Beyond logging and such, may also be used for bookkeeping
@@ -371,6 +375,7 @@ public class Call implements CreateConnectionResponse {
         mContactsAsyncHelper = contactsAsyncHelper;
         mCallerInfoAsyncQueryFactory = callerInfoAsyncQueryFactory;
         setHandle(handle);
+        mPostDialDigits = PhoneNumberUtils.extractPostDialPortion(handle.getSchemeSpecificPart());
         mGatewayInfo = gatewayInfo;
         setConnectionManagerPhoneAccount(connectionManagerPhoneAccountHandle);
         setTargetPhoneAccount(targetPhoneAccountHandle);
@@ -621,6 +626,10 @@ public class Call implements CreateConnectionResponse {
 
     public Uri getHandle() {
         return mHandle;
+    }
+
+    public String getPostDialDigits() {
+        return mPostDialDigits;
     }
 
     int getHandlePresentation() {
