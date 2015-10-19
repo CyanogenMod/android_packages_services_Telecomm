@@ -422,17 +422,11 @@ final class CallAudioManager extends CallsManagerListenerBase
     }
 
     private void onCallUpdated(Call call) {
-
-        if (call != null) {
-            if (call.getState() != CallState.DISCONNECTED) {
-                updateAudioStreamAndMode(call);
-            }
-
-            if (call.getState() == CallState.ACTIVE &&
+        updateAudioStreamAndMode(call);
+        if (call != null && call.getState() == CallState.ACTIVE &&
                             call == mCallToSpeedUpMTAudio) {
                 mCallToSpeedUpMTAudio = null;
             }
-        }
     }
 
     private void setSystemAudioState(boolean isMuted, int route, int supportedRouteMask) {
@@ -520,7 +514,8 @@ final class CallAudioManager extends CallsManagerListenerBase
                 Log.v(this, "updateAudioStreamAndMode : no foreground, speeding up MT audio.");
                 requestAudioFocusAndSetMode(AudioManager.STREAM_VOICE_CALL,
                                                          AudioManager.MODE_IN_CALL);
-            } else if (foregroundCall != null && waitingForAccountSelectionCall == null) {
+            } else if (foregroundCall != null && waitingForAccountSelectionCall == null
+                    && (foregroundCall.getState() != CallState.DISCONNECTED)) {
                 // In the case where there is a call that is waiting for account selection,
                 // this will fall back to abandonAudioFocus() below, which temporarily exits
                 // the in-call audio mode. This is to allow TalkBack to speak the "Call with"
@@ -538,7 +533,7 @@ final class CallAudioManager extends CallsManagerListenerBase
                 Log.v(this, "updateAudioStreamAndMode : tone playing");
                 requestAudioFocusAndSetMode(
                         AudioManager.STREAM_VOICE_CALL, mMostRecentlyUsedMode);
-            } else if (!hasRingingForegroundCall()) {
+            } else if (call == null) {
                 Log.v(this, "updateAudioStreamAndMode : no ringing call");
                 abandonAudioFocus();
             } else {
