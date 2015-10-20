@@ -18,6 +18,7 @@ package com.android.server.telecom.ui;
 
 import android.content.ComponentName;
 import android.telecom.TelecomManager;
+
 import com.android.server.telecom.Call;
 import com.android.server.telecom.CallState;
 import com.android.server.telecom.CallerInfoAsyncQueryFactory;
@@ -75,6 +76,19 @@ import java.util.Locale;
  */
 public class MissedCallNotifierImpl extends CallsManagerListenerBase implements MissedCallNotifier {
 
+    public interface NotificationBuilderFactory {
+        Notification.Builder getBuilder(Context context);
+    }
+
+    private static class DefaultNotificationBuilderFactory implements NotificationBuilderFactory {
+        public DefaultNotificationBuilderFactory() {}
+
+        @Override
+        public Notification.Builder getBuilder(Context context) {
+            return new Notification.Builder(context);
+        }
+    }
+
     private static final String[] CALL_LOG_PROJECTION = new String[] {
         Calls._ID,
         Calls.NUMBER,
@@ -95,6 +109,7 @@ public class MissedCallNotifierImpl extends CallsManagerListenerBase implements 
 
     private final Context mContext;
     private final NotificationManager mNotificationManager;
+    private final NotificationBuilderFactory mNotificationBuilderFactory;
 
     private final ComponentName mNotificationComponent;
 
@@ -102,11 +117,17 @@ public class MissedCallNotifierImpl extends CallsManagerListenerBase implements 
     private int mMissedCallCount = 0;
 
     public MissedCallNotifierImpl(Context context) {
+        this(context, new DefaultNotificationBuilderFactory());
+    }
+
+    public MissedCallNotifierImpl(Context context,
+            NotificationBuilderFactory notificationBuilderFactory) {
         mContext = context;
         mNotificationManager =
                 (NotificationManager) mContext.getSystemService(Context.NOTIFICATION_SERVICE);
         final String notificationComponent = context.getString(R.string.notification_component);
 
+        mNotificationBuilderFactory = notificationBuilderFactory;
         mNotificationComponent = notificationComponent != null
                 ? ComponentName.unflattenFromString(notificationComponent) : null;
     }
@@ -149,8 +170,6 @@ public class MissedCallNotifierImpl extends CallsManagerListenerBase implements 
 
     /**
      * Broadcasts missed call notification to custom component if set.
-     * @param number The phone number associated with the notification. null if
-     *               no call.
      * @param count The number of calls associated with the notification.
      * @return {@code true} if the broadcast was sent. {@code false} otherwise.
      */
@@ -215,7 +234,7 @@ public class MissedCallNotifierImpl extends CallsManagerListenerBase implements 
 
         // Create a public viewable version of the notification, suitable for display when sensitive
         // notification content is hidden.
-        Notification.Builder publicBuilder = new Notification.Builder(mContext);
+        Notification.Builder publicBuilder = mNotificationBuilderFactory.getBuilder(mContext);
         publicBuilder.setSmallIcon(android.R.drawable.stat_notify_missed_call)
                 .setColor(mContext.getResources().getColor(R.color.theme_color))
                 .setWhen(call.getCreationTimeMillis())
@@ -229,7 +248,7 @@ public class MissedCallNotifierImpl extends CallsManagerListenerBase implements 
                 .setDeleteIntent(createClearMissedCallsPendingIntent());
 
         // Create the notification suitable for display when sensitive information is showing.
-        Notification.Builder builder = new Notification.Builder(mContext);
+        Notification.Builder builder = mNotificationBuilderFactory.getBuilder(mContext);
         builder.setSmallIcon(android.R.drawable.stat_notify_missed_call)
                 .setColor(mContext.getResources().getColor(R.color.theme_color))
                 .setWhen(call.getCreationTimeMillis())

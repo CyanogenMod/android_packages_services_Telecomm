@@ -62,6 +62,7 @@ import android.test.mock.MockContext;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -71,6 +72,7 @@ import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyInt;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -213,6 +215,12 @@ public class ComponentContextFixture implements TestFixture<Context> {
         @Override
         public Intent registerReceiver(BroadcastReceiver receiver, IntentFilter filter) {
             // TODO -- this is called by WiredHeadsetManager!!!
+            return null;
+        }
+
+        @Override
+        public Intent registerReceiver(BroadcastReceiver receiver, IntentFilter filter,
+                String broadcastPermission, Handler scheduler) {
             return null;
         }
 
@@ -366,6 +374,9 @@ public class ComponentContextFixture implements TestFixture<Context> {
         when(mNotificationManager.matchesCallFilter(any(Bundle.class))).thenReturn(true);
 
         when(mUserManager.getSerialNumberForUser(any(UserHandle.class))).thenReturn(-1L);
+
+        doReturn(null).when(mApplicationContextSpy).registerReceiver(any(BroadcastReceiver.class),
+                any(IntentFilter.class));
     }
 
     @Override
@@ -397,8 +408,16 @@ public class ComponentContextFixture implements TestFixture<Context> {
         mServiceInfoByComponentName.put(componentName, serviceInfo);
     }
 
-    public void putResource(int id, String value) {
+    public void putResource(int id, final String value) {
+        when(mResources.getText(eq(id))).thenReturn(value);
         when(mResources.getString(eq(id))).thenReturn(value);
+        when(mResources.getString(eq(id), any())).thenAnswer(new Answer<String>() {
+            @Override
+            public String answer(InvocationOnMock invocation) {
+                Object[] args = invocation.getArguments();
+                return String.format(value, Arrays.copyOfRange(args, 1, args.length));
+            }
+        });
     }
 
     public void setTelecomManager(TelecomManager telecomManager) {
