@@ -18,6 +18,7 @@ package com.android.server.telecom;
 
 import com.android.internal.annotations.VisibleForTesting;
 
+import android.Manifest;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -54,6 +55,25 @@ public final class TelecomSystem {
     private static final IntentFilter USER_SWITCHED_FILTER =
             new IntentFilter(Intent.ACTION_USER_SWITCHED);
 
+    /** Intent filter for dialer secret codes. */
+    private static final IntentFilter DIALER_SECRET_CODE_FILTER;
+
+    /**
+     * Initializes the dialer secret code intent filter.  Setup to handle the various secret codes
+     * which can be dialed (e.g. in format *#*#code#*#*) to trigger various behavior in Telecom.
+     */
+    static {
+        DIALER_SECRET_CODE_FILTER = new IntentFilter(
+                "android.provider.Telephony.SECRET_CODE");
+        DIALER_SECRET_CODE_FILTER.addDataScheme("android_secret_code");
+        DIALER_SECRET_CODE_FILTER
+                .addDataAuthority(DialerCodeReceiver.TELECOM_SECRET_CODE_DEBUG_ON, null);
+        DIALER_SECRET_CODE_FILTER
+                .addDataAuthority(DialerCodeReceiver.TELECOM_SECRET_CODE_DEBUG_OFF, null);
+        DIALER_SECRET_CODE_FILTER
+                .addDataAuthority(DialerCodeReceiver.TELECOM_SECRET_CODE_MARK, null);
+    }
+
     private static TelecomSystem INSTANCE = null;
 
     private final SyncRoot mLock = new SyncRoot() { };
@@ -67,6 +87,7 @@ public final class TelecomSystem {
     private final TelecomBroadcastIntentProcessor mTelecomBroadcastIntentProcessor;
     private final TelecomServiceImpl mTelecomServiceImpl;
     private final ContactsAsyncHelper mContactsAsyncHelper;
+    private final DialerCodeReceiver mDialerCodeReceiver;
 
     private final BroadcastReceiver mUserSwitchedReceiver = new BroadcastReceiver() {
         @Override
@@ -122,6 +143,12 @@ public final class TelecomSystem {
         mCallIntentProcessor = new CallIntentProcessor(mContext, mCallsManager);
         mTelecomBroadcastIntentProcessor = new TelecomBroadcastIntentProcessor(
                 mContext, mCallsManager);
+
+        // Register the receiver for the dialer secret codes, used to enable extended logging.
+        mDialerCodeReceiver = new DialerCodeReceiver(mCallsManager);
+        mContext.registerReceiver(mDialerCodeReceiver, DIALER_SECRET_CODE_FILTER,
+                Manifest.permission.CONTROL_INCALL_EXPERIENCE, null);
+
         mTelecomServiceImpl = new TelecomServiceImpl(
                 mContext, mCallsManager, mPhoneAccountRegistrar, mLock);
     }

@@ -82,6 +82,7 @@ public class Log {
         public static final String MUTE = "MUTE";
         public static final String AUDIO_ROUTE = "AUDIO_ROUTE";
         public static final String ERROR_LOG = "ERROR";
+        public static final String USER_LOG_MARK = "USER_LOG_MARK";
 
         /**
          * Maps from a request to a response.  The same event could be listed as the
@@ -197,6 +198,8 @@ public class Log {
     }
 
     public static final int MAX_CALLS_TO_CACHE = 5;  // Arbitrarily chosen.
+    public static final int MAX_CALLS_TO_CACHE_DEBUG = 20;  // Arbitrarily chosen.
+    private static final long EXTENDED_LOGGING_DURATION_MILLIS = 60000 * 30; // 30 minutes
 
     // Generic tag for all In Call logging
     @VisibleForTesting
@@ -211,10 +214,53 @@ public class Log {
     public static final boolean ERROR = isLoggable(android.util.Log.ERROR);
 
     private static final Map<Call, CallEventRecord> mCallEventRecordMap = new HashMap<>();
-    private static final LinkedBlockingQueue<CallEventRecord> mCallEventRecords =
+    private static LinkedBlockingQueue<CallEventRecord> mCallEventRecords =
             new LinkedBlockingQueue<CallEventRecord>(MAX_CALLS_TO_CACHE);
 
+    /**
+     * Tracks whether user-activated extended logging is enabled.
+     */
+    private static boolean mIsUserExtendedLoggingEnabled = false;
+
+    /**
+     * The time when user-activated extended logging should be ended.  Used to determine when
+     * extended logging should automatically be disabled.
+     */
+    private static long mUserExtendedLoggingStopTime = 0;
+
     private Log() {}
+
+    /**
+     * Enable or disable extended telecom logging.
+     *
+     * @param isExtendedLoggingEnabled {@code true} if extended logging should be enabled,
+     *      {@code false} if it should be disabled.
+     */
+    public static void setIsExtendedLoggingEnabled(boolean isExtendedLoggingEnabled) {
+        // If the state hasn't changed, bail early.
+        if (mIsUserExtendedLoggingEnabled == isExtendedLoggingEnabled) {
+            return;
+        }
+
+        // Resize the event queue.
+        int newSize = isExtendedLoggingEnabled ? MAX_CALLS_TO_CACHE_DEBUG : MAX_CALLS_TO_CACHE;
+        LinkedBlockingQueue<CallEventRecord> oldEventLog = mCallEventRecords;
+        mCallEventRecords = new LinkedBlockingQueue<CallEventRecord>(newSize);
+        mCallEventRecordMap.clear();
+
+        // Copy the existing queue into the new one.
+        for (CallEventRecord event : oldEventLog) {
+            addCallEventRecord(event);
+        }
+
+        mIsUserExtendedLoggingEnabled = isExtendedLoggingEnabled;
+        if (mIsUserExtendedLoggingEnabled) {
+            mUserExtendedLoggingStopTime = System.currentTimeMillis()
+                    + EXTENDED_LOGGING_DURATION_MILLIS;
+        } else {
+            mUserExtendedLoggingStopTime = 0;
+        }
+    }
 
     @VisibleForTesting
     public static void setTag(String tag) {
@@ -232,22 +278,43 @@ public class Log {
         }
         synchronized (mCallEventRecords) {
             if (!mCallEventRecordMap.containsKey(call)) {
-                // First remove the oldest entry if no new ones exist.
-                if (mCallEventRecords.remainingCapacity() == 0) {
-                    CallEventRecord record = mCallEventRecords.poll();
-                    if (record != null) {
-                        mCallEventRecordMap.remove(record.getCall());
-                    }
-                }
-
-                // Now add a new entry
                 CallEventRecord newRecord = new CallEventRecord(call);
-                mCallEventRecords.add(newRecord);
-                mCallEventRecordMap.put(call, newRecord);
+                addCallEventRecord(newRecord);
             }
 
             CallEventRecord record = mCallEventRecordMap.get(call);
             record.addEvent(event, data);
+        }
+    }
+
+    private static void addCallEventRecord(CallEventRecord newRecord) {
+        Call call = newRecord.getCall();
+
+        // First remove the oldest entry if no new ones exist.
+        if (mCallEventRecords.remainingCapacity() == 0) {
+            CallEventRecord record = mCallEventRecords.poll();
+            if (record != null) {
+                mCallEventRecordMap.remove(record.getCall());
+            }
+        }
+
+        // Now add a new entry
+        mCallEventRecords.add(newRecord);
+        mCallEventRecordMap.put(call, newRecord);
+    }
+
+    /**
+     * If user enabled extended logging is enabled and the time limit has passed, disables the
+     * extended logging.
+     */
+    private static void maybeDisableLogging() {
+        if (!mIsUserExtendedLoggingEnabled) {
+            return;
+        }
+
+        if (mUserExtendedLoggingStopTime < System.currentTimeMillis()) {
+            mUserExtendedLoggingStopTime = 0;
+            mIsUserExtendedLoggingEnabled = false;
         }
     }
 
@@ -256,13 +323,19 @@ public class Log {
     }
 
     public static void d(String prefix, String format, Object... args) {
-        if (DEBUG) {
+        if (mIsUserExtendedLoggingEnabled) {
+            maybeDisableLogging();
+            android.util.Slog.i(TAG, buildMessage(prefix, format, args));
+        } else if (DEBUG) {
             android.util.Slog.d(TAG, buildMessage(prefix, format, args));
         }
     }
 
     public static void d(Object objectPrefix, String format, Object... args) {
-        if (DEBUG) {
+        if (mIsUserExtendedLoggingEnabled) {
+            maybeDisableLogging();
+            android.util.Slog.i(TAG, buildMessage(getPrefixFromObject(objectPrefix), format, args));
+        } else if (DEBUG) {
             android.util.Slog.d(TAG, buildMessage(getPrefixFromObject(objectPrefix), format, args));
         }
     }
@@ -280,13 +353,19 @@ public class Log {
     }
 
     public static void v(String prefix, String format, Object... args) {
-        if (VERBOSE) {
+        if (mIsUserExtendedLoggingEnabled) {
+            maybeDisableLogging();
+            android.util.Slog.i(TAG, buildMessage(prefix, format, args));
+        } else if (VERBOSE) {
             android.util.Slog.v(TAG, buildMessage(prefix, format, args));
         }
     }
 
     public static void v(Object objectPrefix, String format, Object... args) {
-        if (VERBOSE) {
+        if (mIsUserExtendedLoggingEnabled) {
+            maybeDisableLogging();
+            android.util.Slog.i(TAG, buildMessage(getPrefixFromObject(objectPrefix), format, args));
+        } else if (VERBOSE) {
             android.util.Slog.v(TAG, buildMessage(getPrefixFromObject(objectPrefix), format, args));
         }
     }
