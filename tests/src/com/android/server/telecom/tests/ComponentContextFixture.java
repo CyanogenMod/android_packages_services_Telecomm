@@ -258,7 +258,9 @@ public class ComponentContextFixture implements TestFixture<Context> {
 
         private boolean mMute = false;
         private boolean mSpeakerphoneOn = false;
+        private int mAudioStreamValue = 1;
         private int mMode = AudioManager.MODE_NORMAL;
+        private int mRingerMode = AudioManager.RINGER_MODE_NORMAL;
 
         public FakeAudioManager(Context context) {
             super(context);
@@ -292,6 +294,26 @@ public class ComponentContextFixture implements TestFixture<Context> {
         @Override
         public int getMode() {
             return mMode;
+        }
+
+        @Override
+        public void setRingerModeInternal(int ringerMode) {
+            mRingerMode = ringerMode;
+        }
+
+        @Override
+        public int getRingerModeInternal() {
+            return mRingerMode;
+        }
+
+        @Override
+        public void setStreamVolume(int streamTypeUnused, int index, int flagsUnused){
+            mAudioStreamValue = index;
+        }
+
+        @Override
+        public int getStreamVolume(int streamValueUnused) {
+            return mAudioStreamValue;
         }
     }
 

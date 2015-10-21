@@ -16,23 +16,20 @@
 
 package com.android.server.telecom;
 
-import android.content.Context;
-import android.media.AudioManager;
 import android.media.Ringtone;
-import android.media.RingtoneManager;
-import android.net.Uri;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Message;
-import android.provider.Settings;
 
+import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.util.Preconditions;
 
 /**
  * Plays the default ringtone. Uses {@link Ringtone} in a separate thread so that this class can be
  * used from the main thread.
  */
-class AsyncRingtonePlayer {
+@VisibleForTesting
+public class AsyncRingtonePlayer {
     // Message codes used with the ringtone thread.
     private static final int EVENT_PLAY = 1;
     private static final int EVENT_STOP = 2;
@@ -47,27 +44,18 @@ class AsyncRingtonePlayer {
     /** The current ringtone. Only used by the ringtone thread. */
     private Ringtone mRingtone;
 
-    /**
-     * The context.
-     */
-    private final Context mContext;
-
-    AsyncRingtonePlayer(Context context) {
-        mContext = context;
-    }
-
     /** Plays the ringtone. */
-    void play(Uri ringtone) {
+    public void play(Ringtone ringtone) {
         Log.d(this, "Posting play.");
-        if (ringtone == Uri.EMPTY) {
-            Log.i(this, "Uri.EMPTY (silence -- not playing anything)");
+        if (ringtone == null) {
+            Log.i(this, "null (silence -- not playing anything)");
             return;
         }
         postMessage(EVENT_PLAY, true /* shouldCreateHandler */, ringtone);
     }
 
     /** Stops playing the ringtone. */
-    void stop() {
+    public void stop() {
         Log.d(this, "Posting stop.");
         postMessage(EVENT_STOP, false /* shouldCreateHandler */, null);
     }
@@ -79,7 +67,7 @@ class AsyncRingtonePlayer {
      * @param messageCode The message to post.
      * @param shouldCreateHandler True when a handler should be created to handle this message.
      */
-    private void postMessage(int messageCode, boolean shouldCreateHandler, Uri ringtone) {
+    private void postMessage(int messageCode, boolean shouldCreateHandler, Ringtone ringtone) {
         synchronized(this) {
             if (mHandler == null && shouldCreateHandler) {
                 mHandler = getNewHandler();
@@ -107,7 +95,7 @@ class AsyncRingtonePlayer {
             public void handleMessage(Message msg) {
                 switch(msg.what) {
                     case EVENT_PLAY:
-                        handlePlay((Uri) msg.obj);
+                        handlePlay((Ringtone) msg.obj);
                         break;
                     case EVENT_REPEAT:
                         handleRepeat();
@@ -123,7 +111,7 @@ class AsyncRingtonePlayer {
     /**
      * Starts the actual playback of the ringtone. Executes on ringtone-thread.
      */
-    private void handlePlay(Uri ringtoneUri) {
+    private void handlePlay(Ringtone ringtone) {
         // don't bother with any of this if there is an EVENT_STOP waiting.
         if (mHandler.hasMessages(EVENT_STOP)) {
             return;
@@ -133,13 +121,7 @@ class AsyncRingtonePlayer {
         Log.i(this, "Play ringtone.");
 
         if (mRingtone == null) {
-            mRingtone = getRingtone(ringtoneUri);
-
-            // Cancel everything if there is no ringtone.
-            if (mRingtone == null) {
-                handleStop();
-                return;
-            }
+            mRingtone = ringtone;
         }
 
         handleRepeat();
@@ -192,17 +174,5 @@ class AsyncRingtonePlayer {
                 Log.v(this, "Handler cleared.");
             }
         }
-    }
-
-    private Ringtone getRingtone(Uri ringtoneUri) {
-        if (ringtoneUri == null) {
-            ringtoneUri = Settings.System.DEFAULT_RINGTONE_URI;
-        }
-
-        Ringtone ringtone = RingtoneManager.getRingtone(mContext, ringtoneUri);
-        if (ringtone != null) {
-            ringtone.setStreamType(AudioManager.STREAM_RING);
-        }
-        return ringtone;
     }
 }

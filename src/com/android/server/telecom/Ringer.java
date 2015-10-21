@@ -23,9 +23,9 @@ import android.media.AudioAttributes;
 import android.media.AudioManager;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.SystemVibrator;
 import android.os.Vibrator;
-import android.provider.Settings;
+
+import com.android.internal.annotations.VisibleForTesting;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -34,7 +34,8 @@ import java.util.List;
  * Controls the ringtone player.
  * TODO: Turn this into a proper state machine: Ringing, CallWaiting, Stopped.
  */
-final class Ringer extends CallsManagerListenerBase {
+@VisibleForTesting
+public final class Ringer extends CallsManagerListenerBase {
     private static final long[] VIBRATION_PATTERN = new long[] {
         0, // No delay before starting
         1000, // How long to vibrate
@@ -53,22 +54,23 @@ final class Ringer extends CallsManagerListenerBase {
     /** Indicate that we want the pattern to repeat at the step which turns on vibration. */
     private static final int VIBRATION_PATTERN_REPEAT = 1;
 
-    private final AsyncRingtonePlayer mRingtonePlayer;
-
     /**
      * Used to keep ordering of unanswered incoming calls. There can easily exist multiple incoming
      * calls and explicit ordering is useful for maintaining the proper state of the ringer.
      */
     private final List<Call> mRingingCalls = new LinkedList<>();
 
+    private final SystemSettingsUtil mSystemSettingsUtil;
     private final CallAudioManager mCallAudioManager;
     private final CallsManager mCallsManager;
     private final InCallTonePlayer.Factory mPlayerFactory;
+    private final AsyncRingtonePlayer mRingtonePlayer;
     private final Context mContext;
     private final Vibrator mVibrator;
 
     private int mState = STATE_STOPPED;
     private InCallTonePlayer mCallWaitingPlayer;
+    private RingtoneFactory mRingtoneFactory;
 
     /**
      * Used to track the status of {@link #mVibrator} in the case of simultaneous incoming calls.
@@ -76,20 +78,27 @@ final class Ringer extends CallsManagerListenerBase {
     private boolean mIsVibrating = false;
 
     /** Initializes the Ringer. */
-    Ringer(
+    @VisibleForTesting
+    public Ringer(
             CallAudioManager callAudioManager,
             CallsManager callsManager,
             InCallTonePlayer.Factory playerFactory,
-            Context context) {
+            Context context,
+            SystemSettingsUtil systemSettingsUtil,
+            AsyncRingtonePlayer asyncRingtonePlayer,
+            RingtoneFactory ringtoneFactory,
+            Vibrator vibrator) {
 
+        mSystemSettingsUtil = systemSettingsUtil;
         mCallAudioManager = callAudioManager;
         mCallsManager = callsManager;
         mPlayerFactory = playerFactory;
         mContext = context;
         // We don't rely on getSystemService(Context.VIBRATOR_SERVICE) to make sure this
         // vibrator object will be isolated from others.
-        mVibrator = new SystemVibrator(context);
-        mRingtonePlayer = new AsyncRingtonePlayer(context);
+        mVibrator = vibrator;
+        mRingtonePlayer = asyncRingtonePlayer;
+        mRingtoneFactory = ringtoneFactory;
     }
 
     @Override
@@ -181,8 +190,7 @@ final class Ringer extends CallsManagerListenerBase {
         Call foregroundCall = mCallsManager.getForegroundCall();
         Log.v(this, "startRingingOrCallWaiting, foregroundCall: %s.", foregroundCall);
 
-        if (Settings.Global.getInt(mContext.getContentResolver(), Settings.Global.THEATER_MODE_ON,
-                0) == 1) {
+        if (mSystemSettingsUtil.isTheaterModeOn(mContext)) {
             return;
         }
 
@@ -207,7 +215,8 @@ final class Ringer extends CallsManagerListenerBase {
                 // call (for the purposes of direct-to-voicemail), the information about custom
                 // ringtones should be available by the time this code executes. We can safely
                 // request the custom ringtone from the call and expect it to be current.
-                mRingtonePlayer.play(foregroundCall.getRingtone());
+                mRingtonePlayer.play(
+                        mRingtoneFactory.getRingtone(foregroundCall.getRingtone()));
             } else {
                 Log.v(this, "startRingingOrCallWaiting, skipping because volume is 0");
             }
@@ -296,7 +305,6 @@ final class Ringer extends CallsManagerListenerBase {
         if (!mVibrator.hasVibrator()) {
             return false;
         }
-        return Settings.System.getInt(context.getContentResolver(),
-                Settings.System.VIBRATE_WHEN_RINGING, 0) != 0;
+        return mSystemSettingsUtil.canVibrateWhenRinging(context);
     }
 }

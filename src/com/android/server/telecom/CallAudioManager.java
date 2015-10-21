@@ -32,6 +32,7 @@ import android.os.UserHandle;
 import android.provider.MediaStore;
 import android.telecom.CallAudioState;
 
+import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.util.IndentingPrintWriter;
 import com.android.internal.util.Preconditions;
 
@@ -40,7 +41,8 @@ import java.util.Objects;
 /**
  * This class manages audio modes, streams and other properties.
  */
-public final class CallAudioManager extends CallsManagerListenerBase
+@VisibleForTesting
+public class CallAudioManager extends CallsManagerListenerBase
         implements WiredHeadsetManager.Listener, DockManager.Listener {
     private static final int STREAM_NONE = -1;
 
@@ -400,7 +402,8 @@ public final class CallAudioManager extends CallsManagerListenerBase
      * @param call The call which changed ringing state.
      * @param isRinging {@code true} if the call is ringing, {@code false} otherwise.
      */
-    void setIsRinging(Call call, boolean isRinging) {
+    @VisibleForTesting
+    public void setIsRinging(Call call, boolean isRinging) {
         if (mIsRinging != isRinging) {
             Log.i(this, "setIsRinging %b -> %b (call = %s)", mIsRinging, isRinging, call);
             mIsRinging = isRinging;

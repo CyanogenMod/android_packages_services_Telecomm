@@ -21,12 +21,14 @@ import android.media.ToneGenerator;
 import android.os.Handler;
 import android.os.Looper;
 
+import com.android.internal.annotations.VisibleForTesting;
+
 /**
  * Play a call-related tone (ringback, busy signal, etc.) through ToneGenerator. To use, create an
  * instance using InCallTonePlayer.Factory (passing in the TONE_* constant for the tone you want)
  * and start() it. Implemented on top of {@link Thread} so that the tone plays in its own thread.
  */
-public final class InCallTonePlayer extends Thread {
+public class InCallTonePlayer extends Thread {
 
     /**
      * Factory used to create InCallTonePlayers. Exists to aid with testing mocks.
@@ -40,7 +42,7 @@ public final class InCallTonePlayer extends Thread {
             mLock = lock;
         }
 
-        InCallTonePlayer createPlayer(int tone) {
+        public InCallTonePlayer createPlayer(int tone) {
             return new InCallTonePlayer(tone, mCallAudioManager, mLock);
         }
     }
@@ -236,8 +238,9 @@ public final class InCallTonePlayer extends Thread {
             cleanUpTonePlayer();
         }
     }
-
-    void startTone() {
+    
+    @VisibleForTesting
+    public void startTone() {
         sTonesPlaying++;
         if (sTonesPlaying == 1) {
             mCallAudioManager.setIsTonePlaying(true);
@@ -249,7 +252,8 @@ public final class InCallTonePlayer extends Thread {
     /**
      * Stops the tone.
      */
-    void stopTone() {
+    @VisibleForTesting
+    public void stopTone() {
         synchronized (this) {
             if (mState == STATE_ON) {
                 Log.d(this, "Stopping the tone %d.", mToneId);

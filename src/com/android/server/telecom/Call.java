@@ -487,7 +487,8 @@ public class Call implements CreateConnectionResponse {
         return sb.toString();
     }
 
-    int getState() {
+    @VisibleForTesting
+    public int getState() {
         return mState;
     }
 
@@ -769,7 +770,8 @@ public class Call implements CreateConnectionResponse {
         }
     }
 
-    boolean isIncoming() {
+    @VisibleForTesting
+    public boolean isIncoming() {
         return mIsIncoming;
     }
 
@@ -1182,7 +1184,8 @@ public class Call implements CreateConnectionResponse {
     /**
      * @return the uri of the contact associated with this call.
      */
-    Uri getContactUri() {
+    @VisibleForTesting
+    public Uri getContactUri() {
         if (mCallerInfo == null || !mCallerInfo.contactExists) {
             return getHandle();
         }

@@ -22,6 +22,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemProperties;
+import android.os.SystemVibrator;
 import android.os.Trace;
 import android.provider.CallLog.Calls;
 import android.telecom.CallAudioState;
@@ -182,9 +183,16 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
         mCallAudioManager = new CallAudioManager(
                 context, mLock, statusBarNotifier,
                 mWiredHeadsetManager, mDockManager, this, audioServiceFactory);
-        InCallTonePlayer.Factory playerFactory = new InCallTonePlayer.Factory(mCallAudioManager, lock);
-        mRinger = new Ringer(mCallAudioManager, this, playerFactory, context);
-        mHeadsetMediaButton = headsetMediaButtonFactory.create(context, this, mLock);
+        InCallTonePlayer.Factory playerFactory = 
+	    new InCallTonePlayer.Factory(mCallAudioManager, lock);
+        RingtoneFactory ringtoneFactory = new RingtoneFactory(context);
+        SystemVibrator systemVibrator = new SystemVibrator(context);
+        AsyncRingtonePlayer asyncRingtonePlayer = new AsyncRingtonePlayer();
+        SystemSettingsUtil systemSettingsUtil = new SystemSettingsUtil();
+        mRinger = new Ringer(
+                mCallAudioManager, this, playerFactory, context, systemSettingsUtil,
+                asyncRingtonePlayer, ringtoneFactory, systemVibrator);
+	mHeadsetMediaButton = headsetMediaButtonFactory.create(context, this, mLock);
         mTtyManager = new TtyManager(context, mWiredHeadsetManager);
         mProximitySensorManager = proximitySensorManagerFactory.create(context, this);
         mPhoneStateBroadcaster = new PhoneStateBroadcaster(this);
@@ -316,7 +324,8 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
                 @Override
                 public void run() {
                     synchronized (mLock) {
-                        // Set a timeout to stop the tone in case there isn't another tone to follow.
+                        // Set a timeout to stop the tone in case there isn't another tone to
+                        // follow.
                         mDtmfLocalTonePlayer.stopTone(call);
                     }
                 }
@@ -430,7 +439,8 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
         return Collections.unmodifiableCollection(mCalls);
     }
 
-    Call getForegroundCall() {
+    @VisibleForTesting
+    public Call getForegroundCall() {
         return mForegroundCall;
     }
 
