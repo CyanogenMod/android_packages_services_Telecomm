@@ -116,7 +116,8 @@ public final class TelecomSystem {
             CallerInfoAsyncQueryFactory callerInfoAsyncQueryFactory,
             HeadsetMediaButtonFactory headsetMediaButtonFactory,
             ProximitySensorManagerFactory proximitySensorManagerFactory,
-            InCallWakeLockControllerFactory inCallWakeLockControllerFactory) {
+            InCallWakeLockControllerFactory inCallWakeLockControllerFactory,
+            CallAudioManager.AudioServiceFactory audioServiceFactory) {
         mContext = context.getApplicationContext();
 
         mMissedCallNotifier = missedCallNotifier;
@@ -132,7 +133,8 @@ public final class TelecomSystem {
                 mPhoneAccountRegistrar,
                 headsetMediaButtonFactory,
                 proximitySensorManagerFactory,
-                inCallWakeLockControllerFactory);
+                inCallWakeLockControllerFactory,
+                audioServiceFactory);
 
         mRespondViaSmsManager = new RespondViaSmsManager(mCallsManager, mLock);
         mCallsManager.setRespondViaSmsManager(mRespondViaSmsManager);

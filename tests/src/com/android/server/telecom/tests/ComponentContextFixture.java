@@ -176,7 +176,7 @@ public class ComponentContextFixture implements TestFixture<Context> {
 
         @Override
         public String getOpPackageName() {
-            return "test";
+            return "com.android.server.telecom.tests";
         }
 
         @Override
@@ -213,6 +213,12 @@ public class ComponentContextFixture implements TestFixture<Context> {
         @Override
         public Intent registerReceiver(BroadcastReceiver receiver, IntentFilter filter) {
             // TODO -- this is called by WiredHeadsetManager!!!
+            return null;
+        }
+
+        @Override
+        public Intent registerReceiver(BroadcastReceiver receiver, IntentFilter filter,
+                String broadcastPermission, Handler scheduler) {
             return null;
         }
 
