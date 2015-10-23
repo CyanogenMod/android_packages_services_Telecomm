@@ -261,8 +261,17 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
     @Override
     public void onSuccessfulIncomingCall(Call incomingCall, boolean shouldSendToVoicemail) {
         Log.d(this, "onSuccessfulIncomingCall");
-        setCallState(incomingCall, CallState.RINGING,
-                shouldSendToVoicemail ? "directing to voicemail" : "successful incoming call");
+
+        // Only set the incoming call as ringing if it isn't already disconnected.  It is possible
+        // that the connection service disconnected the call before it was even added to Telecom, in
+        // which case it makes no sense to set it back to a ringing state.
+        if (incomingCall.getState() != CallState.DISCONNECTED &&
+                incomingCall.getState() != CallState.DISCONNECTING) {
+            setCallState(incomingCall, CallState.RINGING,
+                    shouldSendToVoicemail ? "directing to voicemail" : "successful incoming call");
+        } else {
+            Log.i(this, "onSuccessfulIncomingCall: call already disconnected.");
+        }
 
         if (hasMaximumRingingCalls() || hasMaximumDialingCalls() || shouldSendToVoicemail) {
             incomingCall.reject(false, null);

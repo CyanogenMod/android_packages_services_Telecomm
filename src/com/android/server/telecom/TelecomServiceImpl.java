@@ -543,7 +543,12 @@ public class TelecomServiceImpl {
             }
 
             synchronized (mLock) {
-                return mCallsManager.getCallState() == TelephonyManager.CALL_STATE_RINGING;
+                // Note: We are explicitly checking the calls telecom is tracking rather than
+                // relying on mCallsManager#getCallState(). Since getCallState() relies on the
+                // current state as tracked by PhoneStateBroadcaster, any failure to properly
+                // track the current call state there could result in the wrong ringing state being
+                // reported by this API.
+                return mCallsManager.hasRingingCall();
             }
         }
 
