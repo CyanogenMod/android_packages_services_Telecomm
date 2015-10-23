@@ -29,6 +29,7 @@ import android.os.Message;
 import android.os.RemoteException;
 import android.os.ServiceManager;
 import android.os.UserHandle;
+import android.provider.MediaStore;
 import android.telecom.CallAudioState;
 
 import com.android.internal.util.IndentingPrintWriter;
@@ -39,7 +40,7 @@ import java.util.Objects;
 /**
  * This class manages audio modes, streams and other properties.
  */
-final class CallAudioManager extends CallsManagerListenerBase
+public final class CallAudioManager extends CallsManagerListenerBase
         implements WiredHeadsetManager.Listener, DockManager.Listener {
     private static final int STREAM_NONE = -1;
 
@@ -94,7 +95,7 @@ final class CallAudioManager extends CallsManagerListenerBase
                 case MSG_AUDIO_MANAGER_SET_MICROPHONE_MUTE: {
                     boolean mute = (msg.arg1 != 0);
                     if (mute != mAudioManager.isMicrophoneMute()) {
-                        IAudioService audio = getAudioService();
+                        IAudioService audio = mAudioServiceFactory.getAudioService();
                         Log.i(this, "changing microphone mute state to: %b [serviceIsNull=%b]",
                                 mute, audio == null);
                         if (audio != null) {
@@ -150,6 +151,10 @@ final class CallAudioManager extends CallsManagerListenerBase
         }
     };
 
+    public interface AudioServiceFactory {
+        IAudioService getAudioService();
+    }
+
     private final Context mContext;
     private final TelecomSystem.SyncRoot mLock;
     private final StatusBarNotifier mStatusBarNotifier;
@@ -157,6 +162,7 @@ final class CallAudioManager extends CallsManagerListenerBase
     private final WiredHeadsetManager mWiredHeadsetManager;
     private final DockManager mDockManager;
     private final CallsManager mCallsManager;
+    private final AudioServiceFactory mAudioServiceFactory;
 
     private CallAudioState mCallAudioState;
     private int mAudioFocusStreamType;
@@ -172,7 +178,8 @@ final class CallAudioManager extends CallsManagerListenerBase
             StatusBarNotifier statusBarNotifier,
             WiredHeadsetManager wiredHeadsetManager,
             DockManager dockManager,
-            CallsManager callsManager) {
+            CallsManager callsManager,
+            AudioServiceFactory audioServiceFactory) {
         mContext = context;
         mLock = lock;
         mAudioManagerHandler.obtainMessage(MSG_AUDIO_MANAGER_INITIALIZE, 0, 0).sendToTarget();
@@ -187,6 +194,7 @@ final class CallAudioManager extends CallsManagerListenerBase
 
         saveAudioState(getInitialAudioState(null));
         mAudioFocusStreamType = STREAM_NONE;
+        mAudioServiceFactory = audioServiceFactory;
     }
 
     CallAudioState getCallAudioState() {
@@ -725,10 +733,6 @@ final class CallAudioManager extends CallsManagerListenerBase
 
     private boolean hasFocus() {
         return mAudioFocusStreamType != STREAM_NONE;
-    }
-
-    private IAudioService getAudioService() {
-        return IAudioService.Stub.asInterface(ServiceManager.getService(Context.AUDIO_SERVICE));
     }
 
     private int getCurrentUserId() {

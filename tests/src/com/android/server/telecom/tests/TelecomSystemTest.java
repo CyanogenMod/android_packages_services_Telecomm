@@ -16,13 +16,14 @@
 
 package com.android.server.telecom.tests;
 
-import com.google.common.base.Predicate;
 
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.timeout;
@@ -34,6 +35,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.media.AudioManager;
+import android.media.IAudioService;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -51,6 +53,7 @@ import android.telecom.VideoProfile;
 import android.telephony.TelephonyManager;
 
 import com.android.internal.telecom.IInCallAdapter;
+import com.android.server.telecom.CallAudioManager;
 import com.android.server.telecom.CallsManager;
 import com.android.server.telecom.HeadsetMediaButton;
 import com.android.server.telecom.HeadsetMediaButtonFactory;
@@ -62,8 +65,12 @@ import com.android.server.telecom.ProximitySensorManager;
 import com.android.server.telecom.ProximitySensorManagerFactory;
 import com.android.server.telecom.TelecomSystem;
 
+import com.google.common.base.Predicate;
+
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CountDownLatch;
@@ -139,6 +146,8 @@ public class TelecomSystemTest extends TelecomTestCase {
 
     CallerInfoAsyncQueryFactoryFixture mCallerInfoAsyncQueryFactoryFixture;
 
+    IAudioService mAudioService;
+
     TelecomSystem mTelecomSystem;
 
     class IdPair {
@@ -180,6 +189,7 @@ public class TelecomSystemTest extends TelecomTestCase {
                 mock(ProximitySensorManagerFactory.class);
         InCallWakeLockControllerFactory inCallWakeLockControllerFactory =
                 mock(InCallWakeLockControllerFactory.class);
+        mAudioService = setupAudioService();
 
         mCallerInfoAsyncQueryFactoryFixture = new CallerInfoAsyncQueryFactoryFixture();
 
@@ -203,7 +213,13 @@ public class TelecomSystemTest extends TelecomTestCase {
                 mCallerInfoAsyncQueryFactoryFixture.getTestDouble(),
                 headsetMediaButtonFactory,
                 proximitySensorManagerFactory,
-                inCallWakeLockControllerFactory);
+                inCallWakeLockControllerFactory,
+                new CallAudioManager.AudioServiceFactory() {
+                    @Override
+                    public IAudioService getAudioService() {
+                        return mAudioService;
+                    }
+                });
 
         mComponentContextFixture.setTelecomManager(new TelecomManager(
                 mComponentContextFixture.getTestDouble(),
@@ -257,6 +273,35 @@ public class TelecomSystemTest extends TelecomTestCase {
         mComponentContextFixture.addInCallService(
                 mInCallServiceComponentNameY,
                 mInCallServiceFixtureY.getTestDouble());
+    }
+
+    /**
+     * Helper method for setting up the fake audio service.
+     * Calls to the fake audio service need to toggle the return
+     * value of AudioManager#isMicrophoneMute.
+     * @return mock of IAudioService
+     */
+    private IAudioService setupAudioService() {
+        IAudioService audioService = mock(IAudioService.class);
+        final AudioManager fakeAudioManager =
+                (AudioManager) mComponentContextFixture.getTestDouble()
+                        .getApplicationContext().getSystemService(Context.AUDIO_SERVICE);
+
+        try {
+            doAnswer(new Answer() {
+                @Override
+                public Object answer(InvocationOnMock i) {
+                    Object[] args = i.getArguments();
+                    doReturn(args[0]).when(fakeAudioManager).isMicrophoneMute();
+                    return null;
+                }
+            }).when(audioService)
+                    .setMicrophoneMute(any(Boolean.class), any(String.class), any(Integer.class));
+
+        } catch (android.os.RemoteException e) {
+            // Do nothing, leave the faked microphone state as-is
+        }
+        return audioService;
     }
 
     private IdPair startOutgoingPhoneCall(
@@ -682,11 +727,11 @@ public class TelecomSystemTest extends TelecomTestCase {
                 .setMode(AudioManager.MODE_IN_CALL);
 
         mInCallServiceFixtureX.mInCallAdapter.mute(true);
-        verify(audioManager, timeout(TEST_TIMEOUT))
-                .setMicrophoneMute(true);
+        verify(mAudioService, timeout(TEST_TIMEOUT))
+                .setMicrophoneMute(eq(true), any(String.class), any(Integer.class));
         mInCallServiceFixtureX.mInCallAdapter.mute(false);
-        verify(audioManager, timeout(TEST_TIMEOUT))
-                .setMicrophoneMute(false);
+        verify(mAudioService, timeout(TEST_TIMEOUT))
+                .setMicrophoneMute(eq(false), any(String.class), any(Integer.class));
 
         mInCallServiceFixtureX.mInCallAdapter.setAudioRoute(CallAudioState.ROUTE_SPEAKER);
         verify(audioManager, timeout(TEST_TIMEOUT))

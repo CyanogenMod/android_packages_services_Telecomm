@@ -168,7 +168,8 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
             PhoneAccountRegistrar phoneAccountRegistrar,
             HeadsetMediaButtonFactory headsetMediaButtonFactory,
             ProximitySensorManagerFactory proximitySensorManagerFactory,
-            InCallWakeLockControllerFactory inCallWakeLockControllerFactory) {
+            InCallWakeLockControllerFactory inCallWakeLockControllerFactory,
+            CallAudioManager.AudioServiceFactory audioServiceFactory) {
         mContext = context;
         mLock = lock;
         mContactsAsyncHelper = contactsAsyncHelper;
@@ -179,7 +180,8 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
         mWiredHeadsetManager = new WiredHeadsetManager(context);
         mDockManager = new DockManager(context);
         mCallAudioManager = new CallAudioManager(
-                context, mLock, statusBarNotifier, mWiredHeadsetManager, mDockManager, this);
+                context, mLock, statusBarNotifier,
+                mWiredHeadsetManager, mDockManager, this, audioServiceFactory);
         InCallTonePlayer.Factory playerFactory = new InCallTonePlayer.Factory(mCallAudioManager, lock);
         mRinger = new Ringer(mCallAudioManager, this, playerFactory, context);
         mHeadsetMediaButton = headsetMediaButtonFactory.create(context, this, mLock);

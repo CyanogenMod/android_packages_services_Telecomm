@@ -20,9 +20,12 @@ import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
 import android.content.Context;
 import android.content.Intent;
+import android.media.IAudioService;
 import android.os.IBinder;
+import android.os.ServiceManager;
 
 import com.android.internal.telephony.CallerInfoAsyncQuery;
+import com.android.server.telecom.CallAudioManager;
 import com.android.server.telecom.CallerInfoAsyncQueryFactory;
 import com.android.server.telecom.CallsManager;
 import com.android.server.telecom.HeadsetMediaButton;
@@ -101,7 +104,15 @@ public class TelecomService extends Service implements TelecomSystem.Component {
                                         CallsManager callsManager) {
                                     return new InCallWakeLockController(context, callsManager);
                                 }
-                            }));
+                            },
+                            new CallAudioManager.AudioServiceFactory() {
+                                @Override
+                                public IAudioService getAudioService() {
+                                    return IAudioService.Stub.asInterface(
+                                            ServiceManager.getService(Context.AUDIO_SERVICE));
+                                }
+                            }
+                    ));
         }
         if (BluetoothAdapter.getDefaultAdapter() != null) {
             context.startService(new Intent(context, BluetoothPhoneService.class));
