@@ -521,7 +521,14 @@ final class ConnectionServiceWrapper extends ServiceBinder {
                     if (mCallIdMapper.isValidCallId(callId)
                             || mCallIdMapper.isValidConferenceId(callId)) {
                         Call call = mCallIdMapper.getCall(callId);
-                        if (call != null) {
+                        if (call != null && extras != null) {
+                            if (extras.getParcelable(EMR_DIAL_ACCOUNT) instanceof
+                                    PhoneAccountHandle) {
+                                PhoneAccountHandle account = extras.
+                                        getParcelable(EMR_DIAL_ACCOUNT);
+                                Log.d(this, "setTargetPhoneAccount, account = " + account);
+                                call.setTargetPhoneAccount(account);
+                            }
                             call.setExtras(extras);
                         }
                     }
@@ -644,6 +651,7 @@ final class ConnectionServiceWrapper extends ServiceBinder {
     private final ConnectionServiceRepository mConnectionServiceRepository;
     private final PhoneAccountRegistrar mPhoneAccountRegistrar;
     private final CallsManager mCallsManager;
+    private static final String EMR_DIAL_ACCOUNT = "emr_dial_account";
 
     /**
      * Creates a connection service.
