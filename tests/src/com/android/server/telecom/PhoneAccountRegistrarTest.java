@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.android.server.telecom.tests;
+package com.android.server.telecom;
 
 import android.content.ComponentName;
 import android.content.Context;
@@ -32,8 +32,6 @@ import android.util.Xml;
 
 import com.android.internal.telecom.IConnectionService;
 import com.android.internal.util.FastXmlSerializer;
-import com.android.server.telecom.Log;
-import com.android.server.telecom.PhoneAccountRegistrar;
 
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -48,8 +46,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.util.Arrays;
 import java.util.Set;
-
-import static org.mockito.Mockito.when;
 
 public class PhoneAccountRegistrarTest extends TelecomTestCase {
 

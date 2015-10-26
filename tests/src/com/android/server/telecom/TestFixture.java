@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.android.server.telecom.tests;
+package com.android.server.telecom;
 
 /**
  * An object that provides supporting methods, fields, and other functionality for configuring

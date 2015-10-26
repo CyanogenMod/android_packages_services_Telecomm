@@ -14,9 +14,7 @@
  * limitations under the License.
  */
 
-package com.android.server.telecom.tests;
-
-import com.android.server.telecom.Log;
+package com.android.server.telecom;
 
 import org.mockito.MockitoAnnotations;
 

@@ -14,7 +14,7 @@
  * limitations under the License
  */
 
-package com.android.server.telecom.tests;
+package com.android.server.telecom;
 
 import android.app.Notification;
 import android.app.NotificationManager;
@@ -26,10 +26,6 @@ import android.net.Uri;
 import android.os.UserHandle;
 import android.telephony.TelephonyManager;
 
-import com.android.server.telecom.Call;
-import com.android.server.telecom.Constants;
-import com.android.server.telecom.MissedCallNotifier;
-import com.android.server.telecom.TelecomBroadcastIntentProcessor;
 import com.android.server.telecom.components.TelecomBroadcastReceiver;
 import com.android.server.telecom.ui.MissedCallNotifierImpl;
 

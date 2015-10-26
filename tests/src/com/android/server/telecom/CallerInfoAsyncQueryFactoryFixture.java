@@ -14,12 +14,10 @@
  * limitations under the License.
  */
 
-package com.android.server.telecom.tests;
+package com.android.server.telecom;
 
 import com.android.internal.telephony.CallerInfo;
 import com.android.internal.telephony.CallerInfoAsyncQuery;
-import com.android.server.telecom.CallerInfoAsyncQueryFactory;
-import com.android.server.telecom.Log;
 
 import android.content.Context;
 

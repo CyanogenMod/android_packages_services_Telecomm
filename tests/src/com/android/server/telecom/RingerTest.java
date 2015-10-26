@@ -14,23 +14,13 @@
  * limitations under the License
  */
 
-package com.android.server.telecom.tests;
+package com.android.server.telecom;
 
 import android.content.Context;
 import android.media.AudioAttributes;
 import android.media.Ringtone;
 import android.net.Uri;
 import android.os.Vibrator;
-
-import com.android.server.telecom.AsyncRingtonePlayer;
-import com.android.server.telecom.Call;
-import com.android.server.telecom.CallAudioManager;
-import com.android.server.telecom.CallState;
-import com.android.server.telecom.CallsManager;
-import com.android.server.telecom.SystemSettingsUtil;
-import com.android.server.telecom.InCallTonePlayer;
-import com.android.server.telecom.Ringer;
-import com.android.server.telecom.RingtoneFactory;
 
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.doNothing;

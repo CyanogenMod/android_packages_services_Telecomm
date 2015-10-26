@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.android.server.telecom.tests;
+package com.android.server.telecom;
 
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -22,11 +22,6 @@ import static org.mockito.Mockito.never;
 
 import android.content.Context;
 import android.os.PowerManager;
-
-import com.android.server.telecom.Call;
-import com.android.server.telecom.CallState;
-import com.android.server.telecom.CallsManager;
-import com.android.server.telecom.InCallWakeLockController;
 
 import org.mockito.Mock;
 

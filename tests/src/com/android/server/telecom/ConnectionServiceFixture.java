@@ -14,13 +14,12 @@
  * limitations under the License.
  */
 
-package com.android.server.telecom.tests;
+package com.android.server.telecom;
 
 import com.android.internal.telecom.IConnectionService;
 import com.android.internal.telecom.IConnectionServiceAdapter;
 import com.android.internal.telecom.IVideoProvider;
 import com.android.internal.telecom.RemoteServiceCallback;
-import com.android.server.telecom.Log;
 
 import junit.framework.TestCase;
 
@@ -46,8 +45,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import static org.mockito.Matchers.any;
 
 /**
  * Controls a test {@link IConnectionService} as would be provided by a source of connectivity
