@@ -27,6 +27,7 @@ import android.telecom.VideoProfile;
 import android.telephony.PhoneNumberUtils;
 
 // TODO: Needed for move to system service: import com.android.internal.R;
+import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.telephony.CallerInfo;
 
 /**
@@ -34,7 +35,8 @@ import com.android.internal.telephony.CallerInfo;
  * caller details to the call log. All logging activity will be performed asynchronously in a
  * background thread to avoid blocking on the main thread.
  */
-final class CallLogManager extends CallsManagerListenerBase {
+@VisibleForTesting
+public final class CallLogManager extends CallsManagerListenerBase {
     /**
      * Parameter object to hold the arguments to add a call in the call log DB.
      */
