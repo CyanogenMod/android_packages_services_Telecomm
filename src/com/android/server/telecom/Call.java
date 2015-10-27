@@ -375,7 +375,8 @@ public class Call implements CreateConnectionResponse {
         mContactsAsyncHelper = contactsAsyncHelper;
         mCallerInfoAsyncQueryFactory = callerInfoAsyncQueryFactory;
         setHandle(handle);
-        mPostDialDigits = PhoneNumberUtils.extractPostDialPortion(handle.getSchemeSpecificPart());
+        mPostDialDigits = handle != null
+                ? PhoneNumberUtils.extractPostDialPortion(handle.getSchemeSpecificPart()) : null;
         mGatewayInfo = gatewayInfo;
         setConnectionManagerPhoneAccount(connectionManagerPhoneAccountHandle);
         setTargetPhoneAccount(targetPhoneAccountHandle);
