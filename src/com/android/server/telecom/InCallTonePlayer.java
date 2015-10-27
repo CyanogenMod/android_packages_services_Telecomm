@@ -35,15 +35,20 @@ public class InCallTonePlayer extends Thread {
      */
     public static class Factory {
         private final CallAudioManager mCallAudioManager;
+        private final CallAudioRoutePeripheralAdapter mCallAudioRoutePeripheralAdapter;
         private final TelecomSystem.SyncRoot mLock;
 
-        Factory(CallAudioManager callAudioManager, TelecomSystem.SyncRoot lock) {
+        Factory(CallAudioManager callAudioManager,
+                CallAudioRoutePeripheralAdapter callAudioRoutePeripheralAdapter,
+                TelecomSystem.SyncRoot lock) {
             mCallAudioManager = callAudioManager;
+            mCallAudioRoutePeripheralAdapter = callAudioRoutePeripheralAdapter;
             mLock = lock;
         }
 
         public InCallTonePlayer createPlayer(int tone) {
-            return new InCallTonePlayer(tone, mCallAudioManager, mLock);
+            return new InCallTonePlayer(tone, mCallAudioManager,
+                    mCallAudioRoutePeripheralAdapter, mLock);
         }
     }
 
@@ -85,6 +90,7 @@ public class InCallTonePlayer extends Thread {
     private static int sTonesPlaying = 0;
 
     private final CallAudioManager mCallAudioManager;
+    private final CallAudioRoutePeripheralAdapter mCallAudioRoutePeripheralAdapter;
 
     private final Handler mMainThreadHandler = new Handler(Looper.getMainLooper());
 
@@ -105,10 +111,12 @@ public class InCallTonePlayer extends Thread {
     private InCallTonePlayer(
             int toneId,
             CallAudioManager callAudioManager,
+            CallAudioRoutePeripheralAdapter callAudioRoutePeripheralAdapter,
             TelecomSystem.SyncRoot lock) {
         mState = STATE_OFF;
         mToneId = toneId;
         mCallAudioManager = callAudioManager;
+        mCallAudioRoutePeripheralAdapter = callAudioRoutePeripheralAdapter;
         mLock = lock;
     }
 
@@ -197,7 +205,7 @@ public class InCallTonePlayer extends Thread {
             }
 
             int stream = AudioManager.STREAM_VOICE_CALL;
-            if (mCallAudioManager.isBluetoothAudioOn()) {
+            if (mCallAudioRoutePeripheralAdapter.isBluetoothAudioOn()) {
                 stream = AudioManager.STREAM_BLUETOOTH_SCO;
             }
 

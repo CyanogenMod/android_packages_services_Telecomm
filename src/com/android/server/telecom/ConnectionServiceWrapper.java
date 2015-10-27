@@ -37,6 +37,7 @@ import android.telecom.StatusHints;
 import android.telecom.TelecomManager;
 import android.telecom.VideoProfile;
 
+import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.telecom.IConnectionService;
 import com.android.internal.telecom.IConnectionServiceAdapter;
 import com.android.internal.telecom.IVideoProvider;
@@ -57,7 +58,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * {@link IConnectionService} directly and instead should use this class to invoke methods of
  * {@link IConnectionService}.
  */
-final class ConnectionServiceWrapper extends ServiceBinder {
+@VisibleForTesting
+public class ConnectionServiceWrapper extends ServiceBinder {
 
     private final class Adapter extends IConnectionServiceAdapter.Stub {
 
@@ -684,7 +686,8 @@ final class ConnectionServiceWrapper extends ServiceBinder {
     }
 
     /** @see IConnectionService#onCallAudioStateChanged(String,CallAudioState) */
-    void onCallAudioStateChanged(Call activeCall, CallAudioState audioState) {
+    @VisibleForTesting
+    public void onCallAudioStateChanged(Call activeCall, CallAudioState audioState) {
         final String callId = mCallIdMapper.getCallId(activeCall);
         if (callId != null && isServiceValid("onCallAudioStateChanged")) {
             try {

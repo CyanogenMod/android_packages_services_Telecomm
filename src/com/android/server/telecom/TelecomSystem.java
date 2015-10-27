@@ -125,6 +125,9 @@ public final class TelecomSystem {
         mMissedCallNotifier = missedCallNotifier;
         mPhoneAccountRegistrar = new PhoneAccountRegistrar(mContext);
         mContactsAsyncHelper = new ContactsAsyncHelper(mLock);
+        BluetoothManager bluetoothManager = new BluetoothManager(mContext);
+        WiredHeadsetManager wiredHeadsetManager = new WiredHeadsetManager(mContext);
+
 
         mCallsManager = new CallsManager(
                 mContext,
@@ -136,7 +139,9 @@ public final class TelecomSystem {
                 headsetMediaButtonFactory,
                 proximitySensorManagerFactory,
                 inCallWakeLockControllerFactory,
-                audioServiceFactory);
+                audioServiceFactory,
+                bluetoothManager,
+                wiredHeadsetManager);
 
         mRespondViaSmsManager = new RespondViaSmsManager(mCallsManager, mLock);
         mCallsManager.setRespondViaSmsManager(mRespondViaSmsManager);

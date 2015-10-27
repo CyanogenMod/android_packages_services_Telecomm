@@ -22,6 +22,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.media.AudioManager;
 
+import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.util.IndentingPrintWriter;
 
 import java.util.Collections;
@@ -29,8 +30,10 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /** Listens for and caches headset state. */
-class WiredHeadsetManager {
-    interface Listener {
+@VisibleForTesting
+public class WiredHeadsetManager {
+    @VisibleForTesting
+    public interface Listener {
         void onWiredHeadsetPluggedInChanged(boolean oldIsPluggedIn, boolean newIsPluggedIn);
     }
 
@@ -58,7 +61,7 @@ class WiredHeadsetManager {
     private final Set<Listener> mListeners = Collections.newSetFromMap(
             new ConcurrentHashMap<Listener, Boolean>(8, 0.9f, 1));
 
-    WiredHeadsetManager(Context context) {
+    public WiredHeadsetManager(Context context) {
         mReceiver = new WiredHeadsetBroadcastReceiver();
 
         mAudioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
@@ -69,7 +72,8 @@ class WiredHeadsetManager {
         context.registerReceiver(mReceiver, intentFilter);
     }
 
-    void addListener(Listener listener) {
+    @VisibleForTesting
+    public void addListener(Listener listener) {
         mListeners.add(listener);
     }
 
@@ -79,7 +83,8 @@ class WiredHeadsetManager {
         }
     }
 
-    boolean isPluggedIn() {
+    @VisibleForTesting
+    public boolean isPluggedIn() {
         return mIsPluggedIn;
     }
 
