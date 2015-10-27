@@ -1575,7 +1575,8 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
                     break;
                 }
 
-                if (call.isAlive() || call.getState() == CallState.RINGING) {
+                if ((call.isAlive() && call.getState() != CallState.ON_HOLD)
+                     || call.getState() == CallState.RINGING) {
                     newForegroundCall = call;
                     // Don't break in case there's an active call that has priority.
                 }
@@ -1602,7 +1603,8 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
                     break;
                 }
 
-                if (call.isAlive() || call.getState() == CallState.RINGING) {
+                if ((call.isAlive() && call.getState() != CallState.ON_HOLD)
+                     || call.getState() == CallState.RINGING) {
                     newForegroundCall = call;
                     // Don't break in case there's an active call that has priority.
                 }
