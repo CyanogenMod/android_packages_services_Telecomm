@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.android.server.telecom;
+package com.android.server.telecom.tests;
 
 import com.android.internal.telecom.IInCallAdapter;
 import com.android.internal.telecom.IInCallService;
@@ -24,6 +24,7 @@ import org.mockito.Mockito;
 import android.os.IBinder;
 import android.os.IInterface;
 import android.os.RemoteException;
+import android.telecom.AudioState;
 import android.telecom.CallAudioState;
 import android.telecom.ParcelableCall;
 

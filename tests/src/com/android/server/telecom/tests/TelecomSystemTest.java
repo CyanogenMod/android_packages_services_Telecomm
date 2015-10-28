@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.android.server.telecom;
+package com.android.server.telecom.tests;
 
 
 import static org.mockito.Matchers.any;
@@ -50,8 +50,20 @@ import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
 import android.telecom.TelecomManager;
 import android.telecom.VideoProfile;
+import android.telephony.TelephonyManager;
 
 import com.android.internal.telecom.IInCallAdapter;
+import com.android.server.telecom.CallAudioManager;
+import com.android.server.telecom.CallsManager;
+import com.android.server.telecom.HeadsetMediaButton;
+import com.android.server.telecom.HeadsetMediaButtonFactory;
+import com.android.server.telecom.InCallWakeLockController;
+import com.android.server.telecom.InCallWakeLockControllerFactory;
+import com.android.server.telecom.Log;
+import com.android.server.telecom.MissedCallNotifier;
+import com.android.server.telecom.ProximitySensorManager;
+import com.android.server.telecom.ProximitySensorManagerFactory;
+import com.android.server.telecom.TelecomSystem;
 
 import com.google.common.base.Predicate;
 

@@ -14,8 +14,11 @@
  * limitations under the License.
  */
 
-package com.android.server.telecom;
+package com.android.server.telecom.tests;
 
+import com.android.server.telecom.Log;
+
+import android.annotation.TargetApi;
 import android.content.Context;
 import android.os.Looper;
 

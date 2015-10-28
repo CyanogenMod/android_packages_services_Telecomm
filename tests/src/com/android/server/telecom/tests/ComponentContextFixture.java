@@ -14,13 +14,14 @@
  * limitations under the License.
  */
 
-package com.android.server.telecom;
+package com.android.server.telecom.tests;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
 
 import com.android.internal.telecom.IConnectionService;
 import com.android.internal.telecom.IInCallService;
+import com.android.server.telecom.Log;
 
 import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
@@ -48,6 +49,7 @@ import android.os.Handler;
 import android.os.IInterface;
 import android.os.UserHandle;
 import android.os.UserManager;
+import android.telecom.CallAudioState;
 import android.telecom.ConnectionService;
 import android.telecom.InCallService;
 import android.telecom.PhoneAccount;
