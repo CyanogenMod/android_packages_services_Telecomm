@@ -970,14 +970,9 @@ public class TelecomServiceImpl {
             return true;
         }
 
-        List<UserHandle> profileUserHandles;
-        if (UserHandle.getCallingUserId() == UserHandle.USER_OWNER) {
-            profileUserHandles = mUserManager.getUserProfiles();
-        } else {
-            // Otherwise, it has to be owned by the current caller's profile.
-            profileUserHandles = new ArrayList<>(1);
-            profileUserHandles.add(Binder.getCallingUserHandle());
-        }
+        // Any user can have profiles now.  Also result from getUserProfiles() includes the calling
+        // user itself.
+        List<UserHandle> profileUserHandles = mUserManager.getUserProfiles();
 
         return profileUserHandles.contains(phoneAccountUserHandle);
     }
