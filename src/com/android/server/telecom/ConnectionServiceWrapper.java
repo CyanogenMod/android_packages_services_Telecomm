@@ -621,26 +621,6 @@ final class ConnectionServiceWrapper extends ServiceBinder {
                 Binder.restoreCallingIdentity(token);
             }
         }
-
-        @Override
-        public void setPhoneAccountHandle(String callId, PhoneAccountHandle pHandle) {
-            long token = Binder.clearCallingIdentity();
-            try {
-                synchronized (mLock) {
-                    logIncoming("setPhoneAccountHandle %s %s", callId, pHandle);
-                    if (mCallIdMapper.isValidCallId(callId)) {
-                        Call call = mCallIdMapper.getCall(callId);
-                        if (call != null) {
-                            call.setTargetPhoneAccount(pHandle);
-                        } else {
-                            Log.w(this, "setPhoneAccountHandle, unknown call id: %s", callId);
-                        }
-                    }
-                }
-            } finally {
-                Binder.restoreCallingIdentity(token);
-            }
-        }
     }
 
     private final Adapter mAdapter = new Adapter();
