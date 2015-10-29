@@ -621,7 +621,8 @@ public class Call implements CreateConnectionResponse {
         return mRingbackRequested;
     }
 
-    boolean isConference() {
+    @VisibleForTesting
+    public boolean isConference() {
         return mIsConference;
     }
 
@@ -757,7 +758,8 @@ public class Call implements CreateConnectionResponse {
 
     }
 
-    PhoneAccountHandle getTargetPhoneAccount() {
+    @VisibleForTesting
+    public PhoneAccountHandle getTargetPhoneAccount() {
         return mTargetPhoneAccountHandle;
     }
 
@@ -780,7 +782,8 @@ public class Call implements CreateConnectionResponse {
      *     period since this call was added to the set pending outgoing calls, see
      *     mCreationTimeMillis.
      */
-    long getAgeMillis() {
+    @VisibleForTesting
+    public long getAgeMillis() {
         if (mState == CallState.DISCONNECTED &&
                 (mDisconnectCause.getCode() == DisconnectCause.REJECTED ||
                  mDisconnectCause.getCode() == DisconnectCause.MISSED)) {

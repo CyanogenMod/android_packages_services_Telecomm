@@ -187,7 +187,7 @@ public class ComponentContextFixture implements TestFixture<Context> {
                 @Override
                 protected IContentProvider acquireProvider(Context c, String name) {
                     Log.i(this, "acquireProvider %s", name);
-                    return mock(IContentProvider.class);
+                    return mContentProvider;
                 }
 
                 @Override
@@ -198,7 +198,7 @@ public class ComponentContextFixture implements TestFixture<Context> {
                 @Override
                 protected IContentProvider acquireUnstableProvider(Context c, String name) {
                     Log.i(this, "acquireUnstableProvider %s", name);
-                    return mock(IContentProvider.class);
+                    return mContentProvider;
                 }
 
                 @Override
@@ -354,6 +354,7 @@ public class ComponentContextFixture implements TestFixture<Context> {
     private final StatusBarManager mStatusBarManager = mock(StatusBarManager.class);
     private final SubscriptionManager mSubscriptionManager = mock(SubscriptionManager.class);
     private final CarrierConfigManager mCarrierConfigManager = mock(CarrierConfigManager.class);
+    private final IContentProvider mContentProvider = mock(IContentProvider.class);
     private final Configuration mResourceConfiguration = new Configuration();
 
     private TelecomManager mTelecomManager = null;
@@ -440,6 +441,10 @@ public class ComponentContextFixture implements TestFixture<Context> {
                 return String.format(value, Arrays.copyOfRange(args, 1, args.length));
             }
         });
+    }
+
+    public void putBooleanResource(int id, boolean value) {
+        when(mResources.getBoolean(eq(id))).thenReturn(value);
     }
 
     public void setTelecomManager(TelecomManager telecomManager) {
