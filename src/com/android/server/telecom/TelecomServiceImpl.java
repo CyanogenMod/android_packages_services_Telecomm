@@ -320,7 +320,7 @@ public class TelecomServiceImpl {
                         Intent intent = new Intent(TelecomManager.ACTION_PHONE_ACCOUNT_REGISTERED);
                         intent.putExtra(TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE,
                                 account.getAccountHandle());
-                        Log.i(this, "Sending phone-account unregistered intent as user");
+                        Log.i(this, "Sending phone-account registered intent as user");
                         mContext.sendBroadcastAsUser(intent, UserHandle.ALL,
                                 PERMISSION_PROCESS_PHONE_ACCOUNT_REGISTRATION);
                     } finally {
@@ -348,7 +348,7 @@ public class TelecomServiceImpl {
                         Intent intent =
                                 new Intent(TelecomManager.ACTION_PHONE_ACCOUNT_UNREGISTERED);
                         intent.putExtra(TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE, accountHandle);
-                        Log.i(this, "Sending phone-account registered intent as user");
+                        Log.i(this, "Sending phone-account unregistered intent as user");
                         mContext.sendBroadcastAsUser(intent, UserHandle.ALL,
                                 PERMISSION_PROCESS_PHONE_ACCOUNT_REGISTRATION);
                     } finally {
