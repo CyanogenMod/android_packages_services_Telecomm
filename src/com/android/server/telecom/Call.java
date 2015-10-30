@@ -737,7 +737,8 @@ public class Call implements CreateConnectionResponse {
         return getHandle();
     }
 
-    GatewayInfo getGatewayInfo() {
+    @VisibleForTesting
+    public GatewayInfo getGatewayInfo() {
         return mGatewayInfo;
     }
 
@@ -837,19 +838,23 @@ public class Call implements CreateConnectionResponse {
         }
     }
 
-    Call getParentCall() {
+    @VisibleForTesting
+    public Call getParentCall() {
         return mParentCall;
     }
 
-    List<Call> getChildCalls() {
+    @VisibleForTesting
+    public List<Call> getChildCalls() {
         return mChildCalls;
     }
 
-    boolean wasConferencePreviouslyMerged() {
+    @VisibleForTesting
+    public boolean wasConferencePreviouslyMerged() {
         return mWasConferencePreviouslyMerged;
     }
 
-    Call getConferenceLevelActiveCall() {
+    @VisibleForTesting
+    public Call getConferenceLevelActiveCall() {
         return mConferenceLevelActiveCall;
     }
 
@@ -1234,7 +1239,8 @@ public class Call implements CreateConnectionResponse {
         }
     }
 
-    void mergeConference() {
+    @VisibleForTesting
+    public void mergeConference() {
         if (mConnectionService == null) {
             Log.w(this, "merging conference calls without a connection service.");
         } else if (can(Connection.CAPABILITY_MERGE_CONFERENCE)) {
@@ -1244,7 +1250,8 @@ public class Call implements CreateConnectionResponse {
         }
     }
 
-    void swapConference() {
+    @VisibleForTesting
+    public void swapConference() {
         if (mConnectionService == null) {
             Log.w(this, "swapping conference calls without a connection service.");
         } else if (can(Connection.CAPABILITY_SWAP_CONFERENCE)) {
@@ -1302,11 +1309,13 @@ public class Call implements CreateConnectionResponse {
         }
     }
 
-    List<Call> getConferenceableCalls() {
+    @VisibleForTesting
+    public List<Call> getConferenceableCalls() {
         return mConferenceableCalls;
     }
 
-    boolean can(int capability) {
+    @VisibleForTesting
+    public boolean can(int capability) {
         return (mConnectionCapabilities & capability) == capability;
     }
 

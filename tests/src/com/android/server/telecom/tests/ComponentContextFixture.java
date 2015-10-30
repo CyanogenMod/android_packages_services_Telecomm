@@ -252,6 +252,11 @@ public class ComponentContextFixture implements TestFixture<Context> {
                 throws PackageManager.NameNotFoundException {
             return this;
         }
+
+        @Override
+        public void enforceCallingOrSelfPermission(String permission, String message) {
+            // Don't bother enforcing anything in mock.
+        }
     };
 
     public class FakeAudioManager extends AudioManager {
@@ -386,6 +391,8 @@ public class ComponentContextFixture implements TestFixture<Context> {
         }).when(mPackageManager).queryIntentServicesAsUser((Intent) any(), anyInt(), anyInt());
 
         when(mTelephonyManager.getSubIdForPhoneAccount((PhoneAccount) any())).thenReturn(1);
+
+        when(mTelephonyManager.getNetworkOperatorName()).thenReturn("label1");
 
         doAnswer(new Answer<Void>(){
             @Override
