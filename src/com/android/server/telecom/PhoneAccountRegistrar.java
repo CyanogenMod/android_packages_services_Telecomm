@@ -228,17 +228,17 @@ public final class PhoneAccountRegistrar {
                    Log.i(this, "getUserSelVoicePhoneAccount, emergency account ");
                    return mState.accounts.get(i).getAccountHandle();
                 }
-                int subId = voiceSubId;
                 try {
-                    subId = Integer.parseInt(id);
+                    int subId = Integer.parseInt(id);
+                    Log.i(this, "getUserSelectedVoicePhoneAccount, voice subId = "
+                            + voiceSubId + " subId = " + subId + " mId = " + id);
+
+                    if (subId == voiceSubId) {
+                        prefPhoneAccount = mState.accounts.get(i).getAccountHandle();
+                        break;
+                    }
                 } catch (NumberFormatException e) {
                     Log.w(this, " NumberFormatException " + e);
-                }
-                Log.i(this, "getUserSelectedVoicePhoneAccount, voice subId = "
-                         + voiceSubId + " subId = " + subId + " mId = " + id);
-                if (subId == voiceSubId) {
-                    prefPhoneAccount = mState.accounts.get(i).getAccountHandle();
-                    break;
                 }
             }
         }
