@@ -445,14 +445,39 @@ final class CallAudioManager extends CallsManagerListenerBase
         }
     }
 
+    private int getPhoneId(Call call) {
+        int ret = -1;
+        try {
+            if (call.getTargetPhoneAccount() == null || call.getIsVoipAudioMode())
+                return ret;
+
+            int phoneId = Integer.parseInt(call.getTargetPhoneAccount().getId());
+
+            ret = SubscriptionManager.getPhoneId(phoneId);
+            if (!SubscriptionManager.isValidPhoneId(ret))
+                ret = -1;
+        }
+        catch (Exception e) {
+            Log.e(this, e, "Cannot get current phoneId as integer, possibly Voip ?");
+            ret = -1;
+        }
+        return ret;
+    }
+
     private void setAudioParameters(Call call, int mode) {
         switch (mode) {
             case AudioManager.MODE_RINGTONE:
             case AudioManager.MODE_IN_CALL:
             case AudioManager.MODE_IN_COMMUNICATION:
-                int phoneId = SubscriptionManager.getPhoneId(
-                        Integer.valueOf(call.getTargetPhoneAccount().getId()));
-                mAudioManager.setParameters(phoneId == 1 ? "phone_type=cp2" : "phone_type=cp1");
+                int phoneId = getPhoneId(call);
+                if (phoneId == 0) {
+                    Log.i(this, "setAudioParameters phone_type=cp1");
+                    mAudioManager.setParameters("phone_type=cp1");
+                }
+                else if (phoneId == 1) {
+                    Log.i(this, "setAudioParameters phone_type=cp2");
+                    mAudioManager.setParameters("phone_type=cp2");
+                }
                 break;
             default:
                 break;
