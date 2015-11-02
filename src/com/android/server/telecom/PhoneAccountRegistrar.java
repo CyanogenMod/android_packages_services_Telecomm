@@ -60,10 +60,6 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.Integer;
-import java.lang.NumberFormatException;
-import java.lang.SecurityException;
-import java.lang.String;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -228,17 +224,17 @@ public final class PhoneAccountRegistrar {
                    Log.i(this, "getUserSelVoicePhoneAccount, emergency account ");
                    return mState.accounts.get(i).getAccountHandle();
                 }
-                int subId = voiceSubId;
                 try {
-                    subId = Integer.parseInt(id);
+                    int subId = Integer.parseInt(id);
+                    Log.i(this, "getUserSelectedVoicePhoneAccount, voice subId = "
+                            + voiceSubId + " subId = " + subId + " mId = " + id);
+
+                    if (subId == voiceSubId) {
+                        prefPhoneAccount = mState.accounts.get(i).getAccountHandle();
+                        break;
+                    }
                 } catch (NumberFormatException e) {
                     Log.w(this, " NumberFormatException " + e);
-                }
-                Log.i(this, "getUserSelectedVoicePhoneAccount, voice subId = "
-                         + voiceSubId + " subId = " + subId + " mId = " + id);
-                if (subId == voiceSubId) {
-                    prefPhoneAccount = mState.accounts.get(i).getAccountHandle();
-                    break;
                 }
             }
         }
