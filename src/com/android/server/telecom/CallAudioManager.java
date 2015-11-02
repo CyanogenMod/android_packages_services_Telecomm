@@ -21,6 +21,7 @@ import android.media.AudioManager;
 import android.os.SystemProperties;
 import android.telecom.AudioState;
 import android.telecom.CallState;
+import android.telecom.PhoneAccountHandle;
 import android.telephony.SubscriptionManager;
 
 import com.android.internal.util.IndentingPrintWriter;
@@ -445,15 +446,35 @@ final class CallAudioManager extends CallsManagerListenerBase
         }
     }
 
+    private int getPhoneId(Call call) {
+        // call.getTargetPhoneAccount() != nul already checked in setMode
+        // before call setAudioParameters
+        PhoneAccountHandle account = call.getTargetPhoneAccount();
+        try {
+            int index = Integer.parseInt(account.getId());
+            int phoneId = SubscriptionManager.getPhoneId(index);
+            if (SubscriptionManager.isValidPhoneId(phoneId)) {
+                return phoneId;
+            }
+        } catch (NumberFormatException e) {
+            Log.e(this, e, "Cannot get phoneId from ID value " + account.getId());
+        }
+        return -1;
+    }
+
     private void setAudioParameters(Call call, int mode) {
         switch (mode) {
-            case AudioManager.MODE_RINGTONE:
             case AudioManager.MODE_IN_CALL:
-            case AudioManager.MODE_IN_COMMUNICATION:
-                int phoneId = SubscriptionManager.getPhoneId(
-                        Integer.valueOf(call.getTargetPhoneAccount().getId()));
-                mAudioManager.setParameters(phoneId == 1 ? "phone_type=cp2" : "phone_type=cp1");
+                int phoneId = getPhoneId(call);
+                Log.d(this, "setAudioParameters phoneId=" + phoneId);
+                if (phoneId == 0) {
+                    mAudioManager.setParameters("phone_type=cp1");
+                } else if (phoneId == 1) {
+                    mAudioManager.setParameters("phone_type=cp2");
+                }
                 break;
+            case AudioManager.MODE_RINGTONE:
+            case AudioManager.MODE_IN_COMMUNICATION:
             default:
                 break;
         }
