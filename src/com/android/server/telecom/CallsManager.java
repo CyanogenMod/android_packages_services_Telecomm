@@ -1575,6 +1575,11 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
                     break;
                 }
 
+                // If only call in call list is held call it's also a foreground call
+                if (mCalls.size() == 1 && call.getState() == CallState.ON_HOLD) {
+                    newForegroundCall = call;
+                }
+
                 if ((call.isAlive() && call.getState() != CallState.ON_HOLD)
                      || call.getState() == CallState.RINGING) {
                     newForegroundCall = call;
@@ -1603,12 +1608,27 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
                     break;
                 }
 
+                // If only call in call list is held call it's also a foreground call
+                if (mCalls.size() == 1 && call.getState() == CallState.ON_HOLD) {
+                    newForegroundCall = call;
+                }
+
                 if ((call.isAlive() && call.getState() != CallState.ON_HOLD)
                      || call.getState() == CallState.RINGING) {
                     newForegroundCall = call;
                     // Don't break in case there's an active call that has priority.
                 }
             }
+        }
+
+        /* In the case where there are 2 calls, when the Hold button is pressed for active
+         * call, as an intermediate state we would have both calls in held state before
+         * the background call is moved to active state. In such an intermediate stage
+         * updating the newForegroundCall to null causes issues with abandoning audio
+         * focus. Skip updating the foreground call with null in such cases. */
+        if (newForegroundCall == null && getFirstCallWithState(CallState.ON_HOLD) != null) {
+            Log.v(this, "Skip updating foreground call in intermediate stage");
+            newForegroundCall = mForegroundCall;
         }
 
         if (newForegroundCall != mForegroundCall) {
