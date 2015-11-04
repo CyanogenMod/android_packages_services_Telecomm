@@ -521,7 +521,14 @@ final class ConnectionServiceWrapper extends ServiceBinder {
                     if (mCallIdMapper.isValidCallId(callId)
                             || mCallIdMapper.isValidConferenceId(callId)) {
                         Call call = mCallIdMapper.getCall(callId);
-                        if (call != null) {
+                        if (call != null && extras != null) {
+                            if (extras.getParcelable(EMR_DIAL_ACCOUNT) instanceof
+                                    PhoneAccountHandle) {
+                                PhoneAccountHandle account = extras.
+                                        getParcelable(EMR_DIAL_ACCOUNT);
+                                Log.d(this, "setTargetPhoneAccount, account = " + account);
+                                call.setTargetPhoneAccount(account);
+                            }
                             call.setExtras(extras);
                         }
                     }
@@ -613,26 +620,6 @@ final class ConnectionServiceWrapper extends ServiceBinder {
                 Binder.restoreCallingIdentity(token);
             }
         }
-
-        @Override
-        public void setPhoneAccountHandle(String callId, PhoneAccountHandle pHandle) {
-            long token = Binder.clearCallingIdentity();
-            try {
-                synchronized (mLock) {
-                    logIncoming("setPhoneAccountHandle %s %s", callId, pHandle);
-                    if (mCallIdMapper.isValidCallId(callId)) {
-                        Call call = mCallIdMapper.getCall(callId);
-                        if (call != null) {
-                            call.setTargetPhoneAccount(pHandle);
-                        } else {
-                            Log.w(this, "setPhoneAccountHandle, unknown call id: %s", callId);
-                        }
-                    }
-                }
-            } finally {
-                Binder.restoreCallingIdentity(token);
-            }
-        }
     }
 
     private final Adapter mAdapter = new Adapter();
@@ -644,6 +631,7 @@ final class ConnectionServiceWrapper extends ServiceBinder {
     private final ConnectionServiceRepository mConnectionServiceRepository;
     private final PhoneAccountRegistrar mPhoneAccountRegistrar;
     private final CallsManager mCallsManager;
+    private static final String EMR_DIAL_ACCOUNT = "emr_dial_account";
 
     /**
      * Creates a connection service.

@@ -117,10 +117,17 @@ public class CallIntentProcessor {
                 VideoProfile.STATE_AUDIO_ONLY);
         clientExtras.putInt(TelecomManager.EXTRA_START_CALL_WITH_VIDEO_STATE, videoState);
 
+        boolean isCallPull = intent.getBooleanExtra(TelephonyProperties.EXTRA_IS_CALL_PULL, false);
+        Log.d(CallIntentProcessor.class, "processOutgoingCallIntent callPull = " + isCallPull);
+        if (isCallPull) {
+            clientExtras.putBoolean(TelephonyProperties.EXTRA_IS_CALL_PULL, isCallPull);
+        }
+
         Log.i(CallIntentProcessor.class, " processOutgoingCallIntent handle = " + handle
                 + ",scheme = " + scheme + ", uriString = " + uriString
                 + ", isSkipSchemaParsing = " + isSkipSchemaParsing
-                + ", isAddParticipant = " + isAddParticipant);
+                + ", isAddParticipant = " + isAddParticipant
+                + ", isCallPull = " + isCallPull);
 
         final boolean isPrivilegedDialer = intent.getBooleanExtra(KEY_IS_PRIVILEGED_DIALER, false);
 
