@@ -50,9 +50,12 @@ import android.provider.CallLog.Calls;
 import android.telecom.DisconnectCause;
 import android.telecom.PhoneAccount;
 import android.telephony.PhoneNumberUtils;
+import android.telephony.TelephonyManager;
 import android.text.BidiFormatter;
 import android.text.TextDirectionHeuristics;
 import android.text.TextUtils;
+
+import java.util.Locale;
 
 // TODO: Needed for move to system service: import com.android.internal.R;
 
@@ -158,7 +161,22 @@ public class MissedCallNotifierImpl extends CallsManagerListenerBase implements 
                     mContext.getString(R.string.notification_missedCallsMsg, mMissedCallCount);
         }
 
-        // Create the notification.
+        // Create a public viewable version of the notification, suitable for display when sensitive
+        // notification content is hidden.
+        Notification.Builder publicBuilder = new Notification.Builder(mContext);
+        publicBuilder.setSmallIcon(android.R.drawable.stat_notify_missed_call)
+                .setColor(mContext.getResources().getColor(R.color.theme_color))
+                .setWhen(call.getCreationTimeMillis())
+                // Show "Phone" for notification title.
+                .setContentTitle(mContext.getText(R.string.userCallActivityLabel))
+                // Notification details shows that there are missed call(s), but does not reveal
+                // the missed caller information.
+                .setContentText(mContext.getText(titleResId))
+                .setContentIntent(createCallLogPendingIntent())
+                .setAutoCancel(true)
+                .setDeleteIntent(createClearMissedCallsPendingIntent());
+
+        // Create the notification suitable for display when sensitive information is showing.
         Notification.Builder builder = new Notification.Builder(mContext);
         builder.setSmallIcon(android.R.drawable.stat_notify_missed_call)
                 .setColor(mContext.getResources().getColor(R.color.theme_color))
@@ -167,7 +185,11 @@ public class MissedCallNotifierImpl extends CallsManagerListenerBase implements 
                 .setContentText(expandedText)
                 .setContentIntent(createCallLogPendingIntent())
                 .setAutoCancel(true)
-                .setDeleteIntent(createClearMissedCallsPendingIntent());
+                .setDeleteIntent(createClearMissedCallsPendingIntent())
+                // Include a public version of the notification to be shown when the missed call
+                // notification is shown on the user's lock screen and they have chosen to hide
+                // sensitive notification information.
+                .setPublicVersion(publicBuilder.build());
 
         Uri handleUri = call.getHandle();
         String handle = handleUri == null ? null : handleUri.getSchemeSpecificPart();
@@ -234,6 +256,18 @@ public class MissedCallNotifierImpl extends CallsManagerListenerBase implements 
         String handle = call.getHandle() == null ? null : call.getHandle().getSchemeSpecificPart();
         String name = call.getName();
 
+        if (!TextUtils.isEmpty(handle)) {
+            String formattedNumber = PhoneNumberUtils.formatNumber(handle,
+                    getCurrentCountryIso(mContext));
+
+            // The formatted number will be null if there was a problem formatting it, but we can
+            // default to using the unformatted number instead (e.g. a SIP URI may not be able to
+            // be formatted.
+            if (!TextUtils.isEmpty(formattedNumber)) {
+                handle = formattedNumber;
+            }
+        }
+
         if (!TextUtils.isEmpty(name) && TextUtils.isGraphic(name)) {
             return name;
         } else if (!TextUtils.isEmpty(handle)) {
@@ -246,6 +280,26 @@ public class MissedCallNotifierImpl extends CallsManagerListenerBase implements 
             // Use "unknown" if the call is unidentifiable.
             return mContext.getString(R.string.unknown);
         }
+    }
+
+    /**
+     * @return The ISO 3166-1 two letters country code of the country the user is in based on the
+     *      network location.  If the network location does not exist, fall back to the locale
+     *      setting.
+     */
+    private String getCurrentCountryIso(Context context) {
+        // Without framework function calls, this seems to be the most accurate location service
+        // we can rely on.
+        final TelephonyManager telephonyManager =
+                (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
+        String countryIso = telephonyManager.getNetworkCountryIso().toUpperCase();
+
+        if (countryIso == null) {
+            countryIso = Locale.getDefault().getCountry();
+            Log.w(this, "No CountryDetector; falling back to countryIso based on locale: "
+                    + countryIso);
+        }
+        return countryIso;
     }
 
     /**
