@@ -498,7 +498,12 @@ public class TelecomServiceImpl {
          */
         @Override
         public String getSystemDialerPackage() {
-            return TelephonyUtil.getDialerComponentName(mContext).getPackageName();
+            String dialerPackage = null;
+            ComponentName component = TelephonyUtil.getDialerComponentName(mContext);
+            if (component != null) {
+                dialerPackage = component.getPackageName();
+            }
+            return dialerPackage;
         }
 
         /**
