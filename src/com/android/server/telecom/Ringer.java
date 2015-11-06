@@ -27,6 +27,7 @@ import android.os.Bundle;
 import android.os.SystemVibrator;
 import android.os.Vibrator;
 import android.provider.Settings;
+import cyanogenmod.providers.CMSettings;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -202,11 +203,11 @@ final class Ringer extends CallsManagerListenerBase {
                 int rampUpTime = 0;
 
                 final ContentResolver cr = mContext.getContentResolver();
-                if (Settings.System.getInt(cr, Settings.System.INCREASING_RING, 0) != 0) {
-                    startVolume = Settings.System.getFloat(cr,
-                            Settings.System.INCREASING_RING_START_VOLUME, 0.1f);
-                    rampUpTime = Settings.System.getInt(cr,
-                            Settings.System.INCREASING_RING_RAMP_UP_TIME, 20);
+                if (CMSettings.System.getInt(cr, CMSettings.System.INCREASING_RING, 0) != 0) {
+                    startVolume = CMSettings.System.getFloat(cr,
+                            CMSettings.System.INCREASING_RING_START_VOLUME, 0.1f);
+                    rampUpTime = CMSettings.System.getInt(cr,
+                            CMSettings.System.INCREASING_RING_RAMP_UP_TIME, 20);
                 }
 
                 mCallAudioManager.setIsRinging(call, true);
