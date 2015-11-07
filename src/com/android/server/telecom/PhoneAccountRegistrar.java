@@ -663,6 +663,7 @@ public final class PhoneAccountRegistrar {
         for (Listener l : mListeners) {
             l.onAccountsChanged(this);
         }
+        SubscriptionManager.updatePhoneAccounts(mState.accounts.size());
     }
 
     private void fireDefaultOutgoingChanged() {
@@ -868,6 +869,7 @@ public final class PhoneAccountRegistrar {
 
         // Initialize subscription voice prompt status
         setDefaultVoicePhoneAccount(mState.defaultOutgoing);
+        SubscriptionManager.updatePhoneAccounts(mState.accounts.size());
     }
 
     private static void writeToXml(State state, XmlSerializer serializer, Context context)
