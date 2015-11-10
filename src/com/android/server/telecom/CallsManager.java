@@ -582,8 +582,8 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
         return TextUtils.equals(number1, number2);
     }
 
-    private Call getNewOutgoingCall(Uri handle) {
-        // First check to see if we can reuse any of the calls that are waiting to disconnect.
+    private Call reuseOutgoingCall(Uri handle) {
+        // Check to see if we can reuse any of the calls that are waiting to disconnect.
         // See {@link Call#abort} and {@link #onCanceledViaNewOutgoingCall} for more information.
         Call reusedCall = null;
         for (Call pendingCall : mPendingCallsToDisconnect) {
@@ -596,26 +596,8 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
                 pendingCall.disconnect();
             }
         }
-        if (reusedCall != null) {
-            return reusedCall;
-        }
 
-        // Create a call with original handle. The handle may be changed when the call is attached
-        // to a connection service, but in most cases will remain the same.
-        return new Call(
-                getNextCallId(),
-                mContext,
-                this,
-                mLock,
-                mConnectionServiceRepository,
-                mContactsAsyncHelper,
-                mCallerInfoAsyncQueryFactory,
-                handle,
-                null /* gatewayInfo */,
-                null /* connectionManagerPhoneAccount */,
-                null /* phoneAccountHandle */,
-                false /* isIncoming */,
-                false /* isConference */);
+        return reusedCall;
     }
 
     /**
@@ -627,7 +609,27 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
      * @param extras The optional extras Bundle passed with the intent used for the incoming call.
      */
     Call startOutgoingCall(Uri handle, PhoneAccountHandle phoneAccountHandle, Bundle extras) {
-        Call call = getNewOutgoingCall(handle);
+        boolean isReusedCall = true;
+        Call call = reuseOutgoingCall(handle);
+
+        // Create a call with original handle. The handle may be changed when the call is attached
+        // to a connection service, but in most cases will remain the same.
+        if (call == null) {
+            call = new Call(getNextCallId(), mContext,
+                    this,
+                    mLock,
+                    mConnectionServiceRepository,
+                    mContactsAsyncHelper,
+                    mCallerInfoAsyncQueryFactory,
+                    handle,
+                    null /* gatewayInfo */,
+                    null /* connectionManagerPhoneAccount */,
+                    null /* phoneAccountHandle */,
+                    false /* isIncoming */,
+                    false /* isConference */);
+
+            isReusedCall = false;
+        }
 
         List<PhoneAccountHandle> accounts =
                 mPhoneAccountRegistrar.getCallCapablePhoneAccounts(handle.getScheme(), false);
@@ -670,13 +672,16 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
         boolean isPotentialInCallMMICode = isPotentialInCallMMICode(handle);
 
         // Do not support any more live calls.  Our options are to move a call to hold, disconnect
-        // a call, or cancel this call altogether.
-        if (!isPotentialInCallMMICode && !makeRoomForOutgoingCall(call, call.isEmergencyCall())) {
+        // a call, or cancel this call altogether. If a call is being reused, then it has already
+        // passed the makeRoomForOutgoingCall check once and will fail the second time due to the
+        // call transitioning into the CONNECTING state.
+        if (!isPotentialInCallMMICode && (!isReusedCall &&
+                !makeRoomForOutgoingCall(call, call.isEmergencyCall()))) {
             // just cancel at this point.
             Log.i(this, "No remaining room for outgoing call: %s", call);
             if (mCalls.contains(call)) {
                 // This call can already exist if it is a reused call,
-                // See {@link #getNewOutgoingCall}.
+                // See {@link #reuseOutgoingCall}.
                 call.disconnect();
             }
             return null;
@@ -704,7 +709,7 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
             call.addListener(this);
         } else if (!mCalls.contains(call)) {
             // We check if mCalls already contains the call because we could potentially be reusing
-            // a call which was previously added (See {@link #getNewOutgoingCall}).
+            // a call which was previously added (See {@link #reuseOutgoingCall}).
             addCall(call);
         }
 
