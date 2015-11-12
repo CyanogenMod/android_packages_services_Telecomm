@@ -50,9 +50,9 @@ import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
 import android.telecom.TelecomManager;
 import android.telecom.VideoProfile;
-import android.telephony.TelephonyManager;
 
 import com.android.internal.telecom.IInCallAdapter;
+import com.android.server.telecom.BluetoothPhoneServiceImpl;
 import com.android.server.telecom.CallAudioManager;
 import com.android.server.telecom.CallsManager;
 import com.android.server.telecom.HeadsetMediaButton;
@@ -61,6 +61,7 @@ import com.android.server.telecom.InCallWakeLockController;
 import com.android.server.telecom.InCallWakeLockControllerFactory;
 import com.android.server.telecom.Log;
 import com.android.server.telecom.MissedCallNotifier;
+import com.android.server.telecom.PhoneAccountRegistrar;
 import com.android.server.telecom.ProximitySensorManager;
 import com.android.server.telecom.ProximitySensorManagerFactory;
 import com.android.server.telecom.TelecomSystem;
@@ -85,6 +86,7 @@ public class TelecomSystemTest extends TelecomTestCase {
     @Mock HeadsetMediaButton mHeadsetMediaButton;
     @Mock ProximitySensorManager mProximitySensorManager;
     @Mock InCallWakeLockController mInCallWakeLockController;
+    @Mock BluetoothPhoneServiceImpl mBluetoothPhoneServiceImpl;
 
     final ComponentName mInCallServiceComponentNameX =
             new ComponentName(
@@ -218,6 +220,14 @@ public class TelecomSystemTest extends TelecomTestCase {
                     @Override
                     public IAudioService getAudioService() {
                         return mAudioService;
+                    }
+                },
+                new BluetoothPhoneServiceImpl.BluetoothPhoneServiceImplFactory() {
+                    @Override
+                    public BluetoothPhoneServiceImpl makeBluetoothPhoneServiceImpl(Context context,
+                            TelecomSystem.SyncRoot lock, CallsManager callsManager,
+                            PhoneAccountRegistrar phoneAccountRegistrar) {
+                        return mBluetoothPhoneServiceImpl;
                     }
                 });
 
