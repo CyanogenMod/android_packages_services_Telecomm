@@ -59,6 +59,8 @@ import android.text.TextUtils;
 
 import java.util.Locale;
 
+import cyanogenmod.providers.CMSettings;
+
 // TODO: Needed for move to system service: import com.android.internal.R;
 
 /**
@@ -379,19 +381,19 @@ public class MissedCallNotifierImpl extends CallsManagerListenerBase implements 
         notification.flags |= Notification.FLAG_SHOW_LIGHTS;
 
         // Get Missed call and Voice mail values if they are to be used
-        boolean customEnabled = Settings.System.getInt(resolver,
-                Settings.System.NOTIFICATION_LIGHT_PULSE_CUSTOM_ENABLE, 0) == 1;
+        boolean customEnabled = CMSettings.System.getInt(resolver,
+                CMSettings.System.NOTIFICATION_LIGHT_PULSE_CUSTOM_ENABLE, 0) == 1;
         if (!customEnabled) {
             notification.defaults |= Notification.DEFAULT_LIGHTS;
             return;
         }
 
-        notification.ledARGB = Settings.System.getInt(resolver,
-            Settings.System.NOTIFICATION_LIGHT_PULSE_CALL_COLOR, DEFAULT_COLOR);
-        notification.ledOnMS = Settings.System.getInt(resolver,
-            Settings.System.NOTIFICATION_LIGHT_PULSE_CALL_LED_ON, DEFAULT_TIME);
-        notification.ledOffMS = Settings.System.getInt(resolver,
-            Settings.System.NOTIFICATION_LIGHT_PULSE_CALL_LED_OFF, DEFAULT_TIME);
+        notification.ledARGB = CMSettings.System.getInt(resolver,
+            CMSettings.System.NOTIFICATION_LIGHT_PULSE_CALL_COLOR, DEFAULT_COLOR);
+        notification.ledOnMS = CMSettings.System.getInt(resolver,
+            CMSettings.System.NOTIFICATION_LIGHT_PULSE_CALL_LED_ON, DEFAULT_TIME);
+        notification.ledOffMS = CMSettings.System.getInt(resolver,
+            CMSettings.System.NOTIFICATION_LIGHT_PULSE_CALL_LED_OFF, DEFAULT_TIME);
     }
 
     /**
