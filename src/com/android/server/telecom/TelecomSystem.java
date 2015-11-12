@@ -128,7 +128,6 @@ public final class TelecomSystem {
         BluetoothManager bluetoothManager = new BluetoothManager(mContext);
         WiredHeadsetManager wiredHeadsetManager = new WiredHeadsetManager(mContext);
 
-
         mCallsManager = new CallsManager(
                 mContext,
                 mLock,

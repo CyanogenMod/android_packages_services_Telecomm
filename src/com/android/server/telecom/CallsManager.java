@@ -224,6 +224,7 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
                 new ConnectionServiceRepository(mPhoneAccountRegistrar, mContext, mLock, this);
         mInCallWakeLockController = inCallWakeLockControllerFactory.create(context, this);
 
+        mListeners.add(mInCallWakeLockController);
         mListeners.add(statusBarNotifier);
         mListeners.add(mCallLogManager);
         mListeners.add(mPhoneStateBroadcaster);

@@ -26,9 +26,9 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
@@ -56,7 +56,10 @@ import com.android.internal.telecom.IInCallAdapter;
 import com.android.server.telecom.BluetoothPhoneServiceImpl;
 import com.android.server.telecom.CallAudioManager;
 import com.android.server.telecom.CallIntentProcessor;
+import com.android.server.telecom.CallerInfoAsyncQueryFactory;
 import com.android.server.telecom.CallsManager;
+import com.android.server.telecom.CallsManagerListenerBase;
+import com.android.server.telecom.ContactsAsyncHelper;
 import com.android.server.telecom.HeadsetMediaButton;
 import com.android.server.telecom.HeadsetMediaButtonFactory;
 import com.android.server.telecom.InCallWakeLockController;
@@ -85,7 +88,49 @@ public class TelecomSystemTest extends TelecomTestCase {
     static final int TEST_POLL_INTERVAL = 10;  // milliseconds
     static final int TEST_TIMEOUT = 1000;  // milliseconds
 
-    @Mock MissedCallNotifier mMissedCallNotifier;
+    public class HeadsetMediaButtonFactoryF implements HeadsetMediaButtonFactory  {
+        @Override
+        public HeadsetMediaButton create(Context context, CallsManager callsManager,
+                TelecomSystem.SyncRoot lock) {
+            return mHeadsetMediaButton;
+        }
+    }
+
+    public class ProximitySensorManagerFactoryF implements ProximitySensorManagerFactory {
+        @Override
+        public ProximitySensorManager create(Context context, CallsManager callsManager) {
+            return mProximitySensorManager;
+        }
+    }
+
+    public class InCallWakeLockControllerFactoryF implements InCallWakeLockControllerFactory {
+        @Override
+        public InCallWakeLockController create(Context context, CallsManager callsManager) {
+            return mInCallWakeLockController;
+        }
+    }
+
+    public static class MissedCallNotifierFakeImpl extends CallsManagerListenerBase
+            implements MissedCallNotifier {
+        @Override
+        public void clearMissedCalls() {
+
+        }
+
+        @Override
+        public void showMissedCallNotification(com.android.server.telecom.Call call) {
+
+        }
+
+        @Override
+        public void updateOnStartup(TelecomSystem.SyncRoot lock, CallsManager callsManager,
+                ContactsAsyncHelper contactsAsyncHelper,
+                CallerInfoAsyncQueryFactory callerInfoAsyncQueryFactory) {
+
+        }
+    }
+
+    MissedCallNotifier mMissedCallNotifier = new MissedCallNotifierFakeImpl();
     @Mock HeadsetMediaButton mHeadsetMediaButton;
     @Mock ProximitySensorManager mProximitySensorManager;
     @Mock InCallWakeLockController mInCallWakeLockController;
@@ -188,29 +233,16 @@ public class TelecomSystemTest extends TelecomTestCase {
     }
 
     private void setupTelecomSystem() throws Exception {
+        // Use actual implementations instead of mocking the interface out.
         HeadsetMediaButtonFactory headsetMediaButtonFactory =
-                mock(HeadsetMediaButtonFactory.class);
+                spy(new HeadsetMediaButtonFactoryF());
         ProximitySensorManagerFactory proximitySensorManagerFactory =
-                mock(ProximitySensorManagerFactory.class);
+                spy(new ProximitySensorManagerFactoryF());
         InCallWakeLockControllerFactory inCallWakeLockControllerFactory =
-                mock(InCallWakeLockControllerFactory.class);
+                spy(new InCallWakeLockControllerFactoryF());
         mAudioService = setupAudioService();
 
         mCallerInfoAsyncQueryFactoryFixture = new CallerInfoAsyncQueryFactoryFixture();
-
-        when(headsetMediaButtonFactory.create(
-                any(Context.class),
-                any(CallsManager.class),
-                any(TelecomSystem.SyncRoot.class)))
-                .thenReturn(mHeadsetMediaButton);
-        when(proximitySensorManagerFactory.create(
-                any(Context.class),
-                any(CallsManager.class)))
-                .thenReturn(mProximitySensorManager);
-        when(inCallWakeLockControllerFactory.create(
-                any(Context.class),
-                any(CallsManager.class)))
-                .thenReturn(mInCallWakeLockController);
 
         mTelecomSystem = new TelecomSystem(
                 mComponentContextFixture.getTestDouble(),
@@ -296,6 +328,7 @@ public class TelecomSystemTest extends TelecomTestCase {
      */
     private IAudioService setupAudioService() {
         IAudioService audioService = mock(IAudioService.class);
+
         final AudioManager fakeAudioManager =
                 (AudioManager) mComponentContextFixture.getTestDouble()
                         .getApplicationContext().getSystemService(Context.AUDIO_SERVICE);
