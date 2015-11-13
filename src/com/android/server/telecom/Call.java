@@ -730,7 +730,8 @@ public class Call implements CreateConnectionResponse {
         return mDisconnectCause;
     }
 
-    boolean isEmergencyCall() {
+    @VisibleForTesting
+    public boolean isEmergencyCall() {
         return mIsEmergencyCall;
     }
 
@@ -754,11 +755,13 @@ public class Call implements CreateConnectionResponse {
         mGatewayInfo = gatewayInfo;
     }
 
-    PhoneAccountHandle getConnectionManagerPhoneAccount() {
+    @VisibleForTesting
+    public PhoneAccountHandle getConnectionManagerPhoneAccount() {
         return mConnectionManagerPhoneAccountHandle;
     }
 
-    void setConnectionManagerPhoneAccount(PhoneAccountHandle accountHandle) {
+    @VisibleForTesting
+    public void setConnectionManagerPhoneAccount(PhoneAccountHandle accountHandle) {
         if (!Objects.equals(mConnectionManagerPhoneAccountHandle, accountHandle)) {
             mConnectionManagerPhoneAccountHandle = accountHandle;
             for (Listener l : mListeners) {
@@ -773,7 +776,8 @@ public class Call implements CreateConnectionResponse {
         return mTargetPhoneAccountHandle;
     }
 
-    void setTargetPhoneAccount(PhoneAccountHandle accountHandle) {
+    @VisibleForTesting
+    public void setTargetPhoneAccount(PhoneAccountHandle accountHandle) {
         if (!Objects.equals(mTargetPhoneAccountHandle, accountHandle)) {
             mTargetPhoneAccountHandle = accountHandle;
             for (Listener l : mListeners) {
@@ -880,7 +884,8 @@ public class Call implements CreateConnectionResponse {
         return mContext;
     }
 
-    void setConnectionService(ConnectionServiceWrapper service) {
+    @VisibleForTesting
+    public void setConnectionService(ConnectionServiceWrapper service) {
         Preconditions.checkNotNull(service);
 
         clearConnectionService();

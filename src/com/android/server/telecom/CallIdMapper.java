@@ -18,10 +18,13 @@ package com.android.server.telecom;
 
 import android.util.ArrayMap;
 
+import com.android.internal.annotations.VisibleForTesting;
+
 import java.util.Map;
 
 /** Utility to map {@link Call} objects to unique IDs. IDs are generated when a call is added. */
-class CallIdMapper {
+@VisibleForTesting
+public class CallIdMapper {
     /**
      * A very basic bidirectional map.
      */

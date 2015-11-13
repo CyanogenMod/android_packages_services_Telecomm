@@ -595,7 +595,8 @@ public class ConnectionServiceWrapper extends ServiceBinder {
     /**
      * Creates a new connection for a new outgoing call or to attach to an existing incoming call.
      */
-    void createConnection(final Call call, final CreateConnectionResponse response) {
+    @VisibleForTesting
+    public void createConnection(final Call call, final CreateConnectionResponse response) {
         Log.d(this, "createConnection(%s) via %s.", call, getComponentName());
         BindCallback callback = new BindCallback() {
             @Override

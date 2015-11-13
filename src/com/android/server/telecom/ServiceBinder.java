@@ -25,6 +25,7 @@ import android.os.UserHandle;
 import android.text.TextUtils;
 import android.util.ArraySet;
 
+import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.util.Preconditions;
 
 import java.util.Collections;
@@ -253,7 +254,8 @@ abstract class ServiceBinder {
         return mComponentName;
     }
 
-    final boolean isServiceValid(String actionName) {
+    @VisibleForTesting
+    public boolean isServiceValid(String actionName) {
         if (mBinder == null) {
             Log.w(this, "%s invoked while service is unbound", actionName);
             return false;
