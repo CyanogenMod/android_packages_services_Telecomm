@@ -45,7 +45,13 @@ import java.util.Map;
  * Bluetooth headset manager for Telecom. This class shares the call state with the bluetooth device
  * and accepts call-related commands to perform on behalf of the BT device.
  */
-public final class BluetoothPhoneServiceImpl {
+public class BluetoothPhoneServiceImpl {
+
+    public interface BluetoothPhoneServiceImplFactory {
+        BluetoothPhoneServiceImpl makeBluetoothPhoneServiceImpl(Context context,
+                TelecomSystem.SyncRoot lock, CallsManager callsManager,
+                PhoneAccountRegistrar phoneAccountRegistrar);
+    }
 
     private static final String TAG = "BluetoothPhoneService";
 

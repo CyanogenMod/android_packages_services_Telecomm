@@ -117,7 +117,9 @@ public final class TelecomSystem {
             HeadsetMediaButtonFactory headsetMediaButtonFactory,
             ProximitySensorManagerFactory proximitySensorManagerFactory,
             InCallWakeLockControllerFactory inCallWakeLockControllerFactory,
-            CallAudioManager.AudioServiceFactory audioServiceFactory) {
+            CallAudioManager.AudioServiceFactory audioServiceFactory,
+            BluetoothPhoneServiceImpl.BluetoothPhoneServiceImplFactory
+                    bluetoothPhoneServiceImplFactory) {
         mContext = context.getApplicationContext();
 
         mMissedCallNotifier = missedCallNotifier;
@@ -140,7 +142,7 @@ public final class TelecomSystem {
         mCallsManager.setRespondViaSmsManager(mRespondViaSmsManager);
 
         mContext.registerReceiver(mUserSwitchedReceiver, USER_SWITCHED_FILTER);
-        mBluetoothPhoneServiceImpl = new BluetoothPhoneServiceImpl(
+        mBluetoothPhoneServiceImpl = bluetoothPhoneServiceImplFactory.makeBluetoothPhoneServiceImpl(
                 mContext, mLock, mCallsManager, mPhoneAccountRegistrar);
         mCallIntentProcessor = new CallIntentProcessor(mContext, mCallsManager);
         mTelecomBroadcastIntentProcessor = new TelecomBroadcastIntentProcessor(

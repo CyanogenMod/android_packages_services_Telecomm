@@ -25,12 +25,14 @@ import android.os.IBinder;
 import android.os.ServiceManager;
 
 import com.android.internal.telephony.CallerInfoAsyncQuery;
+import com.android.server.telecom.BluetoothPhoneServiceImpl;
 import com.android.server.telecom.CallAudioManager;
 import com.android.server.telecom.CallerInfoAsyncQueryFactory;
 import com.android.server.telecom.CallsManager;
 import com.android.server.telecom.HeadsetMediaButton;
 import com.android.server.telecom.HeadsetMediaButtonFactory;
 import com.android.server.telecom.InCallWakeLockControllerFactory;
+import com.android.server.telecom.PhoneAccountRegistrar;
 import com.android.server.telecom.ProximitySensorManagerFactory;
 import com.android.server.telecom.InCallWakeLockController;
 import com.android.server.telecom.Log;
@@ -110,6 +112,16 @@ public class TelecomService extends Service implements TelecomSystem.Component {
                                 public IAudioService getAudioService() {
                                     return IAudioService.Stub.asInterface(
                                             ServiceManager.getService(Context.AUDIO_SERVICE));
+                                }
+                            },
+                            new BluetoothPhoneServiceImpl.BluetoothPhoneServiceImplFactory() {
+                                @Override
+                                public BluetoothPhoneServiceImpl makeBluetoothPhoneServiceImpl(
+                                        Context context, TelecomSystem.SyncRoot lock,
+                                        CallsManager callsManager,
+                                        PhoneAccountRegistrar phoneAccountRegistrar) {
+                                    return new BluetoothPhoneServiceImpl(context, lock,
+                                            callsManager, phoneAccountRegistrar);
                                 }
                             }
                     ));
