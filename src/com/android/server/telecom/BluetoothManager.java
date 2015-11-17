@@ -28,6 +28,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
 
+import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.util.IndentingPrintWriter;
 
 import java.util.List;
@@ -37,6 +38,9 @@ import java.util.List;
  * overall audio state. Also provides method for connecting the bluetooth headset to the phone call.
  */
 public class BluetoothManager {
+    public interface BluetoothStateListener {
+        void onBluetoothStateChange(BluetoothManager bluetoothManager);
+    }
 
     private final BluetoothProfile.ServiceListener mBluetoothProfileServiceListener =
             new BluetoothProfile.ServiceListener() {
@@ -83,7 +87,7 @@ public class BluetoothManager {
     private final Handler mHandler = new Handler(Looper.getMainLooper());
 
     private final BluetoothAdapter mBluetoothAdapter;
-    private final CallAudioManager mCallAudioManager;
+    private BluetoothStateListener mBluetoothStateListener;
 
     private BluetoothHeadset mBluetoothHeadset;
     private boolean mBluetoothConnectionPending = false;
@@ -102,9 +106,8 @@ public class BluetoothManager {
     private final Context mContext;
 
 
-    public BluetoothManager(Context context, CallAudioManager callAudioManager) {
+    public BluetoothManager(Context context) {
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-        mCallAudioManager = callAudioManager;
         mContext = context;
 
         if (mBluetoothAdapter != null) {
@@ -117,6 +120,10 @@ public class BluetoothManager {
                 new IntentFilter(BluetoothHeadset.ACTION_CONNECTION_STATE_CHANGED);
         intentFilter.addAction(BluetoothHeadset.ACTION_AUDIO_STATE_CHANGED);
         context.registerReceiver(mReceiver, intentFilter);
+    }
+
+    public void setBluetoothStateListener(BluetoothStateListener bluetoothStateListener) {
+        mBluetoothStateListener = bluetoothStateListener;
     }
 
     //
@@ -138,7 +145,8 @@ public class BluetoothManager {
      *         available to the user (i.e. if the device is BT-capable
      *         and a headset is connected.)
      */
-    boolean isBluetoothAvailable() {
+    @VisibleForTesting
+    public boolean isBluetoothAvailable() {
         Log.v(this, "isBluetoothAvailable()...");
 
         // There's no need to ask the Bluetooth system service if BT is enabled:
@@ -208,7 +216,8 @@ public class BluetoothManager {
      *              that the BT audio connection is currently being set
      *              up, and will be connected soon.)
      */
-    /* package */ boolean isBluetoothAudioConnectedOrPending() {
+    @VisibleForTesting
+    public boolean isBluetoothAudioConnectedOrPending() {
         if (isBluetoothAudioConnected()) {
             Log.v(this, "isBluetoothAudioConnectedOrPending: ==> TRUE (really connected)");
             return true;
@@ -233,10 +242,11 @@ public class BluetoothManager {
      * Notified audio manager of a change to the bluetooth state.
      */
     void updateBluetoothState() {
-        mCallAudioManager.onBluetoothStateChange(this);
+        mBluetoothStateListener.onBluetoothStateChange(this);
     }
 
-    void connectBluetoothAudio() {
+    @VisibleForTesting
+    public void connectBluetoothAudio() {
         Log.v(this, "connectBluetoothAudio()...");
         if (mBluetoothHeadset != null) {
             mBluetoothHeadset.connectAudio();
@@ -254,7 +264,8 @@ public class BluetoothManager {
                 Timeouts.getBluetoothPendingTimeoutMillis(mContext.getContentResolver()));
     }
 
-    void disconnectBluetoothAudio() {
+    @VisibleForTesting
+    public void disconnectBluetoothAudio() {
         Log.v(this, "disconnectBluetoothAudio()...");
         if (mBluetoothHeadset != null) {
             mBluetoothHeadset.disconnectAudio();

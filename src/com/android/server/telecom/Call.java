@@ -376,7 +376,7 @@ public class Call implements CreateConnectionResponse {
         mCallerInfoAsyncQueryFactory = callerInfoAsyncQueryFactory;
         setHandle(handle);
         mPostDialDigits = handle != null
-                ? PhoneNumberUtils.extractPostDialPortion(handle.getSchemeSpecificPart()) : null;
+                ? PhoneNumberUtils.extractPostDialPortion(handle.getSchemeSpecificPart()) : "";
         mGatewayInfo = gatewayInfo;
         setConnectionManagerPhoneAccount(connectionManagerPhoneAccountHandle);
         setTargetPhoneAccount(targetPhoneAccountHandle);
@@ -858,7 +858,8 @@ public class Call implements CreateConnectionResponse {
         return mConferenceLevelActiveCall;
     }
 
-    ConnectionServiceWrapper getConnectionService() {
+    @VisibleForTesting
+    public ConnectionServiceWrapper getConnectionService() {
         return mConnectionService;
     }
 
@@ -1155,7 +1156,8 @@ public class Call implements CreateConnectionResponse {
     }
 
     /** Checks if this is a live call or not. */
-    boolean isAlive() {
+    @VisibleForTesting
+    public boolean isAlive() {
         switch (mState) {
             case CallState.NEW:
             case CallState.RINGING:

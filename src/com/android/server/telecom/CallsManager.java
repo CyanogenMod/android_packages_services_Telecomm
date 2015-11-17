@@ -132,6 +132,7 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
             new ConcurrentHashMap<CallsManagerListener, Boolean>(16, 0.9f, 1));
     private final HeadsetMediaButton mHeadsetMediaButton;
     private final WiredHeadsetManager mWiredHeadsetManager;
+    private final BluetoothManager mBluetoothManager;
     private final DockManager mDockManager;
     private final TtyManager mTtyManager;
     private final ProximitySensorManager mProximitySensorManager;
@@ -171,7 +172,9 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
             HeadsetMediaButtonFactory headsetMediaButtonFactory,
             ProximitySensorManagerFactory proximitySensorManagerFactory,
             InCallWakeLockControllerFactory inCallWakeLockControllerFactory,
-            CallAudioManager.AudioServiceFactory audioServiceFactory) {
+            CallAudioManager.AudioServiceFactory audioServiceFactory,
+            BluetoothManager bluetoothManager,
+            WiredHeadsetManager wiredHeadsetManager) {
         mContext = context;
         mLock = lock;
         mContactsAsyncHelper = contactsAsyncHelper;
@@ -179,13 +182,29 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
         mPhoneAccountRegistrar = phoneAccountRegistrar;
         mMissedCallNotifier = missedCallNotifier;
         StatusBarNotifier statusBarNotifier = new StatusBarNotifier(context, this);
-        mWiredHeadsetManager = new WiredHeadsetManager(context);
+        mWiredHeadsetManager = wiredHeadsetManager;
+        mBluetoothManager = bluetoothManager;
         mDockManager = new DockManager(context);
-        mCallAudioManager = new CallAudioManager(
-                context, mLock, statusBarNotifier,
-                mWiredHeadsetManager, mDockManager, this, audioServiceFactory);
-        InCallTonePlayer.Factory playerFactory = 
-	    new InCallTonePlayer.Factory(mCallAudioManager, lock);
+        CallAudioRouteStateMachine callAudioRouteStateMachine = new CallAudioRouteStateMachine(
+                context,
+                this,
+                bluetoothManager,
+                wiredHeadsetManager,
+                statusBarNotifier,
+                audioServiceFactory
+        );
+        CallAudioRoutePeripheralAdapter callAudioRoutePeripheralAdapter =
+                new CallAudioRoutePeripheralAdapter(
+                        callAudioRouteStateMachine,
+                        bluetoothManager,
+                        wiredHeadsetManager,
+                        mDockManager);
+
+        mCallAudioManager = new CallAudioManager(context, mLock, this, callAudioRouteStateMachine);
+
+        InCallTonePlayer.Factory playerFactory = new InCallTonePlayer.Factory(mCallAudioManager,
+                callAudioRoutePeripheralAdapter, lock);
+
         RingtoneFactory ringtoneFactory = new RingtoneFactory(context);
         SystemVibrator systemVibrator = new SystemVibrator(context);
         AsyncRingtonePlayer asyncRingtonePlayer = new AsyncRingtonePlayer();
@@ -193,7 +212,7 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
         mRinger = new Ringer(
                 mCallAudioManager, this, playerFactory, context, systemSettingsUtil,
                 asyncRingtonePlayer, ringtoneFactory, systemVibrator);
-	mHeadsetMediaButton = headsetMediaButtonFactory.create(context, this, mLock);
+        mHeadsetMediaButton = headsetMediaButtonFactory.create(context, this, mLock);
         mTtyManager = new TtyManager(context, mWiredHeadsetManager);
         mProximitySensorManager = proximitySensorManagerFactory.create(context, this);
         mPhoneStateBroadcaster = new PhoneStateBroadcaster(this);
@@ -846,7 +865,7 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
             call.answer(videoState);
             if (VideoProfile.isVideo(videoState) &&
                 !mWiredHeadsetManager.isPluggedIn() &&
-                !mCallAudioManager.isBluetoothDeviceAvailable() &&
+                !mBluetoothManager.isBluetoothAvailable() &&
                 isSpeakerEnabledForVideoCalls()) {
                 call.setStartWithSpeakerphoneOn(true);
             }
@@ -1034,7 +1053,9 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
     }
 
     /** Called when the audio state changes. */
-    void onCallAudioStateChanged(CallAudioState oldAudioState, CallAudioState newAudioState) {
+    @VisibleForTesting
+    public void onCallAudioStateChanged(CallAudioState oldAudioState, CallAudioState
+            newAudioState) {
         Log.v(this, "onAudioStateChanged, audioState: %s -> %s", oldAudioState, newAudioState);
         for (CallsManagerListener listener : mListeners) {
             listener.onCallAudioStateChanged(oldAudioState, newAudioState);
