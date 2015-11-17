@@ -1183,7 +1183,7 @@ public final class BluetoothPhoneServiceImpl {
         int bluetoothCallState = CALL_STATE_IDLE;
         if (ringingCall != null) {
             bluetoothCallState = CALL_STATE_INCOMING;
-        } else if (dialingCall != null) {
+        } else if (dialingCall != null && dialingCall.getState() == CallState.DIALING) {
             bluetoothCallState = CALL_STATE_ALERTING;
         }
         return bluetoothCallState;
