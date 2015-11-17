@@ -64,7 +64,8 @@ import java.util.concurrent.ConcurrentHashMap;
 public class CallsManager extends Call.ListenerBase implements VideoProviderProxy.Listener {
 
     // TODO: Consider renaming this CallsManagerPlugin.
-    interface CallsManagerListener {
+    @VisibleForTesting
+    public interface CallsManagerListener {
         void onCallAdded(Call call);
         void onCallRemoved(Call call);
         void onCallStateChanged(Call call, int oldState, int newState);
@@ -444,7 +445,8 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
         }
     }
 
-    Collection<Call> getCalls() {
+    @VisibleForTesting
+    public Collection<Call> getCalls() {
         return Collections.unmodifiableCollection(mCalls);
     }
 
@@ -500,7 +502,8 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
         return mTtyManager.getCurrentTtyMode();
     }
 
-    void addListener(CallsManagerListener listener) {
+    @VisibleForTesting
+    public void addListener(CallsManagerListener listener) {
         mListeners.add(listener);
     }
 
@@ -786,7 +789,8 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
      * @param call The call to conference.
      * @param otherCall The other call to conference with.
      */
-    void conference(Call call, Call otherCall) {
+    @VisibleForTesting
+    public void conference(Call call, Call otherCall) {
         call.conferenceWith(otherCall);
     }
 
@@ -798,7 +802,8 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
      * @param call The call to answer.
      * @param videoState The video state in which to answer the call.
      */
-    void answerCall(Call call, int videoState) {
+    @VisibleForTesting
+    public void answerCall(Call call, int videoState) {
         if (!mCalls.contains(call)) {
             Log.i(this, "Request to answer a non-existent call %s", call);
         } else {
@@ -859,7 +864,8 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
      * app through {@link InCallAdapter} after Telecom notifies it of an incoming call followed by
      * the user opting to reject said call.
      */
-    void rejectCall(Call call, boolean rejectWithMessage, String textMessage) {
+    @VisibleForTesting
+    public void rejectCall(Call call, boolean rejectWithMessage, String textMessage) {
         if (!mCalls.contains(call)) {
             Log.i(this, "Request to reject a non-existent call %s", call);
         } else {
@@ -875,7 +881,8 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
      *
      * @param digit The DTMF digit to play.
      */
-    void playDtmfTone(Call call, char digit) {
+    @VisibleForTesting
+    public void playDtmfTone(Call call, char digit) {
         if (!mCalls.contains(call)) {
             Log.i(this, "Request to play DTMF in a non-existent call %s", call);
         } else {
@@ -887,7 +894,8 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
     /**
      * Instructs Telecom to stop the currently playing DTMF tone, if any.
      */
-    void stopDtmfTone(Call call) {
+    @VisibleForTesting
+    public void stopDtmfTone(Call call) {
         if (!mCalls.contains(call)) {
             Log.i(this, "Request to stop DTMF in a non-existent call %s", call);
         } else {
@@ -912,7 +920,8 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
      * in-call app through {@link InCallAdapter} for an ongoing call. This is usually triggered by
      * the user hitting the end-call button.
      */
-    void disconnectCall(Call call) {
+    @VisibleForTesting
+    public void disconnectCall(Call call) {
         Log.v(this, "disconnectCall %s", call);
 
         if (!mCalls.contains(call)) {
@@ -940,7 +949,8 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
      * in-call app through {@link InCallAdapter} for an ongoing call. This is usually triggered by
      * the user hitting the hold button during an active call.
      */
-    void holdCall(Call call) {
+    @VisibleForTesting
+    public void holdCall(Call call) {
         if (!mCalls.contains(call)) {
             Log.w(this, "Unknown call (%s) asked to be put on hold", call);
         } else {
@@ -954,7 +964,8 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
      * the in-call app through {@link InCallAdapter} for an ongoing call. This is usually triggered
      * by the user hitting the hold button during a held call.
      */
-    void unholdCall(Call call) {
+    @VisibleForTesting
+    public void unholdCall(Call call) {
         if (!mCalls.contains(call)) {
             Log.w(this, "Unknown call (%s) asked to be removed from hold", call);
         } else {
@@ -1169,7 +1180,8 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
         return getFirstCallWithState(CallState.RINGING);
     }
 
-    Call getActiveCall() {
+    @VisibleForTesting
+    public Call getActiveCall() {
         return getFirstCallWithState(CallState.ACTIVE);
     }
 
@@ -1177,11 +1189,13 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
         return getFirstCallWithState(CallState.DIALING);
     }
 
-    Call getHeldCall() {
+    @VisibleForTesting
+    public Call getHeldCall() {
         return getFirstCallWithState(CallState.ON_HOLD);
     }
 
-    int getNumHeldCalls() {
+    @VisibleForTesting
+    public int getNumHeldCalls() {
         int count = 0;
         for (Call call : mCalls) {
             if (call.getParentCall() == null && call.getState() == CallState.ON_HOLD) {
@@ -1191,7 +1205,8 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
         return count;
     }
 
-    Call getOutgoingCall() {
+    @VisibleForTesting
+    public Call getOutgoingCall() {
         return getFirstCallWithState(OUTGOING_CALL_STATES);
     }
 

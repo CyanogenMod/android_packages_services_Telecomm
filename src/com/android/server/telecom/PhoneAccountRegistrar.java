@@ -109,7 +109,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * saved in {@link #mCurrentUserHandle} and (3) we get from Binder.getCallingUser(). We check these
  * users for visibility before returning any phone accounts.
  */
-public final class PhoneAccountRegistrar {
+public class PhoneAccountRegistrar {
 
     public static final PhoneAccountHandle NO_ACCOUNT_SELECTED =
             new PhoneAccountHandle(new ComponentName("null", "null"), "NO_ACCOUNT_SELECTED");
