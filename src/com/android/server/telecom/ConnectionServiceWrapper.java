@@ -625,7 +625,7 @@ public class ConnectionServiceWrapper extends ServiceBinder {
                                     extras,
                                     call.getVideoState(),
                                     callId),
-                            call.isIncoming(),
+                            call.shouldAttachToExistingConnection(),
                             call.isUnknown());
                 } catch (RemoteException e) {
                     Log.e(this, e, "Failure to createConnection -- %s", getComponentName());

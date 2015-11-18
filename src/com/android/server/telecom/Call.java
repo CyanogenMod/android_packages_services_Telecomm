@@ -67,6 +67,11 @@ import java.util.concurrent.ConcurrentHashMap;
 public class Call implements CreateConnectionResponse {
     public final static String CALL_ID_UNKNOWN = "-1";
 
+    public static final int CALL_DIRECTION_UNDEFINED = 0;
+    public static final int CALL_DIRECTION_OUTGOING = 1;
+    public static final int CALL_DIRECTION_INCOMING = 2;
+    public static final int CALL_DIRECTION_UNKNOWN = 3;
+
     /**
      * Listener for events on the call.
      */
@@ -192,13 +197,10 @@ public class Call implements CreateConnectionResponse {
         }
     };
 
-    /** True if this is an incoming call. */
-    private final boolean mIsIncoming;
-
-    /** True if this is a currently unknown call that was not previously tracked by CallsManager,
-     *  and did not originate via the regular incoming/outgoing call code paths.
+    /**
+     * One of CALL_DIRECTION_INCOMING, CALL_DIRECTION_OUTGOING, or CALL_DIRECTION_UNKNOWN
      */
-    private boolean mIsUnknown;
+    private final int mCallDirection;
 
     /**
      * The post-dial digits that were dialed after the network portion of the number
@@ -307,6 +309,8 @@ public class Call implements CreateConnectionResponse {
 
     private boolean mIsConference = false;
 
+    private final boolean mShouldAttachToExistingConnection;
+
     private Call mParentCall = null;
 
     private List<Call> mChildCalls = new LinkedList<>();
@@ -330,6 +334,7 @@ public class Call implements CreateConnectionResponse {
     private final TelecomSystem.SyncRoot mLock;
     private final CallerInfoAsyncQueryFactory mCallerInfoAsyncQueryFactory;
     private final String mId;
+    private Analytics.CallInfo mAnalytics;
 
     private boolean mWasConferencePreviouslyMerged = false;
 
@@ -353,7 +358,10 @@ public class Call implements CreateConnectionResponse {
      *         {@link PhoneAccount#CAPABILITY_CONNECTION_MANAGER} flag.
      * @param targetPhoneAccountHandle Account information to use for the call. This account must be
      *         one that was registered with the {@link PhoneAccount#CAPABILITY_CALL_PROVIDER} flag.
-     * @param isIncoming True if this is an incoming call.
+     * @param callDirection one of CALL_DIRECTION_INCOMING, CALL_DIRECTION_OUTGOING,
+     *         or CALL_DIRECTION_UNKNOWN.
+     * @param shouldAttachToExistingConnection Set to true to attach the call to an existing
+     *         connection, regardless of whether it's incoming or outgoing.
      */
     public Call(
             String callId,
@@ -367,7 +375,8 @@ public class Call implements CreateConnectionResponse {
             GatewayInfo gatewayInfo,
             PhoneAccountHandle connectionManagerPhoneAccountHandle,
             PhoneAccountHandle targetPhoneAccountHandle,
-            boolean isIncoming,
+            int callDirection,
+            boolean shouldAttachToExistingConnection,
             boolean isConference) {
         mId = callId;
         mState = isConference ? CallState.ACTIVE : CallState.NEW;
@@ -383,9 +392,14 @@ public class Call implements CreateConnectionResponse {
         mGatewayInfo = gatewayInfo;
         setConnectionManagerPhoneAccount(connectionManagerPhoneAccountHandle);
         setTargetPhoneAccount(targetPhoneAccountHandle);
-        mIsIncoming = isIncoming;
+        mCallDirection = callDirection;
         mIsConference = isConference;
+        mShouldAttachToExistingConnection = shouldAttachToExistingConnection
+                || callDirection == CALL_DIRECTION_INCOMING;
+
         maybeLoadCannedSmsResponses();
+        mAnalytics = new Analytics.CallInfo();
+
         Log.event(this, Log.Events.CREATED);
     }
 
@@ -401,7 +415,10 @@ public class Call implements CreateConnectionResponse {
      *         {@link PhoneAccount#CAPABILITY_CONNECTION_MANAGER} flag.
      * @param targetPhoneAccountHandle Account information to use for the call. This account must be
      *         one that was registered with the {@link PhoneAccount#CAPABILITY_CALL_PROVIDER} flag.
-     * @param isIncoming True if this is an incoming call.
+     * @param callDirection one of CALL_DIRECTION_INCOMING, CALL_DIRECTION_OUTGOING,
+     *         or CALL_DIRECTION_UNKNOWN
+     * @param shouldAttachToExistingConnection Set to true to attach the call to an existing
+     *         connection, regardless of whether it's incoming or outgoing.
      * @param connectTimeMillis The connection time of the call.
      */
     Call(
@@ -416,15 +433,17 @@ public class Call implements CreateConnectionResponse {
             GatewayInfo gatewayInfo,
             PhoneAccountHandle connectionManagerPhoneAccountHandle,
             PhoneAccountHandle targetPhoneAccountHandle,
-            boolean isIncoming,
+            int callDirection,
+            boolean shouldAttachToExistingConnection,
             boolean isConference,
             long connectTimeMillis) {
         this(callId, context, callsManager, lock, repository, contactsAsyncHelper,
                 callerInfoAsyncQueryFactory, handle, gatewayInfo,
-                connectionManagerPhoneAccountHandle, targetPhoneAccountHandle, isIncoming,
-                isConference);
+                connectionManagerPhoneAccountHandle, targetPhoneAccountHandle, callDirection,
+                shouldAttachToExistingConnection, isConference);
 
         mConnectTimeMillis = connectTimeMillis;
+        mAnalytics.setCallStartTime(connectTimeMillis);
     }
 
     public void addListener(Listener listener) {
@@ -435,6 +454,27 @@ public class Call implements CreateConnectionResponse {
         if (listener != null) {
             mListeners.remove(listener);
         }
+    }
+
+    public void initAnalytics() {
+        int analyticsDirection;
+        switch (mCallDirection) {
+            case CALL_DIRECTION_OUTGOING:
+                analyticsDirection = Analytics.OUTGOING_DIRECTION;
+                break;
+            case CALL_DIRECTION_INCOMING:
+                analyticsDirection = Analytics.INCOMING_DIRECTION;
+                break;
+            case CALL_DIRECTION_UNKNOWN:
+            case CALL_DIRECTION_UNDEFINED:
+            default:
+                analyticsDirection = Analytics.UNKNOWN_DIRECTION;
+        }
+        mAnalytics = Analytics.initiateCallAnalytics(mId, analyticsDirection);
+    }
+
+    public Analytics.CallInfo getAnalytics() {
+        return mAnalytics;
     }
 
     public void destroy() {
@@ -550,6 +590,7 @@ public class Call implements CreateConnectionResponse {
                     // call from resetting active time when it goes in and out of
                     // ACTIVE/ON_HOLD
                     mConnectTimeMillis = System.currentTimeMillis();
+                    mAnalytics.setCallStartTime(mConnectTimeMillis);
                 }
 
                 // Video state changes are normally tracked against history when a call is active.
@@ -562,6 +603,7 @@ public class Call implements CreateConnectionResponse {
                 mDisconnectTimeMillis = 0;
             } else if (mState == CallState.DISCONNECTED) {
                 mDisconnectTimeMillis = System.currentTimeMillis();
+                mAnalytics.setCallEndTime(mDisconnectTimeMillis);
                 setLocallyDisconnecting(false);
                 fixParentAfterDisconnect();
             }
@@ -717,6 +759,7 @@ public class Call implements CreateConnectionResponse {
     public void setDisconnectCause(DisconnectCause disconnectCause) {
         // TODO: Consider combining this method with a setDisconnected() method that is totally
         // separate from setState.
+        mAnalytics.setCallDisconnectCause(disconnectCause);
         mDisconnectCause = disconnectCause;
     }
 
@@ -778,7 +821,11 @@ public class Call implements CreateConnectionResponse {
 
     @VisibleForTesting
     public boolean isIncoming() {
-        return mIsIncoming;
+        return mCallDirection == CALL_DIRECTION_INCOMING;
+    }
+
+    boolean shouldAttachToExistingConnection() {
+        return mShouldAttachToExistingConnection;
     }
 
     /**
@@ -881,6 +928,7 @@ public class Call implements CreateConnectionResponse {
 
         service.incrementAssociatedCallCount();
         mConnectionService = service;
+        mAnalytics.setCallConnectionService(service.getComponentName().flattenToShortString());
         mConnectionService.addCall(this);
     }
 
@@ -960,26 +1008,31 @@ public class Call implements CreateConnectionResponse {
             mConferenceableCalls.add(idMapper.getCall(id));
         }
 
-        if (mIsUnknown) {
-            for (Listener l : mListeners) {
-                l.onSuccessfulUnknownCall(this, getStateFromConnectionState(connection.getState()));
-            }
-        } else if (mIsIncoming) {
-            // We do not handle incoming calls immediately when they are verified by the connection
-            // service. We allow the caller-info-query code to execute first so that we can read the
-            // direct-to-voicemail property before deciding if we want to show the incoming call to
-            // the user or if we want to reject the call.
-            mDirectToVoicemailQueryPending = true;
+        switch (mCallDirection) {
+            case CALL_DIRECTION_INCOMING:
+                // We do not handle incoming calls immediately when they are verified by the
+                // connection service. We allow the caller-info-query code to execute first so
+                // that we can read the direct-to-voicemail property before deciding if we want
+                // to show the incoming call to the user or if we want to reject the call.
+                mDirectToVoicemailQueryPending = true;
 
-            // Timeout the direct-to-voicemail lookup execution so that we dont wait too long before
-            // showing the user the incoming call screen.
-            mHandler.postDelayed(mDirectToVoicemailRunnable, Timeouts.getDirectToVoicemailMillis(
-                    mContext.getContentResolver()));
-        } else {
-            for (Listener l : mListeners) {
-                l.onSuccessfulOutgoingCall(this,
-                        getStateFromConnectionState(connection.getState()));
-            }
+                // Timeout the direct-to-voicemail lookup execution so that we dont wait too long
+                // before showing the user the incoming call screen.
+                mHandler.postDelayed(mDirectToVoicemailRunnable,
+                        Timeouts.getDirectToVoicemailMillis(mContext.getContentResolver()));
+                break;
+            case CALL_DIRECTION_OUTGOING:
+                for (Listener l : mListeners) {
+                    l.onSuccessfulOutgoingCall(this,
+                            getStateFromConnectionState(connection.getState()));
+                }
+                break;
+            case CALL_DIRECTION_UNKNOWN:
+                for (Listener l : mListeners) {
+                    l.onSuccessfulUnknownCall(this, getStateFromConnectionState(connection
+                            .getState()));
+                }
+                break;
         }
     }
 
@@ -989,18 +1042,22 @@ public class Call implements CreateConnectionResponse {
         setDisconnectCause(disconnectCause);
         mCallsManager.markCallAsDisconnected(this, disconnectCause);
 
-        if (mIsUnknown) {
-            for (Listener listener : mListeners) {
-                listener.onFailedUnknownCall(this);
-            }
-        } else if (mIsIncoming) {
-            for (Listener listener : mListeners) {
-                listener.onFailedIncomingCall(this);
-            }
-        } else {
-            for (Listener listener : mListeners) {
-                listener.onFailedOutgoingCall(this, disconnectCause);
-            }
+        switch (mCallDirection) {
+            case CALL_DIRECTION_INCOMING:
+                for (Listener listener : mListeners) {
+                    listener.onFailedIncomingCall(this);
+                }
+                break;
+            case CALL_DIRECTION_OUTGOING:
+                for (Listener listener : mListeners) {
+                    listener.onFailedOutgoingCall(this, disconnectCause);
+                }
+                break;
+            case CALL_DIRECTION_UNKNOWN:
+                for (Listener listener : mListeners) {
+                    listener.onFailedUnknownCall(this);
+                }
+                break;
         }
     }
 
@@ -1532,7 +1589,9 @@ public class Call implements CreateConnectionResponse {
     }
 
     private void maybeLoadCannedSmsResponses() {
-        if (mIsIncoming && isRespondViaSmsCapable() && !mCannedSmsResponsesLoadingStarted) {
+        if (mCallDirection == CALL_DIRECTION_INCOMING
+                && isRespondViaSmsCapable()
+                && !mCannedSmsResponsesLoadingStarted) {
             Log.d(this, "maybeLoadCannedSmsResponses: starting task to load messages");
             mCannedSmsResponsesLoadingStarted = true;
             mCallsManager.getRespondViaSmsManager().loadCannedTextMessages(
@@ -1684,11 +1743,7 @@ public class Call implements CreateConnectionResponse {
     }
 
     public boolean isUnknown() {
-        return mIsUnknown;
-    }
-
-    public void setIsUnknown(boolean isUnknown) {
-        mIsUnknown = isUnknown;
+        return mCallDirection == CALL_DIRECTION_UNKNOWN;
     }
 
     /**

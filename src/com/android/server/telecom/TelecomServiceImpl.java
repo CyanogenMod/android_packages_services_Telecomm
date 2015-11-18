@@ -945,6 +945,11 @@ public class TelecomServiceImpl {
                 pw.increaseIndent();
                 mPhoneAccountRegistrar.dump(pw);
                 pw.decreaseIndent();
+
+                pw.println("Analytics:");
+                pw.increaseIndent();
+                Analytics.dump(pw);
+                pw.decreaseIndent();
             }
 
             Log.dumpCallEvents(pw);
