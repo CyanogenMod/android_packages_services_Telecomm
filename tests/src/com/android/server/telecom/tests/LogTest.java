@@ -1,0 +1,393 @@
+/*
+ * Copyright (C) 2015 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License
+ */
+
+package com.android.server.telecom.tests;
+
+import android.os.Handler;
+import android.os.HandlerThread;
+import android.os.Message;
+
+import com.android.internal.os.SomeArgs;
+import com.android.server.telecom.Session;
+import com.android.server.telecom.SystemLoggingContainer;
+import com.android.server.telecom.Log;
+
+import org.junit.Assert;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+
+import java.util.ArrayList;
+import java.util.Random;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.mockito.Matchers.contains;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.timeout;
+import static org.mockito.Mockito.verify;
+
+/**
+ * Unit tests for Telecom's Logging system.
+ */
+public class LogTest extends TelecomTestCase{
+
+    /**
+     * This helper class captures the logs that are sent to Log and stores them in an array to be
+     * verified by LogTest.
+     */
+    private class TestLoggingContainer extends SystemLoggingContainer {
+        public ArrayList<String> receivedStrings;
+
+        public TestLoggingContainer() {
+            receivedStrings = new ArrayList<>(100);
+        }
+
+        @Override
+        public void i(String msgTag, String msg) {
+            if(msgTag.equals(LogTest.TESTING_TAG)) {
+                synchronized (this) {
+                    receivedStrings.add(msg);
+                }
+            }
+        }
+
+        public boolean didReceiveMessage(int timeoutMs, String msg) {
+            String matchedString = null;
+            // Wait for timeout to expire before checking received messages
+            if (timeoutMs > 0) {
+                try {
+                    Thread.sleep(timeoutMs);
+                } catch (InterruptedException e) {
+                    Log.w(LogTest.TESTING_TAG, "TestLoggingContainer: Thread Interrupted!");
+                }
+            }
+            synchronized (this) {
+                for (String receivedString : receivedStrings) {
+                    if (receivedString.contains(msg)) {
+                        matchedString = receivedString;
+                        break;
+                    }
+                }
+                if (matchedString != null) {
+                    receivedStrings.remove(matchedString);
+                    return true;
+                }
+            }
+            android.util.Log.i(TESTING_TAG, "Did not receive message: " + msg);
+            return false;
+        }
+
+        public boolean isMessagesEmpty() {
+            boolean isEmpty = receivedStrings.isEmpty();
+            if(!isEmpty) {
+                printMessagesThatAreLeft();
+            }
+            return isEmpty;
+        }
+
+        public synchronized void printMessagesThatAreLeft() {
+            android.util.Log.i(TESTING_TAG, "Remaining Messages in Log Queue:");
+            for (String receivedString : receivedStrings) {
+                android.util.Log.i(TESTING_TAG, "\t- " + receivedString);
+            }
+        }
+    }
+
+    public static final int TEST_THREAD_COUNT = 150;
+    public static final int TEST_SLEEP_TIME_MS = 50;
+    // Should be larger than TEST_SLEEP_TIME_MS!
+    public static final int TEST_VERIFY_TIMEOUT_MS = 100;
+    public static final String TEST_ENTER_METHOD1 = "TEM1";
+    public static final String TEST_ENTER_METHOD2 = "TEM2";
+    public static final String TEST_ENTER_METHOD3 = "TEM3";
+    public static final String TEST_CLASS_NAME = "LogTest";
+
+    private static final int EVENT_START_TEST_SLEEPY_METHOD = 0;
+    private static final int EVENT_START_TEST_SLEEPY_MULTIPLE_METHOD = 1;
+    private static final int EVENT_LAST_MESSAGE = 2;
+
+    private static final long RANDOM_NUMBER_SEED = 6191991;
+
+    Random rng = new Random(RANDOM_NUMBER_SEED);
+
+    private Handler mSleepyHandler = new Handler(
+            new HandlerThread("sleepyThread"){{start();}}.getLooper()) {
+        @Override
+        public void handleMessage(Message msg) {
+            SomeArgs args = (SomeArgs) msg.obj;
+            Session subsession = (Session) args.arg1;
+            Log.continueSession(subsession, "lTSH.hM");
+            switch (msg.what) {
+                case EVENT_START_TEST_SLEEPY_METHOD:
+                    sleepyMethod(TEST_SLEEP_TIME_MS);
+                    break;
+            }
+            Log.endSession();
+        }
+    };
+
+    private boolean isHandlerCompleteWithEvents;
+    private Handler mSleepyMultipleHandler = new Handler(
+            new HandlerThread("sleepyMultipleThread"){{start();}}.getLooper()){
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what) {
+                case EVENT_START_TEST_SLEEPY_MULTIPLE_METHOD:
+                    SomeArgs args = (SomeArgs) msg.obj;
+                    Session subsession = (Session) args.arg1;
+                    Log.continueSession(subsession, "lTSCH.hM");
+                    sleepyMultipleMethod();
+                    Log.endSession();
+                    break;
+                case EVENT_LAST_MESSAGE:
+                    isHandlerCompleteWithEvents = true;
+                    break;
+            }
+        }
+    };
+
+    private AtomicInteger mCompleteCount;
+    class LogTestRunnable implements Runnable {
+        private String mshortMethodName;
+        public LogTestRunnable(String shortMethodName) {
+            mshortMethodName = shortMethodName;
+        }
+
+        public void run() {
+            Log.startSession(mshortMethodName);
+            sleepyCallerMethod(TEST_SLEEP_TIME_MS);
+            Log.endSession();
+            mCompleteCount.incrementAndGet();
+        }
+    }
+
+    TestLoggingContainer mTestSystemLogger;
+
+    @Override
+    public void setUp() throws Exception {
+        super.setUp();
+        MockitoAnnotations.initMocks(this);
+        mTestSystemLogger = new TestLoggingContainer();
+        Log.setLoggingContainer(mTestSystemLogger);
+        Log.restartSessionCounter();
+    }
+
+    @Override
+    public void tearDown() throws Exception {
+        mTestSystemLogger = null;
+        Log.setLoggingContainer(new SystemLoggingContainer());
+        super.tearDown();
+    }
+
+    public void testSingleThreadSession() throws Exception {
+        String sessionName = "LT.sTS";
+        Log.startSession(sessionName);
+        sleepyMethod(TEST_SLEEP_TIME_MS);
+        Log.endSession();
+
+        verifyEventResult(Session.START_SESSION, sessionName, "", 0, TEST_VERIFY_TIMEOUT_MS);
+        verifyMethodCall(sessionName, 0, "", TEST_ENTER_METHOD1, TEST_VERIFY_TIMEOUT_MS);
+        verifyEventResult(Session.END_SUBSESSION, sessionName, "", 0, TEST_VERIFY_TIMEOUT_MS);
+        verifyEventResult(Session.END_SESSION, sessionName, "", 0, TEST_VERIFY_TIMEOUT_MS);
+
+        assertEquals(Log.sSessionMapper.size(), 0);
+        assertEquals(true, mTestSystemLogger.isMessagesEmpty());
+    }
+
+    public void testSingleHandlerThreadSession() throws Exception {
+        String sessionName = "LT.tSHTS";
+        Log.startSession(sessionName);
+        Session subsession = Log.createSubsession();
+        SomeArgs args = SomeArgs.obtain();
+        args.arg1 = subsession;
+        mSleepyHandler.obtainMessage(EVENT_START_TEST_SLEEPY_METHOD, args).sendToTarget();
+        Log.endSession();
+
+        verifyEventResult(Session.START_SESSION, sessionName, "", 0, TEST_VERIFY_TIMEOUT_MS);
+        verifyEventResult(Session.CREATE_SUBSESSION, sessionName, "", 0, TEST_VERIFY_TIMEOUT_MS);
+        verifyContinueEventResult(sessionName, "lTSH.hM", "", 0, TEST_VERIFY_TIMEOUT_MS);
+        verifyEventResult(Session.END_SUBSESSION, sessionName, "", 0, TEST_VERIFY_TIMEOUT_MS);
+        verifyMethodCall("lTSH.hM", 0, "_0", TEST_ENTER_METHOD1, TEST_VERIFY_TIMEOUT_MS);
+        verifyEventResult(Session.END_SUBSESSION, "lTSH.hM", "", 0, TEST_VERIFY_TIMEOUT_MS);
+        verifyEventResult(Session.END_SESSION, sessionName, "", 0, TEST_VERIFY_TIMEOUT_MS);
+
+        assertEquals(Log.sSessionMapper.size(), 0);
+        assertEquals(true, mTestSystemLogger.isMessagesEmpty());
+    }
+
+    public void testSpawnMultipleThreadSessions() throws Exception {
+        final String sessionName = "LT.lTR";
+        mCompleteCount = new AtomicInteger(0);
+        for(int i = 0; i < TEST_THREAD_COUNT; i++) {
+            Thread.sleep(10);
+            new Thread(new LogTestRunnable(sessionName)).start();
+        }
+
+        // Poll until all of the threads have completed
+        while(mCompleteCount.get() < TEST_THREAD_COUNT) {
+            Thread.sleep(1000);
+        }
+
+        // Loop through verification separately to spawn threads fast so there is possible overlap
+        // (verifyEventResult(...) delays)
+        for(int i = 0; i < TEST_THREAD_COUNT; i++) {
+            verifyEventResult(Session.START_SESSION, sessionName, "", i, 0);
+            verifyMethodCall(sessionName, i, "", TEST_ENTER_METHOD2, 0);
+            verifyMethodCall(sessionName, i, "", TEST_ENTER_METHOD1, 0);
+            verifyEventResult(Session.END_SUBSESSION, sessionName, "", i, 0);
+            verifyEventResult(Session.END_SESSION, sessionName, "", i, 0);
+        }
+
+        assertEquals(Log.sSessionMapper.size(), 0);
+        assertEquals(true, mTestSystemLogger.isMessagesEmpty());
+    }
+
+    public void testSpawnMultipleThreadMultipleHandlerSession() throws Exception {
+        String sessionName = "LT.tSMTMHS";
+        Log.startSession(sessionName);
+        Session subsession = Log.createSubsession();
+        SomeArgs args = SomeArgs.obtain();
+        args.arg1 = subsession;
+        mSleepyMultipleHandler.obtainMessage(EVENT_START_TEST_SLEEPY_MULTIPLE_METHOD,
+                args).sendToTarget();
+        Log.endSession();
+
+        verifyEventResult(Session.START_SESSION, sessionName, "", 0, TEST_VERIFY_TIMEOUT_MS);
+        verifyEventResult(Session.END_SUBSESSION, sessionName, "", 0, TEST_VERIFY_TIMEOUT_MS);
+        verifyEventResult(Session.CREATE_SUBSESSION, sessionName, "", 0, TEST_VERIFY_TIMEOUT_MS);
+        verifyContinueEventResult(sessionName, "lTSCH.hM", "_0", 0, TEST_VERIFY_TIMEOUT_MS);
+        verifyMethodCall("lTSCH.hM", 0, "_0", TEST_ENTER_METHOD3, TEST_VERIFY_TIMEOUT_MS);
+        verifyEventResult(Session.END_SUBSESSION, "lTSCH.hM", "_0", 0, TEST_VERIFY_TIMEOUT_MS);
+        verifyEventResult(Session.CREATE_SUBSESSION, "lTSCH.hM", "", 0, TEST_VERIFY_TIMEOUT_MS);
+        verifyContinueEventResult("lTSCH.hM", "lTSH.hM", "_0_0", 0, TEST_VERIFY_TIMEOUT_MS);
+        verifyMethodCall("lTSH.hM", 0, "_0_0", TEST_ENTER_METHOD1, TEST_VERIFY_TIMEOUT_MS);
+        verifyEventResult(Session.END_SUBSESSION, "lTSH.hM", "_0_0", 0, TEST_VERIFY_TIMEOUT_MS);
+        verifyEventResult(Session.END_SESSION, sessionName, "", 0, TEST_VERIFY_TIMEOUT_MS);
+
+        assertEquals(Log.sSessionMapper.size(), 0);
+        assertEquals(true, mTestSystemLogger.isMessagesEmpty());
+    }
+
+    public void testSpawnMultipleThreadMultipleHandlerSessions() throws Exception {
+        String sessionName = "LT.tSMTMHSs";
+        isHandlerCompleteWithEvents = false;
+        for(int i = 0; i < TEST_THREAD_COUNT; i++) {
+            Log.startSession(sessionName);
+            Session subsession = Log.createSubsession();
+            SomeArgs args = SomeArgs.obtain();
+            args.arg1 = subsession;
+            mSleepyMultipleHandler.obtainMessage(EVENT_START_TEST_SLEEPY_MULTIPLE_METHOD,
+                    args).sendToTarget();
+            Log.endSession();
+        }
+        // Send a message that denotes the last message that is sent. We poll until this message
+        // is processed in order to verify the results without waiting an arbitrary amount of time
+        // (that can change per device).
+        mSleepyMultipleHandler.obtainMessage(EVENT_LAST_MESSAGE).sendToTarget();
+
+        while(!isHandlerCompleteWithEvents){
+            Thread.sleep(1000);
+        }
+
+        for(int i = 0; i < TEST_THREAD_COUNT; i++) {
+            verifyEventResult(Session.START_SESSION, sessionName, "", i, 0);
+            verifyEventResult(Session.END_SUBSESSION, sessionName, "", i, 0);
+            verifyEventResult(Session.CREATE_SUBSESSION, sessionName, "", i, 0);
+            verifyContinueEventResult(sessionName, "lTSCH.hM", "_0", i, 0);
+            verifyMethodCall("lTSCH.hM", i, "_0", TEST_ENTER_METHOD3, 0);
+            verifyEventResult(Session.END_SUBSESSION, "lTSCH.hM", "_0", i, 0);
+            verifyEventResult(Session.CREATE_SUBSESSION, "lTSCH.hM", "", i, 0);
+            verifyContinueEventResult("lTSCH.hM", "lTSH.hM", "_0_0", i, 0);
+            verifyMethodCall("lTSH.hM", i, "_0_0", TEST_ENTER_METHOD1, 0);
+            verifyEventResult(Session.END_SUBSESSION, "lTSH.hM", "_0_0", i, 0);
+            verifyEventResult(Session.END_SESSION, sessionName, "", i, 0);
+        }
+
+        assertEquals(Log.sSessionMapper.size(), 0);
+        assertEquals(true, mTestSystemLogger.isMessagesEmpty());
+    }
+
+    private void verifyMethodCall(String methodName, int sessionId, String subsession,
+                                  String shortMethodName, int timeoutMs) {
+        boolean isMessageReceived = mTestSystemLogger.didReceiveMessage(timeoutMs,
+                buildExpectedResult(methodName, sessionId, subsession, shortMethodName));
+
+        assertEquals(true, isMessageReceived);
+    }
+
+    private String buildExpectedSession(String shortMethodName, int sessionId) {
+        return shortMethodName + "@" + Log.getBase64Encoding(sessionId);
+    }
+
+    private String buildExpectedResult(String shortMethodName, int sessionId,
+            String subsessionId, String logText) {
+        return TEST_CLASS_NAME + " " + buildExpectedSession(shortMethodName, sessionId) +
+                subsessionId + ": " + logText;
+    }
+
+    private void verifyContinueEventResult(String shortOldMethodName, String shortNewMethodName,
+                String subsession, int sessionId, int timeoutMs) {
+        String expectedSession = buildExpectedSession(shortNewMethodName, sessionId);
+        boolean isMessageReceived = mTestSystemLogger.didReceiveMessage(timeoutMs,
+                Session.CONTINUE_SUBSESSION + " " + shortOldMethodName + "->" + expectedSession +
+                        subsession);
+        assertEquals(true, isMessageReceived);
+    }
+
+    private void verifyEventResult(String event, String shortMethodName, String subsession,
+            int sessionId, int timeoutMs) {
+        String expectedSession = buildExpectedSession(shortMethodName, sessionId);
+        boolean isMessageReceived = mTestSystemLogger.didReceiveMessage(timeoutMs,
+                event + " " + expectedSession + subsession);
+        assertEquals(true, isMessageReceived);
+    }
+
+    private void sleepyCallerMethod(int timeToSleepMs) {
+        Log.i(TEST_CLASS_NAME, TEST_ENTER_METHOD2);
+        try {
+            Thread.sleep(timeToSleepMs);
+            sleepyMethod(rng.nextInt(TEST_SLEEP_TIME_MS));
+        } catch(InterruptedException e) {
+            // This should not happen
+            Assert.fail("Thread sleep interrupted: " + e.getMessage());
+        }
+
+    }
+
+    private void sleepyMultipleMethod() {
+        Log.i(TEST_CLASS_NAME, TEST_ENTER_METHOD3);
+        Session subsession = Log.createSubsession();
+        SomeArgs args = SomeArgs.obtain();
+        args.arg1 = subsession;
+        mSleepyHandler.obtainMessage(EVENT_START_TEST_SLEEPY_METHOD, args).sendToTarget();
+        try {
+            Thread.sleep(TEST_SLEEP_TIME_MS);
+        } catch(InterruptedException e) {
+            // This should not happen
+            Assert.fail("Thread sleep interrupted: " + e.getMessage());
+        }
+    }
+
+    private void sleepyMethod(int timeToSleepMs) {
+        Log.i(TEST_CLASS_NAME, TEST_ENTER_METHOD1);
+        try {
+            Thread.sleep(timeToSleepMs);
+        } catch(InterruptedException e) {
+            // This should not happen
+            Assert.fail("Thread sleep interrupted: " + e.getMessage());
+        }
+    }
+
+}

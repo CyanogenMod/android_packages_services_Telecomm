@@ -20,14 +20,17 @@ import android.net.Uri;
 import android.telecom.PhoneAccount;
 import android.telephony.PhoneNumberUtils;
 import android.text.TextUtils;
+import android.util.Base64;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.util.IndentingPrintWriter;
 
+import java.nio.ByteBuffer;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.IllegalFormatException;
@@ -35,6 +38,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 
 /**
@@ -201,6 +205,9 @@ public class Log {
     public static final int MAX_CALLS_TO_CACHE_DEBUG = 20;  // Arbitrarily chosen.
     private static final long EXTENDED_LOGGING_DURATION_MILLIS = 60000 * 30; // 30 minutes
 
+    // Currently using 3 letters, So don't exceed 64^3
+    private static final long SESSION_ID_ROLLOVER_THRESHOLD = 1024;
+
     // Generic tag for all In Call logging
     @VisibleForTesting
     public static String TAG = "Telecom";
@@ -216,6 +223,15 @@ public class Log {
     private static final Map<Call, CallEventRecord> mCallEventRecordMap = new HashMap<>();
     private static LinkedBlockingQueue<CallEventRecord> mCallEventRecords =
             new LinkedBlockingQueue<CallEventRecord>(MAX_CALLS_TO_CACHE);
+
+    // Synchronized in all method calls
+    private static int sCodeEntryCounter = 0;
+    @VisibleForTesting
+    public static ConcurrentHashMap<Integer, Session> sSessionMapper = new ConcurrentHashMap<>(100);
+
+    // Set the logging container to be the system's. This will only change when being mocked
+    // during testing.
+    private static SystemLoggingContainer systemLogger = new SystemLoggingContainer();
 
     /**
      * Tracks whether user-activated extended logging is enabled.
@@ -265,6 +281,136 @@ public class Log {
     @VisibleForTesting
     public static void setTag(String tag) {
         TAG = tag;
+    }
+
+    @VisibleForTesting
+    public static void setLoggingContainer(SystemLoggingContainer logger) {
+        systemLogger = logger;
+    }
+
+    /**
+     * Call at an entry point to the Telecom code to track the session. This code must be
+     * accompanied by a Log.endSession().
+     */
+    public static void startSession(String shortMethodName) {
+        int threadId = getCallingThreadId();
+        Session newSession = new Session(getNextSessionID(), shortMethodName,
+                System.currentTimeMillis());
+        sSessionMapper.put(threadId, newSession);
+
+        Log.i(TAG, Session.START_SESSION + " " + newSession.toString());
+    }
+
+
+    /**
+     * Notifies the logging system that a subsession will be run at a later point and
+     * allocates the resources. Returns a session object that must be used in
+     * Log.continueSession(...) to start the subsession.
+     */
+    public static synchronized Session createSubsession() {
+        int threadId = getCallingThreadId();
+        Session threadSession = sSessionMapper.get(threadId);
+        if (threadSession == null) {
+            Log.d(TAG, "Log.createSubsession was called with no session active.");
+            return null;
+        }
+        Session newSubsession = new Session(threadSession.getNextChildId(),
+                threadSession.getShortMethodName(), System.currentTimeMillis());
+        threadSession.addChild(newSubsession);
+        newSubsession.setParentSession(threadSession);
+
+        Log.i(TAG, Session.CREATE_SUBSESSION + " " + newSubsession.toString());
+        return newSubsession;
+    }
+
+    /**
+     * Starts the subsession that was created in Log.CreateSubsession. The Log.endSession() method
+     * must be called at the end of this method. The full session will complete when all subsessions
+     * are completed.
+     */
+    public static void continueSession(Session subsession, String shortMethodName){
+        if (subsession == null) {
+            return;
+        }
+        String callingMethodName = subsession.getShortMethodName();
+        subsession.setShortMethodName(shortMethodName);
+        Session threadSession = subsession.getParentSession();
+        if (threadSession == null) {
+            Log.d(TAG, "Log.continueSession was called with no session active for method %s.",
+                    shortMethodName);
+            return;
+        }
+
+        sSessionMapper.put(getCallingThreadId(), subsession);
+        Log.i(TAG, Session.CONTINUE_SUBSESSION + " " + callingMethodName + "->" +
+                subsession.toString());
+    }
+
+
+    /**
+     * Ends the current session/subsession. Must be called after a Log.startSession(...) and
+     * Log.continueSession(...) call.
+     */
+    public static synchronized void endSession() {
+        Session completedSession = sSessionMapper.remove(getCallingThreadId());
+        if (completedSession == null) {
+            Log.d(TAG, "Log.endSession was called with no session active.");
+            return;
+        }
+
+        completedSession.markSessionCompleted(System.currentTimeMillis());
+        Log.i(TAG, Session.END_SUBSESSION + " " + completedSession.toString() +
+                " Local dur: " + completedSession.getLocalExecutionTime() + " mS");
+
+        endParentSessions(completedSession);
+    }
+
+    // Recursively deletes all complete parent sessions of the current subsession if it is a leaf.
+    private static  void endParentSessions(Session subsession){
+        // Session is not completed or not currently a leaf, so we can not remove because a child is
+        // still running
+        if (!subsession.isSessionCompleted() || subsession.getChildSessions().size() != 0) {
+            return;
+        }
+
+        Session parentSession = subsession.getParentSession();
+        if (parentSession != null) {
+            subsession.setParentSession(null);
+            parentSession.removeChild(subsession);
+            endParentSessions(parentSession);
+        } else {
+            // All of the subsessions have been completed and it is time to report on the full
+            // running time of the session.
+            long fullSessionTimeMs =
+                    System.currentTimeMillis() - subsession.getExecutionStartTimeMilliseconds();
+            Log.i(TAG, Session.END_SESSION + " " + subsession.toString() +
+                    " Full dur: " + fullSessionTimeMs + " ms");
+        }
+    }
+
+    private synchronized static String getNextSessionID() {
+        Integer nextId = sCodeEntryCounter++;
+        if (nextId >= SESSION_ID_ROLLOVER_THRESHOLD) {
+            restartSessionCounter();
+            nextId = sCodeEntryCounter++;
+        }
+        return getBase64Encoding(nextId);
+    }
+
+    @VisibleForTesting
+    public synchronized static void restartSessionCounter() {
+        sCodeEntryCounter = 0;
+    }
+
+    @VisibleForTesting
+    public static String getBase64Encoding(int number) {
+        byte[] idByteArray = ByteBuffer.allocate(4).putInt(number).array();
+        idByteArray = Arrays.copyOfRange(idByteArray, 2, 4);
+        return Base64.encodeToString(idByteArray, Base64.NO_WRAP | Base64.NO_PADDING);
+    }
+
+    public static int getCallingThreadId() {
+        return android.os.Process.myTid();
     }
 
     public static void event(Call call, String event) {
@@ -325,93 +471,93 @@ public class Log {
     public static void d(String prefix, String format, Object... args) {
         if (mIsUserExtendedLoggingEnabled) {
             maybeDisableLogging();
-            android.util.Slog.i(TAG, buildMessage(prefix, format, args));
+            systemLogger.i(TAG, buildMessage(prefix, format, args));
         } else if (DEBUG) {
-            android.util.Slog.d(TAG, buildMessage(prefix, format, args));
+            systemLogger.d(TAG, buildMessage(prefix, format, args));
         }
     }
 
     public static void d(Object objectPrefix, String format, Object... args) {
         if (mIsUserExtendedLoggingEnabled) {
             maybeDisableLogging();
-            android.util.Slog.i(TAG, buildMessage(getPrefixFromObject(objectPrefix), format, args));
+            systemLogger.i(TAG, buildMessage(getPrefixFromObject(objectPrefix), format, args));
         } else if (DEBUG) {
-            android.util.Slog.d(TAG, buildMessage(getPrefixFromObject(objectPrefix), format, args));
+            systemLogger.d(TAG, buildMessage(getPrefixFromObject(objectPrefix), format, args));
         }
     }
 
     public static void i(String prefix, String format, Object... args) {
         if (INFO) {
-            android.util.Slog.i(TAG, buildMessage(prefix, format, args));
+            systemLogger.i(TAG, buildMessage(prefix, format, args));
         }
     }
 
     public static void i(Object objectPrefix, String format, Object... args) {
         if (INFO) {
-            android.util.Slog.i(TAG, buildMessage(getPrefixFromObject(objectPrefix), format, args));
+            systemLogger.i(TAG, buildMessage(getPrefixFromObject(objectPrefix), format, args));
         }
     }
 
     public static void v(String prefix, String format, Object... args) {
         if (mIsUserExtendedLoggingEnabled) {
             maybeDisableLogging();
-            android.util.Slog.i(TAG, buildMessage(prefix, format, args));
+            systemLogger.i(TAG, buildMessage(prefix, format, args));
         } else if (VERBOSE) {
-            android.util.Slog.v(TAG, buildMessage(prefix, format, args));
+            systemLogger.v(TAG, buildMessage(prefix, format, args));
         }
     }
 
     public static void v(Object objectPrefix, String format, Object... args) {
         if (mIsUserExtendedLoggingEnabled) {
             maybeDisableLogging();
-            android.util.Slog.i(TAG, buildMessage(getPrefixFromObject(objectPrefix), format, args));
+            systemLogger.i(TAG, buildMessage(getPrefixFromObject(objectPrefix), format, args));
         } else if (VERBOSE) {
-            android.util.Slog.v(TAG, buildMessage(getPrefixFromObject(objectPrefix), format, args));
+            systemLogger.v(TAG, buildMessage(getPrefixFromObject(objectPrefix), format, args));
         }
     }
 
     public static void w(String prefix, String format, Object... args) {
         if (WARN) {
-            android.util.Slog.w(TAG, buildMessage(prefix, format, args));
+            systemLogger.w(TAG, buildMessage(prefix, format, args));
         }
     }
 
     public static void w(Object objectPrefix, String format, Object... args) {
         if (WARN) {
-            android.util.Slog.w(TAG, buildMessage(getPrefixFromObject(objectPrefix), format, args));
+            systemLogger.w(TAG, buildMessage(getPrefixFromObject(objectPrefix), format, args));
         }
     }
 
     public static void e(String prefix, Throwable tr, String format, Object... args) {
         if (ERROR) {
-            android.util.Slog.e(TAG, buildMessage(prefix, format, args), tr);
+            systemLogger.e(TAG, buildMessage(prefix, format, args), tr);
         }
     }
 
     public static void e(Object objectPrefix, Throwable tr, String format, Object... args) {
         if (ERROR) {
-            android.util.Slog.e(TAG, buildMessage(getPrefixFromObject(objectPrefix), format, args),
+            systemLogger.e(TAG, buildMessage(getPrefixFromObject(objectPrefix), format, args),
                     tr);
         }
     }
 
     public static void wtf(String prefix, Throwable tr, String format, Object... args) {
-        android.util.Slog.wtf(TAG, buildMessage(prefix, format, args), tr);
+        systemLogger.wtf(TAG, buildMessage(prefix, format, args), tr);
     }
 
     public static void wtf(Object objectPrefix, Throwable tr, String format, Object... args) {
-        android.util.Slog.wtf(TAG, buildMessage(getPrefixFromObject(objectPrefix), format, args),
+        systemLogger.wtf(TAG, buildMessage(getPrefixFromObject(objectPrefix), format, args),
                 tr);
     }
 
     public static void wtf(String prefix, String format, Object... args) {
         String msg = buildMessage(prefix, format, args);
-        android.util.Slog.wtf(TAG, msg, new IllegalStateException(msg));
+        systemLogger.wtf(TAG, msg, new IllegalStateException(msg));
     }
 
     public static void wtf(Object objectPrefix, String format, Object... args) {
         String msg = buildMessage(getPrefixFromObject(objectPrefix), format, args);
-        android.util.Slog.wtf(TAG, msg, new IllegalStateException(msg));
+        systemLogger.wtf(TAG, msg, new IllegalStateException(msg));
     }
 
     public static String piiHandle(Object pii) {
@@ -502,6 +648,12 @@ public class Log {
     }
 
     private static String buildMessage(String prefix, String format, Object... args) {
+        // Incorporate thread ID and calling method into prefix
+        Session currentSession = sSessionMapper.get(getCallingThreadId());
+        if(currentSession != null) {
+            prefix = prefix + " " + currentSession.toString();
+        }
+
         String msg;
         try {
             msg = (args == null || args.length == 0) ? format

@@ -23,7 +23,7 @@ import org.mockito.MockitoAnnotations;
 import android.test.AndroidTestCase;
 
 public abstract class TelecomTestCase extends AndroidTestCase {
-    private static final String TESTING_TAG = "Telecom-TEST";
+    protected static final String TESTING_TAG = "Telecom-TEST";
 
     MockitoHelper mMockitoHelper = new MockitoHelper();
     ComponentContextFixture mComponentContextFixture;
