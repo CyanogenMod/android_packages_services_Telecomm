@@ -21,7 +21,9 @@ import android.media.AudioManager;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
+import android.os.SystemProperties;
 import android.telecom.CallAudioState;
+import android.telephony.SubscriptionManager;
 
 import com.android.internal.util.IndentingPrintWriter;
 import com.android.internal.util.Preconditions;
@@ -58,6 +60,7 @@ final class CallAudioManager extends CallsManagerListenerBase
     private static final int MSG_AUDIO_MANAGER_SET_MICROPHONE_MUTE = 3;
     private static final int MSG_AUDIO_MANAGER_REQUEST_AUDIO_FOCUS_FOR_CALL = 4;
     private static final int MSG_AUDIO_MANAGER_SET_MODE = 5;
+    private static final int MSG_AUDIO_MANAGER_SET_AUDIO_PARAMETERS = 6;
 
     private final Handler mAudioManagerHandler = new Handler(Looper.getMainLooper()) {
 
@@ -101,6 +104,11 @@ final class CallAudioManager extends CallsManagerListenerBase
                 case MSG_AUDIO_MANAGER_SET_MODE: {
                     int newMode = msg.arg1;
                     int oldMode = mAudioManager.getMode();
+
+                    Call call = mCallsManager.getForegroundCall();
+                    boolean setMsimAudioParams = SystemProperties
+                            .getBoolean("ro.multisim.set_audio_params", false);
+
                     Log.v(this, "Request to change audio mode from %s to %s", modeToString(oldMode),
                             modeToString(newMode));
 
@@ -111,11 +119,19 @@ final class CallAudioManager extends CallsManagerListenerBase
                                     + "  Resetting to NORMAL first.");
                             mAudioManager.setMode(AudioManager.MODE_NORMAL);
                         }
+                        if (call != null && call.getTargetPhoneAccount() != null && setMsimAudioParams) {
+                            setAudioParameters(call, newMode);
+                        }
                         mAudioManager.setMode(newMode);
                         synchronized (mLock) {
                             mMostRecentlyUsedMode = newMode;
                         }
                     }
+                    break;
+                }
+                case MSG_AUDIO_MANAGER_SET_AUDIO_PARAMETERS: {
+                    int phoneId = msg.arg1;
+                    mAudioManager.setParameters(phoneId == 1 ? "phone_type=cp2" : "phone_type=cp1");
                     break;
                 }
                 default:
@@ -590,6 +606,21 @@ final class CallAudioManager extends CallsManagerListenerBase
                     .sendToTarget();
             mAudioFocusStreamType = STREAM_NONE;
             mCallToSpeedUpMTAudio = null;
+        }
+    }
+
+    private void setAudioParameters(Call call, int mode) {
+        switch (mode) {
+            case AudioManager.MODE_RINGTONE:
+            case AudioManager.MODE_IN_CALL:
+            case AudioManager.MODE_IN_COMMUNICATION:
+                int phoneId = SubscriptionManager.getPhoneId(
+                        Integer.valueOf(call.getTargetPhoneAccount().getId()));
+                mAudioManagerHandler.obtainMessage(MSG_AUDIO_MANAGER_SET_AUDIO_PARAMETERS, phoneId, 0)
+                        .sendToTarget();
+                break;
+            default:
+                break;
         }
     }
 
