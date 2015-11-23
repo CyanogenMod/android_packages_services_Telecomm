@@ -24,6 +24,7 @@ import android.os.Looper;
 import android.os.SystemProperties;
 import android.os.SystemVibrator;
 import android.os.Trace;
+import android.os.UserHandle;
 import android.provider.CallLog.Calls;
 import android.telecom.CallAudioState;
 import android.telecom.Conference;
@@ -557,8 +558,8 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
                 null /* connectionManagerPhoneAccount */,
                 phoneAccountHandle,
                 true /* isIncoming */,
-                false /* isConference */);
-
+                false /* isConference */
+        );
         call.setIntentExtras(extras);
         // TODO: Move this to be a part of addCall()
         call.addListener(this);
@@ -583,7 +584,8 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
                 // Use onCreateIncomingConnection in TelephonyConnectionService, so that we attach
                 // to the existing connection instead of trying to create a new one.
                 true /* isIncoming */,
-                false /* isConference */);
+                false /* isConference */
+        );
         call.setIsUnknown(true);
         call.setIntentExtras(extras);
         call.addListener(this);
@@ -629,8 +631,10 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
      * @param phoneAccountHandle The phone account which contains the component name of the
      *        connection service to use for this call.
      * @param extras The optional extras Bundle passed with the intent used for the incoming call.
+     * @param initiatingUser {@link UserHandle} of user that place the outgoing call.
      */
-    Call startOutgoingCall(Uri handle, PhoneAccountHandle phoneAccountHandle, Bundle extras) {
+    Call startOutgoingCall(Uri handle, PhoneAccountHandle phoneAccountHandle, Bundle extras,
+            UserHandle initiatingUser) {
         boolean isReusedCall = true;
         Call call = reuseOutgoingCall(handle);
 
@@ -648,8 +652,9 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
                     null /* connectionManagerPhoneAccount */,
                     null /* phoneAccountHandle */,
                     false /* isIncoming */,
-                    false /* isConference */);
-
+                    false /* isConference */
+            );
+            call.setInitiatingUser(initiatingUser);
             isReusedCall = false;
         }
 

@@ -39,6 +39,7 @@ import android.media.IAudioService;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Process;
 import android.os.UserHandle;
 import android.telecom.Call;
 import android.telecom.CallAudioState;
@@ -54,6 +55,7 @@ import android.telecom.VideoProfile;
 import com.android.internal.telecom.IInCallAdapter;
 import com.android.server.telecom.BluetoothPhoneServiceImpl;
 import com.android.server.telecom.CallAudioManager;
+import com.android.server.telecom.CallIntentProcessor;
 import com.android.server.telecom.CallsManager;
 import com.android.server.telecom.HeadsetMediaButton;
 import com.android.server.telecom.HeadsetMediaButtonFactory;
@@ -65,6 +67,7 @@ import com.android.server.telecom.PhoneAccountRegistrar;
 import com.android.server.telecom.ProximitySensorManager;
 import com.android.server.telecom.ProximitySensorManagerFactory;
 import com.android.server.telecom.TelecomSystem;
+import com.android.server.telecom.components.UserCallIntentProcessor;
 
 import com.google.common.base.Predicate;
 
@@ -317,7 +320,8 @@ public class TelecomSystemTest extends TelecomTestCase {
     private IdPair startOutgoingPhoneCall(
             String number,
             PhoneAccountHandle phoneAccountHandle,
-            ConnectionServiceFixture connectionServiceFixture) throws Exception {
+            ConnectionServiceFixture connectionServiceFixture,
+            UserHandle initiatingUser) throws Exception {
         reset(
                 connectionServiceFixture.getTestDouble(),
                 mInCallServiceFixtureX.getTestDouble(),
@@ -344,7 +348,13 @@ public class TelecomSystemTest extends TelecomTestCase {
                     phoneAccountHandle);
         }
 
+        final UserHandle userHandle = initiatingUser;
+        new UserCallIntentProcessor(mContext, userHandle)
+                .processIntent(actionCallIntent, null, true /* hasCallAppOp*/);
         mTelecomSystem.getCallIntentProcessor().processIntent(actionCallIntent);
+
+        assertEquals(userHandle,
+                actionCallIntent.getParcelableExtra(CallIntentProcessor.KEY_INITIATING_USER));
 
         if (!hasInCallAdapter) {
             verify(mInCallServiceFixtureX.getTestDouble())
@@ -553,7 +563,8 @@ public class TelecomSystemTest extends TelecomTestCase {
             String number,
             PhoneAccountHandle phoneAccountHandle,
             ConnectionServiceFixture connectionServiceFixture) throws Exception {
-        IdPair ids = startOutgoingPhoneCall(number, phoneAccountHandle, connectionServiceFixture);
+        IdPair ids = startOutgoingPhoneCall(number, phoneAccountHandle, connectionServiceFixture,
+                Process.myUserHandle());
 
         connectionServiceFixture.sendSetDialing(ids.mConnectionId);
         assertEquals(Call.STATE_DIALING, mInCallServiceFixtureX.getCall(ids.mCallId).getState());
@@ -653,7 +664,8 @@ public class TelecomSystemTest extends TelecomTestCase {
         final IdPair ids = startOutgoingPhoneCall(
                 "650-555-1212",
                 mPhoneAccountA0.getAccountHandle(),
-                mConnectionServiceFixtureA);
+                mConnectionServiceFixtureA,
+                Process.myUserHandle());
         rapidFire(
                 new Runnable() {
                     @Override
