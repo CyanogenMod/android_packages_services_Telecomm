@@ -175,16 +175,16 @@ public class CallAudioRouteStateMachineTest extends TelecomTestCase {
                 CallAudioState.ROUTE_EARPIECE | CallAudioState.ROUTE_SPEAKER);
         stateMachine.initialize(initState);
 
-        stateMachine.sendMessage(CallAudioRouteStateMachine.SWITCH_FOCUS,
+        stateMachine.sendMessageWithSessionInfo(CallAudioRouteStateMachine.SWITCH_FOCUS,
                 CallAudioRouteStateMachine.HAS_FOCUS);
-        stateMachine.sendMessage(CallAudioRouteStateMachine.CONNECT_WIRED_HEADSET);
+        stateMachine.sendMessageWithSessionInfo(CallAudioRouteStateMachine.CONNECT_WIRED_HEADSET);
         CallAudioState expectedMiddleState = new CallAudioState(false,
                 CallAudioState.ROUTE_WIRED_HEADSET,
                 CallAudioState.ROUTE_WIRED_HEADSET | CallAudioState.ROUTE_SPEAKER);
         verifyNewSystemCallAudioState(initState, expectedMiddleState);
         resetMocks();
 
-        stateMachine.sendMessage(CallAudioRouteStateMachine.DISCONNECT_WIRED_HEADSET);
+        stateMachine.sendMessageWithSessionInfo(CallAudioRouteStateMachine.DISCONNECT_WIRED_HEADSET);
         verifyNewSystemCallAudioState(expectedMiddleState, initState);
     }
 
@@ -542,9 +542,9 @@ public class CallAudioRouteStateMachineTest extends TelecomTestCase {
                 params.initialRoute, (params.availableRoutes | CallAudioState.ROUTE_SPEAKER));
         stateMachine.initialize(initState);
         // Make the state machine have focus so that we actually do something
-        stateMachine.sendMessage(CallAudioRouteStateMachine.SWITCH_FOCUS,
+        stateMachine.sendMessageWithSessionInfo(CallAudioRouteStateMachine.SWITCH_FOCUS,
                 CallAudioRouteStateMachine.HAS_FOCUS);
-        stateMachine.sendMessage(params.action);
+        stateMachine.sendMessageWithSessionInfo(params.action);
 
         // Verify interactions with the speakerphone and bluetooth systems
         switch(params.bluetoothInteraction) {
@@ -601,7 +601,7 @@ public class CallAudioRouteStateMachineTest extends TelecomTestCase {
                 params.initialRoute, (params.availableRoutes | CallAudioState.ROUTE_SPEAKER));
         stateMachine.initialize(initState);
         // Omit the focus-getting statement
-        stateMachine.sendMessage(params.action);
+        stateMachine.sendMessageWithSessionInfo(params.action);
         try {
             Thread.sleep(100L);
         } catch (InterruptedException e) {

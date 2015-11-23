@@ -41,9 +41,10 @@ public class CallAudioRoutePeripheralAdapter implements BluetoothManager.Bluetoo
     @Override
     public void onBluetoothStateChange(BluetoothManager bluetoothManager) {
         if (bluetoothManager.isBluetoothAvailable()) {
-            mCallAudioRouteStateMachine.sendMessage(CallAudioRouteStateMachine.CONNECT_BLUETOOTH);
+            mCallAudioRouteStateMachine.sendMessageWithSessionInfo(
+                    CallAudioRouteStateMachine.CONNECT_BLUETOOTH);
         } else {
-            mCallAudioRouteStateMachine.sendMessage(
+            mCallAudioRouteStateMachine.sendMessageWithSessionInfo(
                     CallAudioRouteStateMachine.DISCONNECT_BLUETOOTH);
         }
     }
@@ -59,17 +60,17 @@ public class CallAudioRoutePeripheralAdapter implements BluetoothManager.Bluetoo
     @Override
     public void onWiredHeadsetPluggedInChanged(boolean oldIsPluggedIn, boolean newIsPluggedIn) {
         if (!oldIsPluggedIn && newIsPluggedIn) {
-            mCallAudioRouteStateMachine.sendMessage(
+            mCallAudioRouteStateMachine.sendMessageWithSessionInfo(
                     CallAudioRouteStateMachine.CONNECT_WIRED_HEADSET);
         } else if (oldIsPluggedIn && !newIsPluggedIn){
-            mCallAudioRouteStateMachine.sendMessage(
+            mCallAudioRouteStateMachine.sendMessageWithSessionInfo(
                     CallAudioRouteStateMachine.DISCONNECT_WIRED_HEADSET);
         }
     }
 
     @Override
     public void onDockChanged(boolean isDocked) {
-        mCallAudioRouteStateMachine.sendMessage(
+        mCallAudioRouteStateMachine.sendMessageWithSessionInfo(
                 isDocked ? CallAudioRouteStateMachine.CONNECT_DOCK
                         : CallAudioRouteStateMachine.DISCONNECT_DOCK
         );
