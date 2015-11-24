@@ -32,8 +32,10 @@ import android.os.IBinder;
 import android.os.IInterface;
 import android.os.RemoteException;
 import android.telecom.CallAudioState;
+import android.telecom.Conference;
 import android.telecom.Connection;
 import android.telecom.ConnectionRequest;
+import android.telecom.ConnectionService;
 import android.telecom.DisconnectCause;
 import android.telecom.ParcelableConference;
 import android.telecom.ParcelableConnection;
@@ -47,13 +49,75 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static org.mockito.Matchers.any;
-
 /**
  * Controls a test {@link IConnectionService} as would be provided by a source of connectivity
  * to the Telecom framework.
  */
 public class ConnectionServiceFixture implements TestFixture<IConnectionService> {
+
+    /**
+     * Implementation of ConnectionService that performs no-ops for tasks normally meant for
+     * Telephony and reports success back to Telecom
+     */
+    public class FakeConnectionServiceDelegate extends ConnectionService {
+        @Override
+        public Connection onCreateUnknownConnection(
+                PhoneAccountHandle connectionManagerPhoneAccount, ConnectionRequest request) {
+            return new FakeConnection();
+        }
+
+        @Override
+        public Connection onCreateIncomingConnection(
+                PhoneAccountHandle connectionManagerPhoneAccount, ConnectionRequest request) {
+            return new FakeConnection();
+        }
+
+        @Override
+        public Connection onCreateOutgoingConnection(
+                PhoneAccountHandle connectionManagerPhoneAccount, ConnectionRequest request) {
+            return new FakeConnection();
+        }
+
+        @Override
+        public void onConference(Connection cxn1, Connection cxn2) {
+            // Usually, this is implemented by something in Telephony, which does a bunch of radio
+            // work to conference the two connections together. Here we just short-cut that and
+            // declare them conferenced.
+            Conference fakeConference = new FakeConference();
+            fakeConference.addConnection(cxn1);
+            fakeConference.addConnection(cxn2);
+            addConference(fakeConference);
+        }
+    }
+
+    public class FakeConnection extends Connection {
+        public FakeConnection() {
+            super();
+            int capabilities = getConnectionCapabilities();
+            capabilities |= CAPABILITY_MUTE;
+            capabilities |= CAPABILITY_SUPPORT_HOLD;
+            capabilities |= CAPABILITY_HOLD;
+            setConnectionCapabilities(capabilities);
+            setActive();
+        }
+    }
+
+    public class FakeConference extends Conference {
+        public FakeConference() {
+            super(null);
+            setConnectionCapabilities(
+                    Connection.CAPABILITY_SUPPORT_HOLD
+                            | Connection.CAPABILITY_HOLD
+                            | Connection.CAPABILITY_MUTE
+                            | Connection.CAPABILITY_MANAGE_CONFERENCE);
+        }
+
+        @Override
+        public void onMerge(Connection connection) {
+            // Do nothing besides inform the connection that it was merged into this conference.
+            connection.setConference(this);
+        }
+    }
 
     public class FakeConnectionService extends IConnectionService.Stub {
 
@@ -63,6 +127,7 @@ public class ConnectionServiceFixture implements TestFixture<IConnectionService>
             if (!mConnectionServiceAdapters.add(adapter)) {
                 throw new RuntimeException("Adapter already added: " + adapter);
             }
+            mConnectionServiceDelegateAdapter.addConnectionServiceAdapter(adapter);
         }
 
         @Override
@@ -71,6 +136,7 @@ public class ConnectionServiceFixture implements TestFixture<IConnectionService>
             if (!mConnectionServiceAdapters.remove(adapter)) {
                 throw new RuntimeException("Adapter never added: " + adapter);
             }
+            mConnectionServiceDelegateAdapter.removeConnectionServiceAdapter(adapter);
         }
 
         @Override
@@ -92,6 +158,8 @@ public class ConnectionServiceFixture implements TestFixture<IConnectionService>
             c.isUnknown = isUnknown;
             c.capabilities |= Connection.CAPABILITY_HOLD | Connection.CAPABILITY_SUPPORT_HOLD;
             mConnectionById.put(id, c);
+            mConnectionServiceDelegateAdapter.createConnection(connectionManagerPhoneAccount,
+                    id, request, isIncoming, isUnknown);
         }
 
         @Override
@@ -129,7 +197,9 @@ public class ConnectionServiceFixture implements TestFixture<IConnectionService>
         public void stopDtmfTone(String callId) throws RemoteException { }
 
         @Override
-        public void conference(String conferenceCallId, String callId) throws RemoteException { }
+        public void conference(String conferenceCallId, String callId) throws RemoteException {
+            mConnectionServiceDelegateAdapter.conference(conferenceCallId, callId);
+        }
 
         @Override
         public void splitFromConference(String callId) throws RemoteException { }
@@ -152,7 +222,12 @@ public class ConnectionServiceFixture implements TestFixture<IConnectionService>
         public IInterface queryLocalInterface(String descriptor) {
             return this;
         }
-    };
+    }
+
+    private FakeConnectionServiceDelegate mConnectionServiceDelegate =
+            new FakeConnectionServiceDelegate();
+    private IConnectionService mConnectionServiceDelegateAdapter =
+            IConnectionService.Stub.asInterface(mConnectionServiceDelegate.onBind(null));
 
     private IConnectionService.Stub mConnectionService = new FakeConnectionService();
     private IConnectionService.Stub mConnectionServiceSpy = Mockito.spy(mConnectionService);

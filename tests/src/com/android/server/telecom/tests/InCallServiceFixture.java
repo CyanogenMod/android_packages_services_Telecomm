@@ -128,4 +128,8 @@ public class InCallServiceFixture implements TestFixture<IInCallService> {
     public ParcelableCall getCall(String id) {
         return mCallById.get(id);
     }
+
+    public IInCallAdapter getInCallAdapter() {
+        return mInCallAdapter;
+    }
 }
