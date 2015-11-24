@@ -41,6 +41,7 @@ import android.telecom.DefaultDialerManager;
 import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
 import android.telecom.TelecomManager;
+import android.telecom.VideoProfile;
 import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
@@ -62,6 +63,7 @@ import java.util.List;
 public class TelecomServiceImpl {
     private static final String PERMISSION_PROCESS_PHONE_ACCOUNT_REGISTRATION =
             "android.permission.PROCESS_PHONE_ACCOUNT_REGISTRATION";
+    private static final int DEFAULT_VIDEO_STATE = -1;
 
     private final ITelecomService.Stub mBinderImpl = new ITelecomService.Stub() {
         @Override
@@ -589,7 +591,25 @@ public class TelecomServiceImpl {
 
                 long token = Binder.clearCallingIdentity();
                 try {
-                    acceptRingingCallInternal();
+                    acceptRingingCallInternal(DEFAULT_VIDEO_STATE);
+                } finally {
+                    Binder.restoreCallingIdentity(token);
+                }
+            }
+        }
+
+        /**
+         * @see android.telecom.TelecomManager#acceptRingingCall(int)
+         *
+         */
+        @Override
+        public void acceptRingingCallWithVideoState(int videoState) {
+            synchronized (mLock) {
+                enforceModifyPermission();
+
+                long token = Binder.clearCallingIdentity();
+                try {
+                    acceptRingingCallInternal(videoState);
                 } finally {
                     Binder.restoreCallingIdentity(token);
                 }
@@ -1038,10 +1058,13 @@ public class TelecomServiceImpl {
         return false;
     }
 
-    private void acceptRingingCallInternal() {
+    private void acceptRingingCallInternal(int videoState) {
         Call call = mCallsManager.getFirstCallWithState(CallState.RINGING);
         if (call != null) {
-            call.answer(call.getVideoState());
+            if (videoState == DEFAULT_VIDEO_STATE || !isValidAcceptVideoState(videoState)) {
+                videoState = call.getVideoState();
+            }
+            call.answer(videoState);
         }
     }
 
@@ -1203,5 +1226,24 @@ public class TelecomServiceImpl {
 
     private TelephonyManager getTelephonyManager() {
         return (TelephonyManager)mContext.getSystemService(Context.TELEPHONY_SERVICE);
+    }
+
+    /**
+     * Determines if a video state is valid for accepting an incoming call.
+     * For the purpose of accepting a call, states {@link VideoProfile#STATE_AUDIO_ONLY}, and
+     * any combination of {@link VideoProfile#STATE_RX_ENABLED} and
+     * {@link VideoProfile#STATE_TX_ENABLED} are considered valid.
+     *
+     * @param videoState The video state.
+     * @return {@code true} if the video state is valid, {@code false} otherwise.
+     */
+    private boolean isValidAcceptVideoState(int videoState) {
+        // Given a video state input, turn off TX and RX so that we can determine if those were the
+        // only bits set.
+        int remainingState = videoState & ~VideoProfile.STATE_TX_ENABLED;
+        remainingState = remainingState & ~VideoProfile.STATE_RX_ENABLED;
+
+        // If only TX or RX were set (or neither), the video state is valid.
+        return remainingState == 0;
     }
 }

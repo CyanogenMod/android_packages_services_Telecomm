@@ -410,6 +410,15 @@ public class TelecomSystemTest extends TelecomTestCase {
             String number,
             PhoneAccountHandle phoneAccountHandle,
             final ConnectionServiceFixture connectionServiceFixture) throws Exception {
+        return startIncomingPhoneCall(number, phoneAccountHandle, VideoProfile.STATE_AUDIO_ONLY,
+                connectionServiceFixture);
+    }
+
+    private IdPair startIncomingPhoneCall(
+            String number,
+            PhoneAccountHandle phoneAccountHandle,
+            int videoState,
+            final ConnectionServiceFixture connectionServiceFixture) throws Exception {
         reset(
                 connectionServiceFixture.getTestDouble(),
                 mInCallServiceFixtureX.getTestDouble(),
@@ -440,9 +449,14 @@ public class TelecomSystemTest extends TelecomTestCase {
                 eq(true),
                 eq(false));
 
+        mConnectionServiceFixtureA.mConnectionById.get(
+                connectionServiceFixture.mLatestConnectionId).videoState = videoState;
+
         connectionServiceFixture.sendHandleCreateConnectionComplete(
                 connectionServiceFixture.mLatestConnectionId);
         connectionServiceFixture.sendSetRinging(
+                connectionServiceFixture.mLatestConnectionId);
+        connectionServiceFixture.sendSetVideoState(
                 connectionServiceFixture.mLatestConnectionId);
 
         // For the case of incoming calls, Telecom connecting the InCall services and adding the
@@ -594,6 +608,99 @@ public class TelecomSystemTest extends TelecomTestCase {
                 mInCallServiceFixtureX.getCall(ids.mCallId).getState());
         assertEquals(Call.STATE_DISCONNECTED,
                 mInCallServiceFixtureY.getCall(ids.mCallId).getState());
+    }
+
+    /**
+     * Tests the {@link TelecomManager#acceptRingingCall()} API.  Tests simple case of an incoming
+     * audio-only call.
+     *
+     * @throws Exception
+     */
+    public void testTelecomManagerAcceptRingingCall() throws Exception {
+        IdPair ids = startIncomingPhoneCall("650-555-1212", mPhoneAccountA0.getAccountHandle(),
+                mConnectionServiceFixtureA);
+
+        assertEquals(Call.STATE_RINGING, mInCallServiceFixtureX.getCall(ids.mCallId).getState());
+        assertEquals(Call.STATE_RINGING, mInCallServiceFixtureY.getCall(ids.mCallId).getState());
+
+        // Use TelecomManager API to answer the ringing call.
+        TelecomManager telecomManager = (TelecomManager) mComponentContextFixture.getTestDouble()
+                .getApplicationContext().getSystemService(Context.TELECOM_SERVICE);
+        telecomManager.acceptRingingCall();
+
+        verify(mConnectionServiceFixtureA.getTestDouble(), timeout(TEST_TIMEOUT))
+                .answer(ids.mCallId);
+    }
+
+    /**
+     * Tests the {@link TelecomManager#acceptRingingCall()} API.  Tests simple case of an incoming
+     * video call, which should be answered as video.
+     *
+     * @throws Exception
+     */
+    public void testTelecomManagerAcceptRingingVideoCall() throws Exception {
+        IdPair ids = startIncomingPhoneCall("650-555-1212", mPhoneAccountA0.getAccountHandle(),
+                VideoProfile.STATE_BIDIRECTIONAL, mConnectionServiceFixtureA);
+
+        assertEquals(Call.STATE_RINGING, mInCallServiceFixtureX.getCall(ids.mCallId).getState());
+        assertEquals(Call.STATE_RINGING, mInCallServiceFixtureY.getCall(ids.mCallId).getState());
+
+        // Use TelecomManager API to answer the ringing call; the default expected behavior is to
+        // answer using whatever video state the ringing call requests.
+        TelecomManager telecomManager = (TelecomManager) mComponentContextFixture.getTestDouble()
+                .getApplicationContext().getSystemService(Context.TELECOM_SERVICE);
+        telecomManager.acceptRingingCall();
+
+        // Answer video API should be called
+        verify(mConnectionServiceFixtureA.getTestDouble(), timeout(TEST_TIMEOUT))
+                .answerVideo(eq(ids.mCallId), eq(VideoProfile.STATE_BIDIRECTIONAL));
+    }
+
+    /**
+     * Tests the {@link TelecomManager#acceptRingingCall(int)} API.  Tests answering a video call
+     * as an audio call.
+     *
+     * @throws Exception
+     */
+    public void testTelecomManagerAcceptRingingVideoCallAsAudio() throws Exception {
+        IdPair ids = startIncomingPhoneCall("650-555-1212", mPhoneAccountA0.getAccountHandle(),
+                VideoProfile.STATE_BIDIRECTIONAL, mConnectionServiceFixtureA);
+
+        assertEquals(Call.STATE_RINGING, mInCallServiceFixtureX.getCall(ids.mCallId).getState());
+        assertEquals(Call.STATE_RINGING, mInCallServiceFixtureY.getCall(ids.mCallId).getState());
+
+        // Use TelecomManager API to answer the ringing call.
+        TelecomManager telecomManager = (TelecomManager) mComponentContextFixture.getTestDouble()
+                .getApplicationContext().getSystemService(Context.TELECOM_SERVICE);
+        telecomManager.acceptRingingCall(VideoProfile.STATE_AUDIO_ONLY);
+
+        // The generic answer method on the ConnectionService is used to answer audio-only calls.
+        verify(mConnectionServiceFixtureA.getTestDouble(), timeout(TEST_TIMEOUT))
+                .answer(eq(ids.mCallId));
+    }
+
+    /**
+     * Tests the {@link TelecomManager#acceptRingingCall()} API.  Tests simple case of an incoming
+     * video call, where an attempt is made to answer with an invalid video state.
+     *
+     * @throws Exception
+     */
+    public void testTelecomManagerAcceptRingingInvalidVideoState() throws Exception {
+        IdPair ids = startIncomingPhoneCall("650-555-1212", mPhoneAccountA0.getAccountHandle(),
+                VideoProfile.STATE_BIDIRECTIONAL, mConnectionServiceFixtureA);
+
+        assertEquals(Call.STATE_RINGING, mInCallServiceFixtureX.getCall(ids.mCallId).getState());
+        assertEquals(Call.STATE_RINGING, mInCallServiceFixtureY.getCall(ids.mCallId).getState());
+
+        // Use TelecomManager API to answer the ringing call; the default expected behavior is to
+        // answer using whatever video state the ringing call requests.
+        TelecomManager telecomManager = (TelecomManager) mComponentContextFixture.getTestDouble()
+                .getApplicationContext().getSystemService(Context.TELECOM_SERVICE);
+        telecomManager.acceptRingingCall(999 /* invalid videostate */);
+
+        // Answer video API should be called
+        verify(mConnectionServiceFixtureA.getTestDouble(), timeout(TEST_TIMEOUT))
+                .answerVideo(eq(ids.mCallId), eq(VideoProfile.STATE_BIDIRECTIONAL));
     }
 
     // A simple incoming call, similar in scope to the previous test
