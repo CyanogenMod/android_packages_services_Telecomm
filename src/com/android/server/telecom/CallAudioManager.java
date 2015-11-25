@@ -508,7 +508,6 @@ final class CallAudioManager extends CallsManagerListenerBase
 
         // Audio route.
         if (mCallAudioState.getRoute() == CallAudioState.ROUTE_BLUETOOTH) {
-            turnOnSpeaker(false);
             turnOnBluetooth(true);
         } else if (mCallAudioState.getRoute() == CallAudioState.ROUTE_SPEAKER) {
             turnOnBluetooth(false);
