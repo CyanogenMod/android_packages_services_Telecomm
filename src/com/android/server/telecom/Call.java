@@ -38,6 +38,7 @@ import android.telecom.TelecomManager;
 import android.telecom.VideoProfile;
 import android.telephony.PhoneNumberUtils;
 import android.text.TextUtils;
+import android.os.UserHandle;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.telecom.IVideoProvider;
@@ -226,6 +227,8 @@ public class Call implements CreateConnectionResponse {
 
     private PhoneAccountHandle mTargetPhoneAccountHandle;
 
+    private UserHandle mInitiatingUser;
+
     private final Handler mHandler = new Handler(Looper.getMainLooper());
 
     private final List<Call> mConferenceableCalls = new ArrayList<>();
@@ -383,7 +386,6 @@ public class Call implements CreateConnectionResponse {
         mIsIncoming = isIncoming;
         mIsConference = isConference;
         maybeLoadCannedSmsResponses();
-
         Log.event(this, Log.Events.CREATED);
     }
 
@@ -1692,6 +1694,22 @@ public class Call implements CreateConnectionResponse {
      */
     private void setLocallyDisconnecting(boolean isLocallyDisconnecting) {
         mIsLocallyDisconnecting = isLocallyDisconnecting;
+    }
+
+    /**
+     * @return user handle of user initiating the outgoing call.
+     */
+    public UserHandle getInitiatingUser() {
+        return mInitiatingUser;
+    }
+
+    /**
+     * Set the user handle of user initiating the outgoing call.
+     * @param initiatingUser
+     */
+    public void setInitiatingUser(UserHandle initiatingUser) {
+        Preconditions.checkNotNull(initiatingUser);
+        mInitiatingUser = initiatingUser;
     }
 
     static int getStateFromConnectionState(int state) {

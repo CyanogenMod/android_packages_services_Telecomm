@@ -140,6 +140,10 @@ public class UserCallIntentProcessor {
 
         intent.putExtra(CallIntentProcessor.KEY_IS_PRIVILEGED_DIALER,
                 isDefaultOrSystemDialer(callingPackageName));
+
+        // Save the user handle of current user before forwarding the intent to primary user.
+        intent.putExtra(CallIntentProcessor.KEY_INITIATING_USER, mUserHandle);
+
         sendBroadcastToReceiver(intent);
     }
 

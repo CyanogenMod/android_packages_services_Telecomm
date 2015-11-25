@@ -33,6 +33,12 @@ public class CallIntentProcessor {
      */
     public static final String KEY_IS_PRIVILEGED_DIALER = "is_privileged_dialer";
 
+    /**
+     * The user initiating the outgoing call.
+     */
+    public static final String KEY_INITIATING_USER = "initiating_user";
+
+
     private final Context mContext;
     private final CallsManager mCallsManager;
 
@@ -96,8 +102,11 @@ public class CallIntentProcessor {
 
         final boolean isPrivilegedDialer = intent.getBooleanExtra(KEY_IS_PRIVILEGED_DIALER, false);
 
+        UserHandle initiatingUser = intent.getParcelableExtra(KEY_INITIATING_USER);
+
         // Send to CallsManager to ensure the InCallUI gets kicked off before the broadcast returns
-        Call call = callsManager.startOutgoingCall(handle, phoneAccountHandle, clientExtras);
+        Call call = callsManager
+                .startOutgoingCall(handle, phoneAccountHandle, clientExtras, initiatingUser);
 
         if (call != null) {
             // Asynchronous calls should not usually be made inside a BroadcastReceiver because once
