@@ -20,8 +20,10 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.UserHandle;
 import android.provider.CallLog.Calls;
 import android.telecom.DisconnectCause;
+import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
 import android.telecom.VideoProfile;
 import android.telephony.PhoneNumberUtils;
@@ -55,7 +57,8 @@ public final class CallLogManager extends CallsManagerListenerBase {
          */
         public AddCallArgs(Context context, CallerInfo callerInfo, String number, String postDialDigits,
                 int presentation, int callType, int features, PhoneAccountHandle accountHandle,
-                long creationDate, long durationInMillis, Long dataUsage) {
+                long creationDate, long durationInMillis, Long dataUsage,
+                UserHandle initiatingUser) {
             this.context = context;
             this.callerInfo = callerInfo;
             this.number = number;
@@ -67,6 +70,7 @@ public final class CallLogManager extends CallsManagerListenerBase {
             this.timestamp = creationDate;
             this.durationInSec = (int)(durationInMillis / 1000);
             this.dataUsage = dataUsage;
+            this.initiatingUser = initiatingUser;
         }
         // Since the members are accessed directly, we don't use the
         // mXxxx notation.
@@ -81,11 +85,13 @@ public final class CallLogManager extends CallsManagerListenerBase {
         public final long timestamp;
         public final int durationInSec;
         public final Long dataUsage;
+        public final UserHandle initiatingUser;
     }
 
     private static final String TAG = CallLogManager.class.getSimpleName();
 
     private final Context mContext;
+    private final PhoneAccountRegistrar mPhoneAccountRegistrar;
     private static final String ACTION_CALLS_TABLE_ADD_ENTRY =
                 "com.android.server.telecom.intent.action.CALLS_ADD_ENTRY";
     private static final String PERMISSION_PROCESS_CALLLOG_INFO =
@@ -93,8 +99,9 @@ public final class CallLogManager extends CallsManagerListenerBase {
     private static final String CALL_TYPE = "callType";
     private static final String CALL_DURATION = "duration";
 
-    public CallLogManager(Context context) {
+    public CallLogManager(Context context, PhoneAccountRegistrar phoneAccountRegistrar) {
         mContext = context;
+        mPhoneAccountRegistrar = phoneAccountRegistrar;
     }
 
     @Override
@@ -153,7 +160,7 @@ public final class CallLogManager extends CallsManagerListenerBase {
         int callFeatures = getCallFeatures(call.getVideoStateHistory());
         logCall(call.getCallerInfo(), logNumber, call.getPostDialDigits(),
                 call.getHandlePresentation(), callLogType, callFeatures, accountHandle,
-                creationTime, age, null, call.isEmergencyCall());
+                creationTime, age, null, call.isEmergencyCall(), call.getInitiatingUser());
     }
 
     /**
@@ -182,7 +189,8 @@ public final class CallLogManager extends CallsManagerListenerBase {
             long start,
             long duration,
             Long dataUsage,
-            boolean isEmergency) {
+            boolean isEmergency,
+            UserHandle initiatingUser) {
 
         // On some devices, to avoid accidental redialing of emergency numbers, we *never* log
         // emergency calls to the Call Log.  (This behavior is set on a per-product basis, based
@@ -200,7 +208,8 @@ public final class CallLogManager extends CallsManagerListenerBase {
                     + Log.pii(number) + "," + presentation + ", " + callType
                     + ", " + start + ", " + duration);
             AddCallArgs args = new AddCallArgs(mContext, callerInfo, number, postDialDigits,
-                    presentation, callType, features, accountHandle, start, duration, dataUsage);
+                    presentation, callType, features, accountHandle, start, duration, dataUsage,
+                    initiatingUser);
             logCallAsync(args);
         } else {
           Log.d(TAG, "Not adding emergency call to call log.");
@@ -264,12 +273,9 @@ public final class CallLogManager extends CallsManagerListenerBase {
             Uri[] result = new Uri[count];
             for (int i = 0; i < count; i++) {
                 AddCallArgs c = callList[i];
-
                 try {
                     // May block.
-                    result[i] = Calls.addCall(c.callerInfo, c.context, c.number, c.postDialDigits,
-                            c.presentation, c.callType, c.features, c.accountHandle, c.timestamp,
-                            c.durationInSec, c.dataUsage, true /* addForAllUsers */);
+                    result[i] = addCall(c);
                 } catch (Exception e) {
                     // This is very rare but may happen in legitimate cases.
                     // E.g. If the phone is encrypted and thus write request fails, it may cause
@@ -283,6 +289,34 @@ public final class CallLogManager extends CallsManagerListenerBase {
                 }
             }
             return result;
+        }
+
+        private Uri addCall(AddCallArgs c) {
+            PhoneAccount phoneAccount = mPhoneAccountRegistrar
+                    .getPhoneAccountUnchecked(c.accountHandle);
+            if (phoneAccount.hasCapabilities(PhoneAccount.CAPABILITY_MULTI_USER)) {
+                if (c.initiatingUser != null &&
+                        UserUtil.isManagedProfile(mContext, c.initiatingUser)) {
+                    return addCall(c, c.initiatingUser);
+                } else {
+                    return addCall(c, null);
+                }
+            } else {
+                return addCall(c, c.accountHandle.getUserHandle());
+            }
+        }
+
+        /**
+         * Insert the call to a specific user or all users except managed profile.
+         * @param c context
+         * @param userToBeInserted user handle of user that the call going be inserted to. null
+         *                         if insert to all users except managed profile.
+         */
+        private Uri addCall(AddCallArgs c, UserHandle userToBeInserted) {
+            return Calls.addCall(c.callerInfo, c.context, c.number, c.postDialDigits,
+                    c.presentation, c.callType, c.features, c.accountHandle, c.timestamp,
+                    c.durationInSec, c.dataUsage, userToBeInserted == null,
+                    userToBeInserted);
         }
 
         /**

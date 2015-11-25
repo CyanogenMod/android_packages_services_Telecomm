@@ -217,7 +217,7 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
         mTtyManager = new TtyManager(context, mWiredHeadsetManager);
         mProximitySensorManager = proximitySensorManagerFactory.create(context, this);
         mPhoneStateBroadcaster = new PhoneStateBroadcaster(this);
-        mCallLogManager = new CallLogManager(context);
+        mCallLogManager = new CallLogManager(context, phoneAccountRegistrar);
         mInCallController = new InCallController(context, mLock, this);
         mDtmfLocalTonePlayer = new DtmfLocalTonePlayer(context);
         mConnectionServiceRepository =

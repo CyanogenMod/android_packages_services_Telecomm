@@ -235,7 +235,7 @@ public class PhoneAccountRegistrar {
             mState.defaultOutgoing = null;
         } else {
             // TODO: Do we really want to return for *any* user?
-            PhoneAccount account = getPhoneAccount(accountHandle);
+            PhoneAccount account = getPhoneAccountUnchecked(accountHandle);
             if (account == null) {
                 Log.w(this, "Trying to set nonexistent default outgoing %s",
                         accountHandle);
@@ -374,7 +374,7 @@ public class PhoneAccountRegistrar {
      *         otherwise.
      */
     public boolean enablePhoneAccount(PhoneAccountHandle accountHandle, boolean isEnabled) {
-        PhoneAccount account = getPhoneAccount(accountHandle);
+        PhoneAccount account = getPhoneAccountUnchecked(accountHandle);
         if (account == null) {
             Log.w(this, "Could not find account to enable: " + accountHandle);
             return false;
@@ -525,7 +525,7 @@ public class PhoneAccountRegistrar {
         // source app provides or else an third party app could enable itself.
         boolean isEnabled = false;
 
-        PhoneAccount oldAccount = getPhoneAccount(account.getAccountHandle());
+        PhoneAccount oldAccount = getPhoneAccountUnchecked(account.getAccountHandle());
         if (oldAccount != null) {
             mState.accounts.remove(oldAccount);
             isEnabled = oldAccount.isEnabled();
@@ -545,7 +545,7 @@ public class PhoneAccountRegistrar {
     }
 
     public void unregisterPhoneAccount(PhoneAccountHandle accountHandle) {
-        PhoneAccount account = getPhoneAccount(accountHandle);
+        PhoneAccount account = getPhoneAccountUnchecked(accountHandle);
         if (account != null) {
             if (mState.accounts.remove(account)) {
                 write();
@@ -688,7 +688,7 @@ public class PhoneAccountRegistrar {
      * @param handle
      * @return The corresponding phone account if one exists.
      */
-    PhoneAccount getPhoneAccount(PhoneAccountHandle handle) {
+    public PhoneAccount getPhoneAccountUnchecked(PhoneAccountHandle handle) {
         for (PhoneAccount m : mState.accounts) {
             if (Objects.equals(handle, m.getAccountHandle())) {
                 return m;
@@ -703,7 +703,7 @@ public class PhoneAccountRegistrar {
      * device.
      */
     public PhoneAccount getPhoneAccountCheckCallingUser(PhoneAccountHandle handle) {
-        PhoneAccount account = getPhoneAccount(handle);
+        PhoneAccount account = getPhoneAccountUnchecked(handle);
         if (account != null && isVisibleForUser(account)) {
             return account;
         }
