@@ -201,7 +201,7 @@ public class TelecomServiceImpl {
                         return null;
                     }
                     // TODO: Do we really want to return for *any* user?
-                    return mPhoneAccountRegistrar.getPhoneAccount(accountHandle);
+                    return mPhoneAccountRegistrar.getPhoneAccountUnchecked(accountHandle);
                 } catch (Exception e) {
                     Log.e(this, e, "getPhoneAccount %s", accountHandle);
                     throw e;
@@ -985,7 +985,7 @@ public class TelecomServiceImpl {
         if (accountHandle == null) {
             return false;
         }
-        return isVisibleToCaller(mPhoneAccountRegistrar.getPhoneAccount(accountHandle));
+        return isVisibleToCaller(mPhoneAccountRegistrar.getPhoneAccountUnchecked(accountHandle));
     }
 
     private boolean isVisibleToCaller(PhoneAccount account) {
