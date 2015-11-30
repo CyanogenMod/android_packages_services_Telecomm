@@ -35,6 +35,7 @@ import android.os.Process;
 import android.os.UserHandle;
 import android.os.UserManager;
 import android.provider.Settings;
+import android.telecom.CallAudioState;
 import android.telecom.ConnectionService;
 import android.telecom.DefaultDialerManager;
 import android.telecom.PhoneAccount;
@@ -121,7 +122,7 @@ public final class PhoneAccountRegistrar {
 
     private static final String FILE_NAME = "phone-account-registrar-state.xml";
     @VisibleForTesting
-    public static final int EXPECTED_STATE_VERSION = 8;
+    public static final int EXPECTED_STATE_VERSION = 9;
 
     /** Keep in sync with the same in SipSettings.java */
     private static final String SIP_SHARED_PREFERENCES = "SIP_PREFERENCES";
@@ -1147,6 +1148,7 @@ public final class PhoneAccountRegistrar {
         private static final String ADDRESS = "handle";
         private static final String SUBSCRIPTION_ADDRESS = "subscription_number";
         private static final String CAPABILITIES = "capabilities";
+        private static final String SUPPORTED_AUDIO_ROUTES = "supported_audio_routes";
         private static final String ICON_RES_ID = "icon_res_id";
         private static final String ICON_PACKAGE_NAME = "icon_package_name";
         private static final String ICON_BITMAP = "icon_bitmap";
@@ -1179,7 +1181,9 @@ public final class PhoneAccountRegistrar {
                 writeTextIfNonNull(LABEL, o.getLabel(), serializer);
                 writeTextIfNonNull(SHORT_DESCRIPTION, o.getShortDescription(), serializer);
                 writeStringList(SUPPORTED_URI_SCHEMES, o.getSupportedUriSchemes(), serializer);
-                writeTextIfNonNull(ENABLED, o.isEnabled() ? "true" : "false" , serializer);
+                writeTextIfNonNull(ENABLED, o.isEnabled() ? "true" : "false", serializer);
+                writeTextIfNonNull(SUPPORTED_AUDIO_ROUTES, Integer.toString(
+                                o.getSupportedAudioRoutes()), serializer);
 
                 serializer.endTag(null, CLASS_PHONE_ACCOUNT);
             }
@@ -1193,6 +1197,7 @@ public final class PhoneAccountRegistrar {
                 Uri address = null;
                 Uri subscriptionAddress = null;
                 int capabilities = 0;
+                int supportedAudioRoutes = 0;
                 int iconResId = PhoneAccount.NO_RESOURCE_ID;
                 String iconPackageName = null;
                 Bitmap iconBitmap = null;
@@ -1248,6 +1253,9 @@ public final class PhoneAccountRegistrar {
                     } else if (parser.getName().equals(ENABLED)) {
                         parser.next();
                         enabled = "true".equalsIgnoreCase(parser.getText());
+                    } else if (parser.getName().equals(SUPPORTED_AUDIO_ROUTES)) {
+                        parser.next();
+                        supportedAudioRoutes = Integer.parseInt(parser.getText());
                     }
                 }
 
@@ -1306,10 +1314,16 @@ public final class PhoneAccountRegistrar {
                     }
                 }
 
+                if (version < 9) {
+                    // Set supported audio routes to all by default
+                    supportedAudioRoutes = CallAudioState.ROUTE_ALL;
+                }
+
                 PhoneAccount.Builder builder = PhoneAccount.builder(accountHandle, label)
                         .setAddress(address)
                         .setSubscriptionAddress(subscriptionAddress)
                         .setCapabilities(capabilities)
+                        .setSupportedAudioRoutes(supportedAudioRoutes)
                         .setShortDescription(shortDescription)
                         .setSupportedUriSchemes(supportedUriSchemes)
                         .setHighlightColor(highlightColor)

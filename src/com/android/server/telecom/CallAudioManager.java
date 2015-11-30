@@ -253,6 +253,12 @@ final class CallAudioManager extends CallsManagerListenerBase
     @Override
     public void onForegroundCallChanged(Call oldForegroundCall, Call newForegroundCall) {
         onCallUpdated(newForegroundCall);
+
+        // Set the system audio state again in case the current route is not permitted by the new
+        // foreground call.
+        setSystemAudioState(mCallAudioState.isMuted(), mCallAudioState.getRoute(),
+                calculateSupportedRoutes(newForegroundCall));
+
         // Ensure that the foreground call knows about the latest audio state.
         updateAudioForForegroundCall();
     }
@@ -472,6 +478,20 @@ final class CallAudioManager extends CallsManagerListenerBase
         }
 
         CallAudioState oldAudioState = mCallAudioState;
+
+        // If the currently selected route is not supported, switch to another supported route
+        if ((route & supportedRouteMask) == 0) {
+            if ((CallAudioState.ROUTE_EARPIECE & supportedRouteMask) != 0) {
+                route = CallAudioState.ROUTE_EARPIECE;
+            } else if ((CallAudioState.ROUTE_WIRED_HEADSET & supportedRouteMask) != 0) {
+                route = CallAudioState.ROUTE_WIRED_HEADSET;
+            } else if ((CallAudioState.ROUTE_SPEAKER & supportedRouteMask) != 0) {
+                route = CallAudioState.ROUTE_SPEAKER;
+            } else if ((CallAudioState.ROUTE_BLUETOOTH & supportedRouteMask) != 0) {
+                route = CallAudioState.ROUTE_BLUETOOTH;
+            }
+        }
+
         saveAudioState(new CallAudioState(isMuted, route, supportedRouteMask));
         if (!force && Objects.equals(oldAudioState, mCallAudioState)) {
             return;
@@ -645,6 +665,10 @@ final class CallAudioManager extends CallsManagerListenerBase
     }
 
     private int calculateSupportedRoutes() {
+        return calculateSupportedRoutes(getForegroundCall());
+    }
+
+    private int calculateSupportedRoutes(Call call) {
         int routeMask = CallAudioState.ROUTE_SPEAKER;
 
         if (mWiredHeadsetManager.isPluggedIn()) {
@@ -657,11 +681,11 @@ final class CallAudioManager extends CallsManagerListenerBase
             routeMask |=  CallAudioState.ROUTE_BLUETOOTH;
         }
 
-        return routeMask;
+        return call != null ? routeMask & call.getSupportedAudioRoutes() : routeMask;
     }
 
     private CallAudioState getInitialAudioState(Call call) {
-        int supportedRouteMask = calculateSupportedRoutes();
+        int supportedRouteMask = calculateSupportedRoutes(call);
         int route = selectWiredOrEarpiece(
                 CallAudioState.ROUTE_WIRED_OR_EARPIECE, supportedRouteMask);
 

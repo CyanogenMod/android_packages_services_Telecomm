@@ -590,6 +590,8 @@ public final class InCallController extends CallsManagerListenerBase {
         int state = getParcelableState(call);
         int capabilities = convertConnectionToCallCapabilities(call.getConnectionCapabilities());
         int properties = convertConnectionToCallProperties(call.getConnectionCapabilities());
+        int supportedAudioRoutes = call.getSupportedAudioRoutes();
+
         if (call.isConference()) {
             properties |= android.telecom.Call.Details.PROPERTY_CONFERENCE;
         }
@@ -659,6 +661,7 @@ public final class InCallController extends CallsManagerListenerBase {
                 call.getCannedSmsResponses(),
                 capabilities,
                 properties,
+                supportedAudioRoutes,
                 connectTimeMillis,
                 handle,
                 call.getHandlePresentation(),
