@@ -142,6 +142,10 @@ final class Ringer extends CallsManagerListenerBase {
      * Silences the ringer for any actively ringing calls.
      */
     void silence() {
+        for (Call call : mRingingCalls) {
+            call.silence();
+        }
+
         // Remove all calls from the "ringing" set and then update the ringer.
         mRingingCalls.clear();
         updateRinging(null);
