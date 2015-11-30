@@ -661,6 +661,18 @@ public class ConnectionServiceWrapper extends ServiceBinder {
         removeCall(call, new DisconnectCause(DisconnectCause.LOCAL));
     }
 
+    /** @see IConnectionService#silence(String) */
+    void silence(Call call) {
+        final String callId = mCallIdMapper.getCallId(call);
+        if (callId != null && isServiceValid("silence")) {
+            try {
+                logOutgoing("silence %s", callId);
+                mServiceInterface.silence(callId);
+            } catch (RemoteException e) {
+            }
+        }
+    }
+
     /** @see IConnectionService#hold(String) */
     void hold(Call call) {
         final String callId = mCallIdMapper.getCallId(call);
