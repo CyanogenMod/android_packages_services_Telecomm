@@ -993,6 +993,19 @@ public class Call implements CreateConnectionResponse {
         }
     }
 
+    /**
+     * Silences the ringer.
+     */
+    void silence() {
+        if (mConnectionService == null) {
+            Log.w(this, "silence() request on a call without a connection service.");
+        } else {
+            Log.i(this, "Send silence to connection service for call %s", this);
+            Log.event(this, Log.Events.STOP_DTMF);
+            mConnectionService.silence(this);
+        }
+    }
+
     void disconnect() {
         disconnect(false);
     }
