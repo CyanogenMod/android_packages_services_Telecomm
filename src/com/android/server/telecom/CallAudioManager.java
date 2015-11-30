@@ -25,6 +25,7 @@ import android.os.Message;
 import android.telecom.CallAudioState;
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.internal.os.SomeArgs;
 import com.android.internal.util.IndentingPrintWriter;
 import com.android.internal.util.Preconditions;
 
@@ -63,44 +64,56 @@ public class CallAudioManager extends CallsManagerListenerBase {
 
         @Override
         public void handleMessage(Message msg) {
-            switch (msg.what) {
-                case MSG_AUDIO_MANAGER_INITIALIZE: {
-                    mAudioManager = (AudioManager) mContext.getSystemService(Context.AUDIO_SERVICE);
-                    break;
+            SomeArgs args = (SomeArgs) msg.obj;
+            int arg2 = 0;
+            try {
+                if (args != null) {
+                    Session subsession = (Session) args.arg1;
+                    Log.continueSession(subsession, "CAM.hM_" + msg.what);
+                    arg2 = (int) args.arg2;
                 }
-                case MSG_AUDIO_MANAGER_ABANDON_AUDIO_FOCUS_FOR_CALL: {
-                    mAudioManager.abandonAudioFocusForCall();
-                    break;
-                }
-                case MSG_AUDIO_MANAGER_REQUEST_AUDIO_FOCUS_FOR_CALL: {
-                    int stream = msg.arg1;
-                    mAudioManager.requestAudioFocusForCall(
-                            stream,
-                            AudioManager.AUDIOFOCUS_GAIN_TRANSIENT);
-                    break;
-                }
-                case MSG_AUDIO_MANAGER_SET_MODE: {
-                    int newMode = msg.arg1;
-                    int oldMode = mAudioManager.getMode();
-                    Log.v(this, "Request to change audio mode from %s to %s", modeToString(oldMode),
-                            modeToString(newMode));
-
-                    if (oldMode != newMode) {
-                        if (oldMode == AudioManager.MODE_IN_CALL &&
-                                newMode == AudioManager.MODE_RINGTONE) {
-                            Log.i(this, "Transition from IN_CALL -> RINGTONE."
-                                    + "  Resetting to NORMAL first.");
-                            mAudioManager.setMode(AudioManager.MODE_NORMAL);
-                        }
-                        mAudioManager.setMode(newMode);
-                        synchronized (mLock) {
-                            mMostRecentlyUsedMode = newMode;
-                        }
+                switch (msg.what) {
+                    case MSG_AUDIO_MANAGER_INITIALIZE: {
+                        mAudioManager = (AudioManager) mContext.getSystemService(Context.AUDIO_SERVICE);
+                        break;
                     }
-                    break;
+                    case MSG_AUDIO_MANAGER_ABANDON_AUDIO_FOCUS_FOR_CALL: {
+                        mAudioManager.abandonAudioFocusForCall();
+                        break;
+                    }
+                    case MSG_AUDIO_MANAGER_REQUEST_AUDIO_FOCUS_FOR_CALL: {
+                        int stream = arg2;
+                        mAudioManager.requestAudioFocusForCall(
+                                stream,
+                                AudioManager.AUDIOFOCUS_GAIN_TRANSIENT);
+                        break;
+                    }
+                    case MSG_AUDIO_MANAGER_SET_MODE: {
+                        int newMode = arg2;
+                        int oldMode = mAudioManager.getMode();
+                        Log.v(this, "Request to change audio mode from %s to %s", modeToString(oldMode),
+                                modeToString(newMode));
+
+                        if (oldMode != newMode) {
+                            if (oldMode == AudioManager.MODE_IN_CALL &&
+                                    newMode == AudioManager.MODE_RINGTONE) {
+                                Log.i(this, "Transition from IN_CALL -> RINGTONE."
+                                        + "  Resetting to NORMAL first.");
+                                mAudioManager.setMode(AudioManager.MODE_NORMAL);
+                            }
+                            mAudioManager.setMode(newMode);
+                            synchronized (mLock) {
+                                mMostRecentlyUsedMode = newMode;
+                            }
+                        }
+                        break;
+                    }
+                    default:
+                        break;
                 }
-                default:
-                    break;
+            } finally {
+                Log.endSession();
+                args.recycle();
             }
         }
     };
@@ -127,11 +140,19 @@ public class CallAudioManager extends CallsManagerListenerBase {
             CallAudioRouteStateMachine callAudioRouteStateMachine) {
         mContext = context;
         mLock = lock;
-        mAudioManagerHandler.obtainMessage(MSG_AUDIO_MANAGER_INITIALIZE, 0, 0).sendToTarget();
+        mAudioManagerHandler.obtainMessage(MSG_AUDIO_MANAGER_INITIALIZE,
+                setArgs(0)).sendToTarget();
         mCallsManager = callsManager;
         mAudioFocusStreamType = STREAM_NONE;
 
         mCallAudioRouteStateMachine = callAudioRouteStateMachine;
+    }
+
+    private SomeArgs setArgs(int arg) {
+        SomeArgs args = SomeArgs.obtain();
+        args.arg1 = Log.createSubsession();
+        args.arg2 = arg;
+        return args;
     }
 
     @VisibleForTesting
@@ -147,7 +168,8 @@ public class CallAudioManager extends CallsManagerListenerBase {
         if (hasFocus() && getForegroundCall() == call) {
             if (!call.isIncoming()) {
                 // Unmute new outgoing call.
-                mCallAudioRouteStateMachine.sendMessage(CallAudioRouteStateMachine.MUTE_OFF);
+                mCallAudioRouteStateMachine.sendMessageWithSessionInfo(
+                        CallAudioRouteStateMachine.MUTE_OFF);
             }
         }
     }
@@ -157,7 +179,8 @@ public class CallAudioManager extends CallsManagerListenerBase {
         Log.v(this, "onCallRemoved");
         if (mCallsManager.getCalls().isEmpty()) {
             Log.v(this, "all calls removed, resetting system audio to default state");
-            mCallAudioRouteStateMachine.sendMessage(CallAudioRouteStateMachine.REINITIALIZE);
+            mCallAudioRouteStateMachine.sendMessageWithSessionInfo(
+                    CallAudioRouteStateMachine.REINITIALIZE);
         }
 
         // If we didn't already have focus, there's nothing to do.
@@ -177,8 +200,8 @@ public class CallAudioManager extends CallsManagerListenerBase {
         Log.v(this, "onIncomingCallAnswered");
 
         if (mCallsManager.getCalls().size() == 1) {
-            mCallAudioRouteStateMachine.sendMessage(CallAudioRouteStateMachine.SWITCH_FOCUS,
-                    CallAudioRouteStateMachine.HAS_FOCUS);
+            mCallAudioRouteStateMachine.sendMessageWithSessionInfo(
+                    CallAudioRouteStateMachine.SWITCH_FOCUS, CallAudioRouteStateMachine.HAS_FOCUS);
         }
 
         if (call.can(android.telecom.Call.Details.CAPABILITY_SPEED_UP_MT_AUDIO)) {
@@ -201,7 +224,8 @@ public class CallAudioManager extends CallsManagerListenerBase {
     }
 
     void toggleMute() {
-        mCallAudioRouteStateMachine.sendMessage(CallAudioRouteStateMachine.TOGGLE_MUTE);
+        mCallAudioRouteStateMachine.sendMessageWithSessionInfo(
+                CallAudioRouteStateMachine.TOGGLE_MUTE);
     }
 
     void mute(boolean shouldMute) {
@@ -217,7 +241,7 @@ public class CallAudioManager extends CallsManagerListenerBase {
             Log.v(this, "ignoring mute for emergency call");
         }
 
-        mCallAudioRouteStateMachine.sendMessage(shouldMute
+        mCallAudioRouteStateMachine.sendMessageWithSessionInfo(shouldMute
                 ? CallAudioRouteStateMachine.MUTE_ON : CallAudioRouteStateMachine.MUTE_OFF);
     }
 
@@ -230,23 +254,23 @@ public class CallAudioManager extends CallsManagerListenerBase {
         Log.v(this, "setAudioRoute, route: %s", CallAudioState.audioRouteToString(route));
         switch (route) {
             case CallAudioState.ROUTE_BLUETOOTH:
-                mCallAudioRouteStateMachine.sendMessage(
+                mCallAudioRouteStateMachine.sendMessageWithSessionInfo(
                         CallAudioRouteStateMachine.SWITCH_BLUETOOTH);
                 return;
             case CallAudioState.ROUTE_SPEAKER:
-                mCallAudioRouteStateMachine.sendMessage(
+                mCallAudioRouteStateMachine.sendMessageWithSessionInfo(
                         CallAudioRouteStateMachine.SWITCH_SPEAKER);
                 return;
             case CallAudioState.ROUTE_WIRED_HEADSET:
-                mCallAudioRouteStateMachine.sendMessage(
+                mCallAudioRouteStateMachine.sendMessageWithSessionInfo(
                         CallAudioRouteStateMachine.SWITCH_HEADSET);
                 return;
             case CallAudioState.ROUTE_EARPIECE:
-                mCallAudioRouteStateMachine.sendMessage(
+                mCallAudioRouteStateMachine.sendMessageWithSessionInfo(
                         CallAudioRouteStateMachine.SWITCH_EARPIECE);
                 return;
             case CallAudioState.ROUTE_WIRED_OR_EARPIECE:
-                mCallAudioRouteStateMachine.sendMessage(
+                mCallAudioRouteStateMachine.sendMessageWithSessionInfo(
                         CallAudioRouteStateMachine.SWITCH_WIRED_OR_EARPIECE);
                 return;
             default:
@@ -355,15 +379,12 @@ public class CallAudioManager extends CallsManagerListenerBase {
         if (mAudioFocusStreamType != stream) {
             Log.i(this, "requestAudioFocusAndSetMode : requesting stream: %s -> %s",
                     streamTypeToString(mAudioFocusStreamType), streamTypeToString(stream));
-            mAudioManagerHandler.obtainMessage(
-                    MSG_AUDIO_MANAGER_REQUEST_AUDIO_FOCUS_FOR_CALL,
-                    stream,
-                    0)
-                    .sendToTarget();
+            mAudioManagerHandler.obtainMessage(MSG_AUDIO_MANAGER_REQUEST_AUDIO_FOCUS_FOR_CALL,
+                    setArgs(stream)).sendToTarget();
         }
         mAudioFocusStreamType = stream;
-        mCallAudioRouteStateMachine.sendMessage(CallAudioRouteStateMachine.SWITCH_FOCUS,
-                CallAudioRouteStateMachine.HAS_FOCUS);
+        mCallAudioRouteStateMachine.sendMessageWithSessionInfo(
+                CallAudioRouteStateMachine.SWITCH_FOCUS, CallAudioRouteStateMachine.HAS_FOCUS);
 
         setMode(mode);
     }
@@ -372,13 +393,13 @@ public class CallAudioManager extends CallsManagerListenerBase {
         if (hasFocus()) {
             setMode(AudioManager.MODE_NORMAL);
             Log.v(this, "abandoning audio focus");
-            mAudioManagerHandler.obtainMessage(MSG_AUDIO_MANAGER_ABANDON_AUDIO_FOCUS_FOR_CALL, 0, 0)
-                    .sendToTarget();
+            mAudioManagerHandler.obtainMessage(MSG_AUDIO_MANAGER_ABANDON_AUDIO_FOCUS_FOR_CALL,
+                    setArgs(0)).sendToTarget();
             mAudioFocusStreamType = STREAM_NONE;
             mCallToSpeedUpMTAudio = null;
         }
-        mCallAudioRouteStateMachine.sendMessage(CallAudioRouteStateMachine.SWITCH_FOCUS,
-                CallAudioRouteStateMachine.NO_FOCUS);
+        mCallAudioRouteStateMachine.sendMessageWithSessionInfo(
+                CallAudioRouteStateMachine.SWITCH_FOCUS, CallAudioRouteStateMachine.NO_FOCUS);
     }
 
     /**
@@ -388,7 +409,8 @@ public class CallAudioManager extends CallsManagerListenerBase {
      */
     private void setMode(int newMode) {
         Preconditions.checkState(hasFocus());
-        mAudioManagerHandler.obtainMessage(MSG_AUDIO_MANAGER_SET_MODE, newMode, 0).sendToTarget();
+        mAudioManagerHandler.obtainMessage(MSG_AUDIO_MANAGER_SET_MODE,
+                setArgs(newMode)).sendToTarget();
     }
 
     private void updateAudioForForegroundCall() {

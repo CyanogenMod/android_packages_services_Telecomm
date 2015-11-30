@@ -863,11 +863,13 @@ public class TelecomServiceImpl {
                 final UserHandle userHandle = Binder.getCallingUserHandle();
                 long token = Binder.clearCallingIdentity();
                 try {
+                    Log.startSession("TSI.pC");
                     final Intent intent = new Intent(Intent.ACTION_CALL, handle);
                     intent.putExtras(extras);
                     new UserCallIntentProcessor(mContext, userHandle).processIntent(intent,
                             callingPackage, hasCallAppOp && hasCallPermission);
                 } finally {
+                    Log.endSession();
                     Binder.restoreCallingIdentity(token);
                 }
             }
