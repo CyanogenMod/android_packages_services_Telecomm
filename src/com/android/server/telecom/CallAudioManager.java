@@ -514,8 +514,8 @@ final class CallAudioManager extends CallsManagerListenerBase
                 Log.v(this, "updateAudioStreamAndMode : no foreground, speeding up MT audio.");
                 requestAudioFocusAndSetMode(AudioManager.STREAM_VOICE_CALL,
                                                          AudioManager.MODE_IN_CALL);
-            } else if (foregroundCall != null && waitingForAccountSelectionCall == null
-                    && (foregroundCall.getState() != CallState.DISCONNECTED)) {
+            } else if (foregroundCall != null && !foregroundCall.isDisconnected() &&
+                    waitingForAccountSelectionCall == null) {
                 // In the case where there is a call that is waiting for account selection,
                 // this will fall back to abandonAudioFocus() below, which temporarily exits
                 // the in-call audio mode. This is to allow TalkBack to speak the "Call with"
@@ -533,7 +533,7 @@ final class CallAudioManager extends CallsManagerListenerBase
                 Log.v(this, "updateAudioStreamAndMode : tone playing");
                 requestAudioFocusAndSetMode(
                         AudioManager.STREAM_VOICE_CALL, mMostRecentlyUsedMode);
-            } else if (call == null) {
+            } else if (!hasRingingForegroundCall() && mCallsManager.hasOnlyDisconnectedCalls()) {
                 Log.v(this, "updateAudioStreamAndMode : no ringing call");
                 abandonAudioFocus();
             } else {
