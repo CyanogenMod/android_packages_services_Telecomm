@@ -28,6 +28,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.timeout;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import android.content.BroadcastReceiver;
@@ -200,6 +201,8 @@ public class TelecomSystemTest extends TelecomTestCase {
 
     TelecomSystem mTelecomSystem;
 
+    private int mNumOutgoingCallsMade;
+
     class IdPair {
         final String mConnectionId;
         final String mCallId;
@@ -213,6 +216,7 @@ public class TelecomSystemTest extends TelecomTestCase {
     @Override
     public void setUp() throws Exception {
         super.setUp();
+        mNumOutgoingCallsMade = 0;
 
         // First set up information about the In-Call services in the mock Context, since
         // Telecom will search for these as soon as it is instantiated
@@ -367,6 +371,7 @@ public class TelecomSystemTest extends TelecomTestCase {
                 (mInCallServiceFixtureX.mInCallAdapter != null),
                 (mInCallServiceFixtureY.mInCallAdapter != null));
 
+        mNumOutgoingCallsMade++;
         int startingNumConnections = connectionServiceFixture.mConnectionById.size();
         int startingNumCalls = mInCallServiceFixtureX.mCallById.size();
         boolean hasInCallAdapter = mInCallServiceFixtureX.mInCallAdapter != null;
@@ -403,7 +408,8 @@ public class TelecomSystemTest extends TelecomTestCase {
         ArgumentCaptor<BroadcastReceiver> newOutgoingCallReceiver =
                 ArgumentCaptor.forClass(BroadcastReceiver.class);
 
-        verify(mComponentContextFixture.getTestDouble().getApplicationContext())
+        verify(mComponentContextFixture.getTestDouble().getApplicationContext(),
+                times(mNumOutgoingCallsMade))
                 .sendOrderedBroadcastAsUser(
                         newOutgoingCallIntent.capture(),
                         any(UserHandle.class),
@@ -622,6 +628,76 @@ public class TelecomSystemTest extends TelecomTestCase {
         assertEquals(Call.STATE_ACTIVE, mInCallServiceFixtureY.getCall(ids.mCallId).getState());
 
         return ids;
+    }
+
+    public void testBasicConferenceCall() throws Exception {
+        makeConferenceCall();
+    }
+
+    public void testAddCallToConference1() throws Exception {
+        ParcelableCall conferenceCall = makeConferenceCall();
+        IdPair callId3 = startAndMakeActiveOutgoingCall(
+                "650-555-1214",
+                mPhoneAccountA0.getAccountHandle(),
+                mConnectionServiceFixtureA);
+        // testAddCallToConference{1,2} differ in the order of arguments to InCallAdapter#conference
+        mInCallServiceFixtureX.getInCallAdapter().conference(
+                conferenceCall.getId(), callId3.mCallId);
+        Thread.sleep(200);
+
+        ParcelableCall call3 = mInCallServiceFixtureX.getCall(callId3.mCallId);
+        ParcelableCall updatedConference = mInCallServiceFixtureX.getCall(conferenceCall.getId());
+        assertEquals(conferenceCall.getId(), call3.getParentCallId());
+        assertEquals(3, updatedConference.getChildCallIds().size());
+        assertTrue(updatedConference.getChildCallIds().contains(callId3.mCallId));
+    }
+
+    public void testAddCallToConference2() throws Exception {
+        ParcelableCall conferenceCall = makeConferenceCall();
+        IdPair callId3 = startAndMakeActiveOutgoingCall(
+                "650-555-1214",
+                mPhoneAccountA0.getAccountHandle(),
+                mConnectionServiceFixtureA);
+        mInCallServiceFixtureX.getInCallAdapter().conference(
+                callId3.mCallId, conferenceCall.getId());
+        Thread.sleep(200);
+
+        ParcelableCall call3 = mInCallServiceFixtureX.getCall(callId3.mCallId);
+        ParcelableCall updatedConference = mInCallServiceFixtureX.getCall(conferenceCall.getId());
+        assertEquals(conferenceCall.getId(), call3.getParentCallId());
+        assertEquals(3, updatedConference.getChildCallIds().size());
+        assertTrue(updatedConference.getChildCallIds().contains(callId3.mCallId));
+    }
+
+    private ParcelableCall makeConferenceCall() throws Exception {
+        IdPair callId1 = startAndMakeActiveOutgoingCall(
+                "650-555-1212",
+                mPhoneAccountA0.getAccountHandle(),
+                mConnectionServiceFixtureA);
+
+        IdPair callId2 = startAndMakeActiveOutgoingCall(
+                "650-555-1213",
+                mPhoneAccountA0.getAccountHandle(),
+                mConnectionServiceFixtureA);
+
+        IInCallAdapter inCallAdapter = mInCallServiceFixtureX.getInCallAdapter();
+        inCallAdapter.conference(callId1.mCallId, callId2.mCallId);
+        // Wait for wacky non-deterministic behavior
+        Thread.sleep(200);
+        ParcelableCall call1 = mInCallServiceFixtureX.getCall(callId1.mCallId);
+        ParcelableCall call2 = mInCallServiceFixtureX.getCall(callId2.mCallId);
+        // Check that the two calls end up with a parent in the end
+        assertNotNull(call1.getParentCallId());
+        assertNotNull(call2.getParentCallId());
+        assertEquals(call1.getParentCallId(), call2.getParentCallId());
+
+        // Check to make sure that the parent call made it to the in-call service
+        String parentCallId = call1.getParentCallId();
+        ParcelableCall conferenceCall = mInCallServiceFixtureX.getCall(parentCallId);
+        assertEquals(2, conferenceCall.getChildCallIds().size());
+        assertTrue(conferenceCall.getChildCallIds().contains(callId1.mCallId));
+        assertTrue(conferenceCall.getChildCallIds().contains(callId2.mCallId));
+        return conferenceCall;
     }
 
     public void testSingleOutgoingCallLocalDisconnect() throws Exception {
