@@ -48,7 +48,7 @@ import android.telephony.TelephonyManager;
 // TODO: Needed for move to system service: import com.android.internal.R;
 import com.android.internal.telecom.ITelecomService;
 import com.android.internal.util.IndentingPrintWriter;
-import com.android.server.telecom.components.UserCallIntentProcessor;
+import com.android.server.telecom.components.UserCallIntentProcessorFactory;
 
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
@@ -60,6 +60,29 @@ import java.util.List;
  * Implementation of the ITelecom interface.
  */
 public class TelecomServiceImpl {
+    public interface DefaultDialerManagerAdapter {
+        String getDefaultDialerApplication(Context context);
+        boolean setDefaultDialerApplication(Context context, String packageName);
+        boolean isDefaultOrSystemDialer(Context context, String packageName);
+    }
+
+    static class DefaultDialerManagerAdapterImpl implements DefaultDialerManagerAdapter {
+        @Override
+        public String getDefaultDialerApplication(Context context) {
+            return DefaultDialerManager.getDefaultDialerApplication(context);
+        }
+
+        @Override
+        public boolean setDefaultDialerApplication(Context context, String packageName) {
+            return DefaultDialerManager.setDefaultDialerApplication(context, packageName);
+        }
+
+        @Override
+        public boolean isDefaultOrSystemDialer(Context context, String packageName) {
+            return DefaultDialerManager.isDefaultOrSystemDialer(context, packageName);
+        }
+
+    }
     private static final String PERMISSION_PROCESS_PHONE_ACCOUNT_REGISTRATION =
             "android.permission.PROCESS_PHONE_ACCOUNT_REGISTRATION";
     private static final int DEFAULT_VIDEO_STATE = -1;
@@ -572,7 +595,7 @@ public class TelecomServiceImpl {
                 Log.startSession("TSI.gDDP");
                 final long token = Binder.clearCallingIdentity();
                 try {
-                    return DefaultDialerManager.getDefaultDialerApplication(mContext);
+                    return mDefaultDialerManagerAdapter.getDefaultDialerApplication(mContext);
                 } finally {
                     Binder.restoreCallingIdentity(token);
                 }
@@ -937,7 +960,8 @@ public class TelecomServiceImpl {
                             if (extras != null) {
                                 intent.putExtra(TelecomManager.EXTRA_INCOMING_CALL_EXTRAS, extras);
                             }
-                            CallIntentProcessor.processIncomingCallIntent(mCallsManager, intent);
+                            mCallIntentProcessorAdapter.processIncomingCallIntent(
+                                    mCallsManager, intent);
                         } finally {
                             Binder.restoreCallingIdentity(token);
                         }
@@ -975,7 +999,7 @@ public class TelecomServiceImpl {
                             intent.putExtra(CallIntentProcessor.KEY_IS_UNKNOWN_CALL, true);
                             intent.putExtra(TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE,
                                     phoneAccountHandle);
-                            CallIntentProcessor.processUnknownCallIntent(mCallsManager, intent);
+                            mCallIntentProcessorAdapter.processUnknownCallIntent(mCallsManager, intent);
                         } finally {
                             Binder.restoreCallingIdentity(token);
                         }
@@ -1022,8 +1046,9 @@ public class TelecomServiceImpl {
                     try {
                         final Intent intent = new Intent(Intent.ACTION_CALL, handle);
                         intent.putExtras(extras);
-                        new UserCallIntentProcessor(mContext, userHandle).processIntent(intent,
-                                callingPackage, hasCallAppOp && hasCallPermission);
+                        mUserCallIntentProcessorFactory.create(mContext, userHandle)
+                                .processIntent(
+                                        intent, callingPackage, hasCallAppOp && hasCallPermission);
                     } finally {
                         Binder.restoreCallingIdentity(token);
                     }
@@ -1065,8 +1090,8 @@ public class TelecomServiceImpl {
                     long token = Binder.clearCallingIdentity();
                     try {
                         final boolean result =
-                                DefaultDialerManager.setDefaultDialerApplication(mContext,
-                                        packageName);
+                                mDefaultDialerManagerAdapter
+                                        .setDefaultDialerApplication(mContext, packageName);
                         if (result) {
                             final Intent intent =
                                     new Intent(TelecomManager.ACTION_DEFAULT_DIALER_CHANGED);
@@ -1131,12 +1156,18 @@ public class TelecomServiceImpl {
     private PackageManager mPackageManager;
     private CallsManager mCallsManager;
     private final PhoneAccountRegistrar mPhoneAccountRegistrar;
+    private final CallIntentProcessor.Adapter mCallIntentProcessorAdapter;
+    private final UserCallIntentProcessorFactory mUserCallIntentProcessorFactory;
+    private final DefaultDialerManagerAdapter mDefaultDialerManagerAdapter;
     private final TelecomSystem.SyncRoot mLock;
 
     public TelecomServiceImpl(
             Context context,
             CallsManager callsManager,
             PhoneAccountRegistrar phoneAccountRegistrar,
+            CallIntentProcessor.Adapter callIntentProcessorAdapter,
+            UserCallIntentProcessorFactory userCallIntentProcessorFactory,
+            DefaultDialerManagerAdapter defaultDialerManagerAdapter,
             TelecomSystem.SyncRoot lock) {
         mContext = context;
         mAppOpsManager = (AppOpsManager) mContext.getSystemService(Context.APP_OPS_SERVICE);
@@ -1147,6 +1178,9 @@ public class TelecomServiceImpl {
         mCallsManager = callsManager;
         mLock = lock;
         mPhoneAccountRegistrar = phoneAccountRegistrar;
+        mUserCallIntentProcessorFactory = userCallIntentProcessorFactory;
+        mDefaultDialerManagerAdapter = defaultDialerManagerAdapter;
+        mCallIntentProcessorAdapter = callIntentProcessorAdapter;
     }
 
     public ITelecomService.Stub getBinder() {
@@ -1356,11 +1390,11 @@ public class TelecomServiceImpl {
 
     private boolean isPrivilegedDialerCalling(String callingPackage) {
         mAppOpsManager.checkPackage(Binder.getCallingUid(), callingPackage);
-        return DefaultDialerManager.isDefaultOrSystemDialer(mContext, callingPackage);
+        return mDefaultDialerManagerAdapter.isDefaultOrSystemDialer(mContext, callingPackage);
     }
 
     private TelephonyManager getTelephonyManager() {
-        return (TelephonyManager)mContext.getSystemService(Context.TELEPHONY_SERVICE);
+        return (TelephonyManager) mContext.getSystemService(Context.TELEPHONY_SERVICE);
     }
 
     /**

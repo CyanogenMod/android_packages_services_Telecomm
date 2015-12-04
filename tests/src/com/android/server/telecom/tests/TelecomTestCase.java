@@ -33,6 +33,7 @@ public abstract class TelecomTestCase extends AndroidTestCase {
         Log.setTag(TESTING_TAG);
         mMockitoHelper.setUp(getContext(), getClass());
         mComponentContextFixture = new ComponentContextFixture();
+        Log.setContext(mComponentContextFixture.getTestDouble().getApplicationContext());
         MockitoAnnotations.initMocks(this);
     }
 

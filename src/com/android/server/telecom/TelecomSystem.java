@@ -17,6 +17,8 @@
 package com.android.server.telecom;
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.server.telecom.components.UserCallIntentProcessor;
+import com.android.server.telecom.components.UserCallIntentProcessorFactory;
 
 import android.Manifest;
 import android.content.BroadcastReceiver;
@@ -159,7 +161,16 @@ public final class TelecomSystem {
                 Manifest.permission.CONTROL_INCALL_EXPERIENCE, null);
 
         mTelecomServiceImpl = new TelecomServiceImpl(
-                mContext, mCallsManager, mPhoneAccountRegistrar, mLock);
+                mContext, mCallsManager, mPhoneAccountRegistrar,
+                new CallIntentProcessor.AdapterImpl(),
+                new UserCallIntentProcessorFactory() {
+                    @Override
+                    public UserCallIntentProcessor create(Context context, UserHandle userHandle) {
+                        return new UserCallIntentProcessor(context, userHandle);
+                    }
+                },
+                new TelecomServiceImpl.DefaultDialerManagerAdapterImpl(),
+                mLock);
     }
 
     @VisibleForTesting

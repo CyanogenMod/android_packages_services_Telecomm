@@ -219,7 +219,8 @@ public class PhoneAccountRegistrar {
      * @return The user-selected outgoing {@link PhoneAccount}, or null if it hasn't been set (or
      *      if it was set by another user).
      */
-    PhoneAccountHandle getUserSelectedOutgoingPhoneAccount(UserHandle userHandle) {
+    @VisibleForTesting
+    public PhoneAccountHandle getUserSelectedOutgoingPhoneAccount(UserHandle userHandle) {
         if (userHandle == null) {
             return null;
         }
@@ -231,6 +232,7 @@ public class PhoneAccountRegistrar {
         // Make sure the account is still registered and owned by the user.
         PhoneAccount account = getPhoneAccount(defaultPhoneAccountHandle.phoneAccountHandle,
                 userHandle);
+
         if (account != null) {
             return defaultPhoneAccountHandle.phoneAccountHandle;
         }
@@ -639,12 +641,6 @@ public class PhoneAccountRegistrar {
     private void fireDefaultOutgoingChanged() {
         for (Listener l : mListeners) {
             l.onDefaultOutgoingChanged(this);
-        }
-    }
-
-    private void fireSimCallManagerChanged() {
-        for (Listener l : mListeners) {
-            l.onSimCallManagerChanged(this);
         }
     }
 

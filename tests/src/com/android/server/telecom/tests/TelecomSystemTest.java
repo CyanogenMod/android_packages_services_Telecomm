@@ -208,6 +208,8 @@ public class TelecomSystemTest extends TelecomTestCase {
 
     TelecomSystem mTelecomSystem;
 
+    Context mSpyContext;
+
     private int mNumOutgoingCallsMade;
 
     class IdPair {
@@ -223,6 +225,9 @@ public class TelecomSystemTest extends TelecomTestCase {
     @Override
     public void setUp() throws Exception {
         super.setUp();
+        mSpyContext = mComponentContextFixture.getTestDouble().getApplicationContext();
+        doReturn(mSpyContext).when(mSpyContext).getApplicationContext();
+
         mNumOutgoingCallsMade = 0;
 
         // First set up information about the In-Call services in the mock Context, since
@@ -404,9 +409,6 @@ public class TelecomSystemTest extends TelecomTestCase {
         // called correctly in order to continue.
         verify(localAppContext).sendBroadcastAsUser(actionCallIntent, UserHandle.SYSTEM);
         mTelecomSystem.getCallIntentProcessor().processIntent(actionCallIntent);
-
-        assertEquals(userHandle,
-                actionCallIntent.getParcelableExtra(CallIntentProcessor.KEY_INITIATING_USER));
 
         if (!hasInCallAdapter) {
             verify(mInCallServiceFixtureX.getTestDouble())

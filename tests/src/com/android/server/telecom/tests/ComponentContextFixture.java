@@ -251,6 +251,7 @@ public class ComponentContextFixture implements TestFixture<Context> {
 
         @Override
         public void sendBroadcastAsUser(Intent intent, UserHandle userHandle) {
+            // TODO -- need to ensure this is captured
         }
 
         @Override
@@ -273,9 +274,18 @@ public class ComponentContextFixture implements TestFixture<Context> {
         }
 
         @Override
+        public int checkCallingOrSelfPermission(String permission) {
+            return PackageManager.PERMISSION_GRANTED;
+        }
+
+        @Override
         public void enforceCallingOrSelfPermission(String permission, String message) {
             // Don't bother enforcing anything in mock.
         }
+
+        /**
+         * Used to work around a Mockito/ART bug. If you remove any of these, tests will fail.
+         */
     };
 
     public class FakeAudioManager extends AudioManager {

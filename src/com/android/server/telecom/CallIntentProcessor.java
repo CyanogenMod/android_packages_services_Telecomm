@@ -24,6 +24,30 @@ import android.widget.Toast;
  * which interacts with the rest of Telecom, both of which run only as the primary user.
  */
 public class CallIntentProcessor {
+    public interface Adapter {
+        void processOutgoingCallIntent(Context context, CallsManager callsManager,
+                Intent intent);
+        void processIncomingCallIntent(CallsManager callsManager, Intent intent);
+        void processUnknownCallIntent(CallsManager callsManager, Intent intent);
+    }
+
+    public static class AdapterImpl implements Adapter {
+        @Override
+        public void processOutgoingCallIntent(Context context, CallsManager callsManager,
+                Intent intent) {
+            CallIntentProcessor.processOutgoingCallIntent(context, callsManager, intent);
+        }
+
+        @Override
+        public void processIncomingCallIntent(CallsManager callsManager, Intent intent) {
+            CallIntentProcessor.processIncomingCallIntent(callsManager, intent);
+        }
+
+        @Override
+        public void processUnknownCallIntent(CallsManager callsManager, Intent intent) {
+            CallIntentProcessor.processUnknownCallIntent(callsManager, intent);
+        }
+    }
 
     public static final String KEY_IS_UNKNOWN_CALL = "is_unknown_call";
     public static final String KEY_IS_INCOMING_CALL = "is_incoming_call";
