@@ -23,6 +23,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.content.pm.ServiceInfo;
+import android.content.pm.UserInfo;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.Icon;
@@ -72,7 +73,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
@@ -115,7 +118,7 @@ public class PhoneAccountRegistrar {
 
     private static final String FILE_NAME = "phone-account-registrar-state.xml";
     @VisibleForTesting
-    public static final int EXPECTED_STATE_VERSION = 8;
+    public static final int EXPECTED_STATE_VERSION = 9;
 
     /** Keep in sync with the same in SipSettings.java */
     private static final String SIP_SHARED_PREFERENCES = "SIP_PREFERENCES";
@@ -217,9 +220,19 @@ public class PhoneAccountRegistrar {
      *      if it was set by another user).
      */
     PhoneAccountHandle getUserSelectedOutgoingPhoneAccount(UserHandle userHandle) {
-        PhoneAccount account = getPhoneAccount(mState.defaultOutgoing, userHandle);
+        if (userHandle == null) {
+            return null;
+        }
+        DefaultPhoneAccountHandle defaultPhoneAccountHandle = mState.defaultOutgoingAccountHandles
+                .get(userHandle);
+        if (defaultPhoneAccountHandle == null) {
+            return null;
+        }
+        // Make sure the account is still registered and owned by the user.
+        PhoneAccount account = getPhoneAccount(defaultPhoneAccountHandle.phoneAccountHandle,
+                userHandle);
         if (account != null) {
-            return mState.defaultOutgoing;
+            return defaultPhoneAccountHandle.phoneAccountHandle;
         }
         return null;
     }
@@ -228,13 +241,16 @@ public class PhoneAccountRegistrar {
      * Sets the phone account with which to place all calls by default. Set by the user
      * within phone settings.
      */
-    public void setUserSelectedOutgoingPhoneAccount(PhoneAccountHandle accountHandle) {
+    public void setUserSelectedOutgoingPhoneAccount(PhoneAccountHandle accountHandle,
+            UserHandle userHandle) {
+        if (userHandle == null) {
+            return;
+        }
         if (accountHandle == null) {
             // Asking to clear the default outgoing is a valid request
-            mState.defaultOutgoing = null;
+            mState.defaultOutgoingAccountHandles.remove(userHandle);
         } else {
-            // TODO: Do we really want to return for *any* user?
-            PhoneAccount account = getPhoneAccountUnchecked(accountHandle);
+            PhoneAccount account = getPhoneAccount(accountHandle, userHandle);
             if (account == null) {
                 Log.w(this, "Trying to set nonexistent default outgoing %s",
                         accountHandle);
@@ -254,7 +270,8 @@ public class PhoneAccountRegistrar {
                 mSubscriptionManager.setDefaultVoiceSubId(subId);
             }
 
-            mState.defaultOutgoing = accountHandle;
+            mState.defaultOutgoingAccountHandles
+                    .put(userHandle, new DefaultPhoneAccountHandle(userHandle, accountHandle));
         }
 
         write();
@@ -846,10 +863,11 @@ public class PhoneAccountRegistrar {
     @VisibleForTesting
     public static class State {
         /**
-         * The account selected by the user to be employed by default for making outgoing calls.
-         * If the user has not made such a selection, then this is null.
+         * Store the default phone account handle of users. If no record of a user can be found in
+         * the map, it means that no default phone account handle is set in that user.
          */
-        public PhoneAccountHandle defaultOutgoing = null;
+        public final Map<UserHandle, DefaultPhoneAccountHandle> defaultOutgoingAccountHandles
+                = new ConcurrentHashMap<>();
 
         /**
          * The complete list of {@code PhoneAccount}s known to the Telecom subsystem.
@@ -863,6 +881,22 @@ public class PhoneAccountRegistrar {
     }
 
     /**
+     * The default {@link PhoneAccountHandle} of a user.
+     */
+    public static class DefaultPhoneAccountHandle {
+
+        public final UserHandle userHandle;
+
+        public final PhoneAccountHandle phoneAccountHandle;
+
+        public DefaultPhoneAccountHandle(UserHandle userHandle,
+                PhoneAccountHandle phoneAccountHandle) {
+            this.userHandle = userHandle;
+            this.phoneAccountHandle = phoneAccountHandle;
+        }
+    }
+
+    /**
      * Dumps the state of the {@link CallsManager}.
      *
      * @param pw The {@code IndentingPrintWriter} to write the state to.
@@ -870,8 +904,10 @@ public class PhoneAccountRegistrar {
     public void dump(IndentingPrintWriter pw) {
         if (mState != null) {
             pw.println("xmlVersion: " + mState.versionNumber);
-            pw.println("defaultOutgoing: " + (mState.defaultOutgoing == null ? "none" :
-                    mState.defaultOutgoing));
+            DefaultPhoneAccountHandle defaultPhoneAccountHandle
+                    = mState.defaultOutgoingAccountHandles.get(Process.myUserHandle());
+            pw.println("defaultOutgoing: " + (defaultPhoneAccountHandle == null ? "none" :
+                    defaultPhoneAccountHandle.phoneAccountHandle));
             pw.println("simCallManager: " + getSimCallManager(mCurrentUserHandle));
             pw.println("phoneAccounts:");
             pw.increaseIndent();
@@ -1201,11 +1237,13 @@ public class PhoneAccountRegistrar {
                 serializer.startTag(null, CLASS_STATE);
                 serializer.attribute(null, VERSION, Objects.toString(EXPECTED_STATE_VERSION));
 
-                if (o.defaultOutgoing != null) {
-                    serializer.startTag(null, DEFAULT_OUTGOING);
-                    sPhoneAccountHandleXml.writeToXml(o.defaultOutgoing, serializer, context);
-                    serializer.endTag(null, DEFAULT_OUTGOING);
+                serializer.startTag(null, DEFAULT_OUTGOING);
+                for (DefaultPhoneAccountHandle defaultPhoneAccountHandle : o
+                        .defaultOutgoingAccountHandles.values()) {
+                    sDefaultPhoneAcountHandleXml
+                            .writeToXml(defaultPhoneAccountHandle, serializer, context);
                 }
+                serializer.endTag(null, DEFAULT_OUTGOING);
 
                 serializer.startTag(null, ACCOUNTS);
                 for (PhoneAccount m : o.accounts) {
@@ -1224,15 +1262,39 @@ public class PhoneAccountRegistrar {
                 State s = new State();
 
                 String rawVersion = parser.getAttributeValue(null, VERSION);
-                s.versionNumber = TextUtils.isEmpty(rawVersion) ? 1 :
-                        Integer.parseInt(rawVersion);
+                s.versionNumber = TextUtils.isEmpty(rawVersion) ? 1 : Integer.parseInt(rawVersion);
 
                 int outerDepth = parser.getDepth();
                 while (XmlUtils.nextElementWithin(parser, outerDepth)) {
                     if (parser.getName().equals(DEFAULT_OUTGOING)) {
-                        parser.nextTag();
-                        s.defaultOutgoing = sPhoneAccountHandleXml.readFromXml(parser,
-                                s.versionNumber, context);
+                        if (s.versionNumber < 9) {
+                            // Migration old default phone account handle here by assuming the
+                            // default phone account handle is belong to primary user.
+                            parser.nextTag();
+                            PhoneAccountHandle phoneAccountHandle = sPhoneAccountHandleXml
+                                    .readFromXml(parser, s.versionNumber, context);
+                            UserManager userManager = UserManager.get(context);
+                            UserInfo primaryUser = userManager.getPrimaryUser();
+                            if (primaryUser != null) {
+                                UserHandle userHandle = primaryUser.getUserHandle();
+                                DefaultPhoneAccountHandle defaultPhoneAccountHandle
+                                        = new DefaultPhoneAccountHandle(userHandle,
+                                        phoneAccountHandle);
+                                s.defaultOutgoingAccountHandles
+                                        .put(userHandle, defaultPhoneAccountHandle);
+                            }
+                        } else {
+                            int defaultAccountHandlesDepth = parser.getDepth();
+                            while (XmlUtils.nextElementWithin(parser, defaultAccountHandlesDepth)) {
+                                DefaultPhoneAccountHandle accountHandle
+                                        = sDefaultPhoneAcountHandleXml
+                                        .readFromXml(parser, s.versionNumber, context);
+                                if (accountHandle != null && s.accounts != null) {
+                                    s.defaultOutgoingAccountHandles
+                                            .put(accountHandle.userHandle, accountHandle);
+                                }
+                            }
+                        }
                     } else if (parser.getName().equals(ACCOUNTS)) {
                         int accountsDepth = parser.getDepth();
                         while (XmlUtils.nextElementWithin(parser, accountsDepth)) {
@@ -1250,6 +1312,70 @@ public class PhoneAccountRegistrar {
             return null;
         }
     };
+
+    @VisibleForTesting
+    public static final XmlSerialization<DefaultPhoneAccountHandle> sDefaultPhoneAcountHandleXml  =
+            new XmlSerialization<DefaultPhoneAccountHandle>() {
+                private static final String CLASS_DEFAULT_OUTGOING_PHONE_ACCOUNT_HANDLE
+                        = "default_outgoing_phone_account_handle";
+                private static final String USER_SERIAL_NUMBER = "user_serial_number";
+                private static final String ACCOUNT_HANDLE = "account_handle";
+
+                @Override
+                public void writeToXml(DefaultPhoneAccountHandle o, XmlSerializer serializer,
+                        Context context) throws IOException {
+                    if (o != null) {
+                        final UserManager userManager = UserManager.get(context);
+                        final long serialNumber = userManager.getSerialNumberForUser(o.userHandle);
+                        if (serialNumber != -1) {
+                            serializer.startTag(null, CLASS_DEFAULT_OUTGOING_PHONE_ACCOUNT_HANDLE);
+                            writeLong(USER_SERIAL_NUMBER, serialNumber, serializer);
+                            serializer.startTag(null, ACCOUNT_HANDLE);
+                            sPhoneAccountHandleXml.writeToXml(o.phoneAccountHandle, serializer,
+                                    context);
+                            serializer.endTag(null, ACCOUNT_HANDLE);
+                            serializer.endTag(null, CLASS_DEFAULT_OUTGOING_PHONE_ACCOUNT_HANDLE);
+                        }
+                    }
+                }
+
+                @Override
+                public DefaultPhoneAccountHandle readFromXml(XmlPullParser parser, int version,
+                        Context context)
+                        throws IOException, XmlPullParserException {
+                    if (parser.getName().equals(CLASS_DEFAULT_OUTGOING_PHONE_ACCOUNT_HANDLE)) {
+                        int outerDepth = parser.getDepth();
+                        PhoneAccountHandle accountHandle = null;
+                        String userSerialNumberString = null;
+                        while (XmlUtils.nextElementWithin(parser, outerDepth)) {
+                            if (parser.getName().equals(ACCOUNT_HANDLE)) {
+                                parser.nextTag();
+                                accountHandle = sPhoneAccountHandleXml.readFromXml(parser, version,
+                                        context);
+                            } else if (parser.getName().equals(USER_SERIAL_NUMBER)) {
+                                parser.next();
+                                userSerialNumberString = parser.getText();
+                            }
+                        }
+                        UserHandle userHandle = null;
+                        if (userSerialNumberString != null) {
+                            try {
+                                long serialNumber = Long.parseLong(userSerialNumberString);
+                                userHandle = UserManager.get(context)
+                                        .getUserForSerialNumber(serialNumber);
+                            } catch (NumberFormatException e) {
+                                Log.e(this, e,
+                                        "Could not parse UserHandle " + userSerialNumberString);
+                            }
+                        }
+                        if (accountHandle != null && userHandle != null) {
+                            return new DefaultPhoneAccountHandle(userHandle, accountHandle);
+                        }
+                    }
+                    return null;
+                }
+            };
+
 
     @VisibleForTesting
     public static final XmlSerialization<PhoneAccount> sPhoneAccountXml =
