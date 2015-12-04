@@ -477,6 +477,53 @@ public class CallLogManagerTest extends TelecomTestCase {
                 Integer.valueOf(Calls.INCOMING_TYPE));
     }
 
+    /**
+     * Ensure call data usage is persisted to the call log when present in the call.
+     */
+    public void testLogCallDataUsageSet() {
+        when(mMockPhoneAccountRegistrar.getPhoneAccountUnchecked(any(PhoneAccountHandle.class)))
+                .thenReturn(makeFakePhoneAccount(mDefaultAccountHandle, CURRENT_USER_ID));
+        Call fakeVideoCall = makeFakeCall(
+                DisconnectCause.OTHER, // disconnectCauseCode
+                false, // isConference
+                true, // isIncoming
+                1L, // creationTimeMillis
+                1000L, // ageMillis
+                TEL_PHONEHANDLE, // callHandle
+                mDefaultAccountHandle, // phoneAccountHandle
+                BIDIRECTIONAL_VIDEO_STATE, // callVideoState
+                POST_DIAL_STRING, // postDialDigits
+                UserHandle.of(CURRENT_USER_ID), // initiatingUser
+                1000 // callDataUsage
+        );
+        mCallLogManager.onCallStateChanged(fakeVideoCall, CallState.ACTIVE, CallState.DISCONNECTED);
+        ContentValues insertedValues = verifyInsertionWithCapture(CURRENT_USER_ID);
+        assertEquals(Long.valueOf(1000), insertedValues.getAsLong(CallLog.Calls.DATA_USAGE));
+    }
+
+    /**
+     * Ensures call data usage is null in the call log when not set on the call.
+     */
+    public void testLogCallDataUsageNotSet() {
+        when(mMockPhoneAccountRegistrar.getPhoneAccountUnchecked(any(PhoneAccountHandle.class)))
+                .thenReturn(makeFakePhoneAccount(mDefaultAccountHandle, CURRENT_USER_ID));
+        Call fakeVideoCall = makeFakeCall(
+                DisconnectCause.OTHER, // disconnectCauseCode
+                false, // isConference
+                true, // isIncoming
+                1L, // creationTimeMillis
+                1000L, // ageMillis
+                TEL_PHONEHANDLE, // callHandle
+                mDefaultAccountHandle, // phoneAccountHandle
+                BIDIRECTIONAL_VIDEO_STATE, // callVideoState
+                POST_DIAL_STRING, // postDialDigits
+                UserHandle.of(CURRENT_USER_ID), // initiatingUser
+                Call.DATA_USAGE_NOT_SET // callDataUsage
+        );
+        mCallLogManager.onCallStateChanged(fakeVideoCall, CallState.ACTIVE, CallState.DISCONNECTED);
+        ContentValues insertedValues = verifyInsertionWithCapture(CURRENT_USER_ID);
+        assertNull(insertedValues.getAsLong(CallLog.Calls.DATA_USAGE));
+    }
 
     private void verifyNoInsertion() {
         try {
@@ -511,11 +558,20 @@ public class CallLogManagerTest extends TelecomTestCase {
         return captor.getValue();
     }
 
-
     private Call makeFakeCall(int disconnectCauseCode, boolean isConference, boolean isIncoming,
             long creationTimeMillis, long ageMillis, Uri callHandle,
             PhoneAccountHandle phoneAccountHandle, int callVideoState,
             String postDialDigits, UserHandle initiatingUser) {
+        return makeFakeCall(disconnectCauseCode, isConference, isIncoming, creationTimeMillis,
+                ageMillis,
+                callHandle, phoneAccountHandle, callVideoState, postDialDigits, initiatingUser,
+                Call.DATA_USAGE_NOT_SET);
+    }
+
+    private Call makeFakeCall(int disconnectCauseCode, boolean isConference, boolean isIncoming,
+            long creationTimeMillis, long ageMillis, Uri callHandle,
+            PhoneAccountHandle phoneAccountHandle, int callVideoState,
+            String postDialDigits, UserHandle initiatingUser, long callDataUsage) {
         Call fakeCall = mock(Call.class);
         when(fakeCall.getDisconnectCause()).thenReturn(
                 new DisconnectCause(disconnectCauseCode));
@@ -528,6 +584,7 @@ public class CallLogManagerTest extends TelecomTestCase {
         when(fakeCall.getVideoStateHistory()).thenReturn(callVideoState);
         when(fakeCall.getPostDialDigits()).thenReturn(postDialDigits);
         when(fakeCall.getInitiatingUser()).thenReturn(initiatingUser);
+        when(fakeCall.getCallDataUsage()).thenReturn(callDataUsage);
         return fakeCall;
     }
 

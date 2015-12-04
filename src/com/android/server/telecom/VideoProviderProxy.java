@@ -206,6 +206,9 @@ public class VideoProviderProxy extends Connection.VideoProvider {
          * Proxies a request from the {@link #mConectionServiceVideoProvider} to the
          * {@link InCallService} when the call data usage changes.
          *
+         * Also tracks the current call data usage on the {@link Call} for use when writing to the
+         * call log.
+         *
          * @param dataUsage The data usage.
          */
         @Override
@@ -213,6 +216,7 @@ public class VideoProviderProxy extends Connection.VideoProvider {
             synchronized (mLock) {
                 logFromVideoProvider("changeCallDataUsage: " + dataUsage);
                 VideoProviderProxy.this.setCallDataUsage(dataUsage);
+                mCall.setCallDataUsage(dataUsage);
             }
         }
 
