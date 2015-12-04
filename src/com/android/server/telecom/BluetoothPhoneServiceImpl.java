@@ -826,14 +826,14 @@ public class BluetoothPhoneServiceImpl {
         PhoneAccount account = null;
         if (call != null) {
             // First try to get the network name of the foreground call.
-            account = mPhoneAccountRegistrar.getPhoneAccountCheckCallingUser(
+            account = mPhoneAccountRegistrar.getPhoneAccountOfCurrentUser(
                     call.getTargetPhoneAccount());
         }
 
         if (account == null) {
             // Second, Try to get the label for the default Phone Account.
-            account = mPhoneAccountRegistrar.getPhoneAccountCheckCallingUser(
-                    mPhoneAccountRegistrar.getOutgoingPhoneAccountForScheme(
+            account = mPhoneAccountRegistrar.getPhoneAccountUnchecked(
+                    mPhoneAccountRegistrar.getOutgoingPhoneAccountForSchemeOfCurrentUser(
                             PhoneAccount.SCHEME_TEL));
         }
         return account;

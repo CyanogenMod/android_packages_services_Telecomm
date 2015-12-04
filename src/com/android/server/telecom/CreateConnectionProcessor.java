@@ -17,14 +17,11 @@
 package com.android.server.telecom;
 
 import android.content.Context;
+import android.os.UserHandle;
 import android.telecom.DisconnectCause;
 import android.telecom.ParcelableConnection;
-import android.telecom.Phone;
 import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
-import android.telephony.TelephonyManager;
-import android.telephony.PhoneStateListener;
-import android.telephony.ServiceState;
 
 // TODO: Needed for move to system service: import com.android.internal.R;
 
@@ -33,7 +30,6 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 import java.util.Objects;
 
 /**
@@ -254,7 +250,8 @@ final class CreateConnectionProcessor {
             return false;
         }
 
-        PhoneAccountHandle connectionManager = mPhoneAccountRegistrar.getSimCallManager();
+        PhoneAccountHandle connectionManager =
+                mPhoneAccountRegistrar.getSimCallManagerFromCall(mCall);
         if (connectionManager == null) {
             return false;
         }
@@ -266,8 +263,8 @@ final class CreateConnectionProcessor {
 
         // Connection managers are only allowed to manage SIM subscriptions.
         // TODO: Should this really be checking the "calling user" test for phone account?
-        PhoneAccount targetPhoneAccount = mPhoneAccountRegistrar.getPhoneAccountCheckCallingUser(
-                targetPhoneAccountHandle);
+        PhoneAccount targetPhoneAccount = mPhoneAccountRegistrar
+                .getPhoneAccountUnchecked(targetPhoneAccountHandle);
         if (targetPhoneAccount == null) {
             Log.d(this, "shouldSetConnectionManager, phone account not found");
             return false;
@@ -285,7 +282,7 @@ final class CreateConnectionProcessor {
     private void adjustAttemptsForConnectionManager() {
         if (shouldSetConnectionManager()) {
             CallAttemptRecord record = new CallAttemptRecord(
-                    mPhoneAccountRegistrar.getSimCallManager(),
+                    mPhoneAccountRegistrar.getSimCallManagerFromCall(mCall),
                     mAttemptRecords.get(0).targetPhoneAccount);
             Log.v(this, "setConnectionManager, changing %s -> %s", mAttemptRecords.get(0), record);
             mAttemptRecords.set(0, record);
@@ -296,11 +293,14 @@ final class CreateConnectionProcessor {
 
     // If we are possibly attempting to call a local emergency number, ensure that the
     // plain PSTN connection services are listed, and nothing else.
-    private void adjustAttemptsForEmergency()  {
+    private void adjustAttemptsForEmergency() {
         if (mCall.isEmergencyCall()) {
             Log.i(this, "Emergency number detected");
             mAttemptRecords.clear();
-            List<PhoneAccount> allAccounts = mPhoneAccountRegistrar.getAllPhoneAccounts();
+            // Phone accounts in profile do not handle emergency call, use phone accounts in
+            // current user.
+            List<PhoneAccount> allAccounts = mPhoneAccountRegistrar
+                    .getAllPhoneAccountsOfCurrentUser();
 
             if (allAccounts.isEmpty()) {
                 // If the list of phone accounts is empty at this point, it means Telephony hasn't
@@ -311,7 +311,6 @@ final class CreateConnectionProcessor {
                 allAccounts = new ArrayList<PhoneAccount>();
                 allAccounts.add(TelephonyUtil.getDefaultEmergencyPhoneAccount());
             }
-
 
             // First, add SIM phone accounts which can place emergency calls.
             for (PhoneAccount phoneAccount : allAccounts) {
@@ -327,18 +326,16 @@ final class CreateConnectionProcessor {
             }
 
             // Next, add the connection manager account as a backup if it can place emergency calls.
-            PhoneAccountHandle callManagerHandle = mPhoneAccountRegistrar.getSimCallManager();
+            PhoneAccountHandle callManagerHandle =
+                    mPhoneAccountRegistrar.getSimCallManagerOfCurrentUser();
             if (mShouldUseConnectionManager && callManagerHandle != null) {
-                // TODO: Should this really be checking the "calling user" test for phone account?
                 PhoneAccount callManager = mPhoneAccountRegistrar
-                        .getPhoneAccountCheckCallingUser(callManagerHandle);
+                        .getPhoneAccountUnchecked(callManagerHandle);
                 if (callManager != null && callManager.hasCapabilities(
                         PhoneAccount.CAPABILITY_PLACE_EMERGENCY_CALLS)) {
                     CallAttemptRecord callAttemptRecord = new CallAttemptRecord(callManagerHandle,
-                            mPhoneAccountRegistrar.
-                                    getOutgoingPhoneAccountForScheme(mCall.getHandle().getScheme())
-                    );
-
+                            mPhoneAccountRegistrar.getOutgoingPhoneAccountForSchemeOfCurrentUser(
+                                    mCall.getHandle().getScheme()));
                     if (!mAttemptRecords.contains(callAttemptRecord)) {
                         Log.i(this, "Will try Connection Manager account %s for emergency",
                                 callManager);
@@ -360,6 +357,7 @@ final class CreateConnectionProcessor {
     }
 
     private class Response implements CreateConnectionResponse {
+
         private final ConnectionServiceWrapper mService;
 
         Response(ConnectionServiceWrapper service) {
@@ -386,7 +384,8 @@ final class CreateConnectionProcessor {
 
         private boolean shouldFallbackToNoConnectionManager(DisconnectCause cause) {
             PhoneAccountHandle handle = mCall.getConnectionManagerPhoneAccount();
-            if (handle == null || !handle.equals(mPhoneAccountRegistrar.getSimCallManager())) {
+            if (handle == null ||
+                    !handle.equals(mPhoneAccountRegistrar.getSimCallManagerFromCall(mCall))) {
                 return false;
             }
 

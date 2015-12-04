@@ -146,7 +146,7 @@ public class BluetoothPhoneServiceTest extends TelecomTestCase {
     public void testGetNetworkOperator() throws Exception {
         Call mockCall = createForegroundCall();
         PhoneAccount fakePhoneAccount = makeQuickAccount("id0", TEST_ACCOUNT_INDEX);
-        when(mMockPhoneAccountRegistrar.getPhoneAccountCheckCallingUser(
+        when(mMockPhoneAccountRegistrar.getPhoneAccountOfCurrentUser(
                 any(PhoneAccountHandle.class))).thenReturn(fakePhoneAccount);
 
         String networkOperator = mBluetoothPhoneService.mBinder.getNetworkOperator();
@@ -165,7 +165,7 @@ public class BluetoothPhoneServiceTest extends TelecomTestCase {
     public void testGetSubscriberNumber() throws Exception {
         Call mockCall = createForegroundCall();
         PhoneAccount fakePhoneAccount = makeQuickAccount("id0", TEST_ACCOUNT_INDEX);
-        when(mMockPhoneAccountRegistrar.getPhoneAccountCheckCallingUser(
+        when(mMockPhoneAccountRegistrar.getPhoneAccountOfCurrentUser(
                 any(PhoneAccountHandle.class))).thenReturn(fakePhoneAccount);
 
         String subscriberNumber = mBluetoothPhoneService.mBinder.getSubscriberNumber();
