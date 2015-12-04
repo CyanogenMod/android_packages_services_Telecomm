@@ -65,6 +65,9 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @VisibleForTesting
 public class Call implements CreateConnectionResponse {
+    public final static String CALL_ID_UNKNOWN = "-1";
+    public final static long DATA_USAGE_NOT_SET = -1;
+
     /**
      * Listener for events on the call.
      */
@@ -330,6 +333,11 @@ public class Call implements CreateConnectionResponse {
     private Call mConferenceLevelActiveCall = null;
 
     private boolean mIsLocallyDisconnecting = false;
+
+    /**
+     * Tracks the current call data usage as reported by the video provider.
+     */
+    private long mCallDataUsage = DATA_USAGE_NOT_SET;
 
     /**
      * Persists the specified parameters and initializes the new instance.
@@ -1680,5 +1688,23 @@ public class Call implements CreateConnectionResponse {
      */
     public boolean isDisconnected() {
         return (getState() == CallState.DISCONNECTED || getState() == CallState.ABORTED);
+    }
+
+    /**
+     * Sets the call data usage for the call.
+     *
+     * @param callDataUsage The new call data usage (in bytes).
+     */
+    public void setCallDataUsage(long callDataUsage) {
+        mCallDataUsage = callDataUsage;
+    }
+
+    /**
+     * Returns the call data usage for the call.
+     *
+     * @return The call data usage (in bytes).
+     */
+    public long getCallDataUsage() {
+        return mCallDataUsage;
     }
 }

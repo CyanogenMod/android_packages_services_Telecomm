@@ -145,10 +145,12 @@ final class CallLogManager extends CallsManagerListenerBase {
             accountHandle = null;
         }
 
-        // TODO(vt): Once data usage is available, wire it up here.
+        Long callDataUsage = call.getCallDataUsage() == Call.DATA_USAGE_NOT_SET ? null :
+                call.getCallDataUsage();
+
         int callFeatures = getCallFeatures(call.getVideoStateHistory());
         logCall(call.getCallerInfo(), logNumber, call.getHandlePresentation(),
-                callLogType, callFeatures, accountHandle, creationTime, age, null,
+                callLogType, callFeatures, accountHandle, creationTime, age, callDataUsage,
                 call.isEmergencyCall());
     }
 
