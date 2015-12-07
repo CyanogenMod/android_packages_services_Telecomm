@@ -660,8 +660,8 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
         }
 
         List<PhoneAccountHandle> accounts =
-                mPhoneAccountRegistrar.getCallCapablePhoneAccounts(handle.getScheme(), false);
-
+                mPhoneAccountRegistrar.getCallCapablePhoneAccounts(handle.getScheme(), false,
+                        initiatingUser);
         Log.v(this, "startOutgoingCall found accounts = " + accounts);
 
         if (mForegroundCall != null) {
@@ -692,7 +692,8 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
             // No preset account, check if default exists that supports the URI scheme for the
             // handle.
             phoneAccountHandle =
-                    mPhoneAccountRegistrar.getOutgoingPhoneAccountForScheme(handle.getScheme());
+                    mPhoneAccountRegistrar.getOutgoingPhoneAccountForScheme(handle.getScheme(),
+                            initiatingUser);
         }
 
         call.setTargetPhoneAccount(phoneAccountHandle);
@@ -802,8 +803,8 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
             // Otherwise the connection will be initiated when the account is set by the user.
             call.startCreateConnection(mPhoneAccountRegistrar);
         } else if (mPhoneAccountRegistrar.getCallCapablePhoneAccounts(
-                requireCallCapableAccountByHandle ? call.getHandle().getScheme() : null, false)
-                .isEmpty()) {
+                requireCallCapableAccountByHandle ? call.getHandle().getScheme() : null, false,
+                call.getInitiatingUser()).isEmpty()) {
             // If there are no call capable accounts, disconnect the call.
             markCallAsDisconnected(call, new DisconnectCause(DisconnectCause.CANCELED,
                     "No registered PhoneAccounts"));

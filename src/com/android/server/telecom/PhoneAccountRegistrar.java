@@ -16,7 +16,6 @@
 
 package com.android.server.telecom;
 
-import android.app.ActivityManager;
 import android.Manifest;
 import android.content.ComponentName;
 import android.content.Context;
@@ -24,12 +23,10 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.content.pm.ServiceInfo;
-import android.content.pm.UserInfo;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.Icon;
 import android.net.Uri;
-import android.os.Binder;
 import android.os.Bundle;
 import android.os.PersistableBundle;
 import android.os.Process;
@@ -96,14 +93,10 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * 3) The user running the app that is requesting the phone account information.
  *
  * For example, I have a device with 2 users, primary (A) and secondary (B), and the secondary user
- * has a work profile running as another user (B2). Lets say that user B opens the phone settings
- * (not currently supported, but theoretically speaking), and phone settings queries for a phone
- * account list. Lets also say that an app running in the work profile has registered a phone
- * account. This means that:
- *
- * Since phone settings always runs as the primary user, We have the following situation:
- * User A (settings) is requesting a list of phone accounts while the active user is User B, and
- * that list contains a phone account for profile User B2.
+ * has a work profile running as another user (B2). Each user/profile only have the visibility of
+ * phone accounts owned by them. Lets say, user B (settings) is requesting a list of phone accounts,
+ * and the list only contains phone accounts owned by user B and accounts with
+ * {@link PhoneAccount#CAPABILITY_MULTI_USER}.
  *
  * In practice, (2) is stored with the phone account handle and is part of the handle's ID. (1) is
  * saved in {@link #mCurrentUserHandle} and (3) we get from Binder.getCallingUser(). We check these
@@ -169,7 +162,7 @@ public class PhoneAccountRegistrar {
      * @return The value of the subscription id or -1 if it does not exist or is not valid.
      */
     public int getSubscriptionIdForPhoneAccount(PhoneAccountHandle accountHandle) {
-        PhoneAccount account = getPhoneAccountCheckCallingUser(accountHandle);
+        PhoneAccount account = getPhoneAccountUnchecked(accountHandle);
 
         if (account != null && account.hasCapabilities(PhoneAccount.CAPABILITY_SIM_SUBSCRIPTION)) {
             TelephonyManager tm =
@@ -187,19 +180,21 @@ public class PhoneAccountRegistrar {
      * @param uriScheme The URI scheme for the outgoing call.
      * @return The {@link PhoneAccountHandle} to use.
      */
-    public PhoneAccountHandle getOutgoingPhoneAccountForScheme(String uriScheme) {
-        final PhoneAccountHandle userSelected = getUserSelectedOutgoingPhoneAccount();
+    public PhoneAccountHandle getOutgoingPhoneAccountForScheme(String uriScheme,
+            UserHandle userHandle) {
+        final PhoneAccountHandle userSelected = getUserSelectedOutgoingPhoneAccount(userHandle);
 
         if (userSelected != null) {
             // If there is a default PhoneAccount, ensure it supports calls to handles with the
             // specified uriScheme.
-            final PhoneAccount userSelectedAccount = getPhoneAccountCheckCallingUser(userSelected);
+            final PhoneAccount userSelectedAccount = getPhoneAccountUnchecked(userSelected);
             if (userSelectedAccount.supportsUriScheme(uriScheme)) {
                 return userSelected;
             }
         }
 
-        List<PhoneAccountHandle> outgoing = getCallCapablePhoneAccounts(uriScheme, false);
+        List<PhoneAccountHandle> outgoing = getCallCapablePhoneAccounts(uriScheme, false,
+                userHandle);
         switch (outgoing.size()) {
             case 0:
                 // There are no accounts, so there can be no default
@@ -213,12 +208,16 @@ public class PhoneAccountRegistrar {
         }
     }
 
+    public PhoneAccountHandle getOutgoingPhoneAccountForSchemeOfCurrentUser(String uriScheme) {
+        return getOutgoingPhoneAccountForScheme(uriScheme, mCurrentUserHandle);
+    }
+
     /**
      * @return The user-selected outgoing {@link PhoneAccount}, or null if it hasn't been set (or
      *      if it was set by another user).
      */
-    PhoneAccountHandle getUserSelectedOutgoingPhoneAccount() {
-        PhoneAccount account = getPhoneAccountCheckCallingUser(mState.defaultOutgoing);
+    PhoneAccountHandle getUserSelectedOutgoingPhoneAccount(UserHandle userHandle) {
+        PhoneAccount account = getPhoneAccount(mState.defaultOutgoing, userHandle);
         if (account != null) {
             return mState.defaultOutgoing;
         }
@@ -263,28 +262,8 @@ public class PhoneAccountRegistrar {
     }
 
     boolean isUserSelectedSmsPhoneAccount(PhoneAccountHandle accountHandle) {
-        return getSubscriptionIdForPhoneAccount(accountHandle) ==
-                SubscriptionManager.getDefaultSmsSubId();
-    }
-
-    /**
-     * Returns the {@link PhoneAccountHandle} corresponding to the currently active SIM Call
-     * Manager. SIM Call Manager returned corresponds to the following priority order:
-     * 1. If a SIM Call Manager {@link PhoneAccount} is registered for the same package as the
-     * default dialer, then that one is returned.
-     * 2. If there is a SIM Call Manager {@link PhoneAccount} registered which matches the
-     * carrier configuration's default, then that one is returned.
-     * 3. Otherwise, we return null.
-     */
-    public PhoneAccountHandle getSimCallManager() {
-        long token = Binder.clearCallingIdentity();
-        int user;
-        try {
-            user = ActivityManager.getCurrentUser();
-        } finally {
-            Binder.restoreCallingIdentity(token);
-        }
-        return getSimCallManager(user);
+        return getSubscriptionIdForPhoneAccount(accountHandle) == SubscriptionManager
+                .getDefaultSmsSubId();
     }
 
     public ComponentName getSystemSimCallManagerComponent() {
@@ -300,6 +279,10 @@ public class PhoneAccountRegistrar {
             ?  null : ComponentName.unflattenFromString(defaultSimCallManager);
     }
 
+    public PhoneAccountHandle getSimCallManagerOfCurrentUser() {
+        return getSimCallManager(mCurrentUserHandle);
+    }
+
     /**
      * Returns the {@link PhoneAccountHandle} corresponding to the currently active SIM Call
      * Manager. SIM Call Manager returned corresponds to the following priority order:
@@ -309,9 +292,10 @@ public class PhoneAccountRegistrar {
      * carrier configuration's default, then that one is returned.
      * 3. Otherwise, we return null.
      */
-    public PhoneAccountHandle getSimCallManager(int user) {
+    public PhoneAccountHandle getSimCallManager(UserHandle userHandle) {
         // Get the default dialer in case it has a connection manager associated with it.
-        String dialerPackage = DefaultDialerManager.getDefaultDialerApplication(mContext, user);
+        String dialerPackage = DefaultDialerManager
+                .getDefaultDialerApplication(mContext, userHandle.getIdentifier());
 
         // Check carrier config.
         ComponentName systemSimCallManagerComponent = getSystemSimCallManagerComponent();
@@ -323,7 +307,7 @@ public class PhoneAccountRegistrar {
             // loop through and look for any connection manager in the same package.
             List<PhoneAccountHandle> allSimCallManagers = getPhoneAccountHandles(
                     PhoneAccount.CAPABILITY_CONNECTION_MANAGER, null, null,
-                    true /* includeDisabledAccounts */);
+                    true /* includeDisabledAccounts */, userHandle);
             for (PhoneAccountHandle accountHandle : allSimCallManagers) {
                 ComponentName component = accountHandle.getComponentName();
 
@@ -348,6 +332,23 @@ public class PhoneAccountRegistrar {
         Log.i(this, "SimCallManager queried, returning: %s", retval);
 
         return retval;
+    }
+
+    /**
+     * If it is a outgoing call, sim call manager of call-initiating user is returned.
+     * Otherwise, we return the sim call manager of the user associated with the
+     * target phone account.
+     * @return phone account handle of sim call manager based on the ongoing call.
+     */
+    public PhoneAccountHandle getSimCallManagerFromCall(Call call) {
+        if (call == null) {
+            return null;
+        }
+        UserHandle userHandle = call.getInitiatingUser();
+        if (userHandle == null) {
+            userHandle = call.getTargetPhoneAccount().getUserHandle();
+        }
+        return getSimCallManager(userHandle);
     }
 
     /**
@@ -392,8 +393,14 @@ public class PhoneAccountRegistrar {
         return true;
     }
 
-    private boolean isVisibleForUser(PhoneAccount account) {
+    private boolean isVisibleForUser(PhoneAccount account, UserHandle userHandle,
+            boolean acrossProfiles) {
         if (account == null) {
+            return false;
+        }
+
+        if (userHandle == null) {
+            Log.w(this, "userHandle is null in isVisibleForUser");
             return false;
         }
 
@@ -409,25 +416,22 @@ public class PhoneAccountRegistrar {
         }
 
         if (mCurrentUserHandle == null) {
+            // In case we need to have emergency phone calls from the lock screen.
             Log.d(this, "Current user is null; assuming true");
             return true;
         }
 
-        if (phoneAccountUserHandle.equals(Binder.getCallingUserHandle())) {
-            return true;
+        if (acrossProfiles) {
+            return UserManager.get(mContext).isSameProfileGroup(userHandle.getIdentifier(),
+                    phoneAccountUserHandle.getIdentifier());
+        } else {
+            return phoneAccountUserHandle.equals(userHandle);
         }
-
-        // Special check for work profiles, any user could have a profile.
-        // Unlike in TelecomServiceImpl, we only care about *profiles* here. We want to make sure
-        // that we don't resolve PhoneAccount across *users*, but resolving across *profiles* is
-        // fine.
-        return mUserManager.isSameProfileGroup(
-                mCurrentUserHandle.getIdentifier(), phoneAccountUserHandle.getIdentifier());
     }
 
     private List<ResolveInfo> resolveComponent(PhoneAccountHandle phoneAccountHandle) {
         return resolveComponent(phoneAccountHandle.getComponentName(),
-                    phoneAccountHandle.getUserHandle());
+                phoneAccountHandle.getUserHandle());
     }
 
     private List<ResolveInfo> resolveComponent(ComponentName componentName,
@@ -453,12 +457,16 @@ public class PhoneAccountRegistrar {
      *
      * @return The list of {@link PhoneAccountHandle}s.
      */
-    public List<PhoneAccountHandle> getAllPhoneAccountHandles() {
-        return getPhoneAccountHandles(0, null, null, false);
+    public List<PhoneAccountHandle> getAllPhoneAccountHandles(UserHandle userHandle) {
+        return getPhoneAccountHandles(0, null, null, false, userHandle);
     }
 
-    public List<PhoneAccount> getAllPhoneAccounts() {
-        return getPhoneAccounts(0, null, null, false);
+    public List<PhoneAccount> getAllPhoneAccounts(UserHandle userHandle) {
+        return getPhoneAccounts(0, null, null, false, userHandle);
+    }
+
+    public List<PhoneAccount> getAllPhoneAccountsOfCurrentUser() {
+        return getAllPhoneAccounts(mCurrentUserHandle);
     }
 
     /**
@@ -469,30 +477,40 @@ public class PhoneAccountRegistrar {
      * @return The phone account handles.
      */
     public List<PhoneAccountHandle> getCallCapablePhoneAccounts(
-            String uriScheme, boolean includeDisabledAccounts) {
+            String uriScheme, boolean includeDisabledAccounts, UserHandle userHandle) {
         return getPhoneAccountHandles(
                 PhoneAccount.CAPABILITY_CALL_PROVIDER,
                 PhoneAccount.CAPABILITY_EMERGENCY_CALLS_ONLY /*excludedCapabilities*/,
-                uriScheme, null, includeDisabledAccounts);
+                uriScheme, null, includeDisabledAccounts, userHandle);
+    }
+
+    public List<PhoneAccountHandle> getCallCapablePhoneAccountsOfCurrentUser(
+            String uriScheme, boolean includeDisabledAccounts) {
+        return getCallCapablePhoneAccounts(uriScheme, includeDisabledAccounts, mCurrentUserHandle);
     }
 
     /**
      * Retrieves a list of all the SIM-based phone accounts.
      */
-    public List<PhoneAccountHandle> getSimPhoneAccounts() {
+    public List<PhoneAccountHandle> getSimPhoneAccounts(UserHandle userHandle) {
         return getPhoneAccountHandles(
                 PhoneAccount.CAPABILITY_CALL_PROVIDER | PhoneAccount.CAPABILITY_SIM_SUBSCRIPTION,
-                null, null, false);
+                null, null, false, userHandle);
     }
 
-    /**
-     * Retrieves a list of all phone accounts registered by a specified package.
-     *
-     * @param packageName The name of the package that registered the phone accounts.
-     * @return The phone account handles.
-     */
-    public List<PhoneAccountHandle> getPhoneAccountsForPackage(String packageName) {
-        return getPhoneAccountHandles(0, null, packageName, false);
+    public List<PhoneAccountHandle> getSimPhoneAccountsOfCurrentUser() {
+        return getSimPhoneAccounts(mCurrentUserHandle);
+    }
+
+        /**
+         * Retrieves a list of all phone accounts registered by a specified package.
+         *
+         * @param packageName The name of the package that registered the phone accounts.
+         * @return The phone account handles.
+         */
+    public List<PhoneAccountHandle> getPhoneAccountsForPackage(String packageName,
+            UserHandle userHandle) {
+        return getPhoneAccountHandles(0, null, packageName, false, userHandle);
     }
 
     // TODO: Should we implement an artificial limit for # of accounts associated with a single
@@ -702,21 +720,31 @@ public class PhoneAccountRegistrar {
      * account before returning it. The current user is the active user on the actual android
      * device.
      */
-    public PhoneAccount getPhoneAccountCheckCallingUser(PhoneAccountHandle handle) {
+    public PhoneAccount getPhoneAccount(PhoneAccountHandle handle, UserHandle userHandle) {
+        return getPhoneAccount(handle, userHandle, /* acrossProfiles */ false);
+    }
+
+    public PhoneAccount getPhoneAccount(PhoneAccountHandle handle,
+            UserHandle userHandle, boolean acrossProfiles) {
         PhoneAccount account = getPhoneAccountUnchecked(handle);
-        if (account != null && isVisibleForUser(account)) {
+        if (account != null && (isVisibleForUser(account, userHandle, acrossProfiles))) {
             return account;
         }
         return null;
+    }
+
+    public PhoneAccount getPhoneAccountOfCurrentUser(PhoneAccountHandle handle) {
+        return getPhoneAccount(handle, mCurrentUserHandle);
     }
 
     private List<PhoneAccountHandle> getPhoneAccountHandles(
             int capabilities,
             String uriScheme,
             String packageName,
-            boolean includeDisabledAccounts) {
+            boolean includeDisabledAccounts,
+            UserHandle userHandle) {
         return getPhoneAccountHandles(capabilities, 0 /*excludedCapabilities*/, uriScheme,
-                packageName, includeDisabledAccounts);
+                packageName, includeDisabledAccounts, userHandle);
     }
 
     /**
@@ -728,12 +756,13 @@ public class PhoneAccountRegistrar {
             int excludedCapabilities,
             String uriScheme,
             String packageName,
-            boolean includeDisabledAccounts) {
+            boolean includeDisabledAccounts,
+            UserHandle userHandle) {
         List<PhoneAccountHandle> handles = new ArrayList<>();
 
         for (PhoneAccount account : getPhoneAccounts(
                 capabilities, excludedCapabilities, uriScheme, packageName,
-                includeDisabledAccounts)) {
+                includeDisabledAccounts, userHandle)) {
             handles.add(account.getAccountHandle());
         }
         return handles;
@@ -743,9 +772,10 @@ public class PhoneAccountRegistrar {
             int capabilities,
             String uriScheme,
             String packageName,
-            boolean includeDisabledAccounts) {
+            boolean includeDisabledAccounts,
+            UserHandle userHandle) {
         return getPhoneAccounts(capabilities, 0 /*excludedCapabilities*/, uriScheme, packageName,
-                includeDisabledAccounts);
+                includeDisabledAccounts, userHandle);
     }
 
     /**
@@ -764,7 +794,8 @@ public class PhoneAccountRegistrar {
             int excludedCapabilities,
             String uriScheme,
             String packageName,
-            boolean includeDisabledAccounts) {
+            boolean includeDisabledAccounts,
+            UserHandle userHandle) {
         List<PhoneAccount> accounts = new ArrayList<>(mState.accounts.size());
         for (PhoneAccount m : mState.accounts) {
             if (!(m.isEnabled() || includeDisabledAccounts)) {
@@ -796,7 +827,7 @@ public class PhoneAccountRegistrar {
                 // Not the right package name; skip this one.
                 continue;
             }
-            if (!isVisibleForUser(m)) {
+            if (!isVisibleForUser(m, userHandle, false)) {
                 // Account is not visible for the current user; skip this one.
                 continue;
             }
@@ -841,7 +872,7 @@ public class PhoneAccountRegistrar {
             pw.println("xmlVersion: " + mState.versionNumber);
             pw.println("defaultOutgoing: " + (mState.defaultOutgoing == null ? "none" :
                     mState.defaultOutgoing));
-            pw.println("simCallManager: " + getSimCallManager());
+            pw.println("simCallManager: " + getSimCallManager(mCurrentUserHandle));
             pw.println("phoneAccounts:");
             pw.increaseIndent();
             for (PhoneAccount phoneAccount : mState.accounts) {

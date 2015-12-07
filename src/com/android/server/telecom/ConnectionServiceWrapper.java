@@ -389,11 +389,13 @@ public class ConnectionServiceWrapper extends ServiceBinder {
 
         @Override
         public void queryRemoteConnectionServices(RemoteServiceCallback callback) {
+            final UserHandle callingUserHandle = Binder.getCallingUserHandle();
             long token = Binder.clearCallingIdentity();
             try {
                 synchronized (mLock) {
                     logIncoming("queryRemoteConnectionServices %s", callback);
-                    ConnectionServiceWrapper.this.queryRemoteConnectionServices(callback);
+                    ConnectionServiceWrapper.this
+                            .queryRemoteConnectionServices(callingUserHandle, callback);
                 }
             } finally {
                 Binder.restoreCallingIdentity(token);
@@ -933,10 +935,11 @@ public class ConnectionServiceWrapper extends ServiceBinder {
         Log.d(this, "Telecom -> ConnectionService: " + msg, params);
     }
 
-    private void queryRemoteConnectionServices(final RemoteServiceCallback callback) {
+    private void queryRemoteConnectionServices(final UserHandle userHandle,
+            final RemoteServiceCallback callback) {
         // Only give remote connection services to this connection service if it is listed as
         // the connection manager.
-        PhoneAccountHandle simCallManager = mPhoneAccountRegistrar.getSimCallManager();
+        PhoneAccountHandle simCallManager = mPhoneAccountRegistrar.getSimCallManager(userHandle);
         Log.d(this, "queryRemoteConnectionServices finds simCallManager = %s", simCallManager);
         if (simCallManager == null ||
                 !simCallManager.getComponentName().equals(getComponentName())) {
@@ -947,7 +950,7 @@ public class ConnectionServiceWrapper extends ServiceBinder {
         // Make a list of ConnectionServices that are listed as being associated with SIM accounts
         final Set<ConnectionServiceWrapper> simServices = Collections.newSetFromMap(
                 new ConcurrentHashMap<ConnectionServiceWrapper, Boolean>(8, 0.9f, 1));
-        for (PhoneAccountHandle handle : mPhoneAccountRegistrar.getSimPhoneAccounts()) {
+        for (PhoneAccountHandle handle : mPhoneAccountRegistrar.getSimPhoneAccounts(userHandle)) {
             ConnectionServiceWrapper service = mConnectionServiceRepository.getService(
                     handle.getComponentName(), handle.getUserHandle());
             if (service != null) {

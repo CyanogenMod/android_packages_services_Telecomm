@@ -22,9 +22,9 @@ import android.graphics.BitmapFactory;
 import android.graphics.Rect;
 import android.graphics.drawable.Icon;
 import android.net.Uri;
-import android.os.Binder;
 import android.os.Bundle;
 import android.os.Parcel;
+import android.os.Process;
 import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
 import android.telecom.TelecomManager;
@@ -48,8 +48,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.util.Arrays;
 import java.util.Set;
-
-import static org.mockito.Mockito.when;
 
 public class PhoneAccountRegistrarTest extends TelecomTestCase {
 
@@ -186,10 +184,11 @@ public class PhoneAccountRegistrarTest extends TelecomTestCase {
                 .setCapabilities(PhoneAccount.CAPABILITY_CONNECTION_MANAGER)
                 .build());
 
-        assertEquals(4, mRegistrar.getAllPhoneAccountHandles().size());
-        assertEquals(3, mRegistrar.getCallCapablePhoneAccounts(null, false).size());
-        assertEquals(null, mRegistrar.getSimCallManager());
-        assertEquals(null, mRegistrar.getOutgoingPhoneAccountForScheme(PhoneAccount.SCHEME_TEL));
+        assertEquals(4, mRegistrar.getAllPhoneAccountsOfCurrentUser().size());
+        assertEquals(3, mRegistrar.getCallCapablePhoneAccountsOfCurrentUser(null, false).size());
+        assertEquals(null, mRegistrar.getSimCallManagerOfCurrentUser());
+        assertEquals(null, mRegistrar.getOutgoingPhoneAccountForSchemeOfCurrentUser(
+                PhoneAccount.SCHEME_TEL));
     }
 
     public void testSimCallManager() throws Exception {
@@ -202,7 +201,8 @@ public class PhoneAccountRegistrarTest extends TelecomTestCase {
                 Mockito.mock(IConnectionService.class));
 
         // By default, there is no default outgoing account (nothing has been registered)
-        assertNull(mRegistrar.getOutgoingPhoneAccountForScheme(PhoneAccount.SCHEME_TEL));
+        assertNull(
+                mRegistrar.getOutgoingPhoneAccountForSchemeOfCurrentUser(PhoneAccount.SCHEME_TEL));
 
         // Register one tel: account
         PhoneAccountHandle telAccount = makeQuickAccountHandle("tel_acct");
@@ -211,7 +211,7 @@ public class PhoneAccountRegistrarTest extends TelecomTestCase {
                 .addSupportedUriScheme(PhoneAccount.SCHEME_TEL)
                 .build());
         PhoneAccountHandle defaultAccount =
-                mRegistrar.getOutgoingPhoneAccountForScheme(PhoneAccount.SCHEME_TEL);
+                mRegistrar.getOutgoingPhoneAccountForSchemeOfCurrentUser(PhoneAccount.SCHEME_TEL);
         assertEquals(telAccount, defaultAccount);
 
         // Add a SIP account, make sure tel: doesn't change
@@ -220,9 +220,11 @@ public class PhoneAccountRegistrarTest extends TelecomTestCase {
                 .setCapabilities(PhoneAccount.CAPABILITY_CALL_PROVIDER)
                 .addSupportedUriScheme(PhoneAccount.SCHEME_SIP)
                 .build());
-        defaultAccount = mRegistrar.getOutgoingPhoneAccountForScheme(PhoneAccount.SCHEME_SIP);
+        defaultAccount = mRegistrar.getOutgoingPhoneAccountForSchemeOfCurrentUser(
+                PhoneAccount.SCHEME_SIP);
         assertEquals(sipAccount, defaultAccount);
-        defaultAccount = mRegistrar.getOutgoingPhoneAccountForScheme(PhoneAccount.SCHEME_TEL);
+        defaultAccount = mRegistrar.getOutgoingPhoneAccountForSchemeOfCurrentUser(
+                PhoneAccount.SCHEME_TEL);
         assertEquals(telAccount, defaultAccount);
 
         // Add a connection manager, make sure tel: doesn't change
@@ -231,12 +233,14 @@ public class PhoneAccountRegistrarTest extends TelecomTestCase {
                 .setCapabilities(PhoneAccount.CAPABILITY_CONNECTION_MANAGER)
                 .addSupportedUriScheme(PhoneAccount.SCHEME_TEL)
                 .build());
-        defaultAccount = mRegistrar.getOutgoingPhoneAccountForScheme(PhoneAccount.SCHEME_TEL);
+        defaultAccount = mRegistrar.getOutgoingPhoneAccountForSchemeOfCurrentUser(
+                PhoneAccount.SCHEME_TEL);
         assertEquals(telAccount, defaultAccount);
 
         // Unregister the tel: account, make sure there is no tel: default now.
         mRegistrar.unregisterPhoneAccount(telAccount);
-        assertNull(mRegistrar.getOutgoingPhoneAccountForScheme(PhoneAccount.SCHEME_TEL));
+        assertNull(
+                mRegistrar.getOutgoingPhoneAccountForSchemeOfCurrentUser(PhoneAccount.SCHEME_TEL));
     }
 
     public void testPhoneAccountParceling() throws Exception {
@@ -280,7 +284,7 @@ public class PhoneAccountRegistrarTest extends TelecomTestCase {
         return new PhoneAccountHandle(
                 makeQuickConnectionServiceComponentName(),
                 id,
-                Binder.getCallingUserHandle());
+                Process.myUserHandle());
     }
 
     private PhoneAccount.Builder makeQuickAccountBuilder(String id, int idx) {

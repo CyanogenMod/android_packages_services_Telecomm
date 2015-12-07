@@ -17,6 +17,7 @@
 package com.android.server.telecom;
 
 import static android.Manifest.permission.CALL_PHONE;
+import static android.Manifest.permission.INTERACT_ACROSS_USERS;
 import static android.Manifest.permission.MODIFY_PHONE_STATE;
 import static android.Manifest.permission.READ_PHONE_STATE;
 import static android.Manifest.permission.READ_PRIVILEGED_PHONE_STATE;
@@ -34,7 +35,7 @@ import android.content.res.Resources;
 import android.net.Uri;
 import android.os.Binder;
 import android.os.Bundle;
-import android.os.IBinder;
+import android.os.Process;
 import android.os.UserHandle;
 import android.os.UserManager;
 import android.telecom.DefaultDialerManager;
@@ -44,7 +45,6 @@ import android.telecom.TelecomManager;
 import android.telecom.VideoProfile;
 import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
-import android.text.TextUtils;
 
 // TODO: Needed for move to system service: import com.android.internal.R;
 import com.android.internal.telecom.ITelecomService;
@@ -74,19 +74,11 @@ public class TelecomServiceImpl {
                     return null;
                 }
 
+                final UserHandle callingUserHandle = Binder.getCallingUserHandle();
                 long token = Binder.clearCallingIdentity();
                 try {
-                    PhoneAccountHandle defaultOutgoingPhoneAccount =
-                            mPhoneAccountRegistrar.getOutgoingPhoneAccountForScheme(uriScheme);
-                    // Make sure that the calling user can see this phone account.
-                    // TODO: Does this isVisible check actually work considering we are clearing
-                    // the calling identity?
-                    if (defaultOutgoingPhoneAccount != null
-                            && !isVisibleToCaller(defaultOutgoingPhoneAccount)) {
-                        Log.w(this, "No account found for the calling user");
-                        return null;
-                    }
-                    return defaultOutgoingPhoneAccount;
+                    return mPhoneAccountRegistrar
+                            .getOutgoingPhoneAccountForScheme(uriScheme, callingUserHandle);
                 } catch (Exception e) {
                     Log.e(this, e, "getDefaultOutgoingPhoneAccount");
                     throw e;
@@ -100,14 +92,9 @@ public class TelecomServiceImpl {
         public PhoneAccountHandle getUserSelectedOutgoingPhoneAccount() {
             synchronized (mLock) {
                 try {
-                    PhoneAccountHandle userSelectedOutgoingPhoneAccount =
-                            mPhoneAccountRegistrar.getUserSelectedOutgoingPhoneAccount();
-                    // Make sure that the calling user can see this phone account.
-                    if (!isVisibleToCaller(userSelectedOutgoingPhoneAccount)) {
-                        Log.w(this, "No account found for the calling user");
-                        return null;
-                    }
-                    return userSelectedOutgoingPhoneAccount;
+                    final UserHandle callingUserHandle = Binder.getCallingUserHandle();
+                    return mPhoneAccountRegistrar.getUserSelectedOutgoingPhoneAccount(
+                            callingUserHandle);
                 } catch (Exception e) {
                     Log.e(this, e, "getUserSelectedOutgoingPhoneAccount");
                     throw e;
@@ -119,7 +106,6 @@ public class TelecomServiceImpl {
         public void setUserSelectedOutgoingPhoneAccount(PhoneAccountHandle accountHandle) {
             synchronized (mLock) {
                 enforceModifyPermission();
-
                 long token = Binder.clearCallingIdentity();
                 try {
                     mPhoneAccountRegistrar.setUserSelectedOutgoingPhoneAccount(accountHandle);
@@ -140,13 +126,11 @@ public class TelecomServiceImpl {
             }
 
             synchronized (mLock) {
+                final UserHandle callingUserHandle = Binder.getCallingUserHandle();
                 long token = Binder.clearCallingIdentity();
                 try {
-                    // TODO: Does this isVisible check actually work considering we are clearing
-                    // the calling identity?
-                    return filterForAccountsVisibleToCaller(
-                            mPhoneAccountRegistrar.getCallCapablePhoneAccounts(
-                                    null, includeDisabledAccounts));
+                    return mPhoneAccountRegistrar.getCallCapablePhoneAccounts(null,
+                            includeDisabledAccounts, callingUserHandle);
                 } catch (Exception e) {
                     Log.e(this, e, "getCallCapablePhoneAccounts");
                     throw e;
@@ -163,13 +147,11 @@ public class TelecomServiceImpl {
                 if (!canReadPhoneState(callingPackage, "getPhoneAccountsSupportingScheme")) {
                     return Collections.emptyList();
                 }
-
+                final UserHandle callingUserHandle = Binder.getCallingUserHandle();
                 long token = Binder.clearCallingIdentity();
                 try {
-                    // TODO: Does this isVisible check actually work considering we are clearing
-                    // the calling identity?
-                    return filterForAccountsVisibleToCaller(
-                            mPhoneAccountRegistrar.getCallCapablePhoneAccounts(uriScheme, false));
+                    return mPhoneAccountRegistrar.getCallCapablePhoneAccounts(uriScheme, false,
+                            callingUserHandle);
                 } catch (Exception e) {
                     Log.e(this, e, "getPhoneAccountsSupportingScheme %s", uriScheme);
                     throw e;
@@ -182,12 +164,16 @@ public class TelecomServiceImpl {
         @Override
         public List<PhoneAccountHandle> getPhoneAccountsForPackage(String packageName) {
             synchronized (mLock) {
+                final UserHandle callingUserHandle = Binder.getCallingUserHandle();
+                long token = Binder.clearCallingIdentity();
                 try {
-                    return filterForAccountsVisibleToCaller(
-                            mPhoneAccountRegistrar.getPhoneAccountsForPackage(packageName));
+                    return mPhoneAccountRegistrar.getPhoneAccountsForPackage(packageName,
+                            callingUserHandle);
                 } catch (Exception e) {
                     Log.e(this, e, "getPhoneAccountsForPackage %s", packageName);
                     throw e;
+                } finally {
+                    Binder.restoreCallingIdentity(token);
                 }
             }
         }
@@ -195,16 +181,21 @@ public class TelecomServiceImpl {
         @Override
         public PhoneAccount getPhoneAccount(PhoneAccountHandle accountHandle) {
             synchronized (mLock) {
+                final UserHandle callingUserHandle = Binder.getCallingUserHandle();
+                long token = Binder.clearCallingIdentity();
                 try {
-                    if (!isVisibleToCaller(accountHandle)) {
-                        Log.d(this, "%s is not visible for the calling user [gPA]", accountHandle);
-                        return null;
-                    }
-                    // TODO: Do we really want to return for *any* user?
-                    return mPhoneAccountRegistrar.getPhoneAccountUnchecked(accountHandle);
+                    // In ideal case, we should not resolve the handle across profiles. But given
+                    // the fact that profile's call is handled by its parent user's in-call UI,
+                    // parent user's in call UI need to be able to get phone account from the
+                    // profile's phone account handle.
+                    return mPhoneAccountRegistrar
+                            .getPhoneAccount(accountHandle, callingUserHandle,
+                            /* acrossProfiles */ true);
                 } catch (Exception e) {
                     Log.e(this, e, "getPhoneAccount %s", accountHandle);
                     throw e;
+                } finally {
+                    Binder.restoreCallingIdentity(token);
                 }
             }
         }
@@ -225,20 +216,15 @@ public class TelecomServiceImpl {
         @Override
         public List<PhoneAccount> getAllPhoneAccounts() {
             synchronized (mLock) {
+                final UserHandle callingUserHandle = Binder.getCallingUserHandle();
+                long token = Binder.clearCallingIdentity();
                 try {
-                    List<PhoneAccount> allPhoneAccounts = mPhoneAccountRegistrar
-                            .getAllPhoneAccounts();
-                    List<PhoneAccount> profilePhoneAccounts = new ArrayList<>(
-                            allPhoneAccounts.size());
-                    for (PhoneAccount phoneAccount : allPhoneAccounts) {
-                        if (isVisibleToCaller(phoneAccount)) {
-                            profilePhoneAccounts.add(phoneAccount);
-                        }
-                    }
-                    return profilePhoneAccounts;
+                    return mPhoneAccountRegistrar.getAllPhoneAccounts(callingUserHandle);
                 } catch (Exception e) {
                     Log.e(this, e, "getAllPhoneAccounts");
                     throw e;
+                } finally {
+                    Binder.restoreCallingIdentity(token);
                 }
             }
         }
@@ -246,12 +232,15 @@ public class TelecomServiceImpl {
         @Override
         public List<PhoneAccountHandle> getAllPhoneAccountHandles() {
             synchronized (mLock) {
+                final UserHandle callingUserHandle = Binder.getCallingUserHandle();
+                long token = Binder.clearCallingIdentity();
                 try {
-                    return filterForAccountsVisibleToCaller(
-                            mPhoneAccountRegistrar.getAllPhoneAccountHandles());
+                    return mPhoneAccountRegistrar.getAllPhoneAccountHandles(callingUserHandle);
                 } catch (Exception e) {
                     Log.e(this, e, "getAllPhoneAccounts");
                     throw e;
+                } finally {
+                    Binder.restoreCallingIdentity(token);
                 }
             }
         }
@@ -272,22 +261,16 @@ public class TelecomServiceImpl {
         public PhoneAccountHandle getSimCallManagerForUser(int user) {
             synchronized (mLock) {
                 try {
-                    PhoneAccountHandle accountHandle = null;
-
+                    final int callingUid = Binder.getCallingUid();
                     long token = Binder.clearCallingIdentity();
                     try {
-                        accountHandle = mPhoneAccountRegistrar.getSimCallManager(user);
+                        if (user != ActivityManager.getCurrentUser()) {
+                            enforceCrossUserPermission(callingUid);
+                        }
+                        return mPhoneAccountRegistrar.getSimCallManager(UserHandle.of(user));
                     } finally {
-                        // We restore early so that isVisibleToCaller invocation below uses the
-                        // right user context.
                         Binder.restoreCallingIdentity(token);
                     }
-
-                    if (!isVisibleToCaller(accountHandle)) {
-                        Log.d(this, "%s is not visible for the calling user [gsCM]", accountHandle);
-                        return null;
-                    }
-                    return accountHandle;
                 } catch (Exception e) {
                     Log.e(this, e, "getSimCallManager");
                     throw e;
@@ -387,12 +370,11 @@ public class TelecomServiceImpl {
                 if (!canReadPhoneState(callingPackage, "isVoiceMailNumber")) {
                     return false;
                 }
-
-                if (!isVisibleToCaller(accountHandle)) {
+                final UserHandle callingUserHandle = Binder.getCallingUserHandle();
+                if (!isPhoneAccountHandleVisibleToCallingUser(accountHandle, callingUserHandle)) {
                     Log.d(this, "%s is not visible for the calling user [iVMN]", accountHandle);
                     return false;
                 }
-
                 long token = Binder.clearCallingIdentity();
                 try {
                     return mPhoneAccountRegistrar.isVoiceMailNumber(accountHandle, number);
@@ -416,7 +398,8 @@ public class TelecomServiceImpl {
                 }
 
                 try {
-                    if (!isVisibleToCaller(accountHandle)) {
+                    final UserHandle callingUserHandle = Binder.getCallingUserHandle();
+                    if (!isPhoneAccountHandleVisibleToCallingUser(accountHandle, callingUserHandle)) {
                         Log.d(this, "%s is not visible for the calling user [gVMN]", accountHandle);
                         return null;
                     }
@@ -444,15 +427,16 @@ public class TelecomServiceImpl {
             }
 
             synchronized (mLock) {
-                if (!isVisibleToCaller(accountHandle)) {
+                final UserHandle callingUserHandle = Binder.getCallingUserHandle();
+                if (!isPhoneAccountHandleVisibleToCallingUser(accountHandle, callingUserHandle)) {
                     Log.d(this, "%s is not visible for the calling user [gL1N]", accountHandle);
                     return null;
                 }
 
                 long token = Binder.clearCallingIdentity();
                 try {
-                    int subId =
-                            mPhoneAccountRegistrar.getSubscriptionIdForPhoneAccount(accountHandle);
+                    int subId = mPhoneAccountRegistrar.getSubscriptionIdForPhoneAccount(
+                            accountHandle);
                     return getTelephonyManager().getLine1NumberForSubscriber(subId);
                 } catch (Exception e) {
                     Log.e(this, e, "getSubscriptionIdForPhoneAccount");
@@ -684,7 +668,8 @@ public class TelecomServiceImpl {
             synchronized (mLock) {
                 enforcePermissionOrPrivilegedDialer(MODIFY_PHONE_STATE, callingPackage);
 
-                if (!isVisibleToCaller(accountHandle)) {
+                UserHandle callingUserHandle = Binder.getCallingUserHandle();
+                if (!isPhoneAccountHandleVisibleToCallingUser(accountHandle, callingUserHandle)) {
                     Log.d(this, "%s is not visible for the calling user [hMMI]", accountHandle);
                     return false;
                 }
@@ -693,8 +678,8 @@ public class TelecomServiceImpl {
                 long token = Binder.clearCallingIdentity();
                 boolean retval = false;
                 try {
-                    int subId = mPhoneAccountRegistrar
-                            .getSubscriptionIdForPhoneAccount(accountHandle);
+                    int subId =
+                            mPhoneAccountRegistrar.getSubscriptionIdForPhoneAccount(accountHandle);
                     retval = getTelephonyManager().handlePinMmiForSubscriber(subId, dialString);
                 } finally {
                     Binder.restoreCallingIdentity(token);
@@ -712,8 +697,8 @@ public class TelecomServiceImpl {
                 String callingPackage) {
             synchronized (mLock) {
                 enforcePermissionOrPrivilegedDialer(MODIFY_PHONE_STATE, callingPackage);
-
-                if (!isVisibleToCaller(accountHandle)) {
+                if (!isPhoneAccountHandleVisibleToCallingUser(accountHandle,
+                        Binder.getCallingUserHandle())) {
                     Log.d(this, "%s is not visible for the calling user [gA4PA]", accountHandle);
                     return null;
                 }
@@ -983,58 +968,9 @@ public class TelecomServiceImpl {
     // Supporting methods for the ITelecomService interface implementation.
     //
 
-    private boolean isVisibleToCaller(PhoneAccountHandle accountHandle) {
-        if (accountHandle == null) {
-            return false;
-        }
-        return isVisibleToCaller(mPhoneAccountRegistrar.getPhoneAccountUnchecked(accountHandle));
-    }
-
-    private boolean isVisibleToCaller(PhoneAccount account) {
-        if (account == null) {
-            return false;
-        }
-
-        // If this PhoneAccount has CAPABILITY_MULTI_USER, it should be visible to all users and
-        // all profiles. Only Telephony and SIP accounts should have this capability.
-        if (account.hasCapabilities(PhoneAccount.CAPABILITY_MULTI_USER)) {
-            return true;
-        }
-
-        UserHandle phoneAccountUserHandle = account.getAccountHandle().getUserHandle();
-        if (phoneAccountUserHandle == null) {
-            return false;
-        }
-
-        if (phoneAccountUserHandle.equals(Binder.getCallingUserHandle())) {
-            return true;
-        }
-
-        // Any user can have profiles now.  Also result from getUserProfiles() includes the calling
-        // user itself.
-        List<UserHandle> profileUserHandles = mUserManager.getUserProfiles();
-
-        return profileUserHandles.contains(phoneAccountUserHandle);
-    }
-
-    /**
-     * Given a list of {@link PhoneAccountHandle}s, filter them to the ones that the calling
-     * user can see.
-     *
-     * @param phoneAccountHandles Unfiltered list of account handles.
-     *
-     * @return {@link PhoneAccountHandle}s visible to the calling user and its profiles.
-     */
-    private List<PhoneAccountHandle> filterForAccountsVisibleToCaller(
-            List<PhoneAccountHandle> phoneAccountHandles) {
-        List<PhoneAccountHandle> profilePhoneAccountHandles =
-                new ArrayList<>(phoneAccountHandles.size());
-        for (PhoneAccountHandle phoneAccountHandle : phoneAccountHandles) {
-            if (isVisibleToCaller(phoneAccountHandle)) {
-                profilePhoneAccountHandles.add(phoneAccountHandle);
-            }
-        }
-        return profilePhoneAccountHandles;
+    private boolean isPhoneAccountHandleVisibleToCallingUser(
+            PhoneAccountHandle phoneAccountUserHandle, UserHandle callingUser) {
+        return mPhoneAccountRegistrar.getPhoneAccount(phoneAccountUserHandle, callingUser) != null;
     }
 
     private boolean isCallerSystemApp() {
@@ -1156,6 +1092,14 @@ public class TelecomServiceImpl {
         }
     }
 
+    private void enforceCrossUserPermission(int callingUid) {
+        if (callingUid != Process.SYSTEM_UID && callingUid != 0) {
+            mContext.enforceCallingOrSelfPermission(
+                    android.Manifest.permission.INTERACT_ACROSS_USERS_FULL, "Must be system or have"
+                            + " INTERACT_ACROSS_USERS_FULL permission");
+        }
+    }
+
     private void enforceFeature(String feature) {
         PackageManager pm = mContext.getPackageManager();
         if (!pm.hasSystemFeature(feature)) {
@@ -1202,10 +1146,10 @@ public class TelecomServiceImpl {
     }
 
     private boolean isCallerSimCallManager() {
-        PhoneAccountHandle accountHandle = null;
         long token = Binder.clearCallingIdentity();
+        PhoneAccountHandle accountHandle = null;
         try {
-            accountHandle = mPhoneAccountRegistrar.getSimCallManager();
+             accountHandle = mPhoneAccountRegistrar.getSimCallManagerOfCurrentUser();
         } finally {
             Binder.restoreCallingIdentity(token);
         }

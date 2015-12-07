@@ -19,6 +19,7 @@ package com.android.server.telecom;
 import android.content.Context;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.UserHandle;
 import android.telecom.PhoneAccountHandle;
 import android.telephony.TelephonyManager;
 
@@ -54,7 +55,8 @@ final class CreateConnectionTimeout implements Runnable {
 
         // If there's no connection manager to fallback on then there's no point in having a
         // timeout.
-        PhoneAccountHandle connectionManager = mPhoneAccountRegistrar.getSimCallManager();
+        PhoneAccountHandle connectionManager =
+                mPhoneAccountRegistrar.getSimCallManagerFromCall(mCall);
         if (!accounts.contains(connectionManager)) {
             return false;
         }
