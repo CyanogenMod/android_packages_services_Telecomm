@@ -302,7 +302,7 @@ public class TelecomSystemTest extends TelecomTestCase {
         mTelecomSystem.getPhoneAccountRegistrar().registerPhoneAccount(mPhoneAccountB0);
 
         mTelecomSystem.getPhoneAccountRegistrar().setUserSelectedOutgoingPhoneAccount(
-                mPhoneAccountA0.getAccountHandle());
+                mPhoneAccountA0.getAccountHandle(), Process.myUserHandle());
     }
 
     private void setupInCallServices() throws Exception {

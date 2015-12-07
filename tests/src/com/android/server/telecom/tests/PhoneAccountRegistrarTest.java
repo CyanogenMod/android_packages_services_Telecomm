@@ -25,6 +25,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Parcel;
 import android.os.Process;
+import android.os.UserHandle;
 import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
 import android.telecom.TelecomManager;
@@ -34,6 +35,7 @@ import com.android.internal.telecom.IConnectionService;
 import com.android.internal.util.FastXmlSerializer;
 import com.android.server.telecom.Log;
 import com.android.server.telecom.PhoneAccountRegistrar;
+import com.android.server.telecom.PhoneAccountRegistrar.DefaultPhoneAccountHandle;
 
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -374,6 +376,18 @@ public class PhoneAccountRegistrarTest extends TelecomTestCase {
         }
     }
 
+    private static void assertDefaultPhoneAccountHandleEquals(DefaultPhoneAccountHandle a,
+            DefaultPhoneAccountHandle b) {
+        if (a != b) {
+            if (a!= null && b != null) {
+                assertEquals(a.userHandle, b.userHandle);
+                assertPhoneAccountHandleEquals(a.phoneAccountHandle, b.phoneAccountHandle);
+            } else {
+                fail("Default phone account handles are not equal: " + a + ", " + b);
+            }
+        }
+    }
+
     private static void assertPhoneAccountEquals(PhoneAccount a, PhoneAccount b) {
         if (a != b) {
             if (a != null && b != null) {
@@ -413,7 +427,12 @@ public class PhoneAccountRegistrarTest extends TelecomTestCase {
 
     private static void assertStateEquals(
             PhoneAccountRegistrar.State a, PhoneAccountRegistrar.State b) {
-        assertPhoneAccountHandleEquals(a.defaultOutgoing, b.defaultOutgoing);
+        assertEquals(a.defaultOutgoingAccountHandles.size(),
+                b.defaultOutgoingAccountHandles.size());
+        for (int i = 0; i < a.defaultOutgoingAccountHandles.size(); i++) {
+            assertDefaultPhoneAccountHandleEquals(a.defaultOutgoingAccountHandles.get(i),
+                    b.defaultOutgoingAccountHandles.get(i));
+        }
         assertEquals(a.accounts.size(), b.accounts.size());
         for (int i = 0; i < a.accounts.size(); i++) {
             assertPhoneAccountEquals(a.accounts.get(i), b.accounts.get(i));
@@ -425,7 +444,11 @@ public class PhoneAccountRegistrarTest extends TelecomTestCase {
         s.accounts.add(makeQuickAccount("id0", 0));
         s.accounts.add(makeQuickAccount("id1", 1));
         s.accounts.add(makeQuickAccount("id2", 2));
-        s.defaultOutgoing = new PhoneAccountHandle(new ComponentName("pkg0", "cls0"), "id0");
+        PhoneAccountHandle phoneAccountHandle = new PhoneAccountHandle(
+                new ComponentName("pkg0", "cls0"), "id0");
+        UserHandle userHandle = phoneAccountHandle.getUserHandle();
+        s.defaultOutgoingAccountHandles
+                .put(userHandle, new DefaultPhoneAccountHandle(userHandle, phoneAccountHandle));
         return s;
     }
 }

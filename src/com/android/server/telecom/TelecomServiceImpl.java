@@ -106,9 +106,11 @@ public class TelecomServiceImpl {
         public void setUserSelectedOutgoingPhoneAccount(PhoneAccountHandle accountHandle) {
             synchronized (mLock) {
                 enforceModifyPermission();
+                UserHandle callingUserHandle = Binder.getCallingUserHandle();
                 long token = Binder.clearCallingIdentity();
                 try {
-                    mPhoneAccountRegistrar.setUserSelectedOutgoingPhoneAccount(accountHandle);
+                    mPhoneAccountRegistrar
+                            .setUserSelectedOutgoingPhoneAccount(accountHandle, callingUserHandle);
                 } catch (Exception e) {
                     Log.e(this, e, "setUserSelectedOutgoingPhoneAccount");
                     throw e;

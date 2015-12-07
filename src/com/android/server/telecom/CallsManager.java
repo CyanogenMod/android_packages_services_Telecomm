@@ -1074,7 +1074,8 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
             }
 
             if (setDefault) {
-                mPhoneAccountRegistrar.setUserSelectedOutgoingPhoneAccount(account);
+                mPhoneAccountRegistrar
+                        .setUserSelectedOutgoingPhoneAccount(account, call.getInitiatingUser());
             }
         }
     }
