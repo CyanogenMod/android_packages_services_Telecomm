@@ -54,6 +54,8 @@ import android.telecom.TelecomManager;
 import android.telecom.VideoProfile;
 
 import com.android.internal.telecom.IInCallAdapter;
+import com.android.internal.util.IndentingPrintWriter;
+import com.android.server.telecom.Analytics;
 import com.android.server.telecom.BluetoothPhoneServiceImpl;
 import com.android.server.telecom.CallAudioManager;
 import com.android.server.telecom.CallIntentProcessor;
@@ -80,6 +82,8 @@ import org.mockito.Mock;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
+import java.io.StringWriter;
+import java.util.Map;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.CyclicBarrier;
@@ -948,6 +952,95 @@ public class TelecomSystemTest extends TelecomTestCase {
         assertEquals(
                 Call.STATE_HOLDING,
                 mInCallServiceFixtureY.getCall(outgoing.mCallId).getState());
+    }
+
+    public void testAnalyticsSingleCall() throws Exception {
+        IdPair testCall = startAndMakeActiveIncomingCall(
+                "650-555-1212",
+                mPhoneAccountA0.getAccountHandle(),
+                mConnectionServiceFixtureA);
+                Map<String, Analytics.CallInfoImpl> analyticsMap = Analytics.cloneData();
+
+        assertTrue(analyticsMap.containsKey(testCall.mCallId));
+
+        Analytics.CallInfoImpl callAnalytics = analyticsMap.get(testCall.mCallId);
+        assertTrue(callAnalytics.startTime > 0);
+        assertEquals(0, callAnalytics.endTime);
+        assertEquals(Analytics.INCOMING_DIRECTION, callAnalytics.callDirection);
+        assertFalse(callAnalytics.isInterrupted);
+        assertNull(callAnalytics.callTerminationReason);
+        assertEquals(mConnectionServiceComponentNameA.flattenToShortString(),
+                callAnalytics.connectionService);
+
+        mConnectionServiceFixtureA.
+                sendSetDisconnected(testCall.mConnectionId, DisconnectCause.ERROR);
+
+        analyticsMap = Analytics.cloneData();
+        callAnalytics = analyticsMap.get(testCall.mCallId);
+        assertTrue(callAnalytics.endTime > 0);
+        assertNotNull(callAnalytics.callTerminationReason);
+        assertEquals(DisconnectCause.ERROR, callAnalytics.callTerminationReason.getCode());
+
+        StringWriter sr = new StringWriter();
+        IndentingPrintWriter ip = new IndentingPrintWriter(sr, "    ");
+        Analytics.dump(ip);
+        String dumpResult = sr.toString();
+        String[] expectedFields = {"startTime", "endTime", "direction", "isAdditionalCall",
+                "isInterrupted", "callTechnologies", "callTerminationReason", "connectionServices"};
+        for (String field : expectedFields) {
+            assertTrue(dumpResult.contains(field));
+        }
+    }
+
+    public void testAnalyticsTwoCalls() throws Exception {
+        IdPair testCall1 = startAndMakeActiveIncomingCall(
+                "650-555-1212",
+                mPhoneAccountA0.getAccountHandle(),
+                mConnectionServiceFixtureA);
+        IdPair testCall2 = startAndMakeActiveOutgoingCall(
+                "650-555-1213",
+                mPhoneAccountA0.getAccountHandle(),
+                mConnectionServiceFixtureA);
+
+        Map<String, Analytics.CallInfoImpl> analyticsMap = Analytics.cloneData();
+        assertTrue(analyticsMap.containsKey(testCall1.mCallId));
+        assertTrue(analyticsMap.containsKey(testCall2.mCallId));
+
+        Analytics.CallInfoImpl callAnalytics1 = analyticsMap.get(testCall1.mCallId);
+        Analytics.CallInfoImpl callAnalytics2 = analyticsMap.get(testCall2.mCallId);
+        assertTrue(callAnalytics1.startTime > 0);
+        assertTrue(callAnalytics2.startTime > 0);
+        assertEquals(0, callAnalytics1.endTime);
+        assertEquals(0, callAnalytics2.endTime);
+
+        assertEquals(Analytics.INCOMING_DIRECTION, callAnalytics1.callDirection);
+        assertEquals(Analytics.OUTGOING_DIRECTION, callAnalytics2.callDirection);
+
+        assertTrue(callAnalytics1.isInterrupted);
+        assertTrue(callAnalytics2.isAdditionalCall);
+
+        assertNull(callAnalytics1.callTerminationReason);
+        assertNull(callAnalytics2.callTerminationReason);
+
+        assertEquals(mConnectionServiceComponentNameA.flattenToShortString(),
+                callAnalytics1.connectionService);
+        assertEquals(mConnectionServiceComponentNameA.flattenToShortString(),
+                callAnalytics1.connectionService);
+
+        mConnectionServiceFixtureA.
+                sendSetDisconnected(testCall2.mConnectionId, DisconnectCause.REMOTE);
+        mConnectionServiceFixtureA.
+                sendSetDisconnected(testCall1.mConnectionId, DisconnectCause.ERROR);
+
+        analyticsMap = Analytics.cloneData();
+        callAnalytics1 = analyticsMap.get(testCall1.mCallId);
+        callAnalytics2 = analyticsMap.get(testCall2.mCallId);
+        assertTrue(callAnalytics1.endTime > 0);
+        assertTrue(callAnalytics2.endTime > 0);
+        assertNotNull(callAnalytics1.callTerminationReason);
+        assertNotNull(callAnalytics2.callTerminationReason);
+        assertEquals(DisconnectCause.ERROR, callAnalytics1.callTerminationReason.getCode());
+        assertEquals(DisconnectCause.REMOTE, callAnalytics2.callTerminationReason.getCode());
     }
 
     public void testAudioManagerOperations() throws Exception {

@@ -48,8 +48,10 @@ import com.android.internal.util.IndentingPrintWriter;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -101,6 +103,18 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
     private static final int[] LIVE_CALL_STATES =
             {CallState.CONNECTING, CallState.SELECT_PHONE_ACCOUNT, CallState.DIALING, CallState.ACTIVE};
     public static final String TELECOM_CALL_ID_PREFIX = "TC@";
+
+    // Maps call technologies in PhoneConstants to those in Analytics.
+    private static final Map<Integer, Integer> sAnalyticsTechnologyMap;
+    static {
+        sAnalyticsTechnologyMap = new HashMap<>(5);
+        sAnalyticsTechnologyMap.put(PhoneConstants.PHONE_TYPE_CDMA, Analytics.CDMA_PHONE);
+        sAnalyticsTechnologyMap.put(PhoneConstants.PHONE_TYPE_GSM, Analytics.GSM_PHONE);
+        sAnalyticsTechnologyMap.put(PhoneConstants.PHONE_TYPE_IMS, Analytics.IMS_PHONE);
+        sAnalyticsTechnologyMap.put(PhoneConstants.PHONE_TYPE_SIP, Analytics.SIP_PHONE);
+        sAnalyticsTechnologyMap.put(PhoneConstants.PHONE_TYPE_THIRD_PARTY,
+                Analytics.THIRD_PARTY_PHONE);
+    }
 
     /**
      * The main call repository. Keeps an instance of all live calls. New incoming and outgoing
@@ -558,9 +572,17 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
                 null /* gatewayInfo */,
                 null /* connectionManagerPhoneAccount */,
                 phoneAccountHandle,
-                true /* isIncoming */,
+                Call.CALL_DIRECTION_INCOMING /* callDirection */,
+                false /* forceAttachToExistingConnection */,
                 false /* isConference */
         );
+
+        call.initAnalytics();
+        if (mForegroundCall != null) {
+            mForegroundCall.getAnalytics().setCallIsInterrupted(true);
+            call.getAnalytics().setCallIsAdditional(true);
+        }
+
         call.setIntentExtras(extras);
         // TODO: Move this to be a part of addCall()
         call.addListener(this);
@@ -582,12 +604,14 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
                 null /* gatewayInfo */,
                 null /* connectionManagerPhoneAccount */,
                 phoneAccountHandle,
+                Call.CALL_DIRECTION_UNKNOWN /* callDirection */,
                 // Use onCreateIncomingConnection in TelephonyConnectionService, so that we attach
                 // to the existing connection instead of trying to create a new one.
-                true /* isIncoming */,
+                true /* forceAttachToExistingConnection */,
                 false /* isConference */
         );
-        call.setIsUnknown(true);
+        call.initAnalytics();
+
         call.setIntentExtras(extras);
         call.addListener(this);
         call.startCreateConnection(mPhoneAccountRegistrar);
@@ -652,10 +676,14 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
                     null /* gatewayInfo */,
                     null /* connectionManagerPhoneAccount */,
                     null /* phoneAccountHandle */,
-                    false /* isIncoming */,
+                    Call.CALL_DIRECTION_OUTGOING /* callDirection */,
+                    false /* forceAttachToExistingConnection */,
                     false /* isConference */
             );
             call.setInitiatingUser(initiatingUser);
+
+            call.initAnalytics();
+
             isReusedCall = false;
         }
 
@@ -1026,6 +1054,20 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
         }
     }
 
+    @Override
+    public void onExtrasChanged(Call call) {
+        if (call.getExtras() != null
+                && call.getExtras().containsKey(TelecomManager.EXTRA_CALL_TECHNOLOGY_TYPE)) {
+
+            Integer analyticsCallTechnology = sAnalyticsTechnologyMap.get(
+                    call.getExtras().getInt(TelecomManager.EXTRA_CALL_TECHNOLOGY_TYPE));
+            if (analyticsCallTechnology == null) {
+                analyticsCallTechnology = Analytics.THIRD_PARTY_PHONE;
+            }
+            call.getAnalytics().addCallTechnology(analyticsCallTechnology);
+        }
+    }
+
     /** Called by the in-call UI to change the mute state. */
     void mute(boolean shouldMute) {
         mCallAudioManager.mute(shouldMute);
@@ -1319,7 +1361,8 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
                 null /* gatewayInfo */,
                 null /* connectionManagerPhoneAccount */,
                 phoneAccount,
-                false /* isIncoming */,
+                Call.CALL_DIRECTION_UNDEFINED /* callDirection */,
+                false /* forceAttachToExistingConnection */,
                 true /* isConference */,
                 connectTime);
 
@@ -1612,12 +1655,16 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
                     // Disconnect the current outgoing call if it's not an emergency call. If the
                     // user tries to make two outgoing calls to different emergency call numbers,
                     // we will try to connect the first outgoing call.
+                    call.getAnalytics().setCallIsAdditional(true);
+                    outgoingCall.getAnalytics().setCallIsInterrupted(true);
                     outgoingCall.disconnect();
                     return true;
                 }
                 if (outgoingCall.getState() == CallState.SELECT_PHONE_ACCOUNT) {
                     // If there is an orphaned call in the {@link CallState#SELECT_PHONE_ACCOUNT}
                     // state, just disconnect it since the user has explicitly started a new call.
+                    call.getAnalytics().setCallIsAdditional(true);
+                    outgoingCall.getAnalytics().setCallIsInterrupted(true);
                     outgoingCall.disconnect();
                     return true;
                 }
@@ -1629,6 +1676,8 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
                 if (isEmergency) {
                     // Kill the current active call, this is easier then trying to disconnect a
                     // holding call and hold an active call.
+                    call.getAnalytics().setCallIsAdditional(true);
+                    liveCall.getAnalytics().setCallIsInterrupted(true);
                     liveCall.disconnect();
                     return true;
                 }
@@ -1658,6 +1707,8 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
             // how to handle the new call relative to the current one.
             if (Objects.equals(liveCallPhoneAccount, call.getTargetPhoneAccount())) {
                 Log.i(this, "makeRoomForOutgoingCall: phoneAccount matches.");
+                call.getAnalytics().setCallIsAdditional(true);
+                liveCall.getAnalytics().setCallIsInterrupted(true);
                 return true;
             } else if (call.getTargetPhoneAccount() == null) {
                 // Without a phone account, we can't say reliably that the call will fail.
@@ -1672,6 +1723,8 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
             // Try to hold the live call before attempting the new outgoing call.
             if (liveCall.can(Connection.CAPABILITY_HOLD)) {
                 Log.i(this, "makeRoomForOutgoingCall: holding live call.");
+                call.getAnalytics().setCallIsAdditional(true);
+                liveCall.getAnalytics().setCallIsInterrupted(true);
                 liveCall.hold();
                 return true;
             }
@@ -1728,9 +1781,13 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
                 null /* gatewayInfo */,
                 null /* connectionManagerPhoneAccount */,
                 connection.getPhoneAccount(), /* targetPhoneAccountHandle */
-                false /* isIncoming */,
+                Call.CALL_DIRECTION_UNDEFINED /* callDirection */,
+                false /* forceAttachToExistingConnection */,
                 false /* isConference */,
                 connection.getConnectTimeMillis() /* connectTimeMillis */);
+
+        call.initAnalytics();
+        call.getAnalytics().setCreatedFromExistingConnection(true);
 
         setCallState(call, Call.getStateFromConnectionState(connection.getState()),
                 "existing connection");
