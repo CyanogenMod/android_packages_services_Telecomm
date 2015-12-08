@@ -1201,13 +1201,13 @@ public final class BluetoothPhoneServiceImpl {
             case CallState.NEW:
             case CallState.ABORTED:
             case CallState.DISCONNECTED:
-            case CallState.CONNECTING:
-            case CallState.SELECT_PHONE_ACCOUNT:
                 return CALL_STATE_IDLE;
 
             case CallState.ACTIVE:
                 return CALL_STATE_ACTIVE;
 
+            case CallState.CONNECTING:
+            case CallState.SELECT_PHONE_ACCOUNT:
             case CallState.DIALING:
                 // Yes, this is correctly returning ALERTING.
                 // "Dialing" for BT means that we have sent information to the service provider

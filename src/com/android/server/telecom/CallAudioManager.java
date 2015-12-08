@@ -16,12 +16,20 @@
 
 package com.android.server.telecom;
 
+import android.app.ActivityManagerNative;
 import android.content.Context;
+import android.content.pm.UserInfo;
 import android.media.AudioManager;
+import android.media.IAudioService;
+import android.os.Binder;
 import android.os.Handler;
+import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
+import android.os.RemoteException;
+import android.os.ServiceManager;
 import android.os.SystemProperties;
+import android.os.UserHandle;
 import android.telecom.CallAudioState;
 import android.telecom.PhoneAccountHandle;
 import android.telephony.SubscriptionManager;
@@ -89,9 +97,27 @@ final class CallAudioManager extends CallsManagerListenerBase
                 case MSG_AUDIO_MANAGER_SET_MICROPHONE_MUTE: {
                     boolean mute = (msg.arg1 != 0);
                     if (mute != mAudioManager.isMicrophoneMute()) {
-                        Log.i(this, "changing microphone mute state to: %b", mute);
-                        mAudioManager.setMicrophoneMute(mute);
+                        IAudioService audio = getAudioService();
+                        Log.i(this, "changing microphone mute state to: %b [serviceIsNull=%b]",
+                                mute, audio == null);
+                        if (audio != null) {
+                            try {
+                                // We use the audio service directly here so that we can specify
+                                // the current user. Telecom runs in the system_server process which
+                                // may run as a separate user from the foreground user. If we
+                                // used AudioManager directly, we would change mute for the system's
+                                // user and not the current foreground, which we want to avoid.
+                                audio.setMicrophoneMute(
+                                        mute, mContext.getOpPackageName(), getCurrentUserId());
+
+                            } catch (RemoteException e) {
+                                Log.e(this, e, "Remote exception while toggling mute.");
+                            }
+                            // TODO: Check microphone state after attempting to set to ensure that
+                            // our state corroborates AudioManager's state.
+                        }
                     }
+
                     break;
                 }
                 case MSG_AUDIO_MANAGER_REQUEST_AUDIO_FOCUS_FOR_CALL: {
@@ -734,6 +760,23 @@ final class CallAudioManager extends CallsManagerListenerBase
 
     private boolean hasFocus() {
         return mAudioFocusStreamType != STREAM_NONE;
+    }
+
+    private IAudioService getAudioService() {
+        return IAudioService.Stub.asInterface(ServiceManager.getService(Context.AUDIO_SERVICE));
+    }
+
+    private int getCurrentUserId() {
+        final long ident = Binder.clearCallingIdentity();
+        try {
+            UserInfo currentUser = ActivityManagerNative.getDefault().getCurrentUser();
+            return currentUser.id;
+        } catch (RemoteException e) {
+            // Activity manager not running, nothing we can do assume user 0.
+        } finally {
+            Binder.restoreCallingIdentity(ident);
+        }
+        return UserHandle.USER_OWNER;
     }
 
     /**

@@ -322,9 +322,11 @@ public class MissedCallNotifierImpl extends CallsManagerListenerBase implements 
                         mContext.getString(R.string.notification_missedCall_call_back),
                         createCallBackPendingIntent(handleUri));
 
-                builder.addAction(R.drawable.ic_message_24dp,
-                        mContext.getString(R.string.notification_missedCall_message),
-                        createSendSmsFromNotificationPendingIntent(handleUri));
+                if (canRespondViaSms(call)) {
+                    builder.addAction(R.drawable.ic_message_24dp,
+                            mContext.getString(R.string.notification_missedCall_message),
+                            createSendSmsFromNotificationPendingIntent(handleUri));
+                }
             }
 
             Bitmap photoIcon = call.getPhotoIcon();
@@ -529,6 +531,12 @@ public class MissedCallNotifierImpl extends CallsManagerListenerBase implements 
             CMSettings.System.NOTIFICATION_LIGHT_PULSE_CALL_LED_ON, DEFAULT_TIME);
         notification.ledOffMS = CMSettings.System.getInt(resolver,
             CMSettings.System.NOTIFICATION_LIGHT_PULSE_CALL_LED_OFF, DEFAULT_TIME);
+    }
+
+    private boolean canRespondViaSms(Call call) {
+        // Only allow respond-via-sms for "tel:" calls.
+        return call.getHandle() != null &&
+                PhoneAccount.SCHEME_TEL.equals(call.getHandle().getScheme());
     }
 
     /**
