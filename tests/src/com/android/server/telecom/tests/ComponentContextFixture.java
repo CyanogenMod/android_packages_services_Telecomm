@@ -94,6 +94,21 @@ public class ComponentContextFixture implements TestFixture<Context> {
         }
 
         @Override
+        public String getPackageName() {
+            return "com.android.server.telecom.tests";
+        }
+
+        @Override
+        public String getPackageResourcePath() {
+            return "/tmp/i/dont/know";
+        }
+
+        @Override
+        public Context getApplicationContext() {
+            return mApplicationContextSpy;
+        }
+
+        @Override
         public File getFilesDir() {
             try {
                 return File.createTempFile("temp", "temp").getParentFile();
@@ -232,6 +247,10 @@ public class ComponentContextFixture implements TestFixture<Context> {
         @Override
         public void sendBroadcast(Intent intent, String receiverPermission) {
             // TODO -- need to ensure this is captured
+        }
+
+        @Override
+        public void sendBroadcastAsUser(Intent intent, UserHandle userHandle) {
         }
 
         @Override

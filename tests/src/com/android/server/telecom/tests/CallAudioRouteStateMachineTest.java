@@ -102,7 +102,7 @@ public class CallAudioRouteStateMachineTest extends TelecomTestCase {
     @Mock Call fakeCall;
 
     private CallAudioManager.AudioServiceFactory mAudioServiceFactory;
-    private static final int TEST_TIMEOUT = 200;
+    private static final int TEST_TIMEOUT = 500;
     private AudioManager mockAudioManager;
     @Override
     public void setUp() throws Exception {

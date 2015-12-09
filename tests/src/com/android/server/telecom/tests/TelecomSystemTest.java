@@ -23,6 +23,7 @@ import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
@@ -39,6 +40,7 @@ import android.media.AudioManager;
 import android.media.IAudioService;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Debug;
 import android.os.Handler;
 import android.os.Process;
 import android.os.UserHandle;
@@ -73,6 +75,7 @@ import com.android.server.telecom.PhoneAccountRegistrar;
 import com.android.server.telecom.ProximitySensorManager;
 import com.android.server.telecom.ProximitySensorManagerFactory;
 import com.android.server.telecom.TelecomSystem;
+import com.android.server.telecom.components.PrimaryCallReceiver;
 import com.android.server.telecom.components.UserCallIntentProcessor;
 
 import com.google.common.base.Predicate;
@@ -316,6 +319,8 @@ public class TelecomSystemTest extends TelecomTestCase {
         mComponentContextFixture.putResource(
                 com.android.server.telecom.R.string.incall_default_class,
                 mInCallServiceComponentNameX.getClassName());
+        mComponentContextFixture.putBooleanResource(
+                com.android.internal.R.bool.config_voice_capable, true);
 
         mInCallServiceFixtureX = new InCallServiceFixture();
         mInCallServiceFixtureY = new InCallServiceFixture();
@@ -391,8 +396,13 @@ public class TelecomSystemTest extends TelecomTestCase {
         }
 
         final UserHandle userHandle = initiatingUser;
-        new UserCallIntentProcessor(mContext, userHandle)
-                .processIntent(actionCallIntent, null, true /* hasCallAppOp*/);
+        Context localAppContext = mComponentContextFixture.getTestDouble().getApplicationContext();
+        new UserCallIntentProcessor(localAppContext, userHandle).processIntent(
+                actionCallIntent, null, true /* hasCallAppOp*/);
+        // UserCallIntentProcessor's mContext.sendBroadcastAsUser(...) will call to an empty method
+        // as to not actually try to send an intent to PrimaryCallReceiver. We verify that it was
+        // called correctly in order to continue.
+        verify(localAppContext).sendBroadcastAsUser(actionCallIntent, UserHandle.SYSTEM);
         mTelecomSystem.getCallIntentProcessor().processIntent(actionCallIntent);
 
         assertEquals(userHandle,
