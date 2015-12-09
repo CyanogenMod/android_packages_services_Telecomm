@@ -286,6 +286,19 @@ public final class PhoneAccountRegistrar {
         return getSimCallManager(user);
     }
 
+    public ComponentName getSystemSimCallManagerComponent() {
+        String defaultSimCallManager = null;
+        CarrierConfigManager configManager = (CarrierConfigManager) mContext.getSystemService(
+                Context.CARRIER_CONFIG_SERVICE);
+        PersistableBundle configBundle = configManager.getConfig();
+        if (configBundle != null) {
+            defaultSimCallManager = configBundle.getString(
+                    CarrierConfigManager.KEY_DEFAULT_SIM_CALL_MANAGER_STRING);
+        }
+        return TextUtils.isEmpty(defaultSimCallManager)
+            ?  null : ComponentName.unflattenFromString(defaultSimCallManager);
+    }
+
     /**
      * Returns the {@link PhoneAccountHandle} corresponding to the currently active SIM Call
      * Manager. SIM Call Manager returned corresponds to the following priority order:
@@ -300,17 +313,7 @@ public final class PhoneAccountRegistrar {
         String dialerPackage = DefaultDialerManager.getDefaultDialerApplication(mContext, user);
 
         // Check carrier config.
-        String defaultSimCallManager = null;
-        CarrierConfigManager configManager = (CarrierConfigManager) mContext.getSystemService(
-                Context.CARRIER_CONFIG_SERVICE);
-        PersistableBundle configBundle = configManager.getConfig();
-        if (configBundle != null) {
-            defaultSimCallManager = configBundle.getString(
-                    CarrierConfigManager.KEY_DEFAULT_SIM_CALL_MANAGER_STRING);
-        }
-
-        ComponentName systemSimCallManagerComponent = TextUtils.isEmpty(defaultSimCallManager) ?
-                null : ComponentName.unflattenFromString(defaultSimCallManager);
+        ComponentName systemSimCallManagerComponent = getSystemSimCallManagerComponent();
 
         PhoneAccountHandle dialerSimCallManager = null;
         PhoneAccountHandle systemSimCallManager = null;

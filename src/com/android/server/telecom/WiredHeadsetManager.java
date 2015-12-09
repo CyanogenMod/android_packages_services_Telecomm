@@ -39,7 +39,7 @@ class WiredHeadsetManager {
         @Override
         public void onReceive(Context context, Intent intent) {
             if (intent.getAction().equals(Intent.ACTION_HEADSET_PLUG)) {
-                boolean isPluggedIn = intent.getIntExtra("state", 0) == 1;
+                boolean isPluggedIn = mAudioManager.isWiredHeadsetOn();
                 Log.v(WiredHeadsetManager.this, "ACTION_HEADSET_PLUG event, plugged in: %b",
                         isPluggedIn);
                 onHeadsetPluggedInChanged(isPluggedIn);
@@ -48,6 +48,7 @@ class WiredHeadsetManager {
     }
 
     private final WiredHeadsetBroadcastReceiver mReceiver;
+    private final AudioManager mAudioManager;
     private boolean mIsPluggedIn;
     /**
      * ConcurrentHashMap constructor params: 8 is initial table size, 0.9f is
@@ -60,8 +61,8 @@ class WiredHeadsetManager {
     WiredHeadsetManager(Context context) {
         mReceiver = new WiredHeadsetBroadcastReceiver();
 
-        AudioManager audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
-        mIsPluggedIn = audioManager.isWiredHeadsetOn();
+        mAudioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+        mIsPluggedIn = mAudioManager.isWiredHeadsetOn();
 
         // Register for misc other intent broadcasts.
         IntentFilter intentFilter = new IntentFilter(Intent.ACTION_HEADSET_PLUG);
