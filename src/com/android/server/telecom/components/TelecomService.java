@@ -22,6 +22,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.media.IAudioService;
 import android.os.IBinder;
+import android.os.PowerManager;
 import android.os.ServiceManager;
 
 import com.android.internal.telephony.CallerInfoAsyncQuery;
@@ -38,6 +39,7 @@ import com.android.server.telecom.InCallWakeLockController;
 import com.android.server.telecom.Log;
 import com.android.server.telecom.ProximitySensorManager;
 import com.android.server.telecom.TelecomSystem;
+import com.android.server.telecom.TelecomWakeLock;
 import com.android.server.telecom.ui.MissedCallNotifierImpl;
 
 /**
@@ -97,14 +99,23 @@ public class TelecomService extends Service implements TelecomSystem.Component {
                                 public ProximitySensorManager create(
                                         Context context,
                                         CallsManager callsManager) {
-                                    return new ProximitySensorManager(context, callsManager);
+                                    return new ProximitySensorManager(
+                                            new TelecomWakeLock(
+                                                    context,
+                                                    PowerManager.PROXIMITY_SCREEN_OFF_WAKE_LOCK,
+                                                    ProximitySensorManager.class.getSimpleName()),
+                                            callsManager);
                                 }
                             },
                             new InCallWakeLockControllerFactory() {
                                 @Override
                                 public InCallWakeLockController create(Context context,
                                         CallsManager callsManager) {
-                                    return new InCallWakeLockController(context, callsManager);
+                                    return new InCallWakeLockController(
+                                            new TelecomWakeLock(context,
+                                                    PowerManager.FULL_WAKE_LOCK,
+                                                    InCallWakeLockController.class.getSimpleName()),
+                                            callsManager);
                                 }
                             },
                             new CallAudioManager.AudioServiceFactory() {
