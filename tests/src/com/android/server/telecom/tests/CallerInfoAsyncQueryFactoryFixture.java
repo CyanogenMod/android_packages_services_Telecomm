@@ -24,6 +24,7 @@ import com.android.server.telecom.Log;
 import android.content.Context;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -55,7 +56,7 @@ public class CallerInfoAsyncQueryFactoryFixture implements
         }
     };
 
-    final List<Request> mRequests = new ArrayList<>();
+    final List<Request> mRequests = Collections.synchronizedList(new ArrayList<Request>());
 
     public CallerInfoAsyncQueryFactoryFixture() throws Exception {
         Log.i(this, "Creating ...");
