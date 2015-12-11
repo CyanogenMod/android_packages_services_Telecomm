@@ -705,6 +705,9 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
 
         call.setHandle(uriHandle);
         call.setGatewayInfo(gatewayInfo);
+        // Auto-enable speakerphone if the originating intent specified to do so, or if the call
+        // is a video call.
+        call.setStartWithSpeakerphoneOn(speakerphoneOn || isSpeakerphoneAutoEnabled(videoState));
         call.setVideoState(videoState);
 
         if (speakerphoneOn) {
@@ -800,15 +803,32 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
             // We do not update the UI until we get confirmation of the answer() through
             // {@link #markCallAsActive}.
             call.answer(videoState);
-            if (VideoProfile.isVideo(videoState) &&
-                !mWiredHeadsetManager.isPluggedIn() &&
-                !mCallAudioManager.isBluetoothDeviceAvailable() &&
-                isSpeakerEnabledForVideoCalls()) {
+            if (isSpeakerphoneAutoEnabled(videoState)) {
                 call.setStartWithSpeakerphoneOn(true);
             }
         }
     }
 
+    /**
+     * Determines if the speakerphone should be automatically enabled for the call.  Speakerphone
+     * should be enabled if the call is a video call and bluetooth or the wired headset are not in
+     * use.
+     *
+     * @param videoState The video state of the call.
+     * @return {@code true} if the speakerphone should be enabled.
+     */
+    private boolean isSpeakerphoneAutoEnabled(int videoState) {
+        return VideoProfile.isVideo(videoState) &&
+            !mWiredHeadsetManager.isPluggedIn() &&
+            !mCallAudioManager.isBluetoothDeviceAvailable() &&
+            isSpeakerEnabledForVideoCalls();
+    }
+
+    /**
+     * Determines if the speakerphone should be automatically enabled for video calls.
+     *
+     * @return {@code true} if the speakerphone should automatically be enabled.
+     */
     private static boolean isSpeakerEnabledForVideoCalls() {
         return (SystemProperties.getInt(TelephonyProperties.PROPERTY_VIDEOCALL_AUDIO_OUTPUT,
                 PhoneConstants.AUDIO_OUTPUT_DEFAULT) ==
