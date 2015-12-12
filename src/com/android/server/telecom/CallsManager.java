@@ -1770,7 +1770,7 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
      */
     Call createCallForExistingConnection(String callId, ParcelableConnection connection) {
         Call call = new Call(
-                getNextCallId(),
+                callId,
                 mContext,
                 this,
                 mLock,
