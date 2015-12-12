@@ -208,6 +208,8 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
                 statusBarNotifier,
                 audioServiceFactory
         );
+        callAudioRouteStateMachine.initialize();
+
         CallAudioRoutePeripheralAdapter callAudioRoutePeripheralAdapter =
                 new CallAudioRoutePeripheralAdapter(
                         callAudioRouteStateMachine,

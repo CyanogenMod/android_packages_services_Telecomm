@@ -38,9 +38,11 @@ import org.mockito.stubbing.Answer;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.same;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.never;
@@ -54,6 +56,19 @@ public class CallAudioRouteStateMachineTest extends TelecomTestCase {
     private static final int NONE = 0;
     private static final int ON = 1;
     private static final int OFF = 2;
+
+    private class StateMachineWaiter {
+        private boolean mAreStateMachineActionsComplete = false;
+
+        public void setStateMachineActionsComplete() {
+            mAreStateMachineActionsComplete = true;
+            super.notify();
+        }
+
+        public boolean areStateMachineActionsComplete() {
+            return mAreStateMachineActionsComplete;
+        }
+    }
 
     private class TestParameters {
         public String name;
@@ -104,6 +119,7 @@ public class CallAudioRouteStateMachineTest extends TelecomTestCase {
     private CallAudioManager.AudioServiceFactory mAudioServiceFactory;
     private static final int TEST_TIMEOUT = 500;
     private AudioManager mockAudioManager;
+
     @Override
     public void setUp() throws Exception {
         super.setUp();
@@ -133,7 +149,9 @@ public class CallAudioRouteStateMachineTest extends TelecomTestCase {
             } catch (Throwable e) {
                 String newMessage = "Failed at parameters: \n" + params.toString() + '\n'
                         + e.getMessage();
-                throw(new Throwable(newMessage, e));
+                Throwable t = new Throwable(newMessage, e);
+                t.setStackTrace(e.getStackTrace());
+                throw t;
             }
         }
     }
@@ -146,7 +164,9 @@ public class CallAudioRouteStateMachineTest extends TelecomTestCase {
             } catch (Throwable e) {
                 String newMessage = "Failed at parameters: \n" + params.toString() + '\n'
                         + e.getMessage();
-                throw(new Throwable(newMessage, e));
+                Throwable t = new Throwable(newMessage, e);
+                t.setStackTrace(e.getStackTrace());
+                throw t;
             }
         }
     }
@@ -184,7 +204,8 @@ public class CallAudioRouteStateMachineTest extends TelecomTestCase {
         verifyNewSystemCallAudioState(initState, expectedMiddleState);
         resetMocks();
 
-        stateMachine.sendMessageWithSessionInfo(CallAudioRouteStateMachine.DISCONNECT_WIRED_HEADSET);
+        stateMachine.sendMessageWithSessionInfo(
+                CallAudioRouteStateMachine.DISCONNECT_WIRED_HEADSET);
         verifyNewSystemCallAudioState(expectedMiddleState, initState);
     }
 
@@ -417,7 +438,7 @@ public class CallAudioRouteStateMachineTest extends TelecomTestCase {
         params.add(new TestParameters(
                 "Disconnect bluetooth during earpiece", // name
                 CallAudioState.ROUTE_EARPIECE, // initialRoute
-                CallAudioState.ROUTE_EARPIECE| CallAudioState.ROUTE_BLUETOOTH, // availableRoutes
+                CallAudioState.ROUTE_EARPIECE | CallAudioState.ROUTE_BLUETOOTH, // availableRoutes
                 NONE, // speakerInteraction
                 NONE, // bluetoothInteraction
                 CallAudioRouteStateMachine.DISCONNECT_BLUETOOTH, // action
@@ -516,11 +537,11 @@ public class CallAudioRouteStateMachineTest extends TelecomTestCase {
         return params;
     }
 
-    private void runParametrizedTestCaseWithFocus(TestParameters params) {
+    private void runParametrizedTestCaseWithFocus(final TestParameters params) throws Throwable {
         resetMocks();
 
         // Construct a fresh state machine on every case
-        CallAudioRouteStateMachine stateMachine = new CallAudioRouteStateMachine(
+        final CallAudioRouteStateMachine stateMachine = new CallAudioRouteStateMachine(
                 mContext,
                 mockCallsManager,
                 mockBluetoothManager,
@@ -538,7 +559,7 @@ public class CallAudioRouteStateMachineTest extends TelecomTestCase {
                 params.initialRoute == CallAudioState.ROUTE_SPEAKER);
 
         // Set the initial CallAudioState object
-        CallAudioState initState = new CallAudioState(false,
+        final CallAudioState initState = new CallAudioState(false,
                 params.initialRoute, (params.availableRoutes | CallAudioState.ROUTE_SPEAKER));
         stateMachine.initialize(initState);
         // Make the state machine have focus so that we actually do something
@@ -546,19 +567,24 @@ public class CallAudioRouteStateMachineTest extends TelecomTestCase {
                 CallAudioRouteStateMachine.HAS_FOCUS);
         stateMachine.sendMessageWithSessionInfo(params.action);
 
+        waitForStateMachineActionCompletion(stateMachine);
+
+        stateMachine.quitStateMachine();
+
         // Verify interactions with the speakerphone and bluetooth systems
-        switch(params.bluetoothInteraction) {
+        switch (params.bluetoothInteraction) {
             case NONE:
                 verify(mockBluetoothManager, never()).disconnectBluetoothAudio();
                 verify(mockBluetoothManager, never()).connectBluetoothAudio();
                 break;
             case ON:
-                verify(mockBluetoothManager, timeout(TEST_TIMEOUT)).connectBluetoothAudio();
+                verify(mockBluetoothManager).connectBluetoothAudio();
+
                 verify(mockBluetoothManager, never()).disconnectBluetoothAudio();
                 break;
             case OFF:
                 verify(mockBluetoothManager, never()).connectBluetoothAudio();
-                verify(mockBluetoothManager, timeout(TEST_TIMEOUT)).disconnectBluetoothAudio();
+                verify(mockBluetoothManager).disconnectBluetoothAudio();
         }
 
         switch (params.speakerInteraction) {
@@ -567,8 +593,7 @@ public class CallAudioRouteStateMachineTest extends TelecomTestCase {
                 break;
             case ON: // fall through
             case OFF:
-                verify(mockAudioManager, timeout(TEST_TIMEOUT)).setSpeakerphoneOn(
-                        params.speakerInteraction == ON);
+                verify(mockAudioManager).setSpeakerphoneOn(params.speakerInteraction == ON);
         }
 
         // Verify the end state
@@ -577,11 +602,11 @@ public class CallAudioRouteStateMachineTest extends TelecomTestCase {
         verifyNewSystemCallAudioState(initState, expectedState);
     }
 
-    private void runParametrizedTestCaseWithoutFocus(TestParameters params) {
+    private void runParametrizedTestCaseWithoutFocus(final TestParameters params) throws Throwable {
         resetMocks();
 
         // Construct a fresh state machine on every case
-        CallAudioRouteStateMachine stateMachine = new CallAudioRouteStateMachine(
+        final CallAudioRouteStateMachine stateMachine = new CallAudioRouteStateMachine(
                 mContext,
                 mockCallsManager,
                 mockBluetoothManager,
@@ -602,14 +627,13 @@ public class CallAudioRouteStateMachineTest extends TelecomTestCase {
         stateMachine.initialize(initState);
         // Omit the focus-getting statement
         stateMachine.sendMessageWithSessionInfo(params.action);
-        try {
-            Thread.sleep(100L);
-        } catch (InterruptedException e) {
-            // Just a pause to make sure the state machine handler thread has a chance to update
-            // its state. Do nothing.
-        }
 
-        // Verify that no substantive interactions have taken place with the rest of the system
+        waitForStateMachineActionCompletion(stateMachine);
+
+        stateMachine.quitStateMachine();
+
+        // Verify that no substantive interactions have taken place with the
+        // rest of the system
         verify(mockBluetoothManager, never()).disconnectBluetoothAudio();
         verify(mockBluetoothManager, never()).connectBluetoothAudio();
         verify(mockAudioManager, never()).setSpeakerphoneOn(any(Boolean.class));
@@ -623,6 +647,24 @@ public class CallAudioRouteStateMachineTest extends TelecomTestCase {
                 params.expectedAvailableRoutes | CallAudioState.ROUTE_SPEAKER);
         assertEquals(expectedState, stateMachine.getCurrentCallAudioState());
     }
+
+    private void waitForStateMachineActionCompletion(CallAudioRouteStateMachine stateMachine) {
+        final CountDownLatch lock = new CountDownLatch(1);
+        Runnable actionComplete = new Runnable() {
+            @Override
+            public void run() {
+                lock.countDown();
+            }
+        };
+        stateMachine.sendMessage(CallAudioRouteStateMachine.RUN_RUNNABLE, actionComplete);
+        while (lock.getCount() > 0) {
+            try {
+                lock.await();
+            } catch (InterruptedException e) {
+                // do nothing
+            }
+        }
+   }
 
     private void verifyNewSystemCallAudioState(CallAudioState expectedOldState,
             CallAudioState expectedNewState) {

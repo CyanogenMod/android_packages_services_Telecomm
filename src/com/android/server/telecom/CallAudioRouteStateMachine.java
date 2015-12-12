@@ -90,6 +90,9 @@ public class CallAudioRouteStateMachine extends StateMachine {
 
     public static final int SWITCH_FOCUS = 4001;
 
+    // Used in testing to execute verifications. Not compatible with subsessions.
+    public static final int RUN_RUNNABLE = 9001;
+
     /** Valid values for mAudioFocusType */
     public static final int NO_FOCUS = 1;
     public static final int HAS_FOCUS = 2;
@@ -923,7 +926,6 @@ public class CallAudioRouteStateMachine extends StateMachine {
         mRouteCodeToQuiescentState.put(ROUTE_BLUETOOTH, mQuiescentBluetoothRoute);
         mRouteCodeToQuiescentState.put(ROUTE_SPEAKER, mQuiescentSpeakerRoute);
         mRouteCodeToQuiescentState.put(ROUTE_WIRED_HEADSET, mQuiescentHeadsetRoute);
-        initialize();
     }
 
     /**
@@ -964,7 +966,7 @@ public class CallAudioRouteStateMachine extends StateMachine {
     }
 
     /**
-     * This is for state-independent changes in audio route (i.e. muting)
+     * This is for state-independent changes in audio route (i.e. muting or runnables)
      * @param msg that couldn't be handled.
      */
     @Override
@@ -994,10 +996,18 @@ public class CallAudioRouteStateMachine extends StateMachine {
                     sendInternalMessage(MUTE_ON);
                 }
                 return;
+            case RUN_RUNNABLE:
+                Runnable r = (Runnable) msg.obj;
+                r.run();
+                return;
             default:
                 Log.e(this, new IllegalStateException(),
                         "Unexpected message code");
         }
+    }
+
+    public void quitStateMachine() {
+        quitNow();
     }
 
     private void setSpeakerphoneOn(boolean on) {
