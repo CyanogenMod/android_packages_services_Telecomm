@@ -85,7 +85,7 @@
 
     <!-- Message indicating that the user is not allowed to make non-emergency outgoing phone calls
          due to a user restriction -->
-    <string name="outgoing_call_not_allowed_user_restriction">Only emergency calls are allowed by the device owner.</string>
+    <string name="outgoing_call_not_allowed_user_restriction">Only emergency calls are allowed.</string>
 
     <!-- Message indicating that the user is not allowed to make non-emergency outgoing phone calls
          due to the lack of the CALL_PHONE permission -->
