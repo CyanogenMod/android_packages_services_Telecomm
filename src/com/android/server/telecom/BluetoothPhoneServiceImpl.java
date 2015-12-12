@@ -380,7 +380,8 @@ public class BluetoothPhoneServiceImpl {
     /**
      * Receives events for global state changes of the bluetooth adapter.
      */
-    private final BroadcastReceiver mBluetoothAdapterReceiver = new BroadcastReceiver() {
+    @VisibleForTesting
+    public final BroadcastReceiver mBluetoothAdapterReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             synchronized (mLock) {
