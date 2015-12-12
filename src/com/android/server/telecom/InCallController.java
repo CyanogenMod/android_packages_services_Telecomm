@@ -66,14 +66,18 @@ public final class InCallController extends CallsManagerListenerBase {
     private class InCallServiceConnection implements ServiceConnection {
         /** {@inheritDoc} */
         @Override public void onServiceConnected(ComponentName name, IBinder service) {
+            Log.startSession("ICSC.oSC");
             Log.d(this, "onServiceConnected: %s", name);
             onConnected(name, service);
+            Log.endSession();
         }
 
         /** {@inheritDoc} */
         @Override public void onServiceDisconnected(ComponentName name) {
+            Log.startSession("ICSC.oSD");
             Log.d(this, "onDisconnected: %s", name);
             onDisconnected(name);
+            Log.endSession();
         }
     }
 
@@ -198,15 +202,21 @@ public final class InCallController extends CallsManagerListenerBase {
             /** Let's add a 2 second delay before we send unbind to the services to hopefully
              *  give them enough time to process all the pending messages.
              */
+            final Session subsession = Log.createSubsession();
             Handler handler = new Handler(Looper.getMainLooper());
             final Runnable runnableUnbind = new Runnable() {
                 @Override
                 public void run() {
-                    synchronized (mLock) {
-                        // Check again to make sure there are no active calls.
-                        if (mCallsManager.getCalls().isEmpty()) {
-                            unbindFromServices();
+                    try {
+                        Log.continueSession(subsession, "ICC.oCR");
+                        synchronized (mLock) {
+                            // Check again to make sure there are no active calls.
+                            if (mCallsManager.getCalls().isEmpty()) {
+                                unbindFromServices();
+                            }
                         }
+                    } finally {
+                        Log.endSession();
                     }
                 }
             };

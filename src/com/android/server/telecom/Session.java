@@ -41,13 +41,16 @@ public class Session {
     private Session mParentSession;
     private ArrayList<Session> mChildSessions;
     private boolean mIsCompleted = false;
+    private int mChildCounter = 0;
+    private long mThreadId = 0;
 
-    public Session(String sessionId, String shortMethodName, long startTimeMs) {
+    public Session(String sessionId, String shortMethodName, long startTimeMs, long threadID) {
         setSessionId(sessionId);
         setShortMethodName(shortMethodName);
         mExecutionStartTimeMs = startTimeMs;
         mParentSession = null;
         mChildSessions = new ArrayList<>(5);
+        mThreadId = threadID;
     }
 
     public void setSessionId(@NonNull String sessionId) {
@@ -88,6 +91,10 @@ public class Session {
         return mExecutionStartTimeMs;
     }
 
+    public void setExecutionStartTimeMs(long startTimeMs) {
+        mExecutionStartTimeMs = startTimeMs;
+    }
+
     public Session getParentSession() {
         return mParentSession;
     }
@@ -114,8 +121,12 @@ public class Session {
         return mExecutionEndTimeMs - mExecutionStartTimeMs;
     }
 
-    public String getNextChildId() {
-        return String.valueOf(mChildSessions.size());
+    public synchronized String getNextChildId() {
+        return String.valueOf(mChildCounter++);
+    }
+
+    public long getThreadId () {
+        return mThreadId;
     }
 
     @Override
@@ -133,7 +144,9 @@ public class Session {
                 mParentSession == otherSession.mParentSession &&
                 mChildSessions.equals(otherSession.mChildSessions) &&
                 mIsCompleted == otherSession.mIsCompleted &&
-                mExecutionEndTimeMs == otherSession.mExecutionEndTimeMs;
+                mExecutionEndTimeMs == otherSession.mExecutionEndTimeMs &&
+                mChildCounter == otherSession.mChildCounter &&
+                mThreadId == otherSession.mThreadId;
     }
 
     // Builds full session id recursively
@@ -142,6 +155,34 @@ public class Session {
             return mSessionId;
         } else {
             return mParentSession.getFullSessionId() + "_" + mSessionId;
+        }
+    }
+
+    // Print out the full Session tree from any subsession node
+    public String printFullSessionTree() {
+        // Get to the top of the tree
+        Session topNode = this;
+        while(topNode.getParentSession() != null) {
+            topNode = topNode.getParentSession();
+        }
+        return topNode.printSessionTree();
+    }
+
+    // Recursively move down session tree using DFS, but print out each node when it is reached.
+    public String printSessionTree() {
+        StringBuilder sb = new StringBuilder();
+        printSessionTree(0, sb);
+        return sb.toString();
+    }
+
+    private void printSessionTree(int tabI, StringBuilder sb) {
+        sb.append(toString());
+        for (Session child : mChildSessions) {
+            sb.append("\n");
+            for(int i = 0; i <= tabI; i++) {
+                sb.append("\t");
+            }
+            child.printSessionTree(tabI + 1, sb);
         }
     }
 

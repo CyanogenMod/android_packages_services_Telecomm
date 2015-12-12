@@ -121,6 +121,7 @@ public final class TelecomSystem {
             BluetoothPhoneServiceImpl.BluetoothPhoneServiceImplFactory
                     bluetoothPhoneServiceImplFactory) {
         mContext = context.getApplicationContext();
+        Log.setContext(mContext);
 
         mMissedCallNotifier = missedCallNotifier;
         mPhoneAccountRegistrar = new PhoneAccountRegistrar(mContext);

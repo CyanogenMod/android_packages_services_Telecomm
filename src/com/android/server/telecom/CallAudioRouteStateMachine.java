@@ -105,6 +105,18 @@ public class CallAudioRouteStateMachine extends StateMachine {
 
     public static final String NAME = CallAudioRouteStateMachine.class.getName();
 
+    @Override
+    protected void onPreHandleMessage(Message msg) {
+        if (msg.obj != null && msg.obj instanceof Session) {
+            Log.continueSession((Session) msg.obj, "CARSM.pM_" + msg.what);
+        }
+    }
+
+    @Override
+    protected void onPostHandleMessage(Message msg) {
+        Log.endSession();
+    }
+
     abstract class AudioState extends State {
         @Override
         public void enter() {
@@ -122,18 +134,6 @@ public class CallAudioRouteStateMachine extends StateMachine {
 
         @Override
         public boolean processMessage(Message msg) {
-            if (msg.obj != null && msg.obj instanceof Session) {
-                Log.continueSession((Session) msg.obj, "CARSM.pM_" + msg.what);
-            }
-            boolean isHandled = processMessageInternal(msg);
-            if (isHandled) {
-                // If !isHandled, unhandledMessage will be called so Log.endSession there.
-                Log.endSession();
-            }
-            return isHandled;
-        }
-
-        public boolean processMessageInternal(Message msg) {
             Log.d(this, "Message received: %s", msg);
             switch (msg.what) {
                 case CONNECT_WIRED_HEADSET:
@@ -228,8 +228,8 @@ public class CallAudioRouteStateMachine extends StateMachine {
         }
 
         @Override
-        public boolean processMessageInternal(Message msg) {
-            if (super.processMessageInternal(msg) == HANDLED) {
+        public boolean processMessage(Message msg) {
+            if (super.processMessage(msg) == HANDLED) {
                 return HANDLED;
             }
             switch (msg.what) {
@@ -287,8 +287,8 @@ public class CallAudioRouteStateMachine extends StateMachine {
         }
 
         @Override
-        public boolean processMessageInternal(Message msg) {
-            if (super.processMessageInternal(msg) == HANDLED) {
+        public boolean processMessage(Message msg) {
+            if (super.processMessage(msg) == HANDLED) {
                 return HANDLED;
             }
             switch (msg.what) {
@@ -325,8 +325,8 @@ public class CallAudioRouteStateMachine extends StateMachine {
 
     abstract class EarpieceRoute extends AudioState {
         @Override
-        public boolean processMessageInternal(Message msg) {
-            if (super.processMessageInternal(msg) == HANDLED) {
+        public boolean processMessage(Message msg) {
+            if (super.processMessage(msg) == HANDLED) {
                 return HANDLED;
             }
             switch (msg.what) {
@@ -388,8 +388,8 @@ public class CallAudioRouteStateMachine extends StateMachine {
         }
 
         @Override
-        public boolean processMessageInternal(Message msg) {
-            if (super.processMessageInternal(msg) == HANDLED) {
+        public boolean processMessage(Message msg) {
+            if (super.processMessage(msg) == HANDLED) {
                 return HANDLED;
             }
             switch (msg.what) {
@@ -447,8 +447,8 @@ public class CallAudioRouteStateMachine extends StateMachine {
         }
 
         @Override
-        public boolean processMessageInternal(Message msg) {
-            if (super.processMessageInternal(msg) == HANDLED) {
+        public boolean processMessage(Message msg) {
+            if (super.processMessage(msg) == HANDLED) {
                 return HANDLED;
             }
             switch (msg.what) {
@@ -485,8 +485,8 @@ public class CallAudioRouteStateMachine extends StateMachine {
 
     abstract class HeadsetRoute extends AudioState {
         @Override
-        public boolean processMessageInternal(Message msg) {
-            if (super.processMessageInternal(msg) == HANDLED) {
+        public boolean processMessage(Message msg) {
+            if (super.processMessage(msg) == HANDLED) {
                 return HANDLED;
             }
             switch (msg.what) {
@@ -552,8 +552,8 @@ public class CallAudioRouteStateMachine extends StateMachine {
         }
 
         @Override
-        public boolean processMessageInternal(Message msg) {
-            if (super.processMessageInternal(msg) == HANDLED) {
+        public boolean processMessage(Message msg) {
+            if (super.processMessage(msg) == HANDLED) {
                 return HANDLED;
             }
             switch (msg.what) {
@@ -611,8 +611,8 @@ public class CallAudioRouteStateMachine extends StateMachine {
         }
 
         @Override
-        public boolean processMessageInternal(Message msg) {
-            if (super.processMessageInternal(msg) == HANDLED) {
+        public boolean processMessage(Message msg) {
+            if (super.processMessage(msg) == HANDLED) {
                 return HANDLED;
             }
             switch (msg.what) {
@@ -649,8 +649,8 @@ public class CallAudioRouteStateMachine extends StateMachine {
 
     abstract class BluetoothRoute extends AudioState {
         @Override
-        public boolean processMessageInternal(Message msg) {
-            if (super.processMessageInternal(msg) == HANDLED) {
+        public boolean processMessage(Message msg) {
+            if (super.processMessage(msg) == HANDLED) {
                 return HANDLED;
             }
             switch (msg.what) {
@@ -713,8 +713,8 @@ public class CallAudioRouteStateMachine extends StateMachine {
         }
 
         @Override
-        public boolean processMessageInternal(Message msg) {
-            if (super.processMessageInternal(msg) == HANDLED) {
+        public boolean processMessage(Message msg) {
+            if (super.processMessage(msg) == HANDLED) {
                 return HANDLED;
             }
             switch(msg.what) {
@@ -778,8 +778,8 @@ public class CallAudioRouteStateMachine extends StateMachine {
         }
 
         @Override
-        public boolean processMessageInternal(Message msg) {
-            if (super.processMessageInternal(msg) == HANDLED) {
+        public boolean processMessage(Message msg) {
+            if (super.processMessage(msg) == HANDLED) {
                 return HANDLED;
             }
             switch(msg.what) {
@@ -820,8 +820,8 @@ public class CallAudioRouteStateMachine extends StateMachine {
 
     abstract class SpeakerRoute extends AudioState {
         @Override
-        public boolean processMessageInternal(Message msg) {
-            if (super.processMessageInternal(msg) == HANDLED) {
+        public boolean processMessage(Message msg) {
+            if (super.processMessage(msg) == HANDLED) {
                 return HANDLED;
             }
             switch (msg.what) {
@@ -998,8 +998,6 @@ public class CallAudioRouteStateMachine extends StateMachine {
                 Log.e(this, new IllegalStateException(),
                         "Unexpected message code");
         }
-
-        Log.endSession();
     }
 
     private void setSpeakerphoneOn(boolean on) {

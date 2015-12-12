@@ -16,7 +16,10 @@
 
 package com.android.server.telecom;
 
+import android.content.Context;
 import android.net.Uri;
+import android.os.Handler;
+import android.os.Looper;
 import android.telecom.PhoneAccount;
 import android.telephony.PhoneNumberUtils;
 import android.text.TextUtils;
@@ -34,6 +37,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.IllegalFormatException;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
@@ -109,11 +113,13 @@ public class Log {
 
     public static class CallEvent {
         public String eventId;
+        public String sessionId;
         public long time;
         public Object data;
 
-        public CallEvent(String eventId, long time, Object data) {
+        public CallEvent(String eventId, String sessionId, long time, Object data) {
             this.eventId = eventId;
+            this.sessionId = sessionId;
             this.time = time;
             this.data = data;
         }
@@ -133,8 +139,8 @@ public class Log {
             return mCall;
         }
 
-        public void addEvent(String event, Object data) {
-            mEvents.add(new CallEvent(event, System.currentTimeMillis(), data));
+        public void addEvent(String event, String sessionId, Object data) {
+            mEvents.add(new CallEvent(event, sessionId, System.currentTimeMillis(), data));
             Log.i("Event", "Call %s: %s, %s", mCall.getId(), event, data);
         }
 
@@ -168,6 +174,8 @@ public class Log {
 
                 pw.print(sDateFormat.format(new Date(event.time)));
                 pw.print(" - ");
+                pw.print(event.sessionId);
+                pw.print(":");
                 pw.print(event.eventId);
                 if (event.data != null) {
                     pw.print(" (");
@@ -206,12 +214,15 @@ public class Log {
     public static final int MAX_CALLS_TO_CACHE_DEBUG = 20;  // Arbitrarily chosen.
     private static final long EXTENDED_LOGGING_DURATION_MILLIS = 60000 * 30; // 30 minutes
 
+    private static final boolean LOG_DBG = false;
+
     // Currently using 3 letters, So don't exceed 64^3
-    private static final long SESSION_ID_ROLLOVER_THRESHOLD = 1024;
+    private static final long SESSION_ID_ROLLOVER_THRESHOLD = 262144;
 
     // Generic tag for all In Call logging
     @VisibleForTesting
     public static String TAG = "Telecom";
+    public static String LOGGING_TAG = "Logging";
 
     public static final boolean FORCE_LOGGING = false; /* STOP SHIP if true */
     public static final boolean SYSTRACE_DEBUG = false; /* STOP SHIP if true */
@@ -225,10 +236,20 @@ public class Log {
     private static LinkedBlockingQueue<CallEventRecord> mCallEventRecords =
             new LinkedBlockingQueue<CallEventRecord>(MAX_CALLS_TO_CACHE);
 
+    private static Context mContext = null;
     // Synchronized in all method calls
     private static int sCodeEntryCounter = 0;
     @VisibleForTesting
     public static ConcurrentHashMap<Integer, Session> sSessionMapper = new ConcurrentHashMap<>(100);
+    @VisibleForTesting
+    public static Handler sSessionCleanupHandler = new Handler(Looper.getMainLooper());
+    @VisibleForTesting
+    public static Runnable sCleanStaleSessions = new Runnable() {
+        @Override
+        public void run() {
+            cleanupStaleSessions(getSessionCleanupTimeoutMs());
+        }
+    };
 
     // Set the logging container to be the system's. This will only change when being mocked
     // during testing.
@@ -245,13 +266,18 @@ public class Log {
      */
     private static long mUserExtendedLoggingStopTime = 0;
 
-    private Log() {}
+    private Log() {
+    }
+
+    public static void setContext(Context context) {
+        mContext = context;
+    }
 
     /**
      * Enable or disable extended telecom logging.
      *
      * @param isExtendedLoggingEnabled {@code true} if extended logging should be enabled,
-     *      {@code false} if it should be disabled.
+     *          {@code false} if it should be disabled.
      */
     public static void setIsExtendedLoggingEnabled(boolean isExtendedLoggingEnabled) {
         // If the state hasn't changed, bail early.
@@ -289,17 +315,52 @@ public class Log {
         systemLogger = logger;
     }
 
+    // Overridden in LogTest to skip query to ContentProvider
+    public interface ISessionCleanupTimeoutMs {
+        long get();
+    }
+
+    @VisibleForTesting
+    public static ISessionCleanupTimeoutMs sSessionCleanupTimeoutMs =
+            new ISessionCleanupTimeoutMs() {
+                @Override
+                public long get() {
+                    return Timeouts.getStaleSessionCleanupTimeoutMillis(
+                            mContext.getContentResolver());
+                }
+            };
+
+    private static long getSessionCleanupTimeoutMs() {
+        return sSessionCleanupTimeoutMs.get();
+    }
+
+    private static synchronized void resetStaleSessionTimer() {
+        sSessionCleanupHandler.removeCallbacksAndMessages(null);
+        sSessionCleanupHandler.postDelayed(sCleanStaleSessions, getSessionCleanupTimeoutMs());
+    }
+
     /**
      * Call at an entry point to the Telecom code to track the session. This code must be
      * accompanied by a Log.endSession().
      */
-    public static void startSession(String shortMethodName) {
+    public static synchronized void startSession(String shortMethodName) {
+        resetStaleSessionTimer();
         int threadId = getCallingThreadId();
+        Session activeSession = sSessionMapper.get(threadId);
+        // We have called startSession within an active session that has not ended... Register this
+        // session as a subsession.
+        if (activeSession != null) {
+            Log.d(LOGGING_TAG, "Log.startSession was called with session active. Creating " +
+                    "a subsession...");
+            Session childSession = createSubsession();
+            continueSession(childSession, shortMethodName);
+            return;
+        }
         Session newSession = new Session(getNextSessionID(), shortMethodName,
-                System.currentTimeMillis());
+                System.currentTimeMillis(), threadId);
         sSessionMapper.put(threadId, newSession);
 
-        Log.i(TAG, Session.START_SESSION + " " + newSession.toString());
+        Log.i(LOGGING_TAG, Session.START_SESSION + " " + newSession.toString());
     }
 
 
@@ -312,62 +373,94 @@ public class Log {
         int threadId = getCallingThreadId();
         Session threadSession = sSessionMapper.get(threadId);
         if (threadSession == null) {
-            Log.d(TAG, "Log.createSubsession was called with no session active.");
+            Log.d(LOGGING_TAG, "Log.createSubsession was called with no session active.");
             return null;
         }
+        // Start execution time of the session will be overwritten in continueSession(...).
         Session newSubsession = new Session(threadSession.getNextChildId(),
-                threadSession.getShortMethodName(), System.currentTimeMillis());
+                threadSession.getShortMethodName(), System.currentTimeMillis(), threadId);
         threadSession.addChild(newSubsession);
         newSubsession.setParentSession(threadSession);
 
-        Log.i(TAG, Session.CREATE_SUBSESSION + " " + newSubsession.toString());
+        Log.i(LOGGING_TAG, Session.CREATE_SUBSESSION + " " + newSubsession.toString());
         return newSubsession;
     }
 
     /**
-     * Starts the subsession that was created in Log.CreateSubsession. The Log.endSession() method
-     * must be called at the end of this method. The full session will complete when all subsessions
-     * are completed.
+     * Cancels a subsession that had Log.createSubsession() called on it, but will never have
+     * Log.continueSession(...) called on it due to an error. Allows the subsession to be cleaned
+     * gracefully instead of being removed by the sSessionCleanupHandler forcefully later.
      */
-    public static void continueSession(Session subsession, String shortMethodName){
+    public static synchronized void cancelSubsession(Session subsession) {
         if (subsession == null) {
             return;
         }
+
+        subsession.markSessionCompleted(0);
+        endParentSessions(subsession);
+    }
+
+    /**
+     * Starts the subsession that was created in Log.CreateSubsession. The Log.endSession() method
+     * must be called at the end of this method. The full session will complete when all
+     * subsessions are completed.
+     */
+    public static synchronized void continueSession(Session subsession, String shortMethodName) {
+        if (subsession == null) {
+            return;
+        }
+        resetStaleSessionTimer();
         String callingMethodName = subsession.getShortMethodName();
-        subsession.setShortMethodName(shortMethodName);
+        subsession.setShortMethodName(callingMethodName + "->" + shortMethodName);
+        subsession.setExecutionStartTimeMs(System.currentTimeMillis());
         Session threadSession = subsession.getParentSession();
         if (threadSession == null) {
-            Log.d(TAG, "Log.continueSession was called with no session active for method %s.",
-                    shortMethodName);
+            Log.d(LOGGING_TAG, "Log.continueSession was called with no session active for " +
+                    "method %s.", shortMethodName);
             return;
         }
 
         sSessionMapper.put(getCallingThreadId(), subsession);
-        Log.i(TAG, Session.CONTINUE_SUBSESSION + " " + callingMethodName + "->" +
-                subsession.toString());
+        Log.i(LOGGING_TAG, Session.CONTINUE_SUBSESSION + " " + subsession.toString());
     }
 
+    public static void checkIsThreadLogged() {
+        int threadId = getCallingThreadId();
+        Session threadSession = sSessionMapper.get(threadId);
+        if (threadSession == null) {
+            android.util.Log.e(LOGGING_TAG, "Logging Thread Check Failed!", new Exception());
+        }
+    }
 
     /**
      * Ends the current session/subsession. Must be called after a Log.startSession(...) and
      * Log.continueSession(...) call.
      */
     public static synchronized void endSession() {
-        Session completedSession = sSessionMapper.remove(getCallingThreadId());
+        int threadId = getCallingThreadId();
+        Session completedSession = sSessionMapper.get(threadId);
         if (completedSession == null) {
-            Log.d(TAG, "Log.endSession was called with no session active.");
+            Log.w(LOGGING_TAG, "Log.endSession was called with no session active.");
             return;
         }
 
         completedSession.markSessionCompleted(System.currentTimeMillis());
-        Log.i(TAG, Session.END_SUBSESSION + " " + completedSession.toString() +
-                " Local dur: " + completedSession.getLocalExecutionTime() + " mS");
-
+        Log.i(LOGGING_TAG, Session.END_SUBSESSION + " dur: " +
+                completedSession.getLocalExecutionTime() + " mS");
+        // Remove after completed so that reference still exists for logging the end events
+        Session parentSession = completedSession.getParentSession();
+        sSessionMapper.remove(threadId);
         endParentSessions(completedSession);
+        // If this subsession was started from a parent session using Log.startSession, return the
+        // ThreadID back to the parent after completion.
+        if (parentSession != null && !parentSession.isSessionCompleted() &&
+                completedSession.getThreadId() == parentSession.getThreadId()) {
+            sSessionMapper.put(threadId, parentSession);
+        }
     }
 
     // Recursively deletes all complete parent sessions of the current subsession if it is a leaf.
-    private static  void endParentSessions(Session subsession){
+    private static void endParentSessions(Session subsession) {
         // Session is not completed or not currently a leaf, so we can not remove because a child is
         // still running
         if (!subsession.isSessionCompleted() || subsession.getChildSessions().size() != 0) {
@@ -384,8 +477,8 @@ public class Log {
             // running time of the session.
             long fullSessionTimeMs =
                     System.currentTimeMillis() - subsession.getExecutionStartTimeMilliseconds();
-            Log.i(TAG, Session.END_SESSION + " " + subsession.toString() +
-                    " Full dur: " + fullSessionTimeMs + " ms");
+            Log.i(LOGGING_TAG, Session.END_SESSION + " " + subsession.toString() + " dur: " +
+                    fullSessionTimeMs + " ms");
         }
     }
 
@@ -419,6 +512,9 @@ public class Log {
     }
 
     public static void event(Call call, String event, Object data) {
+        Session currentSession = sSessionMapper.get(getCallingThreadId());
+        String currentSessionID = currentSession != null ? currentSession.toString() : "";
+
         if (call == null) {
             Log.i(TAG, "Non-call EVENT: %s, %s", event, data);
             return;
@@ -430,7 +526,31 @@ public class Log {
             }
 
             CallEventRecord record = mCallEventRecordMap.get(call);
-            record.addEvent(event, data);
+            record.addEvent(event, currentSessionID, data);
+        }
+    }
+
+    @VisibleForTesting
+    public static void cleanupStaleSessions(long timeoutMs) {
+        String logMessage = "Stale Sessions Cleaned:\n";
+        boolean isSessionsStale = false;
+        long currentTimeMs = System.currentTimeMillis();
+        // Remove references that are in the Session Mapper (causing GC to occur) on
+        // sessions that are lasting longer than LOGGING_SESSION_TIMEOUT_MS.
+        // If this occurs, then there is most likely a Session active that never had
+        // Log.endSession called on it.
+        for (Iterator<ConcurrentHashMap.Entry<Integer, Session>> it =
+             sSessionMapper.entrySet().iterator(); it.hasNext(); ) {
+            ConcurrentHashMap.Entry<Integer, Session> entry = it.next();
+            Session session = entry.getValue();
+            if (currentTimeMs - session.getExecutionStartTimeMilliseconds() > timeoutMs) {
+                it.remove();
+                logMessage += session.printFullSessionTree() + "\n";
+                isSessionsStale = true;
+            }
+        }
+        if (isSessionsStale) {
+            Log.w(LOGGING_TAG, logMessage);
         }
     }
 
@@ -649,9 +769,12 @@ public class Log {
     }
 
     private static String buildMessage(String prefix, String format, Object... args) {
+        if (LOG_DBG) {
+            checkIsThreadLogged();
+        }
         // Incorporate thread ID and calling method into prefix
         Session currentSession = sSessionMapper.get(getCallingThreadId());
-        if(currentSession != null) {
+        if (currentSession != null) {
             prefix = prefix + " " + currentSession.toString();
         }
 

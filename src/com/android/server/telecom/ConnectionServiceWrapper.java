@@ -64,10 +64,9 @@ public class ConnectionServiceWrapper extends ServiceBinder {
     private final class Adapter extends IConnectionServiceAdapter.Stub {
 
         @Override
-        public void handleCreateConnectionComplete(
-                String callId,
-                ConnectionRequest request,
+        public void handleCreateConnectionComplete(String callId, ConnectionRequest request,
                 ParcelableConnection connection) {
+            Log.startSession("CSW.hCCC");
             long token = Binder.clearCallingIdentity();
             try {
                 synchronized (mLock) {
@@ -77,11 +76,13 @@ public class ConnectionServiceWrapper extends ServiceBinder {
                 }
             } finally {
                 Binder.restoreCallingIdentity(token);
+                Log.endSession();
             }
         }
 
         @Override
         public void setActive(String callId) {
+            Log.startSession("CSW.sA");
             long token = Binder.clearCallingIdentity();
             try {
                 synchronized (mLock) {
@@ -95,11 +96,13 @@ public class ConnectionServiceWrapper extends ServiceBinder {
                 }
             } finally {
                 Binder.restoreCallingIdentity(token);
+                Log.endSession();
             }
         }
 
         @Override
         public void setRinging(String callId) {
+            Log.startSession("CSW.sR");
             long token = Binder.clearCallingIdentity();
             try {
                 synchronized (mLock) {
@@ -113,11 +116,13 @@ public class ConnectionServiceWrapper extends ServiceBinder {
                 }
             } finally {
                 Binder.restoreCallingIdentity(token);
+                Log.endSession();
             }
         }
 
         @Override
         public void setVideoProvider(String callId, IVideoProvider videoProvider) {
+            Log.startSession("CSW.sVP");
             long token = Binder.clearCallingIdentity();
             try {
                 synchronized (mLock) {
@@ -129,11 +134,13 @@ public class ConnectionServiceWrapper extends ServiceBinder {
                 }
             } finally {
                 Binder.restoreCallingIdentity(token);
+                Log.endSession();
             }
         }
 
         @Override
         public void setDialing(String callId) {
+            Log.startSession("CSW.sD");
             long token = Binder.clearCallingIdentity();
             try {
                 synchronized (mLock) {
@@ -147,11 +154,13 @@ public class ConnectionServiceWrapper extends ServiceBinder {
                 }
             } finally {
                 Binder.restoreCallingIdentity(token);
+                Log.endSession();
             }
         }
 
         @Override
         public void setDisconnected(String callId, DisconnectCause disconnectCause) {
+            Log.startSession("CSW.sD");
             long token = Binder.clearCallingIdentity();
             try {
                 synchronized (mLock) {
@@ -166,11 +175,13 @@ public class ConnectionServiceWrapper extends ServiceBinder {
                 }
             } finally {
                 Binder.restoreCallingIdentity(token);
+                Log.endSession();
             }
         }
 
         @Override
         public void setOnHold(String callId) {
+            Log.startSession("CSW.sOH");
             long token = Binder.clearCallingIdentity();
             try {
                 synchronized (mLock) {
@@ -184,11 +195,13 @@ public class ConnectionServiceWrapper extends ServiceBinder {
                 }
             } finally {
                 Binder.restoreCallingIdentity(token);
+                Log.endSession();
             }
         }
 
         @Override
         public void setRingbackRequested(String callId, boolean ringback) {
+            Log.startSession("CSW.SRR");
             long token = Binder.clearCallingIdentity();
             try {
                 synchronized (mLock) {
@@ -202,11 +215,13 @@ public class ConnectionServiceWrapper extends ServiceBinder {
                 }
             } finally {
                 Binder.restoreCallingIdentity(token);
+                Log.endSession();
             }
         }
 
         @Override
         public void removeCall(String callId) {
+            Log.startSession("CSW.rC");
             long token = Binder.clearCallingIdentity();
             try {
                 synchronized (mLock) {
@@ -223,11 +238,13 @@ public class ConnectionServiceWrapper extends ServiceBinder {
                 }
             } finally {
                 Binder.restoreCallingIdentity(token);
+                Log.endSession();
             }
         }
 
         @Override
         public void setConnectionCapabilities(String callId, int connectionCapabilities) {
+            Log.startSession("CSW.sCC");
             long token = Binder.clearCallingIdentity();
             try {
                 synchronized (mLock) {
@@ -242,11 +259,13 @@ public class ConnectionServiceWrapper extends ServiceBinder {
                 }
             } finally {
                 Binder.restoreCallingIdentity(token);
+                Log.endSession();
             }
         }
 
         @Override
         public void setIsConferenced(String callId, String conferenceCallId) {
+            Log.startSession("CSW.sIC");
             long token = Binder.clearCallingIdentity();
             try {
                 synchronized (mLock) {
@@ -266,11 +285,13 @@ public class ConnectionServiceWrapper extends ServiceBinder {
                 }
             } finally {
                 Binder.restoreCallingIdentity(token);
+                Log.endSession();
             }
         }
 
         @Override
         public void setConferenceMergeFailed(String callId) {
+            Log.startSession("CSW.sCMF");
             long token = Binder.clearCallingIdentity();
             try {
                 synchronized (mLock) {
@@ -295,11 +316,13 @@ public class ConnectionServiceWrapper extends ServiceBinder {
                 }
             } finally {
                 Binder.restoreCallingIdentity(token);
+                Log.endSession();
             }
         }
 
         @Override
         public void addConferenceCall(String callId, ParcelableConference parcelableConference) {
+            Log.startSession("CSW.aCC");
             long token = Binder.clearCallingIdentity();
             try {
                 synchronized (mLock) {
@@ -348,11 +371,13 @@ public class ConnectionServiceWrapper extends ServiceBinder {
                 }
             } finally {
                 Binder.restoreCallingIdentity(token);
+                Log.endSession();
             }
         }
 
         @Override
         public void onPostDialWait(String callId, String remaining) throws RemoteException {
+            Log.startSession("CSW.oPDW");
             long token = Binder.clearCallingIdentity();
             try {
                 synchronized (mLock) {
@@ -366,11 +391,13 @@ public class ConnectionServiceWrapper extends ServiceBinder {
                 }
             } finally {
                 Binder.restoreCallingIdentity(token);
+                Log.endSession();
             }
         }
 
         @Override
         public void onPostDialChar(String callId, char nextChar) throws RemoteException {
+            Log.startSession("CSW.oPDC");
             long token = Binder.clearCallingIdentity();
             try {
                 synchronized (mLock) {
@@ -384,12 +411,14 @@ public class ConnectionServiceWrapper extends ServiceBinder {
                 }
             } finally {
                 Binder.restoreCallingIdentity(token);
+                Log.endSession();
             }
         }
 
         @Override
         public void queryRemoteConnectionServices(RemoteServiceCallback callback) {
             final UserHandle callingUserHandle = Binder.getCallingUserHandle();
+            Log.startSession("CSW.qRCS");
             long token = Binder.clearCallingIdentity();
             try {
                 synchronized (mLock) {
@@ -399,11 +428,13 @@ public class ConnectionServiceWrapper extends ServiceBinder {
                 }
             } finally {
                 Binder.restoreCallingIdentity(token);
+                Log.endSession();
             }
         }
 
         @Override
         public void setVideoState(String callId, int videoState) {
+            Log.startSession("CSW.sVS");
             long token = Binder.clearCallingIdentity();
             try {
                 synchronized (mLock) {
@@ -415,11 +446,13 @@ public class ConnectionServiceWrapper extends ServiceBinder {
                 }
             } finally {
                 Binder.restoreCallingIdentity(token);
+                Log.endSession();
             }
         }
 
         @Override
         public void setIsVoipAudioMode(String callId, boolean isVoip) {
+            Log.startSession("CSW.sIVAM");
             long token = Binder.clearCallingIdentity();
             try {
                 synchronized (mLock) {
@@ -431,11 +464,13 @@ public class ConnectionServiceWrapper extends ServiceBinder {
                 }
             } finally {
                 Binder.restoreCallingIdentity(token);
+                Log.endSession();
             }
         }
 
         @Override
         public void setStatusHints(String callId, StatusHints statusHints) {
+            Log.startSession("CSW.sSH");
             long token = Binder.clearCallingIdentity();
             try {
                 synchronized (mLock) {
@@ -447,14 +482,16 @@ public class ConnectionServiceWrapper extends ServiceBinder {
                 }
             } finally {
                 Binder.restoreCallingIdentity(token);
+                Log.endSession();
             }
         }
 
         @Override
         public void setExtras(String callId, Bundle extras) {
+            Log.startSession("CSW.sE");
             long token = Binder.clearCallingIdentity();
             try {
-                synchronized(mLock) {
+                synchronized (mLock) {
                     logIncoming("setExtras %s %s", callId, extras);
                     Call call = mCallIdMapper.getCall(callId);
                     if (call != null) {
@@ -463,11 +500,13 @@ public class ConnectionServiceWrapper extends ServiceBinder {
                 }
             } finally {
                 Binder.restoreCallingIdentity(token);
+                Log.endSession();
             }
         }
 
         @Override
         public void setAddress(String callId, Uri address, int presentation) {
+            Log.startSession("CSW.sA");
             long token = Binder.clearCallingIdentity();
             try {
                 synchronized (mLock) {
@@ -479,12 +518,14 @@ public class ConnectionServiceWrapper extends ServiceBinder {
                 }
             } finally {
                 Binder.restoreCallingIdentity(token);
+                Log.endSession();
             }
         }
 
         @Override
         public void setCallerDisplayName(
                 String callId, String callerDisplayName, int presentation) {
+            Log.startSession("CSW.sCDN");
             long token = Binder.clearCallingIdentity();
             try {
                 synchronized (mLock) {
@@ -497,12 +538,14 @@ public class ConnectionServiceWrapper extends ServiceBinder {
                 }
             } finally {
                 Binder.restoreCallingIdentity(token);
+                Log.endSession();
             }
         }
 
         @Override
         public void setConferenceableConnections(
                 String callId, List<String> conferenceableCallIds) {
+            Log.startSession("CSW.sCC");
             long token = Binder.clearCallingIdentity();
             try {
                 synchronized (mLock) {
@@ -523,11 +566,13 @@ public class ConnectionServiceWrapper extends ServiceBinder {
                 }
             } finally {
                 Binder.restoreCallingIdentity(token);
+                Log.endSession();
             }
         }
 
         @Override
         public void addExistingConnection(String callId, ParcelableConnection connection) {
+            Log.startSession("CSW.aEC");
             long token = Binder.clearCallingIdentity();
             try {
                 synchronized (mLock) {
@@ -539,6 +584,7 @@ public class ConnectionServiceWrapper extends ServiceBinder {
                 }
             } finally {
                 Binder.restoreCallingIdentity(token);
+                Log.endSession();
             }
         }
     }
@@ -700,7 +746,7 @@ public class ConnectionServiceWrapper extends ServiceBinder {
         }
     }
 
-    /** @see IConnectionService#onCallAudioStateChanged(String,CallAudioState) */
+    /** @see IConnectionService#onCallAudioStateChanged(String, CallAudioState) */
     @VisibleForTesting
     public void onCallAudioStateChanged(Call activeCall, CallAudioState audioState) {
         final String callId = mCallIdMapper.getCallId(activeCall);
@@ -759,7 +805,7 @@ public class ConnectionServiceWrapper extends ServiceBinder {
         }
     }
 
-    /** @see IConnectionService#playDtmfTone(String,char) */
+    /** @see IConnectionService#playDtmfTone(String, char) */
     void playDtmfTone(Call call, char digit) {
         final String callId = mCallIdMapper.getCallId(call);
         if (callId != null && isServiceValid("playDtmfTone")) {
@@ -776,7 +822,7 @@ public class ConnectionServiceWrapper extends ServiceBinder {
         final String callId = mCallIdMapper.getCallId(call);
         if (callId != null && isServiceValid("stopDtmfTone")) {
             try {
-                logOutgoing("stopDtmfTone %s",callId);
+                logOutgoing("stopDtmfTone %s", callId);
                 mServiceInterface.stopDtmfTone(callId);
             } catch (RemoteException e) {
             }

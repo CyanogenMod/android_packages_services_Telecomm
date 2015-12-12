@@ -43,6 +43,7 @@ import android.os.UserHandle;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.telecom.IVideoProvider;
 import com.android.internal.telephony.CallerInfo;
+import com.android.internal.telephony.CallerInfoAsyncQuery;
 import com.android.internal.telephony.CallerInfoAsyncQuery.OnQueryCompleteListener;
 import com.android.internal.telephony.SmsApplication;
 import com.android.server.telecom.ContactsAsyncHelper.OnImageLoadCompleteListener;
@@ -169,7 +170,10 @@ public class Call implements CreateConnectionResponse {
                 public void onQueryComplete(int token, Object cookie, CallerInfo callerInfo) {
                     synchronized (mLock) {
                         if (cookie != null) {
-                            ((Call) cookie).setCallerInfo(callerInfo, token);
+                            CallSessionCookie callSession = (CallSessionCookie) cookie;
+                            Log.continueSession(callSession.mSession, "OQCL.oQC");
+                            callSession.mSessionCall.setCallerInfo(callerInfo, token);
+                            Log.endSession();
                         }
                     }
                 }
@@ -183,20 +187,46 @@ public class Call implements CreateConnectionResponse {
                         int token, Drawable photo, Bitmap photoIcon, Object cookie) {
                     synchronized (mLock) {
                         if (cookie != null) {
-                            ((Call) cookie).setPhoto(photo, photoIcon, token);
+                            CallSessionCookie callSession = (CallSessionCookie) cookie;
+                            Log.continueSession(callSession.mSession, "OCLCL.oILC");
+                            callSession.mSessionCall.setPhoto(photo, photoIcon, token);
+                            Log.endSession();
                         }
                     }
                 }
             };
 
-    private final Runnable mDirectToVoicemailRunnable = new Runnable() {
+    private class DirectToVoicemailRunnable implements Runnable {
+
+        Session mSession;
+
+        public DirectToVoicemailRunnable(Session session) {
+            mSession = session;
+        }
+
         @Override
         public void run() {
-            synchronized (mLock) {
-                processDirectToVoicemail();
+            try {
+                Log.continueSession(mSession, "DTVR.r");
+                synchronized (mLock) {
+                    processDirectToVoicemail();
+                }
+            } finally {
+                Log.endSession();
+                mSession = null;
             }
         }
-    };
+    }
+
+    private class CallSessionCookie {
+        Call mSessionCall;
+        Session mSession;
+
+        public CallSessionCookie(Call call, Session session) {
+            mSessionCall = call;
+            mSession = session;
+        }
+    }
 
     /**
      * One of CALL_DIRECTION_INCOMING, CALL_DIRECTION_OUTGOING, or CALL_DIRECTION_UNKNOWN
@@ -1029,7 +1059,7 @@ public class Call implements CreateConnectionResponse {
 
                 // Timeout the direct-to-voicemail lookup execution so that we dont wait too long
                 // before showing the user the incoming call screen.
-                mHandler.postDelayed(mDirectToVoicemailRunnable,
+                mHandler.postDelayed(new DirectToVoicemailRunnable(Log.createSubsession()),
                         Timeouts.getDirectToVoicemailMillis(mContext.getContentResolver()));
                 break;
             case CALL_DIRECTION_OUTGOING:
@@ -1527,15 +1557,28 @@ public class Call implements CreateConnectionResponse {
         mCallerInfo = null;
         if (!TextUtils.isEmpty(number)) {
             Log.v(this, "Looking up information for: %s.", Log.piiHandle(number));
+            final Session subsession = Log.createSubsession();
             mHandler.post(new Runnable() {
                 @Override
                 public void run() {
-                    mCallerInfoAsyncQueryFactory.startQuery(
-                            mQueryToken,
-                            mContext,
-                            number,
-                            mCallerInfoQueryListener,
-                            Call.this);
+                    Session subsubsession = null;
+                    try {
+                        Log.continueSession(subsession, "CIAQF.sQ");
+                        subsubsession = Log.createSubsession();
+                        CallerInfoAsyncQuery value = mCallerInfoAsyncQueryFactory.startQuery(
+                                mQueryToken, mContext, number, mCallerInfoQueryListener,
+                                new CallSessionCookie(Call.this, subsubsession));
+                        // If there is an exception in startQuery, then this assignment will never
+                        // occur.
+                        if(value != null) {
+                            subsubsession = null;
+                        }
+                    } finally {
+                        if (subsubsession != null) {
+                            Log.cancelSubsession(subsubsession);
+                        }
+                        Log.endSession();
+                    }
                 }
             });
         }
@@ -1557,15 +1600,25 @@ public class Call implements CreateConnectionResponse {
             Log.i(this, "CallerInfo received for %s: %s", Log.piiHandle(mHandle), callerInfo);
 
             if (mCallerInfo.contactDisplayPhotoUri != null) {
-                Log.d(this, "Searching person uri %s for call %s",
-                        mCallerInfo.contactDisplayPhotoUri, this);
-                mContactsAsyncHelper.startObtainPhotoAsync(
-                        token,
-                        mContext,
-                        mCallerInfo.contactDisplayPhotoUri,
-                        mPhotoLoadListener,
-                        this);
-                // Do not call onCallerInfoChanged yet in this case.  We call it in setPhoto().
+                Session subsession = null;
+                try {
+                    subsession = Log.createSubsession();
+                    Log.d(this, "Searching person uri %s for call %s",
+                            mCallerInfo.contactDisplayPhotoUri, this);
+                    mContactsAsyncHelper.startObtainPhotoAsync(
+                            token,
+                            mContext,
+                            mCallerInfo.contactDisplayPhotoUri,
+                            mPhotoLoadListener,
+                            new CallSessionCookie(this, subsession));
+                    // If there is an exception, then this assignment will never occur.
+                    subsession = null;
+                    // Do not call onCallerInfoChanged yet in this case.  We call it in setPhoto().
+                } finally {
+                    if(subsession != null) {
+                        Log.cancelSubsession(subsession);
+                    }
+                }
             } else {
                 for (Listener l : mListeners) {
                     l.onCallerInfoChanged(this);

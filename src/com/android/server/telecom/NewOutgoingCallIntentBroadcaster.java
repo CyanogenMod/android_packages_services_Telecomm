@@ -96,53 +96,60 @@ class NewOutgoingCallIntentBroadcaster {
 
         @Override
         public void onReceive(Context context, Intent intent) {
-            Trace.beginSection("onReceiveNewOutgoingCallBroadcast");
-            Log.v(this, "onReceive: %s", intent);
+            try {
+                Log.startSession("NOCBIR.oR");
+                Trace.beginSection("onReceiveNewOutgoingCallBroadcast");
+                Log.v(this, "onReceive: %s", intent);
 
-            // Once the NEW_OUTGOING_CALL broadcast is finished, the resultData is used as the
-            // actual number to call. (If null, no call will be placed.)
-            String resultNumber = getResultData();
-            Log.i(this, "Received new-outgoing-call-broadcast for %s with data %s", mCall,
-                    Log.pii(resultNumber));
+                // Once the NEW_OUTGOING_CALL broadcast is finished, the resultData is used as the
+                // actual number to call. (If null, no call will be placed.)
+                String resultNumber = getResultData();
+                Log.i(this, "Received new-outgoing-call-broadcast for %s with data %s", mCall,
+                        Log.pii(resultNumber));
 
-            boolean endEarly = false;
-            if (resultNumber == null) {
-                Log.v(this, "Call cancelled (null number), returning...");
-                endEarly = true;
-            } else if (PhoneNumberUtils.isPotentialLocalEmergencyNumber(mContext, resultNumber)) {
-                Log.w(this, "Cannot modify outgoing call to emergency number %s.", resultNumber);
-                endEarly = true;
-            }
-
-            if (endEarly) {
-                if (mCall != null) {
-                    mCall.disconnect(true /* wasViaNewOutgoingCall */);
+                boolean endEarly = false;
+                if (resultNumber == null) {
+                    Log.v(this, "Call cancelled (null number), returning...");
+                    endEarly = true;
+                } else if (PhoneNumberUtils.isPotentialLocalEmergencyNumber(
+                        mContext, resultNumber)) {
+                    Log.w(this, "Cannot modify outgoing call to emergency number %s.",
+                            resultNumber);
+                    endEarly = true;
                 }
+
+                if (endEarly) {
+                    if (mCall != null) {
+                        mCall.disconnect(true /* wasViaNewOutgoingCall */);
+                    }
+                    return;
+                }
+
+                Uri resultHandleUri = Uri.fromParts(PhoneNumberUtils.isUriNumber(resultNumber) ?
+                        PhoneAccount.SCHEME_SIP : PhoneAccount.SCHEME_TEL, resultNumber, null);
+
+                Uri originalUri = mIntent.getData();
+
+                if (originalUri.getSchemeSpecificPart().equals(resultNumber)) {
+                    Log.v(this, "Call number unmodified after new outgoing call intent broadcast.");
+                } else {
+                    Log.v(this, "Retrieved modified handle after outgoing call intent broadcast: "
+                                    + "Original: %s, Modified: %s",
+                            Log.pii(originalUri),
+                            Log.pii(resultHandleUri));
+                }
+
+                GatewayInfo gatewayInfo = getGateWayInfoFromIntent(intent, resultHandleUri);
+                mCallsManager.placeOutgoingCall(mCall, resultHandleUri, gatewayInfo,
+                        mIntent.getBooleanExtra(TelecomManager.EXTRA_START_CALL_WITH_SPEAKERPHONE,
+                                false),
+                        mIntent.getIntExtra(TelecomManager.EXTRA_START_CALL_WITH_VIDEO_STATE,
+                                VideoProfile.STATE_AUDIO_ONLY));
+
+            } finally {
                 Trace.endSection();
-                return;
+                Log.endSession();
             }
-
-            Uri resultHandleUri = Uri.fromParts(PhoneNumberUtils.isUriNumber(resultNumber) ?
-                    PhoneAccount.SCHEME_SIP : PhoneAccount.SCHEME_TEL, resultNumber, null);
-
-            Uri originalUri = mIntent.getData();
-
-            if (originalUri.getSchemeSpecificPart().equals(resultNumber)) {
-                Log.v(this, "Call number unmodified after new outgoing call intent broadcast.");
-            } else {
-                Log.v(this, "Retrieved modified handle after outgoing call intent broadcast: "
-                        + "Original: %s, Modified: %s",
-                        Log.pii(originalUri),
-                        Log.pii(resultHandleUri));
-            }
-
-            GatewayInfo gatewayInfo = getGateWayInfoFromIntent(intent, resultHandleUri);
-            mCallsManager.placeOutgoingCall(mCall, resultHandleUri, gatewayInfo,
-                    mIntent.getBooleanExtra(TelecomManager.EXTRA_START_CALL_WITH_SPEAKERPHONE,
-                            false),
-                    mIntent.getIntExtra(TelecomManager.EXTRA_START_CALL_WITH_VIDEO_STATE,
-                            VideoProfile.STATE_AUDIO_ONLY));
-            Trace.endSection();
         }
     }
 
