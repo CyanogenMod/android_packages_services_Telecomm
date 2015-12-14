@@ -305,6 +305,8 @@ public class Log {
         }
     }
 
+    public static final long DEFAULT_SESSION_TIMEOUT_MS = 30000L; // 30 seconds
+
     @VisibleForTesting
     public static void setTag(String tag) {
         TAG = tag;
@@ -319,12 +321,16 @@ public class Log {
     public interface ISessionCleanupTimeoutMs {
         long get();
     }
-
     @VisibleForTesting
     public static ISessionCleanupTimeoutMs sSessionCleanupTimeoutMs =
             new ISessionCleanupTimeoutMs() {
                 @Override
                 public long get() {
+                    // mContext will be null if Log is called from another process
+                    // (UserCallActivity, for example). For these cases, use the default value.
+                    if(mContext == null) {
+                        return DEFAULT_SESSION_TIMEOUT_MS;
+                    }
                     return Timeouts.getStaleSessionCleanupTimeoutMillis(
                             mContext.getContentResolver());
                 }

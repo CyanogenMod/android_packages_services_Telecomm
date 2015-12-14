@@ -200,7 +200,7 @@ public class LogTest extends TelecomTestCase{
             // Set to the default value of Timeouts.getStaleSessionCleanupTimeoutMillis without
             // needing to query.
             public long get() {
-                return 30000;
+                return Log.DEFAULT_SESSION_TIMEOUT_MS;
             }
         };
     }
