@@ -1148,7 +1148,8 @@ public class Call implements CreateConnectionResponse {
     /**
      * Attempts to disconnect the call through the connection service.
      */
-    void disconnect(boolean wasViaNewOutgoingCallBroadcaster) {
+    @VisibleForTesting
+    public void disconnect(boolean wasViaNewOutgoingCallBroadcaster) {
         Log.event(this, Log.Events.REQUEST_DISCONNECT);
 
         // Track that the call is now locally disconnecting.

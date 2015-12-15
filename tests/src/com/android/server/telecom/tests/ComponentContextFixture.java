@@ -283,10 +283,11 @@ public class ComponentContextFixture implements TestFixture<Context> {
             // Don't bother enforcing anything in mock.
         }
 
-        /**
-         * Used to work around a Mockito/ART bug. If you remove any of these, tests will fail.
-         */
-    };
+        @Override
+        public void startActivityAsUser(Intent intent, UserHandle userHandle) {
+            // For capturing
+        }
+    }
 
     public class FakeAudioManager extends AudioManager {
 

@@ -782,8 +782,9 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
      * @param speakerphoneOn Whether or not to turn the speakerphone on once the call connects.
      * @param videoState The desired video state for the outgoing call.
      */
-    void placeOutgoingCall(Call call, Uri handle, GatewayInfo gatewayInfo, boolean speakerphoneOn,
-            int videoState) {
+    @VisibleForTesting
+    public void placeOutgoingCall(Call call, Uri handle, GatewayInfo gatewayInfo,
+            boolean speakerphoneOn, int videoState) {
         if (call == null) {
             // don't do anything if the call no longer exists
             Log.i(this, "Canceling unknown call.");
