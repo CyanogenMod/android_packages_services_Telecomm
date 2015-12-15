@@ -1583,9 +1583,7 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
      * MMI codes which can be dialed when one or more calls are in progress.
      * <P>
      * Checks for numbers formatted similar to the MMI codes defined in:
-     * {@link com.android.internal.telephony.GsmCdmaPhone#handleInCallMmiCommands(String)}
-     * and
-     * {@link com.android.internal.telephony.imsphone.ImsPhone#handleInCallMmiCommands(String)}
+     * {@link com.android.internal.telephony.Phone#handleInCallMmiCommands(String)}
      *
      * @param handle The URI to call.
      * @return {@code True} if the URI represents a number which could be an in-call MMI code.
