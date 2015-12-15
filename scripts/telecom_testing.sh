@@ -16,9 +16,9 @@ lite_test_telecom() {
   debug=false
   coverage=false
 
-  while getopts "c:die?" opt; do
+  while getopts "c:die" opt; do
     case "$opt" in
-      ?)
+      \?)
         echo "$usage"
         return 0;;
       c)
