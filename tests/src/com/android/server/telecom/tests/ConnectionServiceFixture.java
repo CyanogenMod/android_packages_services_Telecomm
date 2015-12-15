@@ -64,19 +64,19 @@ public class ConnectionServiceFixture implements TestFixture<IConnectionService>
         @Override
         public Connection onCreateUnknownConnection(
                 PhoneAccountHandle connectionManagerPhoneAccount, ConnectionRequest request) {
-            return new FakeConnection();
+            return new FakeConnection(request.getVideoState());
         }
 
         @Override
         public Connection onCreateIncomingConnection(
                 PhoneAccountHandle connectionManagerPhoneAccount, ConnectionRequest request) {
-            return new FakeConnection();
+            return new FakeConnection(request.getVideoState());
         }
 
         @Override
         public Connection onCreateOutgoingConnection(
                 PhoneAccountHandle connectionManagerPhoneAccount, ConnectionRequest request) {
-            return new FakeConnection();
+            return new FakeConnection(request.getVideoState());
         }
 
         @Override
@@ -92,12 +92,13 @@ public class ConnectionServiceFixture implements TestFixture<IConnectionService>
     }
 
     public class FakeConnection extends Connection {
-        public FakeConnection() {
+        public FakeConnection(int videoState) {
             super();
             int capabilities = getConnectionCapabilities();
             capabilities |= CAPABILITY_MUTE;
             capabilities |= CAPABILITY_SUPPORT_HOLD;
             capabilities |= CAPABILITY_HOLD;
+            setVideoState(videoState);
             setConnectionCapabilities(capabilities);
             setActive();
         }
@@ -158,6 +159,9 @@ public class ConnectionServiceFixture implements TestFixture<IConnectionService>
             c.isIncoming = isIncoming;
             c.isUnknown = isUnknown;
             c.capabilities |= Connection.CAPABILITY_HOLD | Connection.CAPABILITY_SUPPORT_HOLD;
+            c.videoState = request.getVideoState();
+            c.mockVideoProvider = new MockVideoProvider();
+            c.videoProvider = c.mockVideoProvider.getInterface();
             mConnectionById.put(id, c);
             mConnectionServiceDelegateAdapter.createConnection(connectionManagerPhoneAccount,
                     id, request, isIncoming, isUnknown);
@@ -253,6 +257,8 @@ public class ConnectionServiceFixture implements TestFixture<IConnectionService>
         int callerDisplayNamePresentation;
         final List<String> conferenceableConnectionIds = new ArrayList<>();
         IVideoProvider videoProvider;
+        Connection.VideoProvider videoProviderImpl;
+        MockVideoProvider mockVideoProvider;
         int videoState;
         boolean isVoipAudioMode;
         Bundle extras;
