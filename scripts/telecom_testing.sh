@@ -1,23 +1,30 @@
 lite_test_telecom() {
   usage="
-  Usage: lite_test_telecom [-c CLASSNAME] [-d] [-i] [-e], where
+  Usage: lite_test_telecom [-c CLASSNAME] [-d] [-a | -i] [-e], where
 
   -c CLASSNAME          Run tests only for the specified class/method. CLASSNAME
                           should be of the form SomeClassTest or SomeClassTest#testMethod.
   -d                    Waits for a debugger to attach before starting to run tests.
-  -i                    Rebuild and reinstall the test apk before running tests
+  -i                    Rebuild and reinstall the test apk before running tests (mmm).
+  -a                    Rebuild all dependencies and reinstall the test apk before/
+                          running tests (mmma).
   -e                    Run code coverage. Coverage will be output into the coverage/
                           directory in the repo root.
+  -h                    This help message.
   "
 
   OPTIND=1
   class=
   install=false
+  installwdep=false
   debug=false
   coverage=false
 
-  while getopts "c:die" opt; do
+  while getopts "c:hadie" opt; do
     case "$opt" in
+      h)
+        echo "$usage"
+        return 0;;
       \?)
         echo "$usage"
         return 0;;
@@ -27,6 +34,9 @@ lite_test_telecom() {
         debug=true;;
       i)
         install=true;;
+      a)
+        install=true
+        installwdep=true;;
       e)
         coverage=true;;
     esac
@@ -42,7 +52,17 @@ lite_test_telecom() {
     else
       emma_opt="EMMA_INSTRUMENT_STATIC=false"
     fi
-    ANDROID_COMPILE_WITH_JACK=false mmm "packages/services/Telecomm/tests" ${emma_opt}
+    # Build and exit script early if build fails
+    if [ $installwdep = true ] ; then
+      ANDROID_COMPILE_WITH_JACK=false mmma "packages/services/Telecomm/tests" ${emma_opt}
+    else
+      ANDROID_COMPILE_WITH_JACK=false mmm "packages/services/Telecomm/tests" ${emma_opt}
+    fi
+    if [ $? -ne 0 ] ; then
+      echo "Make failed! try using -a instead of -i if building with coverage"
+      return
+    fi
+
     adb install -r -t "out/target/product/$TARGET_PRODUCT/data/app/TelecomUnitTests/TelecomUnitTests.apk"
     if [ $? -ne 0 ] ; then
       cd "$olddir"
@@ -64,6 +84,8 @@ lite_test_telecom() {
   adb shell am instrument ${e_options} -w com.android.server.telecom.tests/android.test.InstrumentationTestRunner
 
   if [ $coverage = true ] ; then
+    adb root
+    adb wait-for-device
     adb pull /data/user/0/com.android.server.telecom.tests/files/coverage.ec /tmp/
     java -cp external/emma/lib/emma.jar emma report -r html -sp packages/services/Telecomm/src -in out/target/common/obj/APPS/TelecomUnitTests_intermediates/coverage.em -in /tmp/coverage.ec
   fi
