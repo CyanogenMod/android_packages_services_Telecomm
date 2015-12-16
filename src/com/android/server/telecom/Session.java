@@ -43,14 +43,17 @@ public class Session {
     private boolean mIsCompleted = false;
     private int mChildCounter = 0;
     private long mThreadId = 0;
+    private boolean mIsStartedFromActiveSession = false;
 
-    public Session(String sessionId, String shortMethodName, long startTimeMs, long threadID) {
+    public Session(String sessionId, String shortMethodName, long startTimeMs, long threadID,
+            boolean isStartedFromActiveSession) {
         setSessionId(sessionId);
         setShortMethodName(shortMethodName);
         mExecutionStartTimeMs = startTimeMs;
         mParentSession = null;
         mChildSessions = new ArrayList<>(5);
         mThreadId = threadID;
+        mIsStartedFromActiveSession = isStartedFromActiveSession;
     }
 
     public void setSessionId(@NonNull String sessionId) {
@@ -107,6 +110,10 @@ public class Session {
         return mIsCompleted;
     }
 
+    public boolean isStartedFromActiveSession() {
+        return mIsStartedFromActiveSession;
+    }
+
     // Mark this session complete. This will be deleted by Log when all subsessions are complete
     // as well.
     public void markSessionCompleted(long executionEndTimeMs) {
@@ -146,7 +153,8 @@ public class Session {
                 mIsCompleted == otherSession.mIsCompleted &&
                 mExecutionEndTimeMs == otherSession.mExecutionEndTimeMs &&
                 mChildCounter == otherSession.mChildCounter &&
-                mThreadId == otherSession.mThreadId;
+                mThreadId == otherSession.mThreadId &&
+                mIsStartedFromActiveSession == otherSession.mIsStartedFromActiveSession;
     }
 
     // Builds full session id recursively
@@ -188,6 +196,12 @@ public class Session {
 
     @Override
     public String toString() {
-        return mShortMethodName + "@" + getFullSessionId();
+        if(mParentSession != null && mIsStartedFromActiveSession) {
+            // Log.startSession was called from within another active session. Use the parent's
+            // Id instead of the child to reduce confusion.
+            return mParentSession.toString();
+        } else {
+            return mShortMethodName + "@" + getFullSessionId();
+        }
     }
 }
