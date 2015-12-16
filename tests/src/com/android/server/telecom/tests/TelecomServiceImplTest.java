@@ -36,9 +36,13 @@ import android.os.UserManager;
 import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
 import android.telecom.TelecomManager;
+import android.telecom.VideoProfile;
+import android.telephony.TelephonyManager;
 
 import com.android.internal.telecom.ITelecomService;
+import com.android.server.telecom.Call;
 import com.android.server.telecom.CallIntentProcessor;
+import com.android.server.telecom.CallState;
 import com.android.server.telecom.CallsManager;
 import com.android.server.telecom.PhoneAccountRegistrar;
 import com.android.server.telecom.TelecomServiceImpl;
@@ -62,9 +66,11 @@ import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.argThat;
 import static org.mockito.Matchers.eq;
+import static org.mockito.Matchers.isNull;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
@@ -107,6 +113,14 @@ public class TelecomServiceImplTest extends TelecomTestCase {
         }
     }
 
+    public static class SubscriptionManagerAdapterFake
+            implements TelecomServiceImpl.SubscriptionManagerAdapter {
+        @Override
+        public int getDefaultVoiceSubId() {
+            return 0;
+        }
+    }
+
     private static class AnyStringIn extends ArgumentMatcher<String> {
         private Collection<String> mStrings;
         public AnyStringIn(Collection<String> strings) {
@@ -130,6 +144,8 @@ public class TelecomServiceImplTest extends TelecomTestCase {
             spy(new CallIntentProcessAdapterFake());
     private TelecomServiceImpl.DefaultDialerManagerAdapter mDefaultDialerManagerAdapter =
             spy(new DefaultDialerManagerAdapterFake());
+    private TelecomServiceImpl.SubscriptionManagerAdapter mSubscriptionManagerAdapter =
+            spy(new SubscriptionManagerAdapterFake());
     @Mock private UserCallIntentProcessor mUserCallIntentProcessor;
 
     private final TelecomSystem.SyncRoot mLock = new TelecomSystem.SyncRoot() { };
@@ -168,6 +184,7 @@ public class TelecomServiceImplTest extends TelecomTestCase {
                     }
                 },
                 mDefaultDialerManagerAdapter,
+                mSubscriptionManagerAdapter,
                 mLock);
         mTSIBinder = telecomServiceImpl.getBinder();
         mComponentContextFixture.setTelecomManager(mTelecomManager);
@@ -685,7 +702,7 @@ public class TelecomServiceImplTest extends TelecomTestCase {
         setDefaultDialerFailureTestHelper();
     }
 
-    public void testSetDefaultDialerNoWriteSecureSetingsPermission() throws Exception {
+    public void testSetDefaultDialerNoWriteSecureSettingsPermission() throws Exception {
         doThrow(new SecurityException()).when(mContext).enforceCallingOrSelfPermission(
                 eq(WRITE_SECURE_SETTINGS), anyString());
         setDefaultDialerFailureTestHelper();
@@ -704,6 +721,128 @@ public class TelecomServiceImplTest extends TelecomTestCase {
         verify(mContext, never()).sendBroadcastAsUser(any(Intent.class), any(UserHandle.class));
     }
 
+    public void testIsVoicemailNumber() throws Exception {
+        String vmNumber = "010";
+        makeAccountsVisibleToAllUsers(TEL_PA_HANDLE_CURRENT);
+
+        doReturn(true).when(mFakePhoneAccountRegistrar).isVoiceMailNumber(TEL_PA_HANDLE_CURRENT,
+                vmNumber);
+        assertTrue(mTSIBinder.isVoiceMailNumber(TEL_PA_HANDLE_CURRENT,
+                vmNumber, DEFAULT_DIALER_PACKAGE));
+    }
+
+    public void testIsVoicemailNumberAccountNotVisibleFailure() throws Exception {
+        String vmNumber = "010";
+
+        doReturn(true).when(mFakePhoneAccountRegistrar).isVoiceMailNumber(TEL_PA_HANDLE_CURRENT,
+                vmNumber);
+
+        when(mFakePhoneAccountRegistrar.getPhoneAccount(TEL_PA_HANDLE_CURRENT,
+                Binder.getCallingUserHandle())).thenReturn(null);
+        assertFalse(mTSIBinder
+                .isVoiceMailNumber(TEL_PA_HANDLE_CURRENT, vmNumber, DEFAULT_DIALER_PACKAGE));
+    }
+
+    public void testGetVoicemailNumberWithNullAccountHandle() throws Exception {
+        when(mFakePhoneAccountRegistrar.getPhoneAccount(isNull(PhoneAccountHandle.class),
+                eq(Binder.getCallingUserHandle())))
+                .thenReturn(makePhoneAccount(TEL_PA_HANDLE_CURRENT).build());
+        int subId = 58374;
+        String vmNumber = "543";
+        doReturn(subId).when(mSubscriptionManagerAdapter).getDefaultVoiceSubId();
+
+        TelephonyManager mockTelephonyManager =
+                (TelephonyManager) mContext.getSystemService(Context.TELEPHONY_SERVICE);
+        when(mockTelephonyManager.getVoiceMailNumber(subId)).thenReturn(vmNumber);
+
+        assertEquals(vmNumber, mTSIBinder.getVoiceMailNumber(null, DEFAULT_DIALER_PACKAGE));
+    }
+
+    public void testGetVoicemailNumberWithNonNullAccountHandle() throws Exception {
+        when(mFakePhoneAccountRegistrar.getPhoneAccount(eq(TEL_PA_HANDLE_CURRENT),
+                eq(Binder.getCallingUserHandle())))
+                .thenReturn(makePhoneAccount(TEL_PA_HANDLE_CURRENT).build());
+        int subId = 58374;
+        String vmNumber = "543";
+
+        TelephonyManager mockTelephonyManager =
+                (TelephonyManager) mContext.getSystemService(Context.TELEPHONY_SERVICE);
+        when(mockTelephonyManager.getVoiceMailNumber(subId)).thenReturn(vmNumber);
+        when(mFakePhoneAccountRegistrar.getSubscriptionIdForPhoneAccount(TEL_PA_HANDLE_CURRENT))
+                .thenReturn(subId);
+
+        assertEquals(vmNumber,
+                mTSIBinder.getVoiceMailNumber(TEL_PA_HANDLE_CURRENT, DEFAULT_DIALER_PACKAGE));
+    }
+
+    public void testGetLine1Number() throws Exception {
+        int subId = 58374;
+        String line1Number = "9482752023479";
+        makeAccountsVisibleToAllUsers(TEL_PA_HANDLE_CURRENT);
+        when(mFakePhoneAccountRegistrar.getSubscriptionIdForPhoneAccount(TEL_PA_HANDLE_CURRENT))
+                .thenReturn(subId);
+        TelephonyManager mockTelephonyManager =
+                (TelephonyManager) mContext.getSystemService(Context.TELEPHONY_SERVICE);
+        when(mockTelephonyManager.getLine1NumberForSubscriber(subId)).thenReturn(line1Number);
+
+        assertEquals(line1Number,
+                mTSIBinder.getLine1Number(TEL_PA_HANDLE_CURRENT, DEFAULT_DIALER_PACKAGE));
+    }
+
+    public void testEndCallWithRingingForegroundCall() throws Exception {
+        Call call = mock(Call.class);
+        when(call.getState()).thenReturn(CallState.RINGING);
+        when(mFakeCallsManager.getForegroundCall()).thenReturn(call);
+        assertTrue(mTSIBinder.endCall());
+        verify(call).reject(false, null);
+    }
+
+    public void testEndCallWithNonRingingForegroundCall() throws Exception {
+        Call call = mock(Call.class);
+        when(call.getState()).thenReturn(CallState.ACTIVE);
+        when(mFakeCallsManager.getForegroundCall()).thenReturn(call);
+        assertTrue(mTSIBinder.endCall());
+        verify(call).disconnect();
+    }
+
+    public void testEndCallWithNoForegroundCall() throws Exception {
+        Call call = mock(Call.class);
+        when(call.getState()).thenReturn(CallState.ACTIVE);
+        when(mFakeCallsManager.getFirstCallWithState(anyInt(), anyInt(), anyInt(), anyInt()))
+                .thenReturn(call);
+        assertTrue(mTSIBinder.endCall());
+        verify(call).disconnect();
+    }
+
+    public void testEndCallWithNoCalls() throws Exception {
+        assertFalse(mTSIBinder.endCall());
+    }
+
+    public void testAcceptRingingCall() throws Exception {
+        Call call = mock(Call.class);
+        when(mFakeCallsManager.getFirstCallWithState(any(int[].class)))
+                .thenReturn(call);
+        // Not intended to be a real video state. Here to ensure that the call will be answered
+        // with whatever video state it's currently in.
+        int fakeVideoState = 29578215;
+        when(call.getVideoState()).thenReturn(fakeVideoState);
+        mTSIBinder.acceptRingingCall();
+        verify(call).answer(fakeVideoState);
+    }
+
+    public void testAcceptRingingCallWithValidVideoState() throws Exception {
+        Call call = mock(Call.class);
+        when(mFakeCallsManager.getFirstCallWithState(any(int[].class)))
+                .thenReturn(call);
+        // Not intended to be a real video state. Here to ensure that the call will be answered
+        // with the video state passed in to acceptRingingCallWithVideoState
+        int fakeVideoState = 29578215;
+        int realVideoState = VideoProfile.STATE_RX_ENABLED | VideoProfile.STATE_TX_ENABLED;
+        when(call.getVideoState()).thenReturn(fakeVideoState);
+        mTSIBinder.acceptRingingCallWithVideoState(realVideoState);
+        verify(call).answer(realVideoState);
+    }
+
     /**
      * Register phone accounts for the supplied PhoneAccountHandles to make them
      * visible to all users (via the isVisibleToCaller method in TelecomServiceImpl.
@@ -715,6 +854,9 @@ public class TelecomServiceImplTest extends TelecomTestCase {
                     makeMultiUserPhoneAccount(ph).build());
             when(mFakePhoneAccountRegistrar
                     .getPhoneAccount(eq(ph), any(UserHandle.class), anyBoolean()))
+                    .thenReturn(makeMultiUserPhoneAccount(ph).build());
+            when(mFakePhoneAccountRegistrar
+                    .getPhoneAccount(eq(ph), any(UserHandle.class)))
                     .thenReturn(makeMultiUserPhoneAccount(ph).build());
         }
     }

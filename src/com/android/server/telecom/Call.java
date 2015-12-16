@@ -1141,7 +1141,8 @@ public class Call implements CreateConnectionResponse {
         }
     }
 
-    void disconnect() {
+    @VisibleForTesting
+    public void disconnect() {
         disconnect(false);
     }
 
@@ -1210,7 +1211,8 @@ public class Call implements CreateConnectionResponse {
      *
      * @param videoState The video state in which to answer the call.
      */
-    void answer(int videoState) {
+    @VisibleForTesting
+    public void answer(int videoState) {
         Preconditions.checkNotNull(mConnectionService);
 
         // Check to verify that the call is still in the ringing state. A call can change states
@@ -1231,7 +1233,8 @@ public class Call implements CreateConnectionResponse {
      * @param rejectWithMessage Whether to send a text message as part of the call rejection.
      * @param textMessage An optional text message to send as part of the rejection.
      */
-    void reject(boolean rejectWithMessage, String textMessage) {
+    @VisibleForTesting
+    public void reject(boolean rejectWithMessage, String textMessage) {
         Preconditions.checkNotNull(mConnectionService);
 
         // Check to verify that the call is still in the ringing state. A call can change states

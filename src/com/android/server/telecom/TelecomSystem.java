@@ -170,6 +170,7 @@ public final class TelecomSystem {
                     }
                 },
                 new TelecomServiceImpl.DefaultDialerManagerAdapterImpl(),
+                new TelecomServiceImpl.SubscriptionManagerAdapterImpl(),
                 mLock);
     }
 

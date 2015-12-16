@@ -81,8 +81,19 @@ public class TelecomServiceImpl {
         public boolean isDefaultOrSystemDialer(Context context, String packageName) {
             return DefaultDialerManager.isDefaultOrSystemDialer(context, packageName);
         }
-
     }
+
+    public interface SubscriptionManagerAdapter {
+        int getDefaultVoiceSubId();
+    }
+
+    static class SubscriptionManagerAdapterImpl implements SubscriptionManagerAdapter {
+        @Override
+        public int getDefaultVoiceSubId() {
+            return SubscriptionManager.getDefaultVoiceSubId();
+        }
+    }
+
     private static final String PERMISSION_PROCESS_PHONE_ACCOUNT_REGISTRATION =
             "android.permission.PROCESS_PHONE_ACCOUNT_REGISTRATION";
     private static final int DEFAULT_VIDEO_STATE = -1;
@@ -489,7 +500,7 @@ public class TelecomServiceImpl {
                                     accountHandle);
                             return null;
                         }
-                        int subId = SubscriptionManager.getDefaultVoiceSubId();
+                        int subId = mSubscriptionManagerAdapter.getDefaultVoiceSubId();
                         if (accountHandle != null) {
                             subId = mPhoneAccountRegistrar
                                     .getSubscriptionIdForPhoneAccount(accountHandle);
@@ -1159,6 +1170,7 @@ public class TelecomServiceImpl {
     private final CallIntentProcessor.Adapter mCallIntentProcessorAdapter;
     private final UserCallIntentProcessorFactory mUserCallIntentProcessorFactory;
     private final DefaultDialerManagerAdapter mDefaultDialerManagerAdapter;
+    private final SubscriptionManagerAdapter mSubscriptionManagerAdapter;
     private final TelecomSystem.SyncRoot mLock;
 
     public TelecomServiceImpl(
@@ -1168,6 +1180,7 @@ public class TelecomServiceImpl {
             CallIntentProcessor.Adapter callIntentProcessorAdapter,
             UserCallIntentProcessorFactory userCallIntentProcessorFactory,
             DefaultDialerManagerAdapter defaultDialerManagerAdapter,
+            SubscriptionManagerAdapter subscriptionManagerAdapter,
             TelecomSystem.SyncRoot lock) {
         mContext = context;
         mAppOpsManager = (AppOpsManager) mContext.getSystemService(Context.APP_OPS_SERVICE);
@@ -1181,6 +1194,7 @@ public class TelecomServiceImpl {
         mUserCallIntentProcessorFactory = userCallIntentProcessorFactory;
         mDefaultDialerManagerAdapter = defaultDialerManagerAdapter;
         mCallIntentProcessorAdapter = callIntentProcessorAdapter;
+        mSubscriptionManagerAdapter = subscriptionManagerAdapter;
     }
 
     public ITelecomService.Stub getBinder() {
