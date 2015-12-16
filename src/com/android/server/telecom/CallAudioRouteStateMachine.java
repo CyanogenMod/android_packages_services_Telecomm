@@ -25,6 +25,7 @@ import android.media.IAudioService;
 import android.os.Binder;
 import android.os.Message;
 import android.os.RemoteException;
+import android.os.SystemProperties;
 import android.os.UserHandle;
 import android.telecom.CallAudioState;
 import android.util.SparseArray;
@@ -81,7 +82,8 @@ public class CallAudioRouteStateMachine extends StateMachine {
     public static final int SWITCH_BLUETOOTH = 1002;
     public static final int SWITCH_HEADSET = 1003;
     public static final int SWITCH_SPEAKER = 1004;
-    public static final int SWITCH_WIRED_OR_EARPIECE = 1005;
+    // Wired headset, earpiece, or speakerphone, in that order of precedence.
+    public static final int SWITCH_BASELINE_ROUTE = 1005;
 
     public static final int REINITIALIZE = 2001;
 
@@ -110,7 +112,7 @@ public class CallAudioRouteStateMachine extends StateMachine {
         put(SWITCH_BLUETOOTH, "SWITCH_BLUETOOTH");
         put(SWITCH_HEADSET, "SWITCH_HEADSET");
         put(SWITCH_SPEAKER, "SWITCH_SPEAKER");
-        put(SWITCH_WIRED_OR_EARPIECE, "SWITCH_WIRED_OR_EARPIECE");
+        put(SWITCH_BASELINE_ROUTE, "SWITCH_BASELINE_ROUTE");
 
         put(REINITIALIZE, "REINITIALIZE");
 
@@ -188,7 +190,9 @@ public class CallAudioRouteStateMachine extends StateMachine {
                     Log.event(mCallsManager.getForegroundCall(), Log.Events.AUDIO_ROUTE,
                             "Wired headset disconnected");
                     mAvailableRoutes &= ~ROUTE_WIRED_HEADSET;
-                    mAvailableRoutes |= ROUTE_EARPIECE;
+                    if (mDoesDeviceSupportEarpieceRoute) {
+                        mAvailableRoutes |= ROUTE_EARPIECE;
+                    }
                     return NOT_HANDLED;
                 case DISCONNECT_BLUETOOTH:
                     if ((mAvailableRoutes & ROUTE_BLUETOOTH) == 0) {
@@ -199,15 +203,17 @@ public class CallAudioRouteStateMachine extends StateMachine {
                         mAvailableRoutes &= ~ROUTE_BLUETOOTH;
                         return NOT_HANDLED;
                     }
-                case SWITCH_WIRED_OR_EARPIECE:
+                case SWITCH_BASELINE_ROUTE:
                     if ((mAvailableRoutes & ROUTE_EARPIECE) != 0) {
                         sendInternalMessage(SWITCH_EARPIECE);
                     } else if ((mAvailableRoutes & ROUTE_WIRED_HEADSET) != 0) {
                         sendInternalMessage(SWITCH_HEADSET);
+                    } else if (!mDoesDeviceSupportEarpieceRoute) {
+                        sendInternalMessage(SWITCH_SPEAKER);
                     } else {
                         Log.e(this, new IllegalStateException(),
-                                "Neither headset nor earpiece are available. Defaulting to " +
-                                        "earpiece.");
+                                "Neither headset nor earpiece are available, but there is an " +
+                                        "earpiece on the device. Defaulting to earpiece.");
                         sendInternalMessage(SWITCH_EARPIECE);
                     }
                     return HANDLED;
@@ -537,7 +543,7 @@ public class CallAudioRouteStateMachine extends StateMachine {
                     if (mWasOnSpeaker) {
                         sendInternalMessage(SWITCH_SPEAKER);
                     } else {
-                        sendInternalMessage(SWITCH_EARPIECE);
+                        sendInternalMessage(SWITCH_BASELINE_ROUTE);
                     }
                     return HANDLED;
                 case CONNECT_DOCK:
@@ -693,7 +699,7 @@ public class CallAudioRouteStateMachine extends StateMachine {
                     // in the bluetooth route.
                     return HANDLED;
                 case DISCONNECT_BLUETOOTH:
-                    sendInternalMessage(SWITCH_WIRED_OR_EARPIECE);
+                    sendInternalMessage(SWITCH_BASELINE_ROUTE);
                     mWasOnSpeaker = false;
                     return HANDLED;
                 case DISCONNECT_WIRED_HEADSET:
@@ -873,7 +879,7 @@ public class CallAudioRouteStateMachine extends StateMachine {
                     // Nothing to do here
                     return HANDLED;
                 case DISCONNECT_DOCK:
-                    sendInternalMessage(SWITCH_WIRED_OR_EARPIECE);
+                    sendInternalMessage(SWITCH_BASELINE_ROUTE);
                     return HANDLED;
                default:
                     return NOT_HANDLED;
@@ -905,6 +911,7 @@ public class CallAudioRouteStateMachine extends StateMachine {
     private final WiredHeadsetManager mWiredHeadsetManager;
     private final StatusBarNotifier mStatusBarNotifier;
     private final CallAudioManager.AudioServiceFactory mAudioServiceFactory;
+    private final boolean mDoesDeviceSupportEarpieceRoute;
 
     private HashMap<String, Integer> mStateNameToRouteCode;
     private HashMap<Integer, AudioState> mRouteCodeToQuiescentState;
@@ -919,7 +926,8 @@ public class CallAudioRouteStateMachine extends StateMachine {
             BluetoothManager bluetoothManager,
             WiredHeadsetManager wiredHeadsetManager,
             StatusBarNotifier statusBarNotifier,
-            CallAudioManager.AudioServiceFactory audioServiceFactory) {
+            CallAudioManager.AudioServiceFactory audioServiceFactory,
+            boolean doesDeviceSupportEarpieceRoute) {
         super(NAME);
         addState(mActiveEarpieceRoute);
         addState(mActiveHeadsetRoute);
@@ -937,6 +945,7 @@ public class CallAudioRouteStateMachine extends StateMachine {
         mWiredHeadsetManager = wiredHeadsetManager;
         mStatusBarNotifier = statusBarNotifier;
         mAudioServiceFactory = audioServiceFactory;
+        mDoesDeviceSupportEarpieceRoute = doesDeviceSupportEarpieceRoute;
 
         mStateNameToRouteCode = new HashMap<>(8);
         mStateNameToRouteCode.put(mQuiescentEarpieceRoute.getName(), ROUTE_EARPIECE);
@@ -1127,7 +1136,7 @@ public class CallAudioRouteStateMachine extends StateMachine {
 
         if (mWiredHeadsetManager.isPluggedIn()) {
             routeMask |= CallAudioState.ROUTE_WIRED_HEADSET;
-        } else {
+        } else if (mDoesDeviceSupportEarpieceRoute){
             routeMask |= CallAudioState.ROUTE_EARPIECE;
         }
 
@@ -1161,10 +1170,16 @@ public class CallAudioRouteStateMachine extends StateMachine {
 
     private CallAudioState getInitialAudioState() {
         int supportedRouteMask = calculateSupportedRoutes();
-        int route = (supportedRouteMask & ROUTE_WIRED_HEADSET) != 0
-                ? ROUTE_WIRED_HEADSET : ROUTE_EARPIECE;
+        final int route;
+
         if ((supportedRouteMask & ROUTE_BLUETOOTH) != 0) {
             route = ROUTE_BLUETOOTH;
+        } else if ((supportedRouteMask & ROUTE_WIRED_HEADSET) != 0) {
+            route = ROUTE_WIRED_HEADSET;
+        } else if ((supportedRouteMask & ROUTE_EARPIECE) != 0) {
+            route = ROUTE_EARPIECE;
+        } else {
+            route = ROUTE_SPEAKER;
         }
 
         return new CallAudioState(false, route, supportedRouteMask);
@@ -1190,5 +1205,15 @@ public class CallAudioRouteStateMachine extends StateMachine {
             return false;
         }
         return currentState.isActive();
+    }
+
+    public static boolean doesDeviceSupportEarpieceRoute() {
+        String[] characteristics = SystemProperties.get("ro.build.characteristics").split(",");
+        for (String characteristic : characteristics) {
+            if ("watch".equals(characteristic)) {
+                return false;
+            }
+        }
+        return true;
     }
 }
