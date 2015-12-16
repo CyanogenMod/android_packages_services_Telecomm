@@ -51,10 +51,9 @@ import java.util.Random;
  */
 public class TestConnectionService extends ConnectionService {
     /**
-     * Intent extra used to pass along whether a call is video or audio based on the user's choice
-     * in the notification.
+     * Intent extra used to pass along the video state for a new test call.
      */
-    public static final String EXTRA_IS_VIDEO_CALL = "extra_is_video_call";
+    public static final String EXTRA_START_VIDEO_STATE = "extra_start_video_state";
 
     public static final String EXTRA_HANDLE = "extra_handle";
 
@@ -350,17 +349,14 @@ public class TestConnectionService extends ConnectionService {
             final TestConnection connection = new TestConnection(true);
             // Get the stashed intent extra that determines if this is a video call or audio call.
             Bundle extras = request.getExtras();
-            boolean isVideoCall = extras.getBoolean(EXTRA_IS_VIDEO_CALL);
+            int videoState = extras.getInt(EXTRA_START_VIDEO_STATE, VideoProfile.STATE_AUDIO_ONLY);
             Uri providedHandle = extras.getParcelable(EXTRA_HANDLE);
 
             // Use dummy number for testing incoming calls.
             Uri address = providedHandle == null ?
-                    Uri.fromParts(PhoneAccount.SCHEME_TEL, getDummyNumber(isVideoCall), null)
+                    Uri.fromParts(PhoneAccount.SCHEME_TEL, getDummyNumber(
+                            VideoProfile.isVideo(videoState)), null)
                     : providedHandle;
-
-            int videoState = isVideoCall ?
-                    VideoProfile.STATE_BIDIRECTIONAL :
-                    VideoProfile.STATE_AUDIO_ONLY;
             connection.setVideoState(videoState);
 
             Bundle connectionExtras = connection.getExtras();

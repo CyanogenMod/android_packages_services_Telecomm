@@ -24,8 +24,6 @@ import android.app.PendingIntent;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.drawable.Icon;
 import android.net.Uri;
@@ -121,7 +119,7 @@ public class CallServiceNotifier {
                 .setSubscriptionAddress(Uri.parse("tel:555-TEST"))
                 .setCapabilities(PhoneAccount.CAPABILITY_CALL_PROVIDER |
                         PhoneAccount.CAPABILITY_VIDEO_CALLING |
-                        PhoneAccount.CAPABILITY_CALL_SUBJECT)
+                        PhoneAccount.CAPABILITY_VIDEO_CALLING_RELIES_ON_PRESENCE)
                 .setIcon(Icon.createWithResource(
                         context.getResources(), R.drawable.stat_sys_phone_call))
                 .setHighlightColor(Color.RED)
@@ -141,7 +139,7 @@ public class CallServiceNotifier {
                 .setCapabilities(PhoneAccount.CAPABILITY_CALL_PROVIDER |
                         PhoneAccount.CAPABILITY_SIM_SUBSCRIPTION |
                         PhoneAccount.CAPABILITY_VIDEO_CALLING |
-                        PhoneAccount.CAPABILITY_CALL_SUBJECT)
+                        PhoneAccount.CAPABILITY_VIDEO_CALLING_RELIES_ON_PRESENCE)
                 .setIcon(Icon.createWithResource(
                         context.getResources(), R.drawable.stat_sys_phone_call))
                 .setHighlightColor(Color.GREEN)
@@ -218,7 +216,8 @@ public class CallServiceNotifier {
         builder.setContentText("Test calls via CallService API");
         builder.setContentTitle("Test Connection Service");
 
-        addAddVideoCallAction(builder, context);
+        addAddOneWayVideoCallAction(builder, context);
+        addAddTwoWayVideoCallAction(builder, context);
         addAddCallAction(builder, context);
         addExitAction(builder, context);
 
@@ -254,10 +253,19 @@ public class CallServiceNotifier {
     }
 
     /**
-     * Creates the intent to start an incoming video call
+     * Creates the intent to start an incoming 1-way video call (receive-only)
      */
-    private PendingIntent createIncomingVideoCall(Context context) {
-        final Intent intent = new Intent(CallNotificationReceiver.ACTION_VIDEO_CALL,
+    private PendingIntent createOneWayVideoCallIntent(Context context) {
+        final Intent intent = new Intent(CallNotificationReceiver.ACTION_ONE_WAY_VIDEO_CALL,
+                null, context, CallNotificationReceiver.class);
+        return PendingIntent.getBroadcast(context, 0, intent, 0);
+    }
+
+    /**
+     * Creates the intent to start an incoming 2-way video call
+     */
+    private PendingIntent createTwoWayVideoCallIntent(Context context) {
+        final Intent intent = new Intent(CallNotificationReceiver.ACTION_TWO_WAY_VIDEO_CALL,
                 null, context, CallNotificationReceiver.class);
         return PendingIntent.getBroadcast(context, 0, intent, 0);
     }
@@ -280,10 +288,19 @@ public class CallServiceNotifier {
     }
 
     /**
-     * Adds an action to the Notification Builder to add an incoming video call through Telecom.
+     * Adds an action to the Notification Builder to add an incoming one-way video call through
+     * Telecom.
      */
-    private void addAddVideoCallAction(Notification.Builder builder, Context context) {
-        builder.addAction(0, "Add Video", createIncomingVideoCall(context));
+    private void addAddOneWayVideoCallAction(Notification.Builder builder, Context context) {
+        builder.addAction(0, "1-way Video", createOneWayVideoCallIntent(context));
+    }
+
+    /**
+     * Adds an action to the Notification Builder to add an incoming 2-way video call through
+     * Telecom.
+     */
+    private void addAddTwoWayVideoCallAction(Notification.Builder builder, Context context) {
+        builder.addAction(0, "2-way Video", createTwoWayVideoCallIntent(context));
     }
 
     /**
