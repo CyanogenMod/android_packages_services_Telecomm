@@ -65,7 +65,7 @@ class InCallAdapter extends IInCallAdapter.Stub {
     @Override
     public void rejectCall(String callId, boolean rejectWithMessage, String textMessage) {
         try {
-            Log.startSession("ICA.aC");
+            Log.startSession("ICA.rC");
             long token = Binder.clearCallingIdentity();
             try {
                 synchronized (mLock) {

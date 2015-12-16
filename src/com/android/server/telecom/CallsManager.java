@@ -311,17 +311,23 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
             Log.i(this, "onSuccessfulIncomingCall: call already disconnected.");
         }
 
-        if (hasMaximumRingingCalls() || hasMaximumDialingCalls() || shouldSendToVoicemail) {
-            incomingCall.reject(false, null);
-            // Since the call was not added to the list of calls, we have to call the missed
-            // call notifier and the call logger manually.
-            // Do we need missed call notification for direct to Voicemail calls?
-            mMissedCallNotifier.showMissedCallNotification(incomingCall);
-            mCallLogManager.logCall(incomingCall, Calls.MISSED_TYPE);
+        if (hasMaximumRingingCalls()) {
+            Log.i(this, "onSuccessfulIncomingCall: Call rejected! Exceeds maximum number of " +
+                    "ringing calls.");
+            rejectCallAndLog(incomingCall);
+        } else if (hasMaximumDialingCalls()) {
+            Log.i(this, "onSuccessfulIncomingCall: Call rejected! Exceeds maximum number of " +
+                    "dialing calls.");
+            rejectCallAndLog(incomingCall);
+        } else if (shouldSendToVoicemail) {
+            Log.i(this, "onSuccessfulIncomingCall: Call rejected! Call has been flagged to " +
+                    "be sent to voicemail.");
+            rejectCallAndLog(incomingCall);
         } else {
             addCall(incomingCall);
         }
     }
+
 
     @Override
     public void onFailedIncomingCall(Call call) {
@@ -1405,6 +1411,19 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
      */
     MissedCallNotifier getMissedCallNotifier() {
         return mMissedCallNotifier;
+    }
+
+    /**
+     * Reject an incoming call and manually add it to the Call Log.
+     * @param incomingCall Incoming call that has been rejected
+     */
+    private void rejectCallAndLog(Call incomingCall) {
+        incomingCall.reject(false, null);
+        // Since the call was not added to the list of calls, we have to call the missed
+        // call notifier and the call logger manually.
+        // Do we need missed call notification for direct to Voicemail calls?
+        mMissedCallNotifier.showMissedCallNotification(incomingCall);
+        mCallLogManager.logCall(incomingCall, Calls.MISSED_TYPE);
     }
 
     /**

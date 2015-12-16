@@ -92,7 +92,7 @@ public class BluetoothPhoneServiceImpl {
         public boolean answerCall() throws RemoteException {
             synchronized (mLock) {
                 enforceModifyPermission();
-
+                Log.startSession("BPSI.aC");
                 long token = Binder.clearCallingIdentity();
                 try {
                     Log.i(TAG, "BT - answering call");
@@ -104,6 +104,7 @@ public class BluetoothPhoneServiceImpl {
                     return false;
                 } finally {
                     Binder.restoreCallingIdentity(token);
+                    Log.endSession();
                 }
 
             }
@@ -113,7 +114,7 @@ public class BluetoothPhoneServiceImpl {
         public boolean hangupCall() throws RemoteException {
             synchronized (mLock) {
                 enforceModifyPermission();
-
+                Log.startSession("BPSI.hC");
                 long token = Binder.clearCallingIdentity();
                 try {
                     Log.i(TAG, "BT - hanging up call");
@@ -125,6 +126,7 @@ public class BluetoothPhoneServiceImpl {
                     return false;
                 } finally {
                     Binder.restoreCallingIdentity(token);
+                    Log.endSession();
                 }
             }
         }
@@ -133,7 +135,7 @@ public class BluetoothPhoneServiceImpl {
         public boolean sendDtmf(int dtmf) throws RemoteException {
             synchronized (mLock) {
                 enforceModifyPermission();
-
+                Log.startSession("BPSI.sD");
                 long token = Binder.clearCallingIdentity();
                 try {
                     Log.i(TAG, "BT - sendDtmf %c", Log.DEBUG ? dtmf : '.');
@@ -148,6 +150,7 @@ public class BluetoothPhoneServiceImpl {
                     return false;
                 } finally {
                     Binder.restoreCallingIdentity(token);
+                    Log.endSession();
                 }
             }
         }
@@ -156,7 +159,7 @@ public class BluetoothPhoneServiceImpl {
         public String getNetworkOperator() throws RemoteException {
             synchronized (mLock) {
                 enforceModifyPermission();
-
+                Log.startSession("BPSI.gNO");
                 long token = Binder.clearCallingIdentity();
                 try {
                     Log.i(TAG, "getNetworkOperator");
@@ -170,6 +173,7 @@ public class BluetoothPhoneServiceImpl {
                     }
                 } finally {
                     Binder.restoreCallingIdentity(token);
+                    Log.endSession();
                 }
             }
         }
@@ -178,7 +182,7 @@ public class BluetoothPhoneServiceImpl {
         public String getSubscriberNumber() throws RemoteException {
             synchronized (mLock) {
                 enforceModifyPermission();
-
+                Log.startSession("BPSI.gSN");
                 long token = Binder.clearCallingIdentity();
                 try {
                     Log.i(TAG, "getSubscriberNumber");
@@ -197,6 +201,7 @@ public class BluetoothPhoneServiceImpl {
                     return address;
                 } finally {
                     Binder.restoreCallingIdentity(token);
+                    Log.endSession();
                 }
             }
         }
@@ -205,7 +210,7 @@ public class BluetoothPhoneServiceImpl {
         public boolean listCurrentCalls() throws RemoteException {
             synchronized (mLock) {
                 enforceModifyPermission();
-
+                Log.startSession("BPSI.lCC");
                 long token = Binder.clearCallingIdentity();
                 try {
                     // only log if it is after we recently updated the headset state or else it can
@@ -221,6 +226,7 @@ public class BluetoothPhoneServiceImpl {
                     return true;
                 } finally {
                     Binder.restoreCallingIdentity(token);
+                    Log.endSession();
                 }
             }
         }
@@ -229,7 +235,7 @@ public class BluetoothPhoneServiceImpl {
         public boolean queryPhoneState() throws RemoteException {
             synchronized (mLock) {
                 enforceModifyPermission();
-
+                Log.startSession("BPSI.qPS");
                 long token = Binder.clearCallingIdentity();
                 try {
                     Log.i(TAG, "queryPhoneState");
@@ -237,6 +243,7 @@ public class BluetoothPhoneServiceImpl {
                     return true;
                 } finally {
                     Binder.restoreCallingIdentity(token);
+                    Log.endSession();
                 }
             }
         }
@@ -245,13 +252,14 @@ public class BluetoothPhoneServiceImpl {
         public boolean processChld(int chld) throws RemoteException {
             synchronized (mLock) {
                 enforceModifyPermission();
-
+                Log.startSession("BPSI.pC");
                 long token = Binder.clearCallingIdentity();
                 try {
                     Log.i(TAG, "processChld %d", chld);
                     return BluetoothPhoneServiceImpl.this.processChld(chld);
                 } finally {
                     Binder.restoreCallingIdentity(token);
+                    Log.endSession();
                 }
             }
         }
