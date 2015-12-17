@@ -126,15 +126,20 @@ public class VideoProviderProxy extends Connection.VideoProvider {
          */
         @Override
         public void receiveSessionModifyRequest(VideoProfile videoProfile) {
-            synchronized (mLock) {
-                logFromVideoProvider("receiveSessionModifyRequest: " + videoProfile);
+            try {
+                Log.startSession("VPP.rSMR");
+                synchronized (mLock) {
+                    logFromVideoProvider("receiveSessionModifyRequest: " + videoProfile);
 
-                // Inform other Telecom components of the session modification request.
-                for (Listener listener : mListeners) {
-                    listener.onSessionModifyRequestReceived(mCall, videoProfile);
+                    // Inform other Telecom components of the session modification request.
+                    for (Listener listener : mListeners) {
+                        listener.onSessionModifyRequestReceived(mCall, videoProfile);
+                    }
+
+                    VideoProviderProxy.this.receiveSessionModifyRequest(videoProfile);
                 }
-
-                VideoProviderProxy.this.receiveSessionModifyRequest(videoProfile);
+            } finally {
+                Log.endSession();
             }
         }
 
