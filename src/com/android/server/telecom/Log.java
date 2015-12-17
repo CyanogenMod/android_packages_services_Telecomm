@@ -174,8 +174,6 @@ public class Log {
 
                 pw.print(sDateFormat.format(new Date(event.time)));
                 pw.print(" - ");
-                pw.print(event.sessionId);
-                pw.print(":");
                 pw.print(event.eventId);
                 if (event.data != null) {
                     pw.print(" (");
@@ -204,6 +202,8 @@ public class Log {
                     pw.print(event.time - requestEvent.time);
                     pw.print(" ms");
                 }
+                pw.print(":");
+                pw.print(event.sessionId);
                 pw.println();
             }
             pw.decreaseIndent();
@@ -350,6 +350,10 @@ public class Log {
      * accompanied by a Log.endSession().
      */
     public static synchronized void startSession(String shortMethodName) {
+        startSession(shortMethodName, null);
+    }
+    public static synchronized void startSession(String shortMethodName,
+            String callerIdentification) {
         resetStaleSessionTimer();
         int threadId = getCallingThreadId();
         Session activeSession = sSessionMapper.get(threadId);
@@ -361,10 +365,10 @@ public class Log {
             return;
         }
         Session newSession = new Session(getNextSessionID(), shortMethodName,
-                System.currentTimeMillis(), threadId, false);
+                System.currentTimeMillis(), threadId, false, callerIdentification);
         sSessionMapper.put(threadId, newSession);
 
-        Log.i(LOGGING_TAG, Session.START_SESSION + " " + newSession.toString());
+        Log.v(LOGGING_TAG, Session.START_SESSION);
     }
 
 
@@ -387,7 +391,7 @@ public class Log {
         // Start execution time of the session will be overwritten in continueSession(...).
         Session newSubsession = new Session(threadSession.getNextChildId(),
                 threadSession.getShortMethodName(), System.currentTimeMillis(), threadId,
-                isStartedFromActiveSession);
+                isStartedFromActiveSession, null);
         threadSession.addChild(newSubsession);
         newSubsession.setParentSession(threadSession);
 
@@ -435,9 +439,10 @@ public class Log {
 
         sSessionMapper.put(getCallingThreadId(), subsession);
         if(!subsession.isStartedFromActiveSession()) {
-            Log.i(LOGGING_TAG, Session.CONTINUE_SUBSESSION);
+            Log.v(LOGGING_TAG, Session.CONTINUE_SUBSESSION);
         } else {
-            Log.v(LOGGING_TAG, Session.CONTINUE_SUBSESSION + " (Invisible Subsession)");
+            Log.v(LOGGING_TAG, Session.CONTINUE_SUBSESSION + " (Invisible Subsession) with " +
+                    "Method " + shortMethodName);
         }
     }
 
@@ -463,7 +468,7 @@ public class Log {
 
         completedSession.markSessionCompleted(System.currentTimeMillis());
         if(!completedSession.isStartedFromActiveSession()) {
-            Log.i(LOGGING_TAG, Session.END_SUBSESSION + " dur: " +
+            Log.v(LOGGING_TAG, Session.END_SUBSESSION + " dur: " +
                     completedSession.getLocalExecutionTime() + " mS");
         } else {
             Log.v(LOGGING_TAG, Session.END_SUBSESSION + " (Invisible Subsession) dur: " +
@@ -499,8 +504,8 @@ public class Log {
             // running time of the session.
             long fullSessionTimeMs =
                     System.currentTimeMillis() - subsession.getExecutionStartTimeMilliseconds();
-            Log.i(LOGGING_TAG, Session.END_SESSION + " " + subsession.toString() + " dur: " +
-                    fullSessionTimeMs + " ms");
+            Log.v(LOGGING_TAG, Session.END_SESSION + " dur: " + fullSessionTimeMs + " ms:" +
+                    subsession.toString());
         }
     }
 
@@ -795,9 +800,10 @@ public class Log {
             checkIsThreadLogged();
         }
         // Incorporate thread ID and calling method into prefix
+        String sessionPostfix = "";
         Session currentSession = sSessionMapper.get(getCallingThreadId());
         if (currentSession != null) {
-            prefix = prefix + " " + currentSession.toString();
+            sessionPostfix = ": " + currentSession.toString();
         }
 
         String msg;
@@ -809,6 +815,6 @@ public class Log {
                     args.length);
             msg = format + " (An error occurred while formatting the message.)";
         }
-        return String.format(Locale.US, "%s: %s", prefix, msg);
+        return String.format(Locale.US, "%s: %s%s", prefix, msg, sessionPostfix);
     }
 }

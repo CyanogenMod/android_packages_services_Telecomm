@@ -43,10 +43,18 @@ public class Session {
     private boolean mIsCompleted = false;
     private int mChildCounter = 0;
     private long mThreadId = 0;
+    // True if this is a subsession that has been started from the same thread as the parent
+    // session. This can happen if Log.startSession(...) is called multiple times on the same
+    // thread in the case of one Telecom entry point method calling another entry point method.
+    // In this case, we can just make this subsession "invisible," but still keep track of it so
+    // that the Log.endSession() calls match up.
     private boolean mIsStartedFromActiveSession = false;
+    // Optionally provided info about the method/class/component that started the session in order
+    // to make Logging easier. This info will be provided in parentheses along with the session.
+    private String mOwnerInfo;
 
     public Session(String sessionId, String shortMethodName, long startTimeMs, long threadID,
-            boolean isStartedFromActiveSession) {
+            boolean isStartedFromActiveSession, String ownerInfo) {
         setSessionId(sessionId);
         setShortMethodName(shortMethodName);
         mExecutionStartTimeMs = startTimeMs;
@@ -54,6 +62,7 @@ public class Session {
         mChildSessions = new ArrayList<>(5);
         mThreadId = threadID;
         mIsStartedFromActiveSession = isStartedFromActiveSession;
+        mOwnerInfo = ownerInfo;
     }
 
     public void setSessionId(@NonNull String sessionId) {
@@ -154,7 +163,8 @@ public class Session {
                 mExecutionEndTimeMs == otherSession.mExecutionEndTimeMs &&
                 mChildCounter == otherSession.mChildCounter &&
                 mThreadId == otherSession.mThreadId &&
-                mIsStartedFromActiveSession == otherSession.mIsStartedFromActiveSession;
+                mIsStartedFromActiveSession == otherSession.mIsStartedFromActiveSession &&
+                mOwnerInfo == otherSession.mOwnerInfo;
     }
 
     // Builds full session id recursively
@@ -201,7 +211,14 @@ public class Session {
             // Id instead of the child to reduce confusion.
             return mParentSession.toString();
         } else {
-            return mShortMethodName + "@" + getFullSessionId();
+            StringBuilder methodName = new StringBuilder();
+            methodName.append(mShortMethodName);
+            if(mOwnerInfo != null && !mOwnerInfo.isEmpty()) {
+                methodName.append("(InCall package: ");
+                methodName.append(mOwnerInfo);
+                methodName.append(")");
+            }
+            return methodName.toString() + "@" + getFullSessionId();
         }
     }
 }

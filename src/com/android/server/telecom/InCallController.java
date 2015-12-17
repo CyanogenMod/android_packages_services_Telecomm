@@ -476,7 +476,8 @@ public final class InCallController extends CallsManagerListenerBase {
                     new InCallAdapter(
                             mCallsManager,
                             mCallIdMapper,
-                            mLock));
+                            mLock,
+                            componentName.getPackageName()));
         } catch (RemoteException e) {
             Log.e(this, e, "Failed to set the in-call adapter.");
             Trace.endSection();

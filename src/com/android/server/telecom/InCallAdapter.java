@@ -30,19 +30,21 @@ class InCallAdapter extends IInCallAdapter.Stub {
     private final CallsManager mCallsManager;
     private final CallIdMapper mCallIdMapper;
     private final TelecomSystem.SyncRoot mLock;
+    private final String mOwnerComponentName;
 
     /** Persists the specified parameters. */
     public InCallAdapter(CallsManager callsManager, CallIdMapper callIdMapper,
-            TelecomSystem.SyncRoot lock) {
+            TelecomSystem.SyncRoot lock, String ownerComponentName) {
         mCallsManager = callsManager;
         mCallIdMapper = callIdMapper;
         mLock = lock;
+        mOwnerComponentName = ownerComponentName;
     }
 
     @Override
     public void answerCall(String callId, int videoState) {
         try {
-            Log.startSession("ICA.aC");
+            Log.startSession("ICA.aC", mOwnerComponentName);
             long token = Binder.clearCallingIdentity();
             try {
                 synchronized (mLock) {
@@ -65,7 +67,7 @@ class InCallAdapter extends IInCallAdapter.Stub {
     @Override
     public void rejectCall(String callId, boolean rejectWithMessage, String textMessage) {
         try {
-            Log.startSession("ICA.rC");
+            Log.startSession("ICA.rC", mOwnerComponentName);
             long token = Binder.clearCallingIdentity();
             try {
                 synchronized (mLock) {
@@ -88,7 +90,7 @@ class InCallAdapter extends IInCallAdapter.Stub {
     @Override
     public void playDtmfTone(String callId, char digit) {
         try {
-            Log.startSession("ICA.pDT");
+            Log.startSession("ICA.pDT", mOwnerComponentName);
             long token = Binder.clearCallingIdentity();
             try {
                 synchronized (mLock) {
@@ -111,7 +113,7 @@ class InCallAdapter extends IInCallAdapter.Stub {
     @Override
     public void stopDtmfTone(String callId) {
         try {
-            Log.startSession("ICA.sDT");
+            Log.startSession("ICA.sDT", mOwnerComponentName);
             long token = Binder.clearCallingIdentity();
             try {
                 synchronized (mLock) {
@@ -134,7 +136,7 @@ class InCallAdapter extends IInCallAdapter.Stub {
     @Override
     public void postDialContinue(String callId, boolean proceed) {
         try {
-            Log.startSession("ICA.pDC");
+            Log.startSession("ICA.pDC", mOwnerComponentName);
             long token = Binder.clearCallingIdentity();
             try {
                 synchronized (mLock) {
@@ -157,7 +159,7 @@ class InCallAdapter extends IInCallAdapter.Stub {
     @Override
     public void disconnectCall(String callId) {
         try {
-            Log.startSession("ICA.dC");
+            Log.startSession("ICA.dC", mOwnerComponentName);
             long token = Binder.clearCallingIdentity();
             try {
                 synchronized (mLock) {
@@ -180,7 +182,7 @@ class InCallAdapter extends IInCallAdapter.Stub {
     @Override
     public void holdCall(String callId) {
         try {
-            Log.startSession("ICA.hC");
+            Log.startSession("ICA.hC", mOwnerComponentName);
             long token = Binder.clearCallingIdentity();
             try {
                 synchronized (mLock) {
@@ -202,7 +204,7 @@ class InCallAdapter extends IInCallAdapter.Stub {
     @Override
     public void unholdCall(String callId) {
         try {
-            Log.startSession("ICA.uC");
+            Log.startSession("ICA.uC", mOwnerComponentName);
             long token = Binder.clearCallingIdentity();
             try {
                 synchronized (mLock) {
@@ -225,7 +227,7 @@ class InCallAdapter extends IInCallAdapter.Stub {
     public void phoneAccountSelected(String callId, PhoneAccountHandle accountHandle,
             boolean setDefault) {
         try {
-            Log.startSession("ICA.pAS");
+            Log.startSession("ICA.pAS", mOwnerComponentName);
             long token = Binder.clearCallingIdentity();
             try {
                 synchronized (mLock) {
@@ -247,7 +249,7 @@ class InCallAdapter extends IInCallAdapter.Stub {
     @Override
     public void mute(boolean shouldMute) {
         try {
-            Log.startSession("ICA.m");
+            Log.startSession("ICA.m", mOwnerComponentName);
             long token = Binder.clearCallingIdentity();
             try {
                 synchronized (mLock) {
@@ -264,7 +266,7 @@ class InCallAdapter extends IInCallAdapter.Stub {
     @Override
     public void setAudioRoute(int route) {
         try {
-            Log.startSession("ICA.sAR");
+            Log.startSession("ICA.sAR", mOwnerComponentName);
             long token = Binder.clearCallingIdentity();
             try {
                 synchronized (mLock) {
@@ -281,7 +283,7 @@ class InCallAdapter extends IInCallAdapter.Stub {
     @Override
     public void conference(String callId, String otherCallId) {
         try {
-            Log.startSession("ICA.c");
+            Log.startSession("ICA.c", mOwnerComponentName);
             long token = Binder.clearCallingIdentity();
             try {
                 synchronized (mLock) {
@@ -304,7 +306,7 @@ class InCallAdapter extends IInCallAdapter.Stub {
     @Override
     public void splitFromConference(String callId) {
         try {
-            Log.startSession("ICA.sFC");
+            Log.startSession("ICA.sFC", mOwnerComponentName);
             long token = Binder.clearCallingIdentity();
             try {
                 synchronized (mLock) {
@@ -326,7 +328,7 @@ class InCallAdapter extends IInCallAdapter.Stub {
     @Override
     public void mergeConference(String callId) {
         try {
-            Log.startSession("ICA.mC");
+            Log.startSession("ICA.mC", mOwnerComponentName);
             long token = Binder.clearCallingIdentity();
             try {
                 synchronized (mLock) {
@@ -348,7 +350,7 @@ class InCallAdapter extends IInCallAdapter.Stub {
     @Override
     public void swapConference(String callId) {
         try {
-            Log.startSession("ICA.sC");
+            Log.startSession("ICA.sC", mOwnerComponentName);
             long token = Binder.clearCallingIdentity();
             try {
                 synchronized (mLock) {
@@ -370,7 +372,7 @@ class InCallAdapter extends IInCallAdapter.Stub {
     @Override
     public void turnOnProximitySensor() {
         try {
-            Log.startSession("tOPS");
+            Log.startSession("ICA.tOnPS", mOwnerComponentName);
             long token = Binder.clearCallingIdentity();
             try {
                 synchronized (mLock) {
@@ -387,7 +389,7 @@ class InCallAdapter extends IInCallAdapter.Stub {
     @Override
     public void turnOffProximitySensor(boolean screenOnImmediately) {
         try {
-            Log.startSession("ICA.tOPS");
+            Log.startSession("ICA.tOffPS", mOwnerComponentName);
             long token = Binder.clearCallingIdentity();
             try {
                 synchronized (mLock) {
