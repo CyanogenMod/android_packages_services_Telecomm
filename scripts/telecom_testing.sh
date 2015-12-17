@@ -54,7 +54,7 @@ lite_test_telecom() {
     fi
     # Build and exit script early if build fails
     if [ $installwdep = true ] ; then
-      ANDROID_COMPILE_WITH_JACK=false mmma "packages/services/Telecomm/tests" ${emma_opt}
+      ANDROID_COMPILE_WITH_JACK=false mmma -j40 "packages/services/Telecomm/tests" ${emma_opt}
     else
       ANDROID_COMPILE_WITH_JACK=false mmm "packages/services/Telecomm/tests" ${emma_opt}
     fi
