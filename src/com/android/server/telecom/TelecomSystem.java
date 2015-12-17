@@ -25,7 +25,11 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.net.Uri;
 import android.os.UserHandle;
+
+import java.io.FileNotFoundException;
+import java.io.InputStream;
 
 /**
  * Top-level Application class for Telecom.
@@ -127,7 +131,14 @@ public final class TelecomSystem {
 
         mMissedCallNotifier = missedCallNotifier;
         mPhoneAccountRegistrar = new PhoneAccountRegistrar(mContext);
-        mContactsAsyncHelper = new ContactsAsyncHelper(mLock);
+        mContactsAsyncHelper = new ContactsAsyncHelper(
+                new ContactsAsyncHelper.ContentResolverAdapter() {
+                    @Override
+                    public InputStream openInputStream(Context context, Uri uri)
+                            throws FileNotFoundException {
+                        return context.getContentResolver().openInputStream(uri);
+                    }
+                });
         BluetoothManager bluetoothManager = new BluetoothManager(mContext);
         WiredHeadsetManager wiredHeadsetManager = new WiredHeadsetManager(mContext);
 
