@@ -356,14 +356,12 @@ public class Log {
         // We have called startSession within an active session that has not ended... Register this
         // session as a subsession.
         if (activeSession != null) {
-            Log.d(LOGGING_TAG, "Log.startSession was called with session active. Creating " +
-                    "a subsession...");
-            Session childSession = createSubsession();
+            Session childSession = createSubsession(true);
             continueSession(childSession, shortMethodName);
             return;
         }
         Session newSession = new Session(getNextSessionID(), shortMethodName,
-                System.currentTimeMillis(), threadId);
+                System.currentTimeMillis(), threadId, false);
         sSessionMapper.put(threadId, newSession);
 
         Log.i(LOGGING_TAG, Session.START_SESSION + " " + newSession.toString());
@@ -375,7 +373,11 @@ public class Log {
      * allocates the resources. Returns a session object that must be used in
      * Log.continueSession(...) to start the subsession.
      */
-    public static synchronized Session createSubsession() {
+    public static Session createSubsession() {
+        return createSubsession(false);
+    }
+
+    private static synchronized Session createSubsession(boolean isStartedFromActiveSession) {
         int threadId = getCallingThreadId();
         Session threadSession = sSessionMapper.get(threadId);
         if (threadSession == null) {
@@ -384,11 +386,16 @@ public class Log {
         }
         // Start execution time of the session will be overwritten in continueSession(...).
         Session newSubsession = new Session(threadSession.getNextChildId(),
-                threadSession.getShortMethodName(), System.currentTimeMillis(), threadId);
+                threadSession.getShortMethodName(), System.currentTimeMillis(), threadId,
+                isStartedFromActiveSession);
         threadSession.addChild(newSubsession);
         newSubsession.setParentSession(threadSession);
 
-        Log.i(LOGGING_TAG, Session.CREATE_SUBSESSION + " " + newSubsession.toString());
+        if(!isStartedFromActiveSession) {
+            Log.v(LOGGING_TAG, Session.CREATE_SUBSESSION + " " + newSubsession.toString());
+        } else {
+            Log.v(LOGGING_TAG, Session.CREATE_SUBSESSION + " (Invisible subsession)");
+        }
         return newSubsession;
     }
 
@@ -427,7 +434,11 @@ public class Log {
         }
 
         sSessionMapper.put(getCallingThreadId(), subsession);
-        Log.i(LOGGING_TAG, Session.CONTINUE_SUBSESSION + " " + subsession.toString());
+        if(!subsession.isStartedFromActiveSession()) {
+            Log.i(LOGGING_TAG, Session.CONTINUE_SUBSESSION);
+        } else {
+            Log.v(LOGGING_TAG, Session.CONTINUE_SUBSESSION + " (Invisible Subsession)");
+        }
     }
 
     public static void checkIsThreadLogged() {
@@ -451,8 +462,13 @@ public class Log {
         }
 
         completedSession.markSessionCompleted(System.currentTimeMillis());
-        Log.i(LOGGING_TAG, Session.END_SUBSESSION + " dur: " +
-                completedSession.getLocalExecutionTime() + " mS");
+        if(!completedSession.isStartedFromActiveSession()) {
+            Log.i(LOGGING_TAG, Session.END_SUBSESSION + " dur: " +
+                    completedSession.getLocalExecutionTime() + " mS");
+        } else {
+            Log.v(LOGGING_TAG, Session.END_SUBSESSION + " (Invisible Subsession) dur: " +
+                    completedSession.getLocalExecutionTime() + " mS");
+        }
         // Remove after completed so that reference still exists for logging the end events
         Session parentSession = completedSession.getParentSession();
         sSessionMapper.remove(threadId);

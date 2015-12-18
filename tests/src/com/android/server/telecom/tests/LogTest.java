@@ -56,6 +56,7 @@ public class LogTest extends TelecomTestCase{
 
         @Override
         public synchronized void v(String msgTag, String msg) {
+            android.util.Log.i(msgTag, msg);
             if (msgTag.equals(LogTest.TESTING_TAG)) {
                 synchronized (this) {
                     receivedStrings.add(msg);
@@ -65,6 +66,7 @@ public class LogTest extends TelecomTestCase{
 
         @Override
         public synchronized void i(String msgTag, String msg) {
+            android.util.Log.i(msgTag, msg);
             if (msgTag.equals(LogTest.TESTING_TAG)) {
                 synchronized (this) {
                     receivedStrings.add(msg);
@@ -191,6 +193,7 @@ public class LogTest extends TelecomTestCase{
         MockitoAnnotations.initMocks(this);
         mTestSystemLogger = new TestLoggingContainer();
         Log.setLoggingContainer(mTestSystemLogger);
+        Log.setIsExtendedLoggingEnabled(true);
         Log.restartSessionCounter();
         Log.sCleanStaleSessions = null;
         Log.sSessionMapper.clear();
@@ -238,7 +241,7 @@ public class LogTest extends TelecomTestCase{
 
         verifyEventResult(Session.START_SESSION, sessionName, "", 0, TEST_VERIFY_TIMEOUT_MS);
         verifyEventResult(Session.CREATE_SUBSESSION, sessionName, "", 0, TEST_VERIFY_TIMEOUT_MS);
-        verifyContinueEventResult(sessionName, "lTSH.hM", "", 0, TEST_VERIFY_TIMEOUT_MS);
+        verifyContinueEventResult(sessionName, "lTSH.hM", "_0", 0, TEST_VERIFY_TIMEOUT_MS);
         verifyEventResult(Session.END_SUBSESSION, sessionName, "", 0, TEST_VERIFY_TIMEOUT_MS);
         verifyMethodCall(sessionName, "lTSH.hM", 0, "_0", TEST_ENTER_METHOD1,
                 TEST_VERIFY_TIMEOUT_MS);
@@ -369,10 +372,10 @@ public class LogTest extends TelecomTestCase{
 
         verifyEventResult(Session.START_SESSION, sessionName, "", 0, 0);
         verifyEventResult(Session.CREATE_SUBSESSION, sessionName, "", 0, 0);
-        verifyContinueEventResult(sessionName, "LT.iEM", "", 0, 0);
+        verifyContinueEventResult(sessionName, "", "", 0, 0);
         verifyEventResult(Session.END_SUBSESSION, sessionName, "", 0, 0);
-        verifyMethodCall(sessionName, "LT.iEM", 0, "_0", TEST_ENTER_METHOD4, 0);
-        verifyEventResult(Session.END_SUBSESSION, "LT.iEM", "_0", 0, 0);
+        verifyMethodCall("", sessionName, 0, "", TEST_ENTER_METHOD4, 0);
+        verifyEventResult(Session.END_SUBSESSION, "", "", 0, 0);
         verifyEndEventResult(sessionName, "", 0, 0);
 
         assertEquals(Log.sSessionMapper.size(), 0);
@@ -395,8 +398,8 @@ public class LogTest extends TelecomTestCase{
 
         verifyEventResult(Session.START_SESSION, sessionName, "", 0, 0);
         verifyEventResult(Session.CREATE_SUBSESSION, sessionName, "", 0, 0);
-        verifyContinueEventResult(sessionName, "LT.iEM", "", 0, 0);
-        verifyMethodCall(sessionName, "LT.iEM", 0, "_0", TEST_ENTER_METHOD4, 0);
+        verifyContinueEventResult(sessionName, "", "", 0, 0);
+        verifyMethodCall("", sessionName, 0, "", TEST_ENTER_METHOD4, 0);
 
         // Verify the session is still active in sSessionMapper
         assertEquals(Log.sSessionMapper.size(), 1);
@@ -441,9 +444,12 @@ public class LogTest extends TelecomTestCase{
     private void verifyContinueEventResult(String shortOldMethodName, String shortNewMethodName,
                 String subsession, int sessionId, int timeoutMs) {
         String expectedSession = buildExpectedSession(shortNewMethodName, sessionId);
+        if(!shortNewMethodName.isEmpty()) {
+            shortOldMethodName += "->";
+        }
         boolean isMessageReceived = mTestSystemLogger.didReceiveMessage(timeoutMs,
-                Session.CONTINUE_SUBSESSION + " " + shortOldMethodName + "->" + expectedSession +
-                        subsession);
+                shortOldMethodName + expectedSession + subsession + ": " +
+                        Session.CONTINUE_SUBSESSION);
         assertEquals(true, isMessageReceived);
     }
 
