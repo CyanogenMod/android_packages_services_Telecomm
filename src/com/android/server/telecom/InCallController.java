@@ -788,7 +788,9 @@ public final class InCallController extends CallsManagerListenerBase {
     private static int convertConnectionToCallCapabilities(int connectionCapabilities) {
         int callCapabilities = 0;
         for (int i = 0; i < CONNECTION_TO_CALL_CAPABILITY.length; i += 2) {
-            if ((CONNECTION_TO_CALL_CAPABILITY[i] & connectionCapabilities) != 0) {
+            if ((CONNECTION_TO_CALL_CAPABILITY[i] & connectionCapabilities) ==
+                    CONNECTION_TO_CALL_CAPABILITY[i]) {
+
                 callCapabilities |= CONNECTION_TO_CALL_CAPABILITY[i + 1];
             }
         }
@@ -812,7 +814,9 @@ public final class InCallController extends CallsManagerListenerBase {
     private static int convertConnectionToCallProperties(int connectionCapabilities) {
         int callProperties = 0;
         for (int i = 0; i < CONNECTION_TO_CALL_PROPERTIES.length; i += 2) {
-            if ((CONNECTION_TO_CALL_PROPERTIES[i] & connectionCapabilities) != 0) {
+            if ((CONNECTION_TO_CALL_PROPERTIES[i] & connectionCapabilities) ==
+                    CONNECTION_TO_CALL_PROPERTIES[i]) {
+
                 callProperties |= CONNECTION_TO_CALL_PROPERTIES[i + 1];
             }
         }
