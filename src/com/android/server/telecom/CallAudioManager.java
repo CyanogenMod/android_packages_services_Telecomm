@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014 The Android Open Source Project
+ * Copyright (C) 2015 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -11,216 +11,268 @@
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
- * limitations under the License.
+ * limitations under the License
  */
 
 package com.android.server.telecom;
 
-import android.content.Context;
-import android.media.AudioManager;
+import android.annotation.NonNull;
 import android.media.IAudioService;
-import android.os.Handler;
-import android.os.Looper;
-import android.os.Message;
+import android.media.ToneGenerator;
 import android.telecom.CallAudioState;
+import android.telecom.VideoProfile;
+import android.util.SparseArray;
 
 import com.android.internal.annotations.VisibleForTesting;
-import com.android.internal.os.SomeArgs;
 import com.android.internal.util.IndentingPrintWriter;
-import com.android.internal.util.Preconditions;
 
-/**
- * This class manages audio modes, streams and other properties.
- */
-@VisibleForTesting
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.LinkedHashSet;
+
 public class CallAudioManager extends CallsManagerListenerBase {
-    private static final int STREAM_NONE = -1;
-
-    private static final String STREAM_DESCRIPTION_NONE = "STEAM_NONE";
-    private static final String STREAM_DESCRIPTION_ALARM = "STEAM_ALARM";
-    private static final String STREAM_DESCRIPTION_BLUETOOTH_SCO = "STREAM_BLUETOOTH_SCO";
-    private static final String STREAM_DESCRIPTION_DTMF = "STREAM_DTMF";
-    private static final String STREAM_DESCRIPTION_MUSIC = "STREAM_MUSIC";
-    private static final String STREAM_DESCRIPTION_NOTIFICATION = "STREAM_NOTIFICATION";
-    private static final String STREAM_DESCRIPTION_RING = "STREAM_RING";
-    private static final String STREAM_DESCRIPTION_SYSTEM = "STREAM_SYSTEM";
-    private static final String STREAM_DESCRIPTION_VOICE_CALL = "STREAM_VOICE_CALL";
-
-    private static final String MODE_DESCRIPTION_INVALID = "MODE_INVALID";
-    private static final String MODE_DESCRIPTION_CURRENT = "MODE_CURRENT";
-    private static final String MODE_DESCRIPTION_NORMAL = "MODE_NORMAL";
-    private static final String MODE_DESCRIPTION_RINGTONE = "MODE_RINGTONE";
-    private static final String MODE_DESCRIPTION_IN_CALL = "MODE_IN_CALL";
-    private static final String MODE_DESCRIPTION_IN_COMMUNICATION = "MODE_IN_COMMUNICATION";
-
-    private static final int MSG_AUDIO_MANAGER_INITIALIZE = 0;
-    private static final int MSG_AUDIO_MANAGER_ABANDON_AUDIO_FOCUS_FOR_CALL = 2;
-    private static final int MSG_AUDIO_MANAGER_REQUEST_AUDIO_FOCUS_FOR_CALL = 4;
-    private static final int MSG_AUDIO_MANAGER_SET_MODE = 5;
-
-    private final Handler mAudioManagerHandler = new Handler(Looper.getMainLooper()) {
-
-        private AudioManager mAudioManager;
-
-        @Override
-        public void handleMessage(Message msg) {
-            SomeArgs args = (SomeArgs) msg.obj;
-            int arg2 = 0;
-            try {
-                if (args != null) {
-                    Session subsession = (Session) args.arg1;
-                    Log.continueSession(subsession, "CAM.hM_" + msg.what);
-                    arg2 = (int) args.arg2;
-                }
-                switch (msg.what) {
-                    case MSG_AUDIO_MANAGER_INITIALIZE: {
-                        mAudioManager = (AudioManager) mContext.getSystemService(Context.AUDIO_SERVICE);
-                        break;
-                    }
-                    case MSG_AUDIO_MANAGER_ABANDON_AUDIO_FOCUS_FOR_CALL: {
-                        mAudioManager.abandonAudioFocusForCall();
-                        break;
-                    }
-                    case MSG_AUDIO_MANAGER_REQUEST_AUDIO_FOCUS_FOR_CALL: {
-                        int stream = arg2;
-                        mAudioManager.requestAudioFocusForCall(
-                                stream,
-                                AudioManager.AUDIOFOCUS_GAIN_TRANSIENT);
-                        break;
-                    }
-                    case MSG_AUDIO_MANAGER_SET_MODE: {
-                        int newMode = arg2;
-                        int oldMode = mAudioManager.getMode();
-                        Log.v(this, "Request to change audio mode from %s to %s", modeToString(oldMode),
-                                modeToString(newMode));
-
-                        if (oldMode != newMode) {
-                            if (oldMode == AudioManager.MODE_IN_CALL &&
-                                    newMode == AudioManager.MODE_RINGTONE) {
-                                Log.i(this, "Transition from IN_CALL -> RINGTONE."
-                                        + "  Resetting to NORMAL first.");
-                                mAudioManager.setMode(AudioManager.MODE_NORMAL);
-                            }
-                            mAudioManager.setMode(newMode);
-                            synchronized (mLock) {
-                                mMostRecentlyUsedMode = newMode;
-                            }
-                        }
-                        break;
-                    }
-                    default:
-                        break;
-                }
-            } finally {
-                Log.endSession();
-                args.recycle();
-            }
-        }
-    };
 
     public interface AudioServiceFactory {
         IAudioService getAudioService();
     }
 
-    private final Context mContext;
-    private final TelecomSystem.SyncRoot mLock;
-    private final CallsManager mCallsManager;
+    private final String LOG_TAG = CallAudioManager.class.getSimpleName();
+
+    private final LinkedHashSet<Call> mActiveOrDialingCalls;
+    private final LinkedHashSet<Call> mRingingCalls;
+    private final LinkedHashSet<Call> mHoldingCalls;
+    private final Set<Call> mCalls;
+    private final SparseArray<LinkedHashSet<Call>> mCallStateToCalls;
+
     private final CallAudioRouteStateMachine mCallAudioRouteStateMachine;
+    private final CallAudioModeStateMachine mCallAudioModeStateMachine;
+    private final CallsManager mCallsManager;
+    private final InCallTonePlayer.Factory mPlayerFactory;
+    private final Ringer mRinger;
+    private final RingbackPlayer mRingbackPlayer;
+    private final DtmfLocalTonePlayer mDtmfLocalTonePlayer;
 
-    private int mAudioFocusStreamType;
-    private boolean mIsRinging;
-    private boolean mIsTonePlaying;
-    private int mMostRecentlyUsedMode = AudioManager.MODE_IN_CALL;
-    private Call mCallToSpeedUpMTAudio = null;
+    private Call mForegroundCall;
+    private boolean mIsTonePlaying = false;
 
-    public CallAudioManager(
-            Context context,
-            TelecomSystem.SyncRoot lock,
+    public CallAudioManager(CallAudioRouteStateMachine callAudioRouteStateMachine,
             CallsManager callsManager,
-            CallAudioRouteStateMachine callAudioRouteStateMachine) {
-        mContext = context;
-        mLock = lock;
-        mAudioManagerHandler.obtainMessage(MSG_AUDIO_MANAGER_INITIALIZE,
-                setArgs(0)).sendToTarget();
-        mCallsManager = callsManager;
-        mAudioFocusStreamType = STREAM_NONE;
+            CallAudioModeStateMachine callAudioModeStateMachine,
+            InCallTonePlayer.Factory playerFactory,
+            Ringer ringer,
+            RingbackPlayer ringbackPlayer,
+            DtmfLocalTonePlayer dtmfLocalTonePlayer) {
+        mActiveOrDialingCalls = new LinkedHashSet<>();
+        mRingingCalls = new LinkedHashSet<>();
+        mHoldingCalls = new LinkedHashSet<>();
+        mCalls = new HashSet<>();
+        mCallStateToCalls = new SparseArray<LinkedHashSet<Call>>() {{
+            put(CallState.ACTIVE, mActiveOrDialingCalls);
+            put(CallState.DIALING, mActiveOrDialingCalls);
+            put(CallState.RINGING, mRingingCalls);
+            put(CallState.ON_HOLD, mHoldingCalls);
+        }};
 
         mCallAudioRouteStateMachine = callAudioRouteStateMachine;
+        mCallAudioModeStateMachine = callAudioModeStateMachine;
+        mCallsManager = callsManager;
+        mPlayerFactory = playerFactory;
+        mRinger = ringer;
+        mRingbackPlayer = ringbackPlayer;
+        mDtmfLocalTonePlayer = dtmfLocalTonePlayer;
+
+        mPlayerFactory.setCallAudioManager(this);
+        mCallAudioModeStateMachine.setCallAudioManager(this);
     }
 
-    private SomeArgs setArgs(int arg) {
-        SomeArgs args = SomeArgs.obtain();
-        args.arg1 = Log.createSubsession();
-        args.arg2 = arg;
-        return args;
-    }
+    @Override
+    public void onCallStateChanged(Call call, int oldState, int newState) {
+        if (call.getParentCall() != null) {
+            // No audio management for calls in a conference.
+            return;
+        }
+        Log.d(LOG_TAG, "Call state changed for TC@%s: %s -> %s", call.getId(),
+                CallState.toString(oldState), CallState.toString(newState));
 
-    @VisibleForTesting
-    public CallAudioState getCallAudioState() {
-        return mCallAudioRouteStateMachine.getCurrentCallAudioState();
+        if (mCallStateToCalls.get(oldState) != null) {
+            mCallStateToCalls.get(oldState).remove(call);
+        }
+        if (mCallStateToCalls.get(newState) != null) {
+            mCallStateToCalls.get(newState).add(call);
+        }
+
+        updateForegroundCall();
+        if (newState == CallState.DISCONNECTED) {
+            playToneForDisconnectedCall(call);
+        }
+
+        onCallLeavingState(call, oldState);
+        onCallEnteringState(call, newState);
     }
 
     @Override
     public void onCallAdded(Call call) {
-        Log.v(this, "onCallAdded");
-        onCallUpdated(call);
-
-        if (hasFocus() && getForegroundCall() == call) {
-            if (!call.isIncoming()) {
-                // Unmute new outgoing call.
-                mCallAudioRouteStateMachine.sendMessageWithSessionInfo(
-                        CallAudioRouteStateMachine.MUTE_OFF);
-            }
+        if (call.getParentCall() != null) {
+            return; // Don't do audio handling for calls in a conference.
         }
+
+        if (mCalls.contains(call)) {
+            Log.w(LOG_TAG, "Call TC@%s is being added twice.", call.getId());
+            return; // No guarantees that the same call won't get added twice.
+        }
+
+        Log.d(LOG_TAG, "Call added with id TC@%s in state %s", call.getId(),
+                CallState.toString(call.getState()));
+
+        if (mCallStateToCalls.get(call.getState()) != null) {
+            mCallStateToCalls.get(call.getState()).add(call);
+        }
+        updateForegroundCall();
+        mCalls.add(call);
+
+        onCallEnteringState(call, call.getState());
     }
 
     @Override
     public void onCallRemoved(Call call) {
-        Log.v(this, "onCallRemoved");
+        if (call.getParentCall() != null) {
+            return; // Don't do audio handling for calls in a conference.
+        }
+
+        if (!mCalls.contains(call)) {
+            return; // No guarantees that the same call won't get removed twice.
+        }
+
+        Log.d(LOG_TAG, "Call removed with id TC@%s in state %s", call.getId(),
+                CallState.toString(call.getState()));
+
+        if (mCallStateToCalls.get(call.getState()) != null) {
+            mCallStateToCalls.get(call.getState()).remove(call);
+        }
+
+        updateForegroundCall();
+        mCalls.remove(call);
+
+        onCallLeavingState(call, call.getState());
+
         if (mCallsManager.getCalls().isEmpty()) {
             Log.v(this, "all calls removed, resetting system audio to default state");
             mCallAudioRouteStateMachine.sendMessageWithSessionInfo(
                     CallAudioRouteStateMachine.REINITIALIZE);
         }
-
-        // If we didn't already have focus, there's nothing to do.
-        if (hasFocus()) {
-            updateAudioStreamAndMode(call);
-        }
-    }
-
-    @Override
-    public void onCallStateChanged(Call call, int oldState, int newState) {
-        Log.v(this, "onCallStateChanged : oldState = %d, newState = %d", oldState, newState);
-        onCallUpdated(call);
     }
 
     @Override
     public void onIncomingCallAnswered(Call call) {
-        Log.v(this, "onIncomingCallAnswered");
-
-        if (mCallsManager.getCalls().size() == 1) {
-            mCallAudioRouteStateMachine.sendMessageWithSessionInfo(
-                    CallAudioRouteStateMachine.SWITCH_FOCUS, CallAudioRouteStateMachine.HAS_FOCUS);
-        }
+        // This is called after the UI answers the call, but before the connection service
+        // sets the call to active. Only thing to handle for mode here is the audio speedup thing.
 
         if (call.can(android.telecom.Call.Details.CAPABILITY_SPEED_UP_MT_AUDIO)) {
-            Log.v(this, "Speed up audio setup for IMS MT call.");
-            mCallToSpeedUpMTAudio = call;
-            updateAudioStreamAndMode(call);
+            if (mForegroundCall == call) {
+                Log.i(LOG_TAG, "Invoking the MT_AUDIO_SPEEDUP mechanism. Transitioning into " +
+                        "an active in-call audio state before connection service has " +
+                        "connected the call.");
+                if (mCallStateToCalls.get(call.getState()) != null) {
+                    mCallStateToCalls.get(call.getState()).remove(call);
+                }
+                mActiveOrDialingCalls.add(call);
+                mCallAudioModeStateMachine.sendMessage(
+                        CallAudioModeStateMachine.MT_AUDIO_SPEEDUP_FOR_RINGING_CALL,
+                        makeArgsForModeStateMachine());
+            }
+        }
+
+        if (mRingingCalls.size() == 0) {
+            mRinger.stopRinging();
+            mRinger.stopCallWaiting();
         }
     }
 
     @Override
-    public void onForegroundCallChanged(Call oldForegroundCall, Call newForegroundCall) {
-        onCallUpdated(newForegroundCall);
-        // Ensure that the foreground call knows about the latest audio state.
-        updateAudioForForegroundCall();
+    public void onSessionModifyRequestReceived(Call call, VideoProfile videoProfile) {
+        if (videoProfile == null) {
+            return;
+        }
+
+        if (call != mForegroundCall) {
+            // We only play tones for foreground calls.
+            return;
+        }
+
+        int previousVideoState = call.getVideoState();
+        int newVideoState = videoProfile.getVideoState();
+        Log.v(this, "onSessionModifyRequestReceived : videoProfile = " + VideoProfile
+                .videoStateToString(newVideoState));
+
+        boolean isUpgradeRequest = !VideoProfile.isReceptionEnabled(previousVideoState) &&
+                VideoProfile.isReceptionEnabled(newVideoState);
+
+        if (isUpgradeRequest) {
+            mPlayerFactory.createPlayer(InCallTonePlayer.TONE_VIDEO_UPGRADE).startTone();
+        }
     }
 
     @Override
     public void onIsVoipAudioModeChanged(Call call) {
-        updateAudioStreamAndMode(call);
+        if (call != mForegroundCall) {
+            return;
+        }
+        mCallAudioModeStateMachine.sendMessage(
+                CallAudioModeStateMachine.FOREGROUND_VOIP_MODE_CHANGE,
+                makeArgsForModeStateMachine());
+    }
+
+    @Override
+    public void onRingbackRequested(Call call, boolean shouldRingback) {
+        if (call == mForegroundCall && shouldRingback) {
+            mRingbackPlayer.startRingbackForCall(call);
+        } else {
+            mRingbackPlayer.stopRingbackForCall(call);
+        }
+    }
+
+    @Override
+    public void onIncomingCallRejected(Call call, boolean rejectWithMessage, String message) {
+        // This gets called after the UI rejects a call but before the CS processes the rejection.
+        // Will get called before the state change from ringing to not ringing.
+
+        if (mRingingCalls.size() == 0 || call == mRingingCalls.iterator().next()) {
+            mRinger.stopRinging();
+            mRinger.stopCallWaiting();
+        }
+    }
+
+    @Override
+    public void onIsConferencedChanged(Call call) {
+        // This indicates a conferencing change, which shouldn't impact any audio mode stuff.
+        Call parentCall = call.getParentCall();
+        if (parentCall == null) {
+            // Indicates that the call should be tracked for audio purposes. Treat it as if it were
+            // just added.
+            Log.i(LOG_TAG, "Call TC@" + call.getId() + " left conference and will" +
+                            " now be tracked by CallAudioManager.");
+            onCallAdded(call);
+        } else {
+            // The call joined a conference, so stop tracking it.
+            if (mCallStateToCalls.get(call.getState()) != null) {
+                mCallStateToCalls.get(call.getState()).remove(call);
+            }
+
+            updateForegroundCall();
+            mCalls.remove(call);
+        }
+    }
+
+    public CallAudioState getCallAudioState() {
+        return mCallAudioRouteStateMachine.getCurrentCallAudioState();
+    }
+
+    public Call getForegroundCall() {
+        if (mForegroundCall != null && mForegroundCall.getState() != CallState.ON_HOLD) {
+            return mForegroundCall;
+        }
+        return null;
     }
 
     void toggleMute() {
@@ -229,10 +281,6 @@ public class CallAudioManager extends CallsManagerListenerBase {
     }
 
     void mute(boolean shouldMute) {
-        if (!hasFocus()) {
-            return;
-        }
-
         Log.v(this, "mute, shouldMute: %b", shouldMute);
 
         // Don't mute if there are any emergency calls.
@@ -278,239 +326,232 @@ public class CallAudioManager extends CallsManagerListenerBase {
         }
     }
 
-    /**
-     * Sets the audio stream and mode based on whether a call is ringing.
-     *
-     * @param call The call which changed ringing state.
-     * @param isRinging {@code true} if the call is ringing, {@code false} otherwise.
-     */
+    void silenceRingers() {
+        for (Call call : mRingingCalls) {
+            call.silence();
+        }
+
+        mRingingCalls.clear();
+        mRinger.stopRinging();
+        mRinger.stopCallWaiting();
+        mCallAudioModeStateMachine.sendMessage(CallAudioModeStateMachine.NO_MORE_RINGING_CALLS,
+                makeArgsForModeStateMachine());
+    }
+
+    void startRinging() {
+        mRinger.startRinging(mForegroundCall);
+    }
+
+    void startCallWaiting() {
+        mRinger.startCallWaiting(mRingingCalls.iterator().next());
+    }
+
+    void stopRinging() {
+        mRinger.stopRinging();
+    }
+
+    void stopCallWaiting() {
+        mRinger.stopCallWaiting();
+    }
+
+    void setCallAudioRouteFocusState(int focusState) {
+        mCallAudioRouteStateMachine.sendMessageWithSessionInfo(
+                CallAudioRouteStateMachine.SWITCH_FOCUS, focusState);
+    }
+
+    void dump(IndentingPrintWriter pw) {
+        pw.println("Active or dialing calls:");
+        pw.increaseIndent();
+        dumpCallsInCollection(pw, mActiveOrDialingCalls);
+        pw.decreaseIndent();
+
+        pw.println("Ringing calls:");
+        pw.increaseIndent();
+        dumpCallsInCollection(pw, mRingingCalls);
+        pw.decreaseIndent();
+
+        pw.println("Holding calls:");
+        pw.increaseIndent();
+        dumpCallsInCollection(pw, mHoldingCalls);
+        pw.decreaseIndent();
+
+        pw.println("Foreground call:");
+        pw.println(mForegroundCall);
+    }
+
     @VisibleForTesting
-    public void setIsRinging(Call call, boolean isRinging) {
-        if (mIsRinging != isRinging) {
-            Log.i(this, "setIsRinging %b -> %b (call = %s)", mIsRinging, isRinging, call);
-            mIsRinging = isRinging;
-            updateAudioStreamAndMode(call);
+    public void setIsTonePlaying(boolean isTonePlaying) {
+        mIsTonePlaying = isTonePlaying;
+        mCallAudioModeStateMachine.sendMessage(
+                isTonePlaying ? CallAudioModeStateMachine.TONE_STARTED_PLAYING
+                        : CallAudioModeStateMachine.TONE_STOPPED_PLAYING,
+                makeArgsForModeStateMachine());
+    }
+
+    private void onCallLeavingState(Call call, int state) {
+        switch (state) {
+            case CallState.ACTIVE:
+                onCallLeavingActiveOrDialing();
+                break;
+            case CallState.RINGING:
+                onCallLeavingRinging();
+                break;
+            case CallState.ON_HOLD:
+                onCallLeavingHold();
+                break;
+            case CallState.DIALING:
+                stopRingbackForCall(call);
+                onCallLeavingActiveOrDialing();
         }
     }
 
-    /**
-     * Sets the tone playing status. Some tones can play even when there are no live calls and this
-     * status indicates that we should keep audio focus even for tones that play beyond the life of
-     * calls.
-     *
-     * @param isPlayingNew The status to set.
-     */
-    void setIsTonePlaying(boolean isPlayingNew) {
-        if (mIsTonePlaying != isPlayingNew) {
-            Log.v(this, "mIsTonePlaying %b -> %b.", mIsTonePlaying, isPlayingNew);
-            mIsTonePlaying = isPlayingNew;
-            updateAudioStreamAndMode();
+    private void onCallEnteringState(Call call, int state) {
+        switch (state) {
+            case CallState.ACTIVE:
+                onCallEnteringActiveOrDialing();
+                break;
+            case CallState.RINGING:
+                onCallEnteringRinging();
+                break;
+            case CallState.ON_HOLD:
+                onCallEnteringHold();
+                break;
+            case CallState.DIALING:
+                onCallEnteringActiveOrDialing();
+                playRingbackForCall(call);
+                break;
         }
     }
 
-    private void onCallUpdated(Call call) {
-        updateAudioStreamAndMode(call);
-        if (call != null && call.getState() == CallState.ACTIVE &&
-                            call == mCallToSpeedUpMTAudio) {
-            mCallToSpeedUpMTAudio = null;
+    private void onCallLeavingActiveOrDialing() {
+        if (mActiveOrDialingCalls.size() == 0) {
+            mCallAudioModeStateMachine.sendMessage(
+                    CallAudioModeStateMachine.NO_MORE_ACTIVE_OR_DIALING_CALLS,
+                    makeArgsForModeStateMachine());
         }
     }
 
-    private void updateAudioStreamAndMode() {
-        updateAudioStreamAndMode(null /* call */);
+    private void onCallLeavingRinging() {
+        if (mRingingCalls.size() == 0) {
+            mCallAudioModeStateMachine.sendMessage(CallAudioModeStateMachine.NO_MORE_RINGING_CALLS,
+                    makeArgsForModeStateMachine());
+        }
     }
 
-    private void updateAudioStreamAndMode(Call callToUpdate) {
-        Log.i(this, "updateAudioStreamAndMode :  mIsRinging: %b, mIsTonePlaying: %b, call: %s",
-                mIsRinging, mIsTonePlaying, callToUpdate);
+    private void onCallLeavingHold() {
+        if (mHoldingCalls.size() == 0) {
+            mCallAudioModeStateMachine.sendMessage(CallAudioModeStateMachine.NO_MORE_HOLDING_CALLS,
+                    makeArgsForModeStateMachine());
+        }
+    }
 
-        if (mIsRinging) {
-            Log.i(this, "updateAudioStreamAndMode : ringing");
-            requestAudioFocusAndSetMode(AudioManager.STREAM_RING, AudioManager.MODE_RINGTONE);
+    private void onCallEnteringActiveOrDialing() {
+        if (mActiveOrDialingCalls.size() == 1) {
+            mCallAudioModeStateMachine.sendMessage(
+                    CallAudioModeStateMachine.NEW_ACTIVE_OR_DIALING_CALL,
+                    makeArgsForModeStateMachine());
+        }
+    }
+
+    private void onCallEnteringRinging() {
+        if (mRingingCalls.size() == 1) {
+            mCallAudioModeStateMachine.sendMessage(CallAudioModeStateMachine.NEW_RINGING_CALL,
+                    makeArgsForModeStateMachine());
+        }
+    }
+
+    private void onCallEnteringHold() {
+        if (mHoldingCalls.size() == 1) {
+            mCallAudioModeStateMachine.sendMessage(CallAudioModeStateMachine.NEW_HOLDING_CALL,
+                    makeArgsForModeStateMachine());
+        }
+    }
+
+    private void updateForegroundCall() {
+        Call oldForegroundCall = mForegroundCall;
+        if (mActiveOrDialingCalls.size() > 0) {
+            mForegroundCall = mActiveOrDialingCalls.iterator().next();
+        } else if (mRingingCalls.size() > 0) {
+            mForegroundCall = mRingingCalls.iterator().next();
+        } else if (mHoldingCalls.size() > 0) {
+            mForegroundCall = mHoldingCalls.iterator().next();
         } else {
-            Call foregroundCall = getForegroundCall();
-            Call waitingForAccountSelectionCall = mCallsManager
-                    .getFirstCallWithState(CallState.SELECT_PHONE_ACCOUNT);
-            Call call = mCallsManager.getForegroundCall();
-            if (foregroundCall == null && call != null && call == mCallToSpeedUpMTAudio) {
-                Log.v(this, "updateAudioStreamAndMode : no foreground, speeding up MT audio.");
-                requestAudioFocusAndSetMode(AudioManager.STREAM_VOICE_CALL,
-                                                         AudioManager.MODE_IN_CALL);
-            } else if (foregroundCall != null && !foregroundCall.isDisconnected() &&
-                    waitingForAccountSelectionCall == null) {
-                // In the case where there is a call that is waiting for account selection,
-                // this will fall back to abandonAudioFocus() below, which temporarily exits
-                // the in-call audio mode. This is to allow TalkBack to speak the "Call with"
-                // dialog information at media volume as opposed to through the earpiece.
-                // Once exiting the "Call with" dialog, the audio focus will return to an in-call
-                // audio mode when this method (updateAudioStreamAndMode) is called again.
-                int mode = foregroundCall.getIsVoipAudioMode() ?
-                        AudioManager.MODE_IN_COMMUNICATION : AudioManager.MODE_IN_CALL;
-                Log.v(this, "updateAudioStreamAndMode : foreground");
-                requestAudioFocusAndSetMode(AudioManager.STREAM_VOICE_CALL, mode);
-            } else if (mIsTonePlaying) {
-                // There is no call, however, we are still playing a tone, so keep focus.
-                // Since there is no call from which to determine the mode, use the most
-                // recently used mode instead.
-                Log.v(this, "updateAudioStreamAndMode : tone playing");
-                requestAudioFocusAndSetMode(
-                        AudioManager.STREAM_VOICE_CALL, mMostRecentlyUsedMode);
-            } else if (!hasRingingForegroundCall() && mCallsManager.hasOnlyDisconnectedCalls()) {
-                Log.v(this, "updateAudioStreamAndMode : no ringing call");
-                abandonAudioFocus();
-            } else {
-                // mIsRinging is false, but there is a foreground ringing call present. Don't
-                // abandon audio focus immediately to prevent audio focus from getting lost between
-                // the time it takes for the foreground call to transition from RINGING to ACTIVE/
-                // DISCONNECTED. When the call eventually transitions to the next state, audio
-                // focus will be correctly abandoned by the if clause above.
+            mForegroundCall = null;
+        }
+
+        if (mForegroundCall != oldForegroundCall) {
+            mDtmfLocalTonePlayer.onForegroundCallChanged(oldForegroundCall, mForegroundCall);
+        }
+    }
+
+    @NonNull
+    private CallAudioModeStateMachine.MessageArgs makeArgsForModeStateMachine() {
+        return new CallAudioModeStateMachine.MessageArgs(
+                mActiveOrDialingCalls.size() > 0,
+                mRingingCalls.size() > 0,
+                mHoldingCalls.size() > 0,
+                mIsTonePlaying,
+                mForegroundCall != null && mForegroundCall.getIsVoipAudioMode(),
+                Log.createSubsession());
+    }
+
+    private void playToneForDisconnectedCall(Call call) {
+        if (mForegroundCall != null && call != mForegroundCall && mCalls.size() > 1) {
+            Log.v(LOG_TAG, "Omitting tone because we are not foreground" +
+                    " and there is another call.");
+            return;
+        }
+
+        if (call.getDisconnectCause() != null) {
+            int toneToPlay = InCallTonePlayer.TONE_INVALID;
+
+            Log.v(this, "Disconnect cause: %s.", call.getDisconnectCause());
+
+            switch(call.getDisconnectCause().getTone()) {
+                case ToneGenerator.TONE_SUP_BUSY:
+                    toneToPlay = InCallTonePlayer.TONE_BUSY;
+                    break;
+                case ToneGenerator.TONE_SUP_CONGESTION:
+                    toneToPlay = InCallTonePlayer.TONE_CONGESTION;
+                    break;
+                case ToneGenerator.TONE_CDMA_REORDER:
+                    toneToPlay = InCallTonePlayer.TONE_REORDER;
+                    break;
+                case ToneGenerator.TONE_CDMA_ABBR_INTERCEPT:
+                    toneToPlay = InCallTonePlayer.TONE_INTERCEPT;
+                    break;
+                case ToneGenerator.TONE_CDMA_CALLDROP_LITE:
+                    toneToPlay = InCallTonePlayer.TONE_CDMA_DROP;
+                    break;
+                case ToneGenerator.TONE_SUP_ERROR:
+                    toneToPlay = InCallTonePlayer.TONE_UNOBTAINABLE_NUMBER;
+                    break;
+                case ToneGenerator.TONE_PROP_PROMPT:
+                    toneToPlay = InCallTonePlayer.TONE_CALL_ENDED;
+                    break;
+            }
+
+            Log.d(this, "Found a disconnected call with tone to play %d.", toneToPlay);
+
+            if (toneToPlay != InCallTonePlayer.TONE_INVALID) {
+                mPlayerFactory.createPlayer(toneToPlay).startTone();
             }
         }
     }
 
-    private void requestAudioFocusAndSetMode(int stream, int mode) {
-        Log.v(this, "requestAudioFocusAndSetMode : stream: %s -> %s, mode: %s",
-                streamTypeToString(mAudioFocusStreamType), streamTypeToString(stream),
-                modeToString(mode));
-        Preconditions.checkState(stream != STREAM_NONE);
-
-        // Even if we already have focus, if the stream is different we update audio manager to give
-        // it a hint about the purpose of our focus.
-        if (mAudioFocusStreamType != stream) {
-            Log.i(this, "requestAudioFocusAndSetMode : requesting stream: %s -> %s",
-                    streamTypeToString(mAudioFocusStreamType), streamTypeToString(stream));
-            mAudioManagerHandler.obtainMessage(MSG_AUDIO_MANAGER_REQUEST_AUDIO_FOCUS_FOR_CALL,
-                    setArgs(stream)).sendToTarget();
-        }
-        mAudioFocusStreamType = stream;
-        mCallAudioRouteStateMachine.sendMessageWithSessionInfo(
-                CallAudioRouteStateMachine.SWITCH_FOCUS, CallAudioRouteStateMachine.HAS_FOCUS);
-
-        setMode(mode);
-    }
-
-    private void abandonAudioFocus() {
-        if (hasFocus()) {
-            setMode(AudioManager.MODE_NORMAL);
-            Log.v(this, "abandoning audio focus");
-            mAudioManagerHandler.obtainMessage(MSG_AUDIO_MANAGER_ABANDON_AUDIO_FOCUS_FOR_CALL,
-                    setArgs(0)).sendToTarget();
-            mAudioFocusStreamType = STREAM_NONE;
-            mCallToSpeedUpMTAudio = null;
-        }
-        mCallAudioRouteStateMachine.sendMessageWithSessionInfo(
-                CallAudioRouteStateMachine.SWITCH_FOCUS, CallAudioRouteStateMachine.NO_FOCUS);
-    }
-
-    /**
-     * Sets the audio mode.
-     *
-     * @param newMode Mode constant from AudioManager.MODE_*.
-     */
-    private void setMode(int newMode) {
-        Preconditions.checkState(hasFocus());
-        mAudioManagerHandler.obtainMessage(MSG_AUDIO_MANAGER_SET_MODE,
-                setArgs(newMode)).sendToTarget();
-    }
-
-    private void updateAudioForForegroundCall() {
-        Call call = mCallsManager.getForegroundCall();
-        if (call != null && call.getConnectionService() != null) {
-            call.getConnectionService().onCallAudioStateChanged(call,
-                    mCallAudioRouteStateMachine.getCurrentCallAudioState());
+    private void playRingbackForCall(Call call) {
+        if (call == mForegroundCall && call.isRingbackRequested()) {
+            mRingbackPlayer.startRingbackForCall(call);
         }
     }
 
-    /**
-     * Returns the current foreground call in order to properly set the audio mode.
-     */
-    private Call getForegroundCall() {
-        Call call = mCallsManager.getForegroundCall();
+    private void stopRingbackForCall(Call call) {
+        mRingbackPlayer.stopRingbackForCall(call);
+    }
 
-        // We ignore any foreground call that is in the ringing state because we deal with ringing
-        // calls exclusively through the mIsRinging variable set by {@link Ringer}.
-        if (call != null && call.getState() == CallState.RINGING) {
-            return null;
+    private void dumpCallsInCollection(IndentingPrintWriter pw, Collection<Call> calls) {
+        for (Call call : calls) {
+            if (call != null) pw.println(call.getId());
         }
-
-        return call;
-    }
-
-    private boolean hasRingingForegroundCall() {
-        Call call = mCallsManager.getForegroundCall();
-        return call != null && call.getState() == CallState.RINGING;
-    }
-
-    private boolean hasFocus() {
-        return mAudioFocusStreamType != STREAM_NONE;
-    }
-
-    /**
-     * Translates an {@link AudioManager} stream type to a human-readable string description.
-     *
-     * @param streamType The stream type.
-     * @return Human readable description.
-     */
-    private String streamTypeToString(int streamType) {
-        switch (streamType) {
-            case STREAM_NONE:
-                return STREAM_DESCRIPTION_NONE;
-            case AudioManager.STREAM_ALARM:
-                return STREAM_DESCRIPTION_ALARM;
-            case AudioManager.STREAM_BLUETOOTH_SCO:
-                return STREAM_DESCRIPTION_BLUETOOTH_SCO;
-            case AudioManager.STREAM_DTMF:
-                return STREAM_DESCRIPTION_DTMF;
-            case AudioManager.STREAM_MUSIC:
-                return STREAM_DESCRIPTION_MUSIC;
-            case AudioManager.STREAM_NOTIFICATION:
-                return STREAM_DESCRIPTION_NOTIFICATION;
-            case AudioManager.STREAM_RING:
-                return STREAM_DESCRIPTION_RING;
-            case AudioManager.STREAM_SYSTEM:
-                return STREAM_DESCRIPTION_SYSTEM;
-            case AudioManager.STREAM_VOICE_CALL:
-                return STREAM_DESCRIPTION_VOICE_CALL;
-            default:
-                return "STEAM_OTHER_" + streamType;
-        }
-    }
-
-    /**
-     * Translates an {@link AudioManager} mode into a human readable string.
-     *
-     * @param mode The mode.
-     * @return The string.
-     */
-    private String modeToString(int mode) {
-        switch (mode) {
-            case AudioManager.MODE_INVALID:
-                return MODE_DESCRIPTION_INVALID;
-            case AudioManager.MODE_CURRENT:
-                return MODE_DESCRIPTION_CURRENT;
-            case AudioManager.MODE_NORMAL:
-                return MODE_DESCRIPTION_NORMAL;
-            case AudioManager.MODE_RINGTONE:
-                return MODE_DESCRIPTION_RINGTONE;
-            case AudioManager.MODE_IN_CALL:
-                return MODE_DESCRIPTION_IN_CALL;
-            case AudioManager.MODE_IN_COMMUNICATION:
-                return MODE_DESCRIPTION_IN_COMMUNICATION;
-            default:
-                return "MODE_OTHER_" + mode;
-        }
-    }
-
-    /**
-     * Dumps the state of the {@link CallAudioManager}.
-     *
-     * @param pw The {@code IndentingPrintWriter} to write the state to.
-     */
-    public void dump(IndentingPrintWriter pw) {
-        pw.println("mAudioState: " + mCallAudioRouteStateMachine.getCurrentCallAudioState());
-        pw.println("mAudioFocusStreamType: " + streamTypeToString(mAudioFocusStreamType));
-        pw.println("mIsRinging: " + mIsRinging);
-        pw.println("mIsTonePlaying: " + mIsTonePlaying);
-        pw.println("mMostRecentlyUsedMode: " + modeToString(mMostRecentlyUsedMode));
     }
 }

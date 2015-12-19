@@ -27,12 +27,12 @@ import android.os.ServiceManager;
 
 import com.android.internal.telephony.CallerInfoAsyncQuery;
 import com.android.server.telecom.BluetoothPhoneServiceImpl;
-import com.android.server.telecom.CallAudioManager;
 import com.android.server.telecom.CallerInfoAsyncQueryFactory;
 import com.android.server.telecom.CallsManager;
 import com.android.server.telecom.HeadsetMediaButton;
 import com.android.server.telecom.HeadsetMediaButtonFactory;
 import com.android.server.telecom.InCallWakeLockControllerFactory;
+import com.android.server.telecom.CallAudioManager;
 import com.android.server.telecom.PhoneAccountRegistrar;
 import com.android.server.telecom.ProximitySensorManagerFactory;
 import com.android.server.telecom.InCallWakeLockController;

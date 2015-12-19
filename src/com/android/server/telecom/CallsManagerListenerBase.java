@@ -52,10 +52,6 @@ public class CallsManagerListenerBase implements CallsManager.CallsManagerListen
     }
 
     @Override
-    public void onForegroundCallChanged(Call oldForegroundCall, Call newForegroundCall) {
-    }
-
-    @Override
     public void onCallAudioStateChanged(CallAudioState oldAudioState,
             CallAudioState newAudioState) {
     }

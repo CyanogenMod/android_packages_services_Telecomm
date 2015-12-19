@@ -34,16 +34,18 @@ public class InCallTonePlayer extends Thread {
      * Factory used to create InCallTonePlayers. Exists to aid with testing mocks.
      */
     public static class Factory {
-        private final CallAudioManager mCallAudioManager;
+        private CallAudioManager mCallAudioManager;
         private final CallAudioRoutePeripheralAdapter mCallAudioRoutePeripheralAdapter;
         private final TelecomSystem.SyncRoot mLock;
 
-        Factory(CallAudioManager callAudioManager,
-                CallAudioRoutePeripheralAdapter callAudioRoutePeripheralAdapter,
+        Factory(CallAudioRoutePeripheralAdapter callAudioRoutePeripheralAdapter,
                 TelecomSystem.SyncRoot lock) {
-            mCallAudioManager = callAudioManager;
             mCallAudioRoutePeripheralAdapter = callAudioRoutePeripheralAdapter;
             mLock = lock;
+        }
+
+        public void setCallAudioManager(CallAudioManager callAudioManager) {
+            mCallAudioManager = callAudioManager;
         }
 
         public InCallTonePlayer createPlayer(int tone) {

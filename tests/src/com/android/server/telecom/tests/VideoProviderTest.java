@@ -16,7 +16,6 @@
 
 package com.android.server.telecom.tests;
 
-import com.android.server.telecom.CallAudioManager;
 import com.android.server.telecom.Log;
 
 import org.mockito.ArgumentCaptor;
