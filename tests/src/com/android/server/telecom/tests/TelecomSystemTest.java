@@ -53,6 +53,7 @@ import android.telephony.TelephonyManager;
 import com.android.internal.telecom.IInCallAdapter;
 import com.android.server.telecom.CallsManager;
 import com.android.server.telecom.HeadsetMediaButton;
+import com.android.server.telecom.CallInfoProvider;
 import com.android.server.telecom.HeadsetMediaButtonFactory;
 import com.android.server.telecom.InCallWakeLockController;
 import com.android.server.telecom.InCallWakeLockControllerFactory;
@@ -200,6 +201,7 @@ public class TelecomSystemTest extends TelecomTestCase {
         mTelecomSystem = new TelecomSystem(
                 mComponentContextFixture.getTestDouble(),
                 mMissedCallNotifier,
+                new CallInfoProvider(mContext),
                 mCallerInfoAsyncQueryFactoryFixture.getTestDouble(),
                 headsetMediaButtonFactory,
                 proximitySensorManagerFactory,

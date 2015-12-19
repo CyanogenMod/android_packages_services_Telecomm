@@ -26,7 +26,8 @@ LOCAL_STATIC_JAVA_LIBRARIES := \
 
 LOCAL_SRC_FILES := \
         $(call all-java-files-under, src) \
-        $(call all-java-files-under, ../src)
+        $(call all-java-files-under, ../src) \
+        $(call all-java-files-under, ../callinfo_provider/src)
 
 LOCAL_SRC_FILES += \
         src/org/codeaurora/btmultisim/IBluetoothDsdaService.aidl

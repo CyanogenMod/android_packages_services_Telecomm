@@ -170,6 +170,7 @@ public class ConnectionServiceFixture implements TestFixture<IConnectionService>
         int state;
         int addressPresentation;
         int capabilities;
+        int properties;
         StatusHints statusHints;
         DisconnectCause disconnectCause;
         String conferenceId;
@@ -186,6 +187,7 @@ public class ConnectionServiceFixture implements TestFixture<IConnectionService>
         PhoneAccountHandle phoneAccount;
         int state;
         int capabilities;
+        int properties;
         final List<String> connectionIds = new ArrayList<>();
         IVideoProvider videoProvider;
         int videoState;
@@ -381,6 +383,7 @@ public class ConnectionServiceFixture implements TestFixture<IConnectionService>
                 c.phoneAccount,
                 c.state,
                 c.capabilities,
+                c.properties,
                 c.connectionIds,
                 c.videoProvider,
                 c.videoState,
@@ -394,6 +397,7 @@ public class ConnectionServiceFixture implements TestFixture<IConnectionService>
                 c.request.getAccountHandle(),
                 c.state,
                 c.capabilities,
+                c.properties,
                 c.request.getAddress(),
                 c.addressPresentation,
                 c.callerDisplayName,
