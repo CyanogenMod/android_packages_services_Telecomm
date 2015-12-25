@@ -18,14 +18,14 @@
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
   <string name="blacklist_title">Lista de contactos bloqueados</string>
   <string name="blacklist_summary_disabled">Deshabilitada</string>
-  <string name="blacklist_summary">No recibirás llamadas ni mensajes de los números incluidos en la lista negra de llamadas</string>
-  <string name="blacklist_call_notification">Bloqueada una llamada de %s</string>
-  <string name="blacklist_call_notification_private_number">Bloqueada una llamada de un número privado</string>
-  <string name="blacklist_call_notification_unknown_number">Bloqueada una llamada de un número desconocido: %s</string>
+  <string name="blacklist_summary">No recibirás llamadas ni mensajes de los números incluidos en la lista de contactos bloqueados</string>
+  <string name="blacklist_call_notification">Se bloqueó una llamada de %s</string>
+  <string name="blacklist_call_notification_private_number">Bloqueó una llamada de un número privado</string>
+  <string name="blacklist_call_notification_unknown_number">Se bloqueó una llamada del número desconocido %s</string>
   <string name="blacklist_call_notification_multiple"><xliff:g id="count">%d</xliff:g> llamadas fueron bloqueadas</string>
-  <string name="blacklist_message_notification">Bloqueado un mensaje de %s</string>
-  <string name="blacklist_message_notification_private_number">Bloqueado un mensaje de un número privado</string>
-  <string name="blacklist_message_notification_unknown_number">Bloqueado un mensaje de un número desconocido: %s</string>
+  <string name="blacklist_message_notification">Se bloqueó un mensaje de %s</string>
+  <string name="blacklist_message_notification_private_number">Se ha bloqueado un mensaje de un número privado</string>
+  <string name="blacklist_message_notification_unknown_number">Se ha bloqueado un mensaje de un número desconocido: %s</string>
   <string name="blacklist_message_notification_multiple"><xliff:g id="count">%d</xliff:g> mensajes fueron bloqueados</string>
   <string name="blacklist_notification_list_private">Privado</string>
   <string name="unblock_number">Desbloquear</string>
