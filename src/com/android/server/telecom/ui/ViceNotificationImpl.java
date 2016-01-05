@@ -176,11 +176,10 @@ public class ViceNotificationImpl extends CallsManagerListenerBase {
     // Clear the existing notifications on statusbar and
     // Hashmap whenever new Vice Notification is received
     private void resetBeforeProcess() {
-        mNotificationManager.cancelAll();
-        mNotification.clear();
         mBuilder = null;
         mPublicNotificationBuilder = null;
         mWasInCall = false;
+        checkAndUpdateNotification();
     }
 
     /* Service connection bound to IQtiImsInterface */
@@ -323,7 +322,6 @@ public class ViceNotificationImpl extends CallsManagerListenerBase {
                         + ", notifId = " + notifId);
 
                 resetBuilders();
-                checkAndUpdateNotification(callInfo, false);
                 Log.i(this, "processNotification isInCall = " + getTelecomManager().isInCall());
                 isVt = isVtCall(callInfo[QtiViceInfo.INDEX_CALLTYPE]);
 
@@ -349,7 +347,6 @@ public class ViceNotificationImpl extends CallsManagerListenerBase {
             }
         } else {
             Log.i(this, "processNotification DEP null");
-            resetBeforeProcess();
         }
     }
 
@@ -393,12 +390,12 @@ public class ViceNotificationImpl extends CallsManagerListenerBase {
     }
 
     /**
-     * API updates the hashmap in following order :
-     * - if new call : create new entry
-     * - if existing call : cancel existing notification and remove it from hashmap
-     *                      It will get added to hashmap in showNotification()
+     * Retrieve all notifications from the map.
+     * Cancel and remove all notifications from the map.
+     * CancelAll not used as it is an asynchronous call and can cause issue with
+     * back to back notifications.
      */
-    private void checkAndUpdateNotification(String[] callInfo, boolean clear) {
+    private void checkAndUpdateNotification() {
         Set<Map.Entry<String, Integer>> call = mNotification.entrySet();
         if ((call == null) || (mNotification.isEmpty())) {
             return;
@@ -409,10 +406,8 @@ public class ViceNotificationImpl extends CallsManagerListenerBase {
             Map.Entry<String, Integer> entry = iterator.next();
             String dialog = entry.getKey();
             Integer notifId = entry.getValue();
-            if (dialog.equalsIgnoreCase(callInfo[QtiViceInfo.INDEX_DIALOG_ID])) {
-                mNotificationManager.cancel(notifId);
-                call.remove(dialog);
-            }
+            mNotificationManager.cancel(notifId);
+            iterator.remove();
         }
     }
 
