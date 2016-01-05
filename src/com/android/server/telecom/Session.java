@@ -42,7 +42,6 @@ public class Session {
     private ArrayList<Session> mChildSessions;
     private boolean mIsCompleted = false;
     private int mChildCounter = 0;
-    private long mThreadId = 0;
     // True if this is a subsession that has been started from the same thread as the parent
     // session. This can happen if Log.startSession(...) is called multiple times on the same
     // thread in the case of one Telecom entry point method calling another entry point method.
@@ -60,7 +59,6 @@ public class Session {
         mExecutionStartTimeMs = startTimeMs;
         mParentSession = null;
         mChildSessions = new ArrayList<>(5);
-        mThreadId = threadID;
         mIsStartedFromActiveSession = isStartedFromActiveSession;
         mOwnerInfo = ownerInfo;
     }
@@ -141,10 +139,6 @@ public class Session {
         return String.valueOf(mChildCounter++);
     }
 
-    public long getThreadId () {
-        return mThreadId;
-    }
-
     @Override
     public boolean equals(Object obj) {
         if (!(obj instanceof Session)) {
@@ -162,7 +156,6 @@ public class Session {
                 mIsCompleted == otherSession.mIsCompleted &&
                 mExecutionEndTimeMs == otherSession.mExecutionEndTimeMs &&
                 mChildCounter == otherSession.mChildCounter &&
-                mThreadId == otherSession.mThreadId &&
                 mIsStartedFromActiveSession == otherSession.mIsStartedFromActiveSession &&
                 mOwnerInfo == otherSession.mOwnerInfo;
     }

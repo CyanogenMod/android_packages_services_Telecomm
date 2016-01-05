@@ -56,7 +56,6 @@ public class LogTest extends TelecomTestCase{
 
         @Override
         public synchronized void v(String msgTag, String msg) {
-            android.util.Log.i(msgTag, msg);
             if (msgTag.equals(LogTest.TESTING_TAG)) {
                 synchronized (this) {
                     receivedStrings.add(msg);
@@ -66,7 +65,6 @@ public class LogTest extends TelecomTestCase{
 
         @Override
         public synchronized void i(String msgTag, String msg) {
-            android.util.Log.i(msgTag, msg);
             if (msgTag.equals(LogTest.TESTING_TAG)) {
                 synchronized (this) {
                     receivedStrings.add(msg);
