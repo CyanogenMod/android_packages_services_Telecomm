@@ -68,6 +68,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.Integer;
+import java.lang.NumberFormatException;
 import java.lang.SecurityException;
 import java.lang.String;
 import java.util.ArrayList;
@@ -242,12 +243,16 @@ public final class PhoneAccountRegistrar {
                 return mState.accounts.get(i).getAccountHandle();
             }
 
-            long subId = Long.parseLong(id);
-            Log.i(this, "getUserSelectedVoicePhoneAccount, voice subId = "
-                         + voiceSubId + " subId = " + subId + " mId = " + id);
-            if (subId == voiceSubId) {
-                prefPhoneAccount = mState.accounts.get(i).getAccountHandle();
-                break;
+            try {
+                long subId = Long.parseLong(id);
+                Log.i(this, "getUserSelectedVoicePhoneAccount, voice subId = "
+                             + voiceSubId + " subId = " + subId + " mId = " + id);
+                if (subId == voiceSubId) {
+                    prefPhoneAccount = mState.accounts.get(i).getAccountHandle();
+                    break;
+                }
+            } catch (NumberFormatException ex) {
+                 // Do nothng
             }
         }
 
