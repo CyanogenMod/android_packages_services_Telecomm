@@ -218,11 +218,13 @@ public final class PhoneAccountRegistrar {
      */
     PhoneAccountHandle getUserSelectedOutgoingPhoneAccount() {
         PhoneAccount account = getPhoneAccountCheckCallingUser(mState.defaultOutgoing);
+        List<PhoneAccountHandle> allPhoneAccounts = getCallCapablePhoneAccounts("", false);
+
         if (account != null) {
             return mState.defaultOutgoing;
         }
         if (TelephonyManager.getDefault().getPhoneCount() > 1 &&
-                   mSubscriptionManager.getActiveSubscriptionInfoCount() == 1) {
+                   allPhoneAccounts.size() == 1) {
             return getUserSelectedVoicePhoneAccount();
         }
         return null;
