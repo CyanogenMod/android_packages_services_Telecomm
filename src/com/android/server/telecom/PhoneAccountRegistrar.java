@@ -222,7 +222,7 @@ public final class PhoneAccountRegistrar {
             return mState.defaultOutgoing;
         }
         if (TelephonyManager.getDefault().getPhoneCount() > 1 &&
-                   mSubscriptionManager.getActiveSubscriptionInfoCount() == 1) {
+                   getAllPhoneAccounts().size() == 1) {
             return getUserSelectedVoicePhoneAccount();
         }
         return null;
