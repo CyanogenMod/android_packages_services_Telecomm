@@ -32,11 +32,14 @@ import android.os.Looper;
 import android.os.RemoteException;
 import android.os.Trace;
 import android.os.UserHandle;
+import android.telecom.Call.Details;
 import android.telecom.CallAudioState;
 import android.telecom.Connection;
 import android.telecom.DefaultDialerManager;
 import android.telecom.InCallService;
 import android.telecom.ParcelableCall;
+import android.telecom.PhoneAccount;
+import android.telecom.PhoneAccountHandle;
 import android.telecom.TelecomManager;
 import android.telecom.VideoCallImpl;
 import android.util.ArrayMap;
@@ -604,10 +607,16 @@ public final class InCallController extends CallsManagerListenerBase {
             properties |= android.telecom.Call.Details.PROPERTY_CONFERENCE;
         }
 
+        final PhoneAccountRegistrar phoneAccountRegistrar =
+                mCallsManager.getPhoneAccountRegistrar();
+
+        if (call.isWorkCall(phoneAccountRegistrar)) {
+            properties |= android.telecom.Call.Details.PROPERTY_WORK_CALL;
+        }
+
         // If this is a single-SIM device, the "default SIM" will always be the only SIM.
         boolean isDefaultSmsAccount =
-                mCallsManager.getPhoneAccountRegistrar()
-                        .isUserSelectedSmsPhoneAccount(call.getTargetPhoneAccount());
+                phoneAccountRegistrar.isUserSelectedSmsPhoneAccount(call.getTargetPhoneAccount());
         if (call.isRespondViaSmsCapable() && isDefaultSmsAccount) {
             capabilities |= android.telecom.Call.Details.CAPABILITY_RESPOND_VIA_TEXT;
         }
