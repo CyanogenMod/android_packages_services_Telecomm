@@ -27,6 +27,7 @@ import android.os.Message;
 import android.os.RemoteException;
 import android.os.UserHandle;
 import android.telecom.CallAudioState;
+import android.util.SparseArray;
 
 import com.android.internal.util.IState;
 import com.android.internal.util.State;
@@ -97,6 +98,31 @@ public class CallAudioRouteStateMachine extends StateMachine {
     public static final int NO_FOCUS = 1;
     public static final int HAS_FOCUS = 2;
 
+    private static final SparseArray<String> MESSAGE_CODE_TO_NAME = new SparseArray<String>() {{
+        put(CONNECT_WIRED_HEADSET, "CONNECT_WIRED_HEADSET");
+        put(DISCONNECT_WIRED_HEADSET, "DISCONNECT_WIRED_HEADSET");
+        put(CONNECT_BLUETOOTH, "CONNECT_BLUETOOTH");
+        put(DISCONNECT_BLUETOOTH, "DISCONNECT_BLUETOOTH");
+        put(CONNECT_DOCK, "CONNECT_DOCK");
+        put(DISCONNECT_DOCK, "DISCONNECT_DOCK");
+
+        put(SWITCH_EARPIECE, "SWITCH_EARPIECE");
+        put(SWITCH_BLUETOOTH, "SWITCH_BLUETOOTH");
+        put(SWITCH_HEADSET, "SWITCH_HEADSET");
+        put(SWITCH_SPEAKER, "SWITCH_SPEAKER");
+        put(SWITCH_WIRED_OR_EARPIECE, "SWITCH_WIRED_OR_EARPIECE");
+
+        put(REINITIALIZE, "REINITIALIZE");
+
+        put(MUTE_ON, "MUTE_ON");
+        put(MUTE_OFF, "MUTE_OFF");
+        put(TOGGLE_MUTE, "TOGGLE_MUTE");
+
+        put(SWITCH_FOCUS, "SWITCH_FOCUS");
+
+        put(RUN_RUNNABLE, "RUN_RUNNABLE");
+    }};
+
     private static final String ACTIVE_EARPIECE_ROUTE_NAME = "ActiveEarpieceRoute";
     private static final String ACTIVE_BLUETOOTH_ROUTE_NAME = "ActiveBluetoothRoute";
     private static final String ACTIVE_SPEAKER_ROUTE_NAME = "ActiveSpeakerRoute";
@@ -111,7 +137,9 @@ public class CallAudioRouteStateMachine extends StateMachine {
     @Override
     protected void onPreHandleMessage(Message msg) {
         if (msg.obj != null && msg.obj instanceof Session) {
-            Log.continueSession((Session) msg.obj, "CARSM.pM_" + msg.what);
+            String messageCodeName = MESSAGE_CODE_TO_NAME.get(msg.what, "unknown");
+            Log.continueSession((Session) msg.obj, "CARSM.pM_" + messageCodeName);
+            Log.i(this, "Message received: %s=%d", messageCodeName, msg.what);
         }
     }
 
@@ -137,7 +165,6 @@ public class CallAudioRouteStateMachine extends StateMachine {
 
         @Override
         public boolean processMessage(Message msg) {
-            Log.d(this, "Message received: %s", msg);
             switch (msg.what) {
                 case CONNECT_WIRED_HEADSET:
                     Log.event(mCallsManager.getForegroundCall(), Log.Events.AUDIO_ROUTE,
