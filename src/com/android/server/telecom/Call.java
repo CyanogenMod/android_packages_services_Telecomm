@@ -382,6 +382,8 @@ public class Call implements CreateConnectionResponse {
      */
     private long mCallDataUsage = DATA_USAGE_NOT_SET;
 
+    private Boolean mIsWorkCall;
+
     /**
      * Persists the specified parameters and initializes the new instance.
      *
@@ -862,6 +864,26 @@ public class Call implements CreateConnectionResponse {
     @VisibleForTesting
     public boolean isIncoming() {
         return mCallDirection == CALL_DIRECTION_INCOMING;
+    }
+
+    public boolean isWorkCall(PhoneAccountRegistrar phoneAccountRegistrar) {
+        if (mIsWorkCall == null) {
+            PhoneAccount phoneAccount =
+                    phoneAccountRegistrar.getPhoneAccountUnchecked(mTargetPhoneAccountHandle);
+            final UserHandle userHandle;
+            if (phoneAccount != null &&
+                    phoneAccount.hasCapabilities(PhoneAccount.CAPABILITY_MULTI_USER)) {
+                userHandle = mInitiatingUser;
+            } else {
+                userHandle = mTargetPhoneAccountHandle.getUserHandle();
+            }
+            if (userHandle == null) {
+                mIsWorkCall = false;
+            } else {
+                mIsWorkCall = UserUtil.isManagedProfile(mContext, userHandle);
+            }
+        }
+        return mIsWorkCall;
     }
 
     boolean shouldAttachToExistingConnection() {
@@ -1894,4 +1916,5 @@ public class Call implements CreateConnectionResponse {
     public long getCallDataUsage() {
         return mCallDataUsage;
     }
+
 }
