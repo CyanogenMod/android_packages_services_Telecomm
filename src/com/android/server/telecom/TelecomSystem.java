@@ -154,6 +154,7 @@ public final class TelecomSystem {
                     bluetoothPhoneServiceImplFactory) {
         mContext = context.getApplicationContext();
         Log.setContext(mContext);
+        Log.initMd5Sum();
 
         mPhoneAccountRegistrar = new PhoneAccountRegistrar(mContext);
         mContactsAsyncHelper = new ContactsAsyncHelper(
