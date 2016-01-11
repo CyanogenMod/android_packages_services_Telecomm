@@ -19,11 +19,11 @@
   <string name="blacklist_title">Engellenen arayan listesi</string>
   <string name="blacklist_summary_disabled">Devre dışı</string>
   <string name="blacklist_summary">Engellenen arayan listesindeki numaralardan gelen çağrıları ya da mesajları almayacaksınız</string>
-  <string name="blacklist_call_notification">%s \'den gelen bir çağrı engellendi</string>
+  <string name="blacklist_call_notification">%s kişisinden gelen bir çağrı engellendi</string>
   <string name="blacklist_call_notification_private_number">Özel numaradan gelen bir çağrı engellendi</string>
   <string name="blacklist_call_notification_unknown_number">Bilinmeyen bir numaradan \'%s\' gelen bir çağrı engellendi</string>
   <string name="blacklist_call_notification_multiple"><xliff:g id="count">%d</xliff:g> çağrı engellendi</string>
-  <string name="blacklist_message_notification">%s \'den gelen bir mesaj engellendi</string>
+  <string name="blacklist_message_notification">%s kişisinin mesajı engellendi</string>
   <string name="blacklist_message_notification_private_number">Özel numaradan gelen bir mesaj engellendi</string>
   <string name="blacklist_message_notification_unknown_number">Bilinmeyen bir numaradan \'%s\' gelen bir mesaj engellendi</string>
   <string name="blacklist_message_notification_multiple"><xliff:g id="count">%d</xliff:g> mesaj engellendi</string>
