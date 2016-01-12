@@ -355,4 +355,24 @@ class InCallAdapter extends IInCallAdapter.Stub {
             Binder.restoreCallingIdentity(token);
         }
     }
+
+    @Override
+    public void transferCall(String callId) {
+        long token = Binder.clearCallingIdentity();
+        try {
+            synchronized (mLock) {
+                if (mCallIdMapper.isValidCallId(callId)) {
+                    Call call = mCallIdMapper.getCall(callId);
+                    if (call != null) {
+                        call.transfer();
+                    } else {
+                        Log.w(this, "transferCall, unknown call id: %s", callId);
+                    }
+                }
+            }
+        } finally {
+            Binder.restoreCallingIdentity(token);
+        }
+    }
+
 }
