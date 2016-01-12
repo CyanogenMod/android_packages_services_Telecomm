@@ -1056,6 +1056,12 @@ public class Call implements CreateConnectionResponse {
         }
     }
 
+    void transfer() {
+        Log.event(this, Log.Events.REQUEST_TRANSFER);
+
+        mConnectionService.explicitTransfer(this);
+    }
+
     void abort(boolean wasViaNewOutgoingCallBroadcaster) {
         if (mCreateConnectionProcessor != null &&
                 !mCreateConnectionProcessor.isProcessingComplete()) {

@@ -64,6 +64,7 @@ public class Log {
         public static final String REQUEST_DISCONNECT = "REQUEST_DISCONNECT";
         public static final String REQUEST_ACCEPT = "REQUEST_ACCEPT";
         public static final String REQUEST_REJECT = "REQUEST_REJECT";
+        public static final String REQUEST_TRANSFER = "REQUEST_TRANSFER";
         public static final String START_DTMF = "START_DTMF";
         public static final String STOP_DTMF = "STOP_DTMF";
         public static final String START_RINGER = "START_RINGER";

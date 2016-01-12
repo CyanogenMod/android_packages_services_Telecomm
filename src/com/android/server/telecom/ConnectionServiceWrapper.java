@@ -852,6 +852,18 @@ final class ConnectionServiceWrapper extends ServiceBinder {
         }
     }
 
+    /** @see IConnectionService#explicitTransfer(String) */
+    void explicitTransfer(Call call) {
+        final String callId = mCallIdMapper.getCallId(call);
+        if (callId != null && isServiceValid("transfer")) {
+            try {
+                logOutgoing("transfer %s", callId);
+                mServiceInterface.explicitTransfer(callId);
+            } catch (RemoteException e) {
+            }
+        }
+    }
+
     /** @see ConnectionService#setLocalCallHold(String,int) */
     void setLocalCallHold(Call call, boolean lchStatus) {
         final String callId = mCallIdMapper.getCallId(call);
