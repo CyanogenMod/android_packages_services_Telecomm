@@ -17,6 +17,7 @@
 package com.android.server.telecom;
 
 import static android.Manifest.permission.CALL_PHONE;
+import static android.Manifest.permission.DUMP;
 import static android.Manifest.permission.MODIFY_PHONE_STATE;
 import static android.Manifest.permission.READ_PHONE_STATE;
 import static android.Manifest.permission.READ_PRIVILEGED_PHONE_STATE;
@@ -38,6 +39,7 @@ import android.os.Process;
 import android.os.UserHandle;
 import android.os.UserManager;
 import android.telecom.DefaultDialerManager;
+import android.telecom.ParcelableCallAnalytics;
 import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
 import android.telecom.TelecomManager;
@@ -53,6 +55,7 @@ import com.android.server.telecom.components.UserCallIntentProcessorFactory;
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -1116,6 +1119,17 @@ public class TelecomServiceImpl {
                         Binder.restoreCallingIdentity(token);
                     }
                 }
+            } finally {
+                Log.endSession();
+            }
+        }
+
+        @Override
+        public List<ParcelableCallAnalytics> dumpCallAnalytics() {
+            try {
+                Log.startSession("TSI.dCA");
+                enforcePermission(DUMP);
+                return Arrays.asList(Analytics.dumpToParcelableAnalytics());
             } finally {
                 Log.endSession();
             }
