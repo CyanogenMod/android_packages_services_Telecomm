@@ -870,19 +870,18 @@ public class Call implements CreateConnectionResponse {
         if (mIsWorkCall == null) {
             PhoneAccount phoneAccount =
                     phoneAccountRegistrar.getPhoneAccountUnchecked(mTargetPhoneAccountHandle);
-            final UserHandle userHandle;
-            if (phoneAccount != null &&
-                    phoneAccount.hasCapabilities(PhoneAccount.CAPABILITY_MULTI_USER)) {
-                userHandle = mInitiatingUser;
             // If we are on a multi-SIM device and the user must select the SIM phoneAccount to use,
             // the PhoneAccount will be null when InCallController.onConnected(...) is called. For
             // now, do not set mIsWorkCall and return false. It will be correctly selected when
             // InCallAdapter.phoneAccountSelected() is called.
-            } else if (phoneAccount == null) {
+            if (phoneAccount == null) {
                 // Don't set mIsWorkCall so it doesn't get cached to the wrong value.
                 return false;
             }
-            else {
+            final UserHandle userHandle;
+            if (phoneAccount.hasCapabilities(PhoneAccount.CAPABILITY_MULTI_USER)) {
+                userHandle = mInitiatingUser;
+            } else {
                 userHandle = mTargetPhoneAccountHandle.getUserHandle();
             }
             if (userHandle == null) {
