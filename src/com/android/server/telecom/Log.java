@@ -430,8 +430,8 @@ public class Log {
         String callingMethodName = subsession.getShortMethodName();
         subsession.setShortMethodName(callingMethodName + "->" + shortMethodName);
         subsession.setExecutionStartTimeMs(System.currentTimeMillis());
-        Session threadSession = subsession.getParentSession();
-        if (threadSession == null) {
+        Session parentSession = subsession.getParentSession();
+        if (parentSession == null) {
             Log.d(LOGGING_TAG, "Log.continueSession was called with no session active for " +
                     "method %s.", shortMethodName);
             return;
@@ -481,7 +481,7 @@ public class Log {
         // If this subsession was started from a parent session using Log.startSession, return the
         // ThreadID back to the parent after completion.
         if (parentSession != null && !parentSession.isSessionCompleted() &&
-                completedSession.getThreadId() == parentSession.getThreadId()) {
+                completedSession.isStartedFromActiveSession()) {
             sSessionMapper.put(threadId, parentSession);
         }
     }
@@ -578,6 +578,8 @@ public class Log {
         }
         if (isSessionsStale) {
             Log.w(LOGGING_TAG, logMessage);
+        } else {
+            Log.v(LOGGING_TAG, "No stale logging sessions needed to be cleaned...");
         }
     }
 
