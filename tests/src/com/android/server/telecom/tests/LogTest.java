@@ -58,7 +58,7 @@ public class LogTest extends TelecomTestCase{
         public synchronized void v(String msgTag, String msg) {
             if (msgTag.equals(LogTest.TESTING_TAG)) {
                 synchronized (this) {
-                    receivedStrings.add(msg);
+                    receivedStrings.add(processMessage(msg));
                 }
             }
         }
@@ -67,7 +67,7 @@ public class LogTest extends TelecomTestCase{
         public synchronized void i(String msgTag, String msg) {
             if (msgTag.equals(LogTest.TESTING_TAG)) {
                 synchronized (this) {
-                    receivedStrings.add(msg);
+                    receivedStrings.add(processMessage(msg));
                 }
             }
         }
@@ -111,6 +111,29 @@ public class LogTest extends TelecomTestCase{
             for (String receivedString : receivedStrings) {
                 android.util.Log.i(TESTING_TAG, "\t- " + receivedString);
             }
+        }
+
+        // Remove Unnecessary parts of message string before processing
+        private String processMessage(String msg) {
+            if(msg.contains(Session.CREATE_SUBSESSION)) {
+                return clipMsg(Session.CREATE_SUBSESSION, msg);
+            }
+            if(msg.contains(Session.CONTINUE_SUBSESSION)) {
+                return clipMsg(Session.CONTINUE_SUBSESSION, msg);
+            }
+            if (msg.contains(Session.END_SUBSESSION)) {
+                return clipMsg(Session.END_SUBSESSION, msg);
+            }
+            if (msg.contains(Session.END_SESSION)) {
+                return clipMsg(Session.END_SESSION, msg);
+            }
+            return msg;
+        }
+
+        private String clipMsg(String id, String msg) {
+                int clipStartIndex = msg.indexOf(id) + id.length();
+                int clipEndIndex = msg.lastIndexOf(":");
+                return msg.substring(0, clipStartIndex) + msg.substring(clipEndIndex, msg.length());
         }
     }
 
@@ -243,7 +266,8 @@ public class LogTest extends TelecomTestCase{
         verifyEventResult(Session.END_SUBSESSION, sessionName, "", 0, TEST_VERIFY_TIMEOUT_MS);
         verifyMethodCall(sessionName, "lTSH.hM", 0, "_0", TEST_ENTER_METHOD1,
                 TEST_VERIFY_TIMEOUT_MS);
-        verifyEventResult(Session.END_SUBSESSION, "lTSH.hM", "_0", 0, TEST_VERIFY_TIMEOUT_MS);
+        verifyEventResult(Session.END_SUBSESSION, sessionName + "->lTSH.hM", "_0", 0,
+                TEST_VERIFY_TIMEOUT_MS);
         verifyEndEventResult(sessionName, "", 0, TEST_VERIFY_TIMEOUT_MS);
 
         assertEquals(Log.sSessionMapper.size(), 0);
@@ -293,13 +317,16 @@ public class LogTest extends TelecomTestCase{
         verifyContinueEventResult(sessionName, "lTSCH.hM", "_0", 0, TEST_VERIFY_TIMEOUT_MS);
         verifyMethodCall(sessionName, "lTSCH.hM", 0, "_0", TEST_ENTER_METHOD3,
                 TEST_VERIFY_TIMEOUT_MS);
-        verifyEventResult(Session.END_SUBSESSION, "lTSCH.hM", "_0", 0, TEST_VERIFY_TIMEOUT_MS);
-        verifyEventResult(Session.CREATE_SUBSESSION, "lTSCH.hM", "_0", 0, TEST_VERIFY_TIMEOUT_MS);
+        verifyEventResult(Session.END_SUBSESSION, sessionName + "->lTSCH.hM", "_0", 0,
+                TEST_VERIFY_TIMEOUT_MS);
+        verifyEventResult(Session.CREATE_SUBSESSION, sessionName + "->lTSCH.hM", "_0", 0,
+                TEST_VERIFY_TIMEOUT_MS);
         verifyContinueEventResult(sessionName + "->" + "lTSCH.hM", "lTSH.hM", "_0_0", 0,
                 TEST_VERIFY_TIMEOUT_MS);
         verifyMethodCall(sessionName + "->lTSCH.hM", "lTSH.hM", 0, "_0_0", TEST_ENTER_METHOD1,
                 TEST_VERIFY_TIMEOUT_MS);
-        verifyEventResult(Session.END_SUBSESSION, "lTSH.hM", "_0_0", 0, TEST_VERIFY_TIMEOUT_MS);
+        verifyEventResult(Session.END_SUBSESSION, sessionName + "->lTSCH.hM->lTSH.hM", "_0_0", 0,
+                TEST_VERIFY_TIMEOUT_MS);
         verifyEndEventResult(sessionName, "", 0, TEST_VERIFY_TIMEOUT_MS);
 
         assertEquals(Log.sSessionMapper.size(), 0);
@@ -333,12 +360,13 @@ public class LogTest extends TelecomTestCase{
             verifyEventResult(Session.CREATE_SUBSESSION, sessionName, "", i, 0);
             verifyContinueEventResult(sessionName, "lTSCH.hM", "_0", i, 0);
             verifyMethodCall(sessionName, "lTSCH.hM", i, "_0", TEST_ENTER_METHOD3, 0);
-            verifyEventResult(Session.END_SUBSESSION, "lTSCH.hM", "_0", i, 0);
-            verifyEventResult(Session.CREATE_SUBSESSION, "lTSCH.hM", "_0", i, 0);
+            verifyEventResult(Session.END_SUBSESSION, sessionName + "->lTSCH.hM", "_0", i, 0);
+            verifyEventResult(Session.CREATE_SUBSESSION, sessionName + "->lTSCH.hM", "_0", i, 0);
             verifyContinueEventResult(sessionName + "->" + "lTSCH.hM", "lTSH.hM", "_0_0", i, 0);
             verifyMethodCall(sessionName + "->lTSCH.hM", "lTSH.hM", i, "_0_0", TEST_ENTER_METHOD1,
                     0);
-            verifyEventResult(Session.END_SUBSESSION, "lTSH.hM", "_0_0", i, 0);
+            verifyEventResult(Session.END_SUBSESSION, sessionName + "->lTSCH.hM->lTSH.hM", "_0_0",
+                    i, 0);
             verifyEndEventResult(sessionName, "", i, 0);
         }
 
@@ -373,7 +401,7 @@ public class LogTest extends TelecomTestCase{
         verifyContinueEventResult(sessionName, "", "", 0, 0);
         verifyEventResult(Session.END_SUBSESSION, sessionName, "", 0, 0);
         verifyMethodCall("", sessionName, 0, "", TEST_ENTER_METHOD4, 0);
-        verifyEventResult(Session.END_SUBSESSION, "", "", 0, 0);
+        verifyEventResult(Session.END_SUBSESSION, sessionName, "", 0, 0);
         verifyEndEventResult(sessionName, "", 0, 0);
 
         assertEquals(Log.sSessionMapper.size(), 0);
@@ -435,8 +463,8 @@ public class LogTest extends TelecomTestCase{
 
     private String buildExpectedResult(String shortMethodName, int sessionId,
             String subsessionId, String logText) {
-        return TEST_CLASS_NAME + " " + buildExpectedSession(shortMethodName, sessionId) +
-                subsessionId + ": " + logText;
+        return TEST_CLASS_NAME + ": " +  logText + ": " +
+                buildExpectedSession(shortMethodName, sessionId) + subsessionId;
     }
 
     private void verifyContinueEventResult(String shortOldMethodName, String shortNewMethodName,
@@ -446,16 +474,16 @@ public class LogTest extends TelecomTestCase{
             shortOldMethodName += "->";
         }
         boolean isMessageReceived = mTestSystemLogger.didReceiveMessage(timeoutMs,
-                shortOldMethodName + expectedSession + subsession + ": " +
-                        Session.CONTINUE_SUBSESSION);
+                Session.CONTINUE_SUBSESSION + ": " + shortOldMethodName + expectedSession +
+                        subsession);
         assertEquals(true, isMessageReceived);
     }
 
     private void verifyEventResult(String event, String shortMethodName,  String subsession,
             int sessionId, int timeoutMs) {
         String expectedSession = buildExpectedSession(shortMethodName, sessionId);
-        boolean isMessageReceived = mTestSystemLogger.didReceiveMessage(timeoutMs, expectedSession +
-                subsession + ": " + event);
+        boolean isMessageReceived = mTestSystemLogger.didReceiveMessage(timeoutMs,event + ": "  +
+                expectedSession + subsession);
         assertEquals(true, isMessageReceived);
     }
 
@@ -463,7 +491,7 @@ public class LogTest extends TelecomTestCase{
             int timeoutMs) {
         String expectedSession = buildExpectedSession(shortMethodName, sessionId);
         boolean isMessageReceived = mTestSystemLogger.didReceiveMessage(timeoutMs,
-                Session.END_SESSION + " " + expectedSession + subsession);
+                Session.END_SESSION + ": " + expectedSession + subsession);
         assertEquals(true, isMessageReceived);
     }
 

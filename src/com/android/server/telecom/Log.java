@@ -214,6 +214,7 @@ public class Log {
     public static final int MAX_CALLS_TO_CACHE_DEBUG = 20;  // Arbitrarily chosen.
     private static final long EXTENDED_LOGGING_DURATION_MILLIS = 60000 * 30; // 30 minutes
 
+    // Don't check in with this true!
     private static final boolean LOG_DBG = false;
 
     // Currently using 3 letters, So don't exceed 64^3
@@ -468,11 +469,11 @@ public class Log {
 
         completedSession.markSessionCompleted(System.currentTimeMillis());
         if(!completedSession.isStartedFromActiveSession()) {
-            Log.v(LOGGING_TAG, Session.END_SUBSESSION + " dur: " +
-                    completedSession.getLocalExecutionTime() + " mS");
+            Log.v(LOGGING_TAG, Session.END_SUBSESSION + " (dur: " +
+                    completedSession.getLocalExecutionTime() + " mS)");
         } else {
-            Log.v(LOGGING_TAG, Session.END_SUBSESSION + " (Invisible Subsession) dur: " +
-                    completedSession.getLocalExecutionTime() + " mS");
+            Log.v(LOGGING_TAG, Session.END_SUBSESSION + " (Invisible Subsession) (dur: " +
+                    completedSession.getLocalExecutionTime() + " mS)");
         }
         // Remove after completed so that reference still exists for logging the end events
         Session parentSession = completedSession.getParentSession();
@@ -504,7 +505,7 @@ public class Log {
             // running time of the session.
             long fullSessionTimeMs =
                     System.currentTimeMillis() - subsession.getExecutionStartTimeMilliseconds();
-            Log.v(LOGGING_TAG, Session.END_SESSION + " dur: " + fullSessionTimeMs + " ms:" +
+            Log.v(LOGGING_TAG, Session.END_SESSION + " (dur: " + fullSessionTimeMs + " ms): " +
                     subsession.toString());
         }
     }
