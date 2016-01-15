@@ -26,6 +26,7 @@ import android.os.Looper;
 import android.os.RemoteException;
 import android.os.Trace;
 import android.provider.ContactsContract.Contacts;
+import android.telecom.CallAudioState;
 import android.telecom.DisconnectCause;
 import android.telecom.Connection;
 import android.telecom.GatewayInfo;
@@ -296,7 +297,7 @@ public class Call implements CreateConnectionResponse {
 
     private int mConnectionCapabilities;
 
-    private int mSupportedAudioRoutes;
+    private int mSupportedAudioRoutes = CallAudioState.ROUTE_ALL;
 
     private boolean mIsConference = false;
 
