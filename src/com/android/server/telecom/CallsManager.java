@@ -18,6 +18,7 @@ package com.android.server.telecom;
 
 import android.content.Context;
 import android.content.pm.UserInfo;
+import android.media.AudioManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -230,8 +231,9 @@ public class CallsManager extends Call.ListenerBase
                 ringtoneFactory, systemVibrator);
 
         mCallAudioManager = new CallAudioManager(callAudioRouteStateMachine,
-                this, new CallAudioModeStateMachine(context), playerFactory,
-                mRinger, new RingbackPlayer(playerFactory), mDtmfLocalTonePlayer);
+                this,new CallAudioModeStateMachine((AudioManager)
+                        mContext.getSystemService(Context.AUDIO_SERVICE)),
+                playerFactory, mRinger, new RingbackPlayer(playerFactory), mDtmfLocalTonePlayer);
 
         mHeadsetMediaButton = headsetMediaButtonFactory.create(context, this, mLock);
         mTtyManager = new TtyManager(context, mWiredHeadsetManager);

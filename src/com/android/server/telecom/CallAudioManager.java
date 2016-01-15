@@ -338,23 +338,28 @@ public class CallAudioManager extends CallsManagerListenerBase {
                 makeArgsForModeStateMachine());
     }
 
-    void startRinging() {
+    @VisibleForTesting
+    public void startRinging() {
         mRinger.startRinging(mForegroundCall);
     }
 
-    void startCallWaiting() {
+    @VisibleForTesting
+    public void startCallWaiting() {
         mRinger.startCallWaiting(mRingingCalls.iterator().next());
     }
 
-    void stopRinging() {
+    @VisibleForTesting
+    public void stopRinging() {
         mRinger.stopRinging();
     }
 
-    void stopCallWaiting() {
+    @VisibleForTesting
+    public void stopCallWaiting() {
         mRinger.stopCallWaiting();
     }
 
-    void setCallAudioRouteFocusState(int focusState) {
+    @VisibleForTesting
+    public void setCallAudioRouteFocusState(int focusState) {
         mCallAudioRouteStateMachine.sendMessageWithSessionInfo(
                 CallAudioRouteStateMachine.SWITCH_FOCUS, focusState);
     }
