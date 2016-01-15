@@ -789,9 +789,10 @@ public class TelecomServiceImpl {
                 Log.startSession("TSI.cMCN");
                 synchronized (mLock) {
                     enforcePermissionOrPrivilegedDialer(MODIFY_PHONE_STATE, callingPackage);
+                    UserHandle userHandle = Binder.getCallingUserHandle();
                     long token = Binder.clearCallingIdentity();
                     try {
-                        mCallsManager.getMissedCallNotifier().clearMissedCalls();
+                        mCallsManager.getMissedCallNotifier().clearMissedCalls(userHandle);
                     } finally {
                         Binder.restoreCallingIdentity(token);
                     }

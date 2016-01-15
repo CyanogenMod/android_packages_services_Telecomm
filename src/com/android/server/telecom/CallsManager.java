@@ -17,14 +17,17 @@
 package com.android.server.telecom;
 
 import android.content.Context;
+import android.content.pm.UserInfo;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.Process;
 import android.os.SystemProperties;
 import android.os.SystemVibrator;
 import android.os.Trace;
 import android.os.UserHandle;
+import android.os.UserManager;
 import android.provider.CallLog.Calls;
 import android.telecom.CallAudioState;
 import android.telecom.Conference;
@@ -254,8 +257,12 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
         mListeners.add(mHeadsetMediaButton);
         mListeners.add(mProximitySensorManager);
 
-        mMissedCallNotifier.updateOnStartup(
-                mLock, this, mContactsAsyncHelper, mCallerInfoAsyncQueryFactory);
+        // There is no USER_SWITCHED broadcast for user 0, handle it here explicitly.
+        final UserManager userManager = UserManager.get(mContext);
+        // Don't load missed call if it is run in split user model.
+        if (userManager.isPrimaryUser()) {
+            onUserSwitch(Process.myUserHandle());
+        }
     }
 
     public void setRespondViaSmsManager(RespondViaSmsManager respondViaSmsManager) {
@@ -1832,6 +1839,34 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
         synchronized(mLock) {
             return TELECOM_CALL_ID_PREFIX + (++mCallId);
         }
+    }
+
+    /**
+     * Callback when foreground user is switched. We will reload missed call in all profiles
+     * including the user itself. There may be chances that profiles are not started yet.
+     */
+    void onUserSwitch(UserHandle userHandle) {
+        mMissedCallNotifier.setCurrentUserHandle(userHandle);
+        final UserManager userManager = UserManager.get(mContext);
+        List<UserInfo> profiles = userManager.getEnabledProfiles(userHandle.getIdentifier());
+        for (UserInfo profile : profiles) {
+            reloadMissedCallsOfUser(profile.getUserHandle());
+        }
+    }
+
+    /**
+     * Because there may be chances that profiles are not started yet though its parent user is
+     * switched, we reload missed calls of profile that are just started here.
+     */
+    void onUserStarting(UserHandle userHandle) {
+        if (UserUtil.isProfile(mContext, userHandle)) {
+            reloadMissedCallsOfUser(userHandle);
+        }
+    }
+
+    private void reloadMissedCallsOfUser(UserHandle userHandle) {
+        mMissedCallNotifier.reloadFromDatabase(
+                mLock, this, mContactsAsyncHelper, mCallerInfoAsyncQueryFactory, userHandle);
     }
 
     /**

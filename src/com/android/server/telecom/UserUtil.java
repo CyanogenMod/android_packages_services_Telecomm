@@ -35,4 +35,9 @@ public final class UserUtil {
         UserInfo userInfo = getUserInfoFromUserHandle(context, userHandle);
         return userInfo != null && userInfo.isManagedProfile();
     }
+
+    public static boolean isProfile(Context context, UserHandle userHandle) {
+        UserInfo userInfo = getUserInfoFromUserHandle(context, userHandle);
+        return userInfo != null && userInfo.profileGroupId != userInfo.id;
+    }
 }

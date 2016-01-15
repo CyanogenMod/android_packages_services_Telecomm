@@ -19,6 +19,9 @@ package com.android.server.telecom;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.server.telecom.components.UserCallIntentProcessor;
 import com.android.server.telecom.components.UserCallIntentProcessorFactory;
+import com.android.server.telecom.ui.MissedCallNotifierImpl.MissedCallNotifierImplFactory;
+import com.android.server.telecom.BluetoothPhoneServiceImpl.BluetoothPhoneServiceImplFactory;
+import com.android.server.telecom.CallAudioManager.AudioServiceFactory;
 
 import android.Manifest;
 import android.content.BroadcastReceiver;
@@ -61,6 +64,9 @@ public final class TelecomSystem {
     private static final IntentFilter USER_SWITCHED_FILTER =
             new IntentFilter(Intent.ACTION_USER_SWITCHED);
 
+    private static final IntentFilter USER_STARTING_FILTER =
+            new IntentFilter(Intent.ACTION_USER_STARTING);
+
     /** Intent filter for dialer secret codes. */
     private static final IntentFilter DIALER_SECRET_CODE_FILTER;
 
@@ -101,6 +107,16 @@ public final class TelecomSystem {
             int userHandleId = intent.getIntExtra(Intent.EXTRA_USER_HANDLE, 0);
             UserHandle currentUserHandle = new UserHandle(userHandleId);
             mPhoneAccountRegistrar.setCurrentUserHandle(currentUserHandle);
+            mCallsManager.onUserSwitch(currentUserHandle);
+        }
+    };
+
+    private final BroadcastReceiver mUserStartingReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            int userHandleId = intent.getIntExtra(Intent.EXTRA_USER_HANDLE, 0);
+            UserHandle addingUserHandle = new UserHandle(userHandleId);
+            mCallsManager.onUserStarting(addingUserHandle);
         }
     };
 
@@ -118,18 +134,17 @@ public final class TelecomSystem {
 
     public TelecomSystem(
             Context context,
-            MissedCallNotifier missedCallNotifier,
+            MissedCallNotifierImplFactory missedCallNotifierImplFactory,
             CallerInfoAsyncQueryFactory callerInfoAsyncQueryFactory,
             HeadsetMediaButtonFactory headsetMediaButtonFactory,
             ProximitySensorManagerFactory proximitySensorManagerFactory,
             InCallWakeLockControllerFactory inCallWakeLockControllerFactory,
-            CallAudioManager.AudioServiceFactory audioServiceFactory,
-            BluetoothPhoneServiceImpl.BluetoothPhoneServiceImplFactory
+            AudioServiceFactory audioServiceFactory,
+            BluetoothPhoneServiceImplFactory
                     bluetoothPhoneServiceImplFactory) {
         mContext = context.getApplicationContext();
         Log.setContext(mContext);
 
-        mMissedCallNotifier = missedCallNotifier;
         mPhoneAccountRegistrar = new PhoneAccountRegistrar(mContext);
         mContactsAsyncHelper = new ContactsAsyncHelper(
                 new ContactsAsyncHelper.ContentResolverAdapter() {
@@ -141,6 +156,9 @@ public final class TelecomSystem {
                 });
         BluetoothManager bluetoothManager = new BluetoothManager(mContext);
         WiredHeadsetManager wiredHeadsetManager = new WiredHeadsetManager(mContext);
+
+        mMissedCallNotifier = missedCallNotifierImplFactory
+                .makeMissedCallNotifierImpl(mContext, mPhoneAccountRegistrar);
 
         mCallsManager = new CallsManager(
                 mContext,
@@ -160,6 +178,8 @@ public final class TelecomSystem {
         mCallsManager.setRespondViaSmsManager(mRespondViaSmsManager);
 
         mContext.registerReceiver(mUserSwitchedReceiver, USER_SWITCHED_FILTER);
+        mContext.registerReceiver(mUserStartingReceiver, USER_STARTING_FILTER);
+
         mBluetoothPhoneServiceImpl = bluetoothPhoneServiceImplFactory.makeBluetoothPhoneServiceImpl(
                 mContext, mLock, mCallsManager, mPhoneAccountRegistrar);
         mCallIntentProcessor = new CallIntentProcessor(mContext, mCallsManager);

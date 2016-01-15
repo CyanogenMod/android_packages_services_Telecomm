@@ -71,7 +71,15 @@ public class TelecomService extends Service implements TelecomSystem.Component {
             TelecomSystem.setInstance(
                     new TelecomSystem(
                             context,
-                            new MissedCallNotifierImpl(context.getApplicationContext()),
+                            new MissedCallNotifierImpl.MissedCallNotifierImplFactory() {
+                                @Override
+                                public MissedCallNotifierImpl makeMissedCallNotifierImpl(
+                                        Context context,
+                                        PhoneAccountRegistrar phoneAccountRegistrar) {
+                                    return new MissedCallNotifierImpl(context,
+                                            phoneAccountRegistrar);
+                                }
+                            },
                             new CallerInfoAsyncQueryFactory() {
                                 @Override
                                 public CallerInfoAsyncQuery startQuery(int token, Context context,

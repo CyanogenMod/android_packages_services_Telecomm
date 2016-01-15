@@ -19,19 +19,25 @@ package com.android.server.telecom.tests;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ApplicationInfo;
 import android.net.Uri;
 import android.os.UserHandle;
+import android.telecom.PhoneAccount;
+import android.telecom.PhoneAccount.Builder;
+import android.telecom.PhoneAccountHandle;
 import android.telephony.TelephonyManager;
 
 import com.android.server.telecom.Call;
 import com.android.server.telecom.Constants;
 import com.android.server.telecom.MissedCallNotifier;
+import com.android.server.telecom.PhoneAccountRegistrar;
 import com.android.server.telecom.TelecomBroadcastIntentProcessor;
 import com.android.server.telecom.components.TelecomBroadcastReceiver;
 import com.android.server.telecom.ui.MissedCallNotifierImpl;
+import com.android.server.telecom.ui.MissedCallNotifierImpl.NotificationBuilderFactory;
 
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
@@ -67,8 +73,15 @@ public class MissedCallNotifierImplTest extends TelecomTestCase {
          CALL_TIMESTAMP = System.currentTimeMillis() - 60 * 1000 * 5;
     }
 
+    private static final UserHandle PRIMARY_USER = UserHandle.of(0);
+    private static final UserHandle SECONARY_USER = UserHandle.of(12);
+    private static final int NO_CAPABILITY = 0;
+
     @Mock
     private NotificationManager mNotificationManager;
+
+    @Mock
+    private PhoneAccountRegistrar mPhoneAccountRegistrar;
 
     @Override
     public void setUp() throws Exception {
@@ -94,27 +107,36 @@ public class MissedCallNotifierImplTest extends TelecomTestCase {
                 USER_CALL_ACTIVITY_LABEL);
     }
 
-    public void testCancelNotification() {
+    public void testCancelNotificationInPrimaryUser() {
+        cancelNotificationTestInternal(PRIMARY_USER);
+    }
+
+    public void testCancelNotificationInSecondaryUser() {
+        cancelNotificationTestInternal(SECONARY_USER);
+    }
+
+    private void cancelNotificationTestInternal(UserHandle userHandle) {
         Notification.Builder builder1 = makeNotificationBuilder("builder1");
         Notification.Builder builder2 = makeNotificationBuilder("builder2");
         MissedCallNotifierImpl.NotificationBuilderFactory fakeBuilderFactory =
                 makeNotificationBuilderFactory(builder1, builder1, builder2, builder2);
 
-        MissedCallNotifier missedCallNotifier = new MissedCallNotifierImpl(mContext,
-                fakeBuilderFactory);
-
-        Call fakeCall = makeFakeCall(TEL_CALL_HANDLE, CALLER_NAME, CALL_TIMESTAMP);
+        MissedCallNotifier missedCallNotifier = makeMissedCallNotifier(fakeBuilderFactory,
+                PRIMARY_USER);
+        PhoneAccount phoneAccount = makePhoneAccount(userHandle, NO_CAPABILITY);
+        Call fakeCall = makeFakeCall(TEL_CALL_HANDLE, CALLER_NAME, CALL_TIMESTAMP,
+                phoneAccount.getAccountHandle());
 
         missedCallNotifier.showMissedCallNotification(fakeCall);
-        missedCallNotifier.clearMissedCalls();
+        missedCallNotifier.clearMissedCalls(userHandle);
         missedCallNotifier.showMissedCallNotification(fakeCall);
 
         ArgumentCaptor<Integer> requestIdCaptor = ArgumentCaptor.forClass(
                 Integer.class);
         verify(mNotificationManager, times(2)).notifyAsUser(isNull(String.class),
-                requestIdCaptor.capture(), any(Notification.class), eq(UserHandle.CURRENT));
+                requestIdCaptor.capture(), any(Notification.class), eq(userHandle));
         verify(mNotificationManager).cancelAsUser(any(String.class), eq(requestIdCaptor.getValue()),
-                eq(UserHandle.CURRENT));
+                eq(userHandle));
 
         // Verify that the second call to showMissedCallNotification behaves like it were the first.
         verify(builder2).setContentText(CALLER_NAME);
@@ -127,13 +149,15 @@ public class MissedCallNotifierImplTest extends TelecomTestCase {
             builders[i] = makeNotificationBuilder("builder" + Integer.toString(i));
         }
 
-        Call fakeCall = makeFakeCall(TEL_CALL_HANDLE, CALLER_NAME, CALL_TIMESTAMP);
+        PhoneAccount phoneAccount = makePhoneAccount(PRIMARY_USER, NO_CAPABILITY);
+        Call fakeCall = makeFakeCall(TEL_CALL_HANDLE, CALLER_NAME, CALL_TIMESTAMP,
+                phoneAccount.getAccountHandle());
 
         MissedCallNotifierImpl.NotificationBuilderFactory fakeBuilderFactory =
                 makeNotificationBuilderFactory(builders);
 
         MissedCallNotifier missedCallNotifier = new MissedCallNotifierImpl(mContext,
-                fakeBuilderFactory);
+                mPhoneAccountRegistrar, fakeBuilderFactory);
 
         missedCallNotifier.showMissedCallNotification(fakeCall);
         missedCallNotifier.showMissedCallNotification(fakeCall);
@@ -147,7 +171,7 @@ public class MissedCallNotifierImplTest extends TelecomTestCase {
         ArgumentCaptor<Notification> notificationArgumentCaptor = ArgumentCaptor.forClass(
                 Notification.class);
         verify(mNotificationManager, times(2)).notifyAsUser(isNull(String.class), eq(1),
-                notificationArgumentCaptor.capture(), eq(UserHandle.CURRENT));
+                notificationArgumentCaptor.capture(), eq(PRIMARY_USER));
         HashSet<String> privateNotifications = new HashSet<>();
         for (Notification n : notificationArgumentCaptor.getAllValues()) {
             privateNotifications.add(n.toString());
@@ -180,22 +204,56 @@ public class MissedCallNotifierImplTest extends TelecomTestCase {
         }
     }
 
+    public void testNotifySingleCallInPrimaryUser() {
+        PhoneAccount phoneAccount = makePhoneAccount(PRIMARY_USER, NO_CAPABILITY);
+        notifySingleCallTestInternal(phoneAccount, PRIMARY_USER);
+    }
+
+    public void testNotifySingleCallInSecondaryUser() {
+        PhoneAccount phoneAccount = makePhoneAccount(SECONARY_USER, NO_CAPABILITY);
+        notifySingleCallTestInternal(phoneAccount, PRIMARY_USER);
+    }
+
+    public void testNotifySingleCallInSecondaryUserWithMultiUserCapability() {
+        PhoneAccount phoneAccount = makePhoneAccount(PRIMARY_USER,
+                PhoneAccount.CAPABILITY_MULTI_USER);
+        notifySingleCallTestInternal(phoneAccount, PRIMARY_USER);
+    }
+
+    public void testNotifySingleCallWhenCurrentUserIsSecondaryUser() {
+        PhoneAccount phoneAccount = makePhoneAccount(PRIMARY_USER, NO_CAPABILITY);
+        notifySingleCallTestInternal(phoneAccount, SECONARY_USER);
+    }
+
     public void testNotifySingleCall() {
+        PhoneAccount phoneAccount = makePhoneAccount(PRIMARY_USER, NO_CAPABILITY);
+        notifySingleCallTestInternal(phoneAccount, PRIMARY_USER);
+    }
+
+    private void notifySingleCallTestInternal(PhoneAccount phoneAccount, UserHandle currentUser) {
         Notification.Builder builder1 = makeNotificationBuilder("builder1");
         Notification.Builder builder2 = makeNotificationBuilder("builder2");
         MissedCallNotifierImpl.NotificationBuilderFactory fakeBuilderFactory =
                 makeNotificationBuilderFactory(builder1, builder2);
 
-        MissedCallNotifier missedCallNotifier = new MissedCallNotifierImpl(mContext,
-                fakeBuilderFactory);
+        MissedCallNotifier missedCallNotifier = makeMissedCallNotifier(fakeBuilderFactory,
+                currentUser);
 
-        Call fakeCall = makeFakeCall(TEL_CALL_HANDLE, CALLER_NAME, CALL_TIMESTAMP);
+        Call fakeCall = makeFakeCall(TEL_CALL_HANDLE, CALLER_NAME, CALL_TIMESTAMP,
+                phoneAccount.getAccountHandle());
         missedCallNotifier.showMissedCallNotification(fakeCall);
 
         ArgumentCaptor<Notification> notificationArgumentCaptor = ArgumentCaptor.forClass(
                 Notification.class);
+
+        UserHandle expectedUserHandle;
+        if (phoneAccount.hasCapabilities(PhoneAccount.CAPABILITY_MULTI_USER)) {
+            expectedUserHandle = currentUser;
+        } else {
+            expectedUserHandle = phoneAccount.getAccountHandle().getUserHandle();
+        }
         verify(mNotificationManager).notifyAsUser(isNull(String.class), eq(1),
-                notificationArgumentCaptor.capture(), eq(UserHandle.CURRENT));
+                notificationArgumentCaptor.capture(), eq((expectedUserHandle)));
 
         Notification.Builder builder;
         Notification.Builder publicBuilder;
@@ -242,9 +300,12 @@ public class MissedCallNotifierImplTest extends TelecomTestCase {
                 makeNotificationBuilderFactory(builder1);
 
         MissedCallNotifier missedCallNotifier = new MissedCallNotifierImpl(mContext,
-                fakeBuilderFactory);
+                mPhoneAccountRegistrar, fakeBuilderFactory);
+        PhoneAccount phoneAccount = makePhoneAccount(PRIMARY_USER, NO_CAPABILITY);
 
-        Call fakeCall = makeFakeCall(SIP_CALL_HANDLE, CALLER_NAME, CALL_TIMESTAMP);
+        Call fakeCall =
+                makeFakeCall(SIP_CALL_HANDLE, CALLER_NAME, CALL_TIMESTAMP,
+                phoneAccount.getAccountHandle());
         missedCallNotifier.showMissedCallNotification(fakeCall);
 
         // Create two intents that correspond to call-back and respond back with SMS, and assert
@@ -276,11 +337,13 @@ public class MissedCallNotifierImplTest extends TelecomTestCase {
         return builder;
     }
 
-    private Call makeFakeCall(Uri handle, String name, long timestamp) {
+    private Call makeFakeCall(Uri handle, String name, long timestamp,
+            PhoneAccountHandle phoneAccountHandle) {
         Call fakeCall = mock(Call.class);
         when(fakeCall.getHandle()).thenReturn(handle);
         when(fakeCall.getName()).thenReturn(name);
         when(fakeCall.getCreationTimeMillis()).thenReturn(timestamp);
+        when(fakeCall.getTargetPhoneAccount()).thenReturn(phoneAccountHandle);
         return fakeCall;
     }
 
@@ -291,5 +354,25 @@ public class MissedCallNotifierImplTest extends TelecomTestCase {
         when(builderFactory.getBuilder(mContext)).thenReturn(builders[0],
                 Arrays.copyOfRange(builders, 1, builders.length));
         return builderFactory;
+    }
+
+    private MissedCallNotifier makeMissedCallNotifier(
+            NotificationBuilderFactory fakeBuilderFactory, UserHandle currentUser) {
+        MissedCallNotifier missedCallNotifier = new MissedCallNotifierImpl(mContext,
+                mPhoneAccountRegistrar, fakeBuilderFactory);
+        missedCallNotifier.setCurrentUserHandle(currentUser);
+        return missedCallNotifier;
+    }
+
+    private PhoneAccount makePhoneAccount(UserHandle userHandle, int capability) {
+        ComponentName componentName = new ComponentName("com.anything", "com.whatever");
+        PhoneAccountHandle phoneAccountHandle = new PhoneAccountHandle(componentName, "id",
+                userHandle);
+        PhoneAccount.Builder builder = new PhoneAccount.Builder(phoneAccountHandle, "test");
+        builder.setCapabilities(capability);
+        PhoneAccount phoneAccount = builder.build();
+        when(mPhoneAccountRegistrar.getPhoneAccountUnchecked(phoneAccountHandle))
+                .thenReturn(phoneAccount);
+        return phoneAccount;
     }
 }

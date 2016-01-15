@@ -78,6 +78,8 @@ import com.android.server.telecom.ProximitySensorManagerFactory;
 import com.android.server.telecom.TelecomSystem;
 import com.android.server.telecom.components.PrimaryCallReceiver;
 import com.android.server.telecom.components.UserCallIntentProcessor;
+import com.android.server.telecom.ui.MissedCallNotifierImpl;
+import com.android.server.telecom.ui.MissedCallNotifierImpl.MissedCallNotifierImplFactory;
 
 import com.google.common.base.Predicate;
 
@@ -126,7 +128,7 @@ public class TelecomSystemTest extends TelecomTestCase {
     public static class MissedCallNotifierFakeImpl extends CallsManagerListenerBase
             implements MissedCallNotifier {
         @Override
-        public void clearMissedCalls() {
+        public void clearMissedCalls(UserHandle userHandle) {
 
         }
 
@@ -136,9 +138,14 @@ public class TelecomSystemTest extends TelecomTestCase {
         }
 
         @Override
-        public void updateOnStartup(TelecomSystem.SyncRoot lock, CallsManager callsManager,
+        public void reloadFromDatabase(TelecomSystem.SyncRoot lock, CallsManager callsManager,
                 ContactsAsyncHelper contactsAsyncHelper,
-                CallerInfoAsyncQueryFactory callerInfoAsyncQueryFactory) {
+                CallerInfoAsyncQueryFactory callerInfoAsyncQueryFactory, UserHandle userHandle) {
+
+        }
+
+        @Override
+        public void setCurrentUserHandle(UserHandle userHandle) {
 
         }
     }
@@ -267,7 +274,13 @@ public class TelecomSystemTest extends TelecomTestCase {
 
         mTelecomSystem = new TelecomSystem(
                 mComponentContextFixture.getTestDouble(),
-                mMissedCallNotifier,
+                new MissedCallNotifierImplFactory() {
+                    @Override
+                    public MissedCallNotifier makeMissedCallNotifierImpl(Context context,
+                            PhoneAccountRegistrar phoneAccountRegistrar) {
+                        return mMissedCallNotifier;
+                    }
+                },
                 mCallerInfoAsyncQueryFactoryFixture.getTestDouble(),
                 headsetMediaButtonFactory,
                 proximitySensorManagerFactory,
