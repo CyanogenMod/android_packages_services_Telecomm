@@ -41,4 +41,7 @@
 
     <!-- DTMF key to be used for LCH hold tone -->
     <string name="lch_dtmf_key" translatable="false">D</string>
+
+    <!-- DSDA phones that don't support local call hold need special handling -->
+    <bool name="dsda_supports_lch">true</bool>
 </resources>
