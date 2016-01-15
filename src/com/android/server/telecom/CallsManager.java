@@ -91,6 +91,8 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
 
     private static final String TAG = "CallsManager";
 
+    private final boolean dsdaSupportsLch;
+
     private static final int MAXIMUM_LIVE_CALLS = 1;
     private static final int MAXIMUM_HOLD_CALLS = 1;
     private static final int MAXIMUM_RINGING_CALLS = 1;
@@ -217,6 +219,8 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
         mInCallWakeLockController = inCallWakeLockControllerFactory.create(context, this);
         
         mCallInfoProvider = callInfoProvider;
+
+        dsdaSupportsLch = mContext.getResources().getBoolean(R.bool.dsda_supports_lch);
 
         mListeners.add(statusBarNotifier);
         mListeners.add(mCallLogManager);
@@ -1305,7 +1309,8 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
             // also support add-call. Technically it's right, but overall looks better (UI-wise)
             // and acts better if we wait until the call is removed.
             if (TelephonyManager.getDefault().getMultiSimConfiguration()
-                    == TelephonyManager.MultiSimVariants.DSDA) {
+                    == TelephonyManager.MultiSimVariants.DSDA &&
+                    dsdaSupportsLch) {
                 if (count >= MAXIMUM_DSDA_TOP_LEVEL_CALLS) {
                     return false;
                 }
@@ -2339,7 +2344,11 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
                         call = call.getChildCalls().get(0);
                     }
                     if (lchState) {
-                        call.setLocalCallHold(true);
+                        if (dsdaSupportsLch) {
+                            call.setLocalCallHold(true);
+                        } else {
+                            call.hold();
+                        }
                     } else {
                         removeFromLch = call;
                     }
@@ -2354,7 +2363,11 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
         if (removeFromLch != null) {
             // Ensure to send LCH disable request at last, to make sure that during switch
             // subscription, both subscriptions not to be in active(non-LCH) at any moment.
-            removeFromLch.setLocalCallHold(false);
+            if (dsdaSupportsLch) {
+                removeFromLch.setLocalCallHold(false);
+            } else {
+                removeFromLch.unhold();
+            }
         }
     }
 
