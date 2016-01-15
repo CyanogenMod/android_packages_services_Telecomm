@@ -2073,6 +2073,15 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
                 != TelephonyManager.MultiSimVariants.DSDA) {
             return;
         }
+        /* TODO: This is the order asus picked, but shouldn't it be reversed? */
+        Call newCall = getFirstCallWithState(subId, CallState.ON_HOLD);
+        if (newCall != null && newCall.can(Connection.CAPABILITY_HOLD)) {
+            newCall.unhold();
+        }
+        Call oldCall = getFirstCallWithState(getActiveSubscription(), CallState.ACTIVE);
+        if (oldCall != null && oldCall.can(Connection.CAPABILITY_HOLD)) {
+            oldCall.hold();
+        }
         Log.d(this, "switchToOtherActiveSub sub:" + subId);
         setActiveSubscription(subId);
         updateLchStatus(subId);
