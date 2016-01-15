@@ -58,6 +58,8 @@ import android.text.BidiFormatter;
 import android.text.TextDirectionHeuristics;
 import android.text.TextUtils;
 
+import com.android.internal.telephony.CallerInfo;
+
 import java.lang.Override;
 import java.lang.String;
 import java.util.Locale;
@@ -224,8 +226,14 @@ public class MissedCallNotifierImpl extends CallsManagerListenerBase implements 
         // 1 missed call: <caller name || handle>
         // More than 1 missed call: <number of calls> + "missed calls"
         if (mMissedCallCount == 1) {
-            titleResId = R.string.notification_missedCallTitle;
             expandedText = getNameForCall(call);
+
+            CallerInfo ci = call.getCallerInfo();
+            if (ci != null && ci.userType == CallerInfo.USER_TYPE_WORK) {
+                titleResId = R.string.notification_missedWorkCallTitle;
+            } else {
+                titleResId = R.string.notification_missedCallTitle;
+            }
         } else {
             titleResId = R.string.notification_missedCallsTitle;
             expandedText =

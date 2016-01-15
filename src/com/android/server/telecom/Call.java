@@ -1663,7 +1663,7 @@ public class Call implements CreateConnectionResponse {
         Trace.endSection();
     }
 
-    CallerInfo getCallerInfo() {
+    public CallerInfo getCallerInfo() {
         return mCallerInfo;
     }
 
