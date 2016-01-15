@@ -209,7 +209,8 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
                 bluetoothManager,
                 wiredHeadsetManager,
                 statusBarNotifier,
-                audioServiceFactory
+                audioServiceFactory,
+                CallAudioRouteStateMachine.doesDeviceSupportEarpieceRoute()
         );
         callAudioRouteStateMachine.initialize();
 

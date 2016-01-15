@@ -271,7 +271,7 @@ public class CallAudioManager extends CallsManagerListenerBase {
                 return;
             case CallAudioState.ROUTE_WIRED_OR_EARPIECE:
                 mCallAudioRouteStateMachine.sendMessageWithSessionInfo(
-                        CallAudioRouteStateMachine.SWITCH_WIRED_OR_EARPIECE);
+                        CallAudioRouteStateMachine.SWITCH_BASELINE_ROUTE);
                 return;
             default:
                 Log.wtf(this, "Invalid route specified: %d", route);
