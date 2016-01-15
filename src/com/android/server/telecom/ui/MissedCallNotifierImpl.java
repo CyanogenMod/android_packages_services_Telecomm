@@ -37,6 +37,7 @@ import com.android.server.telecom.PhoneAccountRegistrar;
 import com.android.server.telecom.R;
 import com.android.server.telecom.TelecomBroadcastIntentProcessor;
 import com.android.server.telecom.TelecomSystem;
+import com.android.server.telecom.UserUtil;
 import com.android.server.telecom.components.TelecomBroadcastReceiver;
 
 import android.app.Notification;
@@ -249,8 +250,8 @@ public class MissedCallNotifierImpl extends CallsManagerListenerBase implements 
     }
 
     private void showMissedCallNotification(Call call, UserHandle userHandle) {
-        final int missCallCounts =
-                mMissedCallCounts.putIfAbsent(userHandle, new AtomicInteger(0)).incrementAndGet();
+        mMissedCallCounts.putIfAbsent(userHandle, new AtomicInteger(0));
+        int missCallCounts = mMissedCallCounts.get(userHandle).incrementAndGet();
 
         if (sendNotificationCustomComponent(call, userHandle)) {
             return;
@@ -360,7 +361,8 @@ public class MissedCallNotifierImpl extends CallsManagerListenerBase implements 
     /** Cancels the "missed call" notification. */
     private void cancelMissedCallNotification(UserHandle userHandle) {
         // Reset the number of missed calls to 0.
-        mMissedCallCounts.putIfAbsent(userHandle, new AtomicInteger(0)).set(0);
+        mMissedCallCounts.putIfAbsent(userHandle, new AtomicInteger(0));
+        mMissedCallCounts.get(userHandle).set(0);
 
         if (sendNotificationCustomComponent(null, userHandle)) {
             return;
