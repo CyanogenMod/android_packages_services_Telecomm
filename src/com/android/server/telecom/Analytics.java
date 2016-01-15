@@ -16,9 +16,12 @@
 
 package com.android.server.telecom;
 
+import android.os.Parcelable;
+import android.telecom.ParcelableCallAnalytics;
 import android.telecom.DisconnectCause;
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.internal.telephony.CallerInfo;
 import com.android.internal.util.IndentingPrintWriter;
 
 import java.util.HashMap;
@@ -173,8 +176,29 @@ public class Analytics {
                     + "    isInterrupted: " + isInterrupted + '\n'
                     + "    callTechnologies: " + getCallTechnologiesAsString() + '\n'
                     + "    callTerminationReason: " + getCallDisconnectReasonString() + '\n'
-                    + "    connectionServices: " + connectionService + '\n'
+                    + "    connectionService: " + connectionService + '\n'
                     + "}\n";
+        }
+
+        public ParcelableCallAnalytics toParcelableAnalytics() {
+            // Rounds up to the nearest second.
+            long callDuration = endTime == 0 ? 0 : endTime - startTime;
+            callDuration += (callDuration % MILLIS_IN_1_SECOND == 0) ?
+                    0 : (MILLIS_IN_1_SECOND - callDuration % MILLIS_IN_1_SECOND);
+            return new ParcelableCallAnalytics(
+                    // rounds down to nearest 5 minute mark
+                    startTime - startTime % ParcelableCallAnalytics.MILLIS_IN_5_MINUTES,
+                    callDuration,
+                    callDirection,
+                    isAdditionalCall,
+                    isInterrupted,
+                    callTechnologies,
+                    callTerminationReason == null ?
+                            ParcelableCallAnalytics.STILL_CONNECTED :
+                            callTerminationReason.getCode(),
+                    isEmergency,
+                    connectionService,
+                    createdFromExistingConnection);
         }
 
         private String getCallDirectionString() {
@@ -213,16 +237,18 @@ public class Analytics {
     public static final String TAG = "TelecomAnalytics";
 
     // Constants for call direction
-    public static final int UNKNOWN_DIRECTION = 0;
-    public static final int INCOMING_DIRECTION = 1;
-    public static final int OUTGOING_DIRECTION = 2;
+    public static final int UNKNOWN_DIRECTION = ParcelableCallAnalytics.CALLTYPE_UNKNOWN;
+    public static final int INCOMING_DIRECTION = ParcelableCallAnalytics.CALLTYPE_INCOMING;
+    public static final int OUTGOING_DIRECTION = ParcelableCallAnalytics.CALLTYPE_OUTGOING;
 
     // Constants for call technology
-    public static final int CDMA_PHONE = 0x1;
-    public static final int GSM_PHONE = 0x2;
-    public static final int IMS_PHONE = 0x4;
-    public static final int SIP_PHONE = 0x8;
-    public static final int THIRD_PARTY_PHONE = 0x10;
+    public static final int CDMA_PHONE = ParcelableCallAnalytics.CDMA_PHONE;
+    public static final int GSM_PHONE = ParcelableCallAnalytics.GSM_PHONE;
+    public static final int IMS_PHONE = ParcelableCallAnalytics.IMS_PHONE;
+    public static final int SIP_PHONE = ParcelableCallAnalytics.SIP_PHONE;
+    public static final int THIRD_PARTY_PHONE = ParcelableCallAnalytics.THIRD_PARTY_PHONE;
+
+    public static final long MILLIS_IN_1_SECOND = ParcelableCallAnalytics.MILLIS_IN_1_SECOND;
 
     private static final Object sLock = new Object(); // Coarse lock for all of analytics
     private static final Map<String, CallInfoImpl> sCallIdToInfo = new HashMap<>();
@@ -234,6 +260,20 @@ public class Analytics {
             sCallIdToInfo.put(callId, callInfo);
         }
         return callInfo;
+    }
+
+    public static ParcelableCallAnalytics[] dumpToParcelableAnalytics() {
+        ParcelableCallAnalytics[] result;
+        synchronized (sLock) {
+            result = new ParcelableCallAnalytics[sCallIdToInfo.size()];
+            int idx = 0;
+            for (CallInfoImpl entry : sCallIdToInfo.values()) {
+                result[idx] = entry.toParcelableAnalytics();
+                idx++;
+            }
+            sCallIdToInfo.clear();
+        }
+        return result;
     }
 
     public static void dump(IndentingPrintWriter writer) {

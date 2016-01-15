@@ -28,12 +28,14 @@ import android.telecom.CallAudioState;
 import android.telecom.Connection;
 import android.telecom.DisconnectCause;
 import android.telecom.ParcelableCall;
+import android.telecom.ParcelableCallAnalytics;
 import android.telecom.TelecomManager;
 import android.telecom.VideoProfile;
 
 import com.android.internal.telecom.IInCallAdapter;
 
 import java.io.StringWriter;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CountDownLatch;
@@ -246,7 +248,7 @@ public class BasicCallTests extends TelecomSystemTest {
         IdPair incoming = startAndMakeActiveIncomingCall("650-555-2323",
                 mPhoneAccountA0.getAccountHandle(), mConnectionServiceFixtureA);
         IdPair outgoing = startAndMakeActiveOutgoingCall("650-555-1212",
-                mPhoneAccountA0.getAccountHandle(),                mConnectionServiceFixtureA);
+                mPhoneAccountA0.getAccountHandle(), mConnectionServiceFixtureA);
 
         mInCallServiceFixtureX.mInCallAdapter.disconnectCall(incoming.mCallId);
         mInCallServiceFixtureX.mInCallAdapter.disconnectCall(outgoing.mCallId);
@@ -332,7 +334,7 @@ public class BasicCallTests extends TelecomSystemTest {
         }
     }
 
-        public void testBasicConferenceCall() throws Exception {
+    public void testBasicConferenceCall() throws Exception {
         makeConferenceCall();
     }
 
@@ -426,10 +428,43 @@ public class BasicCallTests extends TelecomSystemTest {
         Analytics.dump(ip);
         String dumpResult = sr.toString();
         String[] expectedFields = {"startTime", "endTime", "direction", "isAdditionalCall",
-                "isInterrupted", "callTechnologies", "callTerminationReason", "connectionServices"};
+                "isInterrupted", "callTechnologies", "callTerminationReason", "connectionService"};
         for (String field : expectedFields) {
             assertTrue(dumpResult.contains(field));
         }
+    }
+
+    public void testAnalyticsDumping() throws Exception {
+        Analytics.reset();
+        IdPair testCall = startAndMakeActiveIncomingCall(
+                "650-555-1212",
+                mPhoneAccountA0.getAccountHandle(),
+                mConnectionServiceFixtureA);
+
+        mConnectionServiceFixtureA.
+                sendSetDisconnected(testCall.mConnectionId, DisconnectCause.ERROR);
+        Analytics.CallInfoImpl expectedAnalytics = Analytics.cloneData().get(testCall.mCallId);
+
+        TelecomManager tm = (TelecomManager) mSpyContext.getSystemService(Context.TELECOM_SERVICE);
+        List<ParcelableCallAnalytics> analyticsList = tm.dumpAnalytics();
+
+        assertEquals(1, analyticsList.size());
+        ParcelableCallAnalytics pCA = analyticsList.get(0);
+
+        assertTrue(Math.abs(expectedAnalytics.startTime - pCA.getStartTimeMillis()) <
+                ParcelableCallAnalytics.MILLIS_IN_5_MINUTES);
+        assertEquals(0, pCA.getStartTimeMillis() % ParcelableCallAnalytics.MILLIS_IN_5_MINUTES);
+        assertTrue(Math.abs((expectedAnalytics.endTime - expectedAnalytics.startTime) -
+                pCA.getCallDurationMillis()) < ParcelableCallAnalytics.MILLIS_IN_1_SECOND);
+        assertEquals(0, pCA.getCallDurationMillis() % ParcelableCallAnalytics.MILLIS_IN_1_SECOND);
+
+        assertEquals(expectedAnalytics.callDirection, pCA.getCallType());
+        assertEquals(expectedAnalytics.isAdditionalCall, pCA.isAdditionalCall());
+        assertEquals(expectedAnalytics.isInterrupted, pCA.isInterrupted());
+        assertEquals(expectedAnalytics.callTechnologies, pCA.getCallTechnologies());
+        assertEquals(expectedAnalytics.callTerminationReason.getCode(),
+                pCA.getCallTerminationCode());
+        assertEquals(expectedAnalytics.connectionService, pCA.getConnectionService());
     }
 
     public void testAnalyticsTwoCalls() throws Exception {
