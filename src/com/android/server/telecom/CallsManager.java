@@ -2073,14 +2073,23 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
                 != TelephonyManager.MultiSimVariants.DSDA) {
             return;
         }
+        /* TODO: This is the order asus picked, but shouldn't it be reversed? */
+        Call newCall = getFirstCallWithState(subId, CallState.ON_HOLD);
+        if (newCall != null && newCall.can(Connection.CAPABILITY_HOLD)) {
+            newCall.unhold();
+        }
+        Call oldCall = getFirstCallWithState(getActiveSubscription(), CallState.ACTIVE);
+        if (oldCall != null && oldCall.can(Connection.CAPABILITY_HOLD)) {
+            oldCall.hold();
+        }
         Log.d(this, "switchToOtherActiveSub sub:" + subId);
-        setActiveSubscription(subId);
+        setActiveSubscriptionInternal(subId);
         updateLchStatus(subId);
         manageDsdaInCallTones(true);
         updateForegroundCall();
     }
 
-    public synchronized void setActiveSubscription(String subId) {
+    public synchronized void setActiveSubscriptionInternal(String subId) {
         Log.d(this, "setActiveSubscription = " + subId);
         if (TelephonyManager.getDefault().getMultiSimConfiguration()
                 != TelephonyManager.MultiSimVariants.DSDA) {
@@ -2115,6 +2124,23 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
                     listener.onCallStateChanged(call, call.getState(), call.getState());
                 }
             }
+        }
+    }
+
+    private synchronized void setActiveSubscriptionDSDA(String subId) {
+        if (subId != null && !subId.equals(getActiveSubscription())) {
+            switchToOtherActiveSub(subId);
+        } else {
+            setActiveSubscriptionInternal(subId);
+        }
+    }
+
+    public synchronized void setActiveSubscription(String subId) {
+        if (TelephonyManager.getDefault().getMultiSimConfiguration()
+                == TelephonyManager.MultiSimVariants.DSDA) {
+            setActiveSubscriptionDSDA(subId);
+        } else {
+            setActiveSubscriptionInternal(subId);
         }
     }
 
