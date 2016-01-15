@@ -1707,9 +1707,25 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
         }
     }
 
+    private void updateActiveSubscription() {
+        if (TelephonyManager.getDefault().getMultiSimConfiguration()
+                != TelephonyManager.MultiSimVariants.DSDA
+                || mForegroundCall == null) {
+             return;
+        }
+        PhoneAccountHandle ph = mForegroundCall.getTargetPhoneAccount();
+        String newSubId = ph == null ? null : ph.getId();
+        String oldSubId = getActiveSubscription();
+        if (newSubId != null && !newSubId.equals(oldSubId)) {
+            Log.d(this, "updateActiveSubscription from " + oldSubId + " to " + newSubId);
+            switchToOtherActiveSub(newSubId);
+        }
+    }
+
     private void updateCallsManagerState() {
         updateForegroundCall();
         updateCanAddCall();
+        updateActiveSubscription();
     }
 
     private boolean isPotentialMMICode(Uri handle) {
@@ -2072,6 +2088,15 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
         if (TelephonyManager.getDefault().getMultiSimConfiguration()
                 != TelephonyManager.MultiSimVariants.DSDA) {
             return;
+        }
+        /* TODO: This is the order asus picked, but shouldn't it be reversed? */
+        Call newCall = getFirstCallWithState(subId, CallState.ON_HOLD);
+        if (newCall != null && newCall.can(Connection.CAPABILITY_HOLD)) {
+            newCall.unhold();
+        }
+        Call oldCall = getFirstCallWithState(getActiveSubscription(), CallState.ACTIVE);
+        if (oldCall != null && oldCall.can(Connection.CAPABILITY_HOLD)) {
+            oldCall.hold();
         }
         Log.d(this, "switchToOtherActiveSub sub:" + subId);
         setActiveSubscription(subId);
