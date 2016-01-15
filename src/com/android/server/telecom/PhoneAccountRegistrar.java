@@ -406,10 +406,25 @@ public class PhoneAccountRegistrar {
 
         if (account.isEnabled() != isEnabled) {
             account.setIsEnabled(isEnabled);
+            if (!isEnabled) {
+                // If the disabled account is the default, remove it.
+                removeDefaultPhoneAccountHandle(accountHandle);
+            }
             write();
             fireAccountsChanged();
         }
         return true;
+    }
+
+    private void removeDefaultPhoneAccountHandle(PhoneAccountHandle phoneAccountHandle) {
+        Iterator<Map.Entry<UserHandle, DefaultPhoneAccountHandle>> iterator =
+                mState.defaultOutgoingAccountHandles.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<UserHandle, DefaultPhoneAccountHandle> entry = iterator.next();
+            if (phoneAccountHandle.equals(entry.getValue().phoneAccountHandle)) {
+                iterator.remove();
+            }
+        }
     }
 
     private boolean isVisibleForUser(PhoneAccount account, UserHandle userHandle,
