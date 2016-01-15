@@ -24,4 +24,4 @@ include $(TELECOMM_CALLINFO_PROVIDER)/provider.mk
 include $(BUILD_PACKAGE)
 
 # Build the test package.
-include $(call all-makefiles-under,$(LOCAL_PATH))
+# include $(call all-makefiles-under,$(LOCAL_PATH))
