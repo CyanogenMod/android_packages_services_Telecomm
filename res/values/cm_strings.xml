@@ -31,5 +31,6 @@
     <string name="blacklist_message_notification_multiple"><xliff:g id="count">%d</xliff:g> messages were blocked</string>
     <string name="blacklist_notification_list_private">Private</string>
     <string name="unblock_number">Unblock</string>
+    <string name="unblock_contact">Unblock contact</string>
 
 </resources>
