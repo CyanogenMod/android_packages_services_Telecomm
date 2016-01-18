@@ -20,6 +20,8 @@
     <string name="userCallActivityLabel" product="default" msgid="5415173590855187131">"Opkald"</string>
     <string name="unknown" msgid="6878797917991465859">"Ukendt"</string>
     <string name="notification_missedCallTitle" msgid="7554385905572364535">"Ubesvarede opkald"</string>
+    <!-- no translation found for notification_missedWorkCallTitle (6242489980390803090) -->
+    <skip />
     <string name="notification_missedCallsTitle" msgid="1361677948941502522">"Ubesvarede opkald"</string>
     <string name="notification_missedCallsMsg" msgid="4575787816055205600">"<xliff:g id="NUM_MISSED_CALLS">%s</xliff:g> ubesvarede opkald"</string>
     <string name="notification_missedCallTicker" msgid="504686252427747209">"Ubesvarede opkald fra <xliff:g id="MISSED_CALL_FROM">%s</xliff:g>"</string>

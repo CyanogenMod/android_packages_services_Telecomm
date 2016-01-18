@@ -20,6 +20,7 @@
     <string name="userCallActivityLabel" product="default" msgid="5415173590855187131">"ਫ਼ੋਨ"</string>
     <string name="unknown" msgid="6878797917991465859">"ਅਗਿਆਤ"</string>
     <string name="notification_missedCallTitle" msgid="7554385905572364535">"ਮਿਸਡ ਕਾਲ"</string>
+    <string name="notification_missedWorkCallTitle" msgid="6242489980390803090">"ਕੰਮ ਨਾਲ ਸਬੰਧਿਤ ਖੁੰਝੀ ਕਾਲ"</string>
     <string name="notification_missedCallsTitle" msgid="1361677948941502522">"ਮਿਸਡ ਕਾਲਾਂ"</string>
     <string name="notification_missedCallsMsg" msgid="4575787816055205600">"<xliff:g id="NUM_MISSED_CALLS">%s</xliff:g> ਮਿਸਡ ਕਾਲਾਂ"</string>
     <string name="notification_missedCallTicker" msgid="504686252427747209">"<xliff:g id="MISSED_CALL_FROM">%s</xliff:g> ਵੱਲੋਂ ਮਿਸਡ ਕਾਲ"</string>

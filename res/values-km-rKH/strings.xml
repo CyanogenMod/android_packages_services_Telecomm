@@ -20,6 +20,7 @@
     <string name="userCallActivityLabel" product="default" msgid="5415173590855187131">"ទូរស័ព្ទ"</string>
     <string name="unknown" msgid="6878797917991465859">"មិន​ស្គាល់"</string>
     <string name="notification_missedCallTitle" msgid="7554385905572364535">"ខកខាន​ទទួល"</string>
+    <string name="notification_missedWorkCallTitle" msgid="6242489980390803090">"បានខកខានការហៅចូលពីកន្លែងការងារ"</string>
     <string name="notification_missedCallsTitle" msgid="1361677948941502522">"ខកខាន​ទទួល"</string>
     <string name="notification_missedCallsMsg" msgid="4575787816055205600">"<xliff:g id="NUM_MISSED_CALLS">%s</xliff:g> ខកខាន​ការ​​ទទួល"</string>
     <string name="notification_missedCallTicker" msgid="504686252427747209">"ខកខាន​ទទួល​ពី <xliff:g id="MISSED_CALL_FROM">%s</xliff:g>"</string>
