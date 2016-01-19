@@ -8,7 +8,9 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Trace;
 import android.os.UserHandle;
+import android.os.UserManager;
 import android.telecom.Connection;
+import android.telecom.DefaultDialerManager;
 import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
 import android.telecom.TelecomManager;
@@ -126,6 +128,7 @@ public class CallIntentProcessor {
 
         final boolean isPrivilegedDialer = intent.getBooleanExtra(KEY_IS_PRIVILEGED_DIALER, false);
 
+        fixInitiatingUserIfNecessary(context, intent);
         UserHandle initiatingUser = intent.getParcelableExtra(KEY_INITIATING_USER);
 
         // Send to CallsManager to ensure the InCallUI gets kicked off before the broadcast returns
@@ -146,6 +149,25 @@ public class CallIntentProcessor {
 
             if (!success && call != null) {
                 disconnectCallAndShowErrorDialog(context, call, result);
+            }
+        }
+    }
+
+    /**
+     * If the call is initiated from managed profile but there is no work dialer installed, treat
+     * the call is initiated from its parent user.
+     */
+    static void fixInitiatingUserIfNecessary(Context context, Intent intent) {
+        final UserHandle initiatingUser = intent.getParcelableExtra(KEY_INITIATING_USER);
+        if (UserUtil.isManagedProfile(context, initiatingUser)) {
+            boolean noDialerInstalled = DefaultDialerManager.getInstalledDialerApplications(context,
+                    initiatingUser.getIdentifier()).size() == 0;
+            if (noDialerInstalled) {
+                final UserManager userManager = UserManager.get(context);
+                UserHandle parentUserHandle =
+                        userManager.getProfileParent(
+                                initiatingUser.getIdentifier()).getUserHandle();
+                intent.putExtra(KEY_INITIATING_USER, parentUserHandle);
             }
         }
     }
