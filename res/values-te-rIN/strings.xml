@@ -20,8 +20,7 @@
     <string name="userCallActivityLabel" product="default" msgid="5415173590855187131">"ఫోన్"</string>
     <string name="unknown" msgid="6878797917991465859">"తెలియదు"</string>
     <string name="notification_missedCallTitle" msgid="7554385905572364535">"సమాధానం ఇవ్వని కాల్"</string>
-    <!-- no translation found for notification_missedWorkCallTitle (6242489980390803090) -->
-    <skip />
+    <string name="notification_missedWorkCallTitle" msgid="6242489980390803090">"మిస్డ్ కార్యాలయ కాల్"</string>
     <string name="notification_missedCallsTitle" msgid="1361677948941502522">"సమాధానం ఇవ్వని కాల్‌లు"</string>
     <string name="notification_missedCallsMsg" msgid="4575787816055205600">"<xliff:g id="NUM_MISSED_CALLS">%s</xliff:g> సమాధానం ఇవ్వని కాల్‌లు"</string>
     <string name="notification_missedCallTicker" msgid="504686252427747209">"<xliff:g id="MISSED_CALL_FROM">%s</xliff:g> నుండి సమాధానం ఇవ్వని కాల్"</string>

@@ -20,8 +20,7 @@
     <string name="userCallActivityLabel" product="default" msgid="5415173590855187131">"Հեռախոս"</string>
     <string name="unknown" msgid="6878797917991465859">"Անհայտ"</string>
     <string name="notification_missedCallTitle" msgid="7554385905572364535">"Բաց թողնված զանգ"</string>
-    <!-- no translation found for notification_missedWorkCallTitle (6242489980390803090) -->
-    <skip />
+    <string name="notification_missedWorkCallTitle" msgid="6242489980390803090">"Բաց թողնված աշխատանքային զանգ"</string>
     <string name="notification_missedCallsTitle" msgid="1361677948941502522">"Բաց թողնված զանգեր"</string>
     <string name="notification_missedCallsMsg" msgid="4575787816055205600">"<xliff:g id="NUM_MISSED_CALLS">%s</xliff:g> բաց թողնված զանգ"</string>
     <string name="notification_missedCallTicker" msgid="504686252427747209">"Բաց թողնված զանգ <xliff:g id="MISSED_CALL_FROM">%s</xliff:g>-ից"</string>
