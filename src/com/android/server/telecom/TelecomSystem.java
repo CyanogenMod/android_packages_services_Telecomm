@@ -104,19 +104,29 @@ public final class TelecomSystem {
     private final BroadcastReceiver mUserSwitchedReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            int userHandleId = intent.getIntExtra(Intent.EXTRA_USER_HANDLE, 0);
-            UserHandle currentUserHandle = new UserHandle(userHandleId);
-            mPhoneAccountRegistrar.setCurrentUserHandle(currentUserHandle);
-            mCallsManager.onUserSwitch(currentUserHandle);
+            Log.startSession("TSSwR.oR");
+            try {
+                int userHandleId = intent.getIntExtra(Intent.EXTRA_USER_HANDLE, 0);
+                UserHandle currentUserHandle = new UserHandle(userHandleId);
+                mPhoneAccountRegistrar.setCurrentUserHandle(currentUserHandle);
+                mCallsManager.onUserSwitch(currentUserHandle);
+            } finally {
+                Log.endSession();
+            }
         }
     };
 
     private final BroadcastReceiver mUserStartingReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            int userHandleId = intent.getIntExtra(Intent.EXTRA_USER_HANDLE, 0);
-            UserHandle addingUserHandle = new UserHandle(userHandleId);
-            mCallsManager.onUserStarting(addingUserHandle);
+            Log.startSession("TSStR.oR");
+            try {
+                int userHandleId = intent.getIntExtra(Intent.EXTRA_USER_HANDLE, 0);
+                UserHandle addingUserHandle = new UserHandle(userHandleId);
+                mCallsManager.onUserStarting(addingUserHandle);
+            } finally {
+                Log.endSession();
+            }
         }
     };
 
