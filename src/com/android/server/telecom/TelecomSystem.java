@@ -156,7 +156,6 @@ public final class TelecomSystem {
                 });
         BluetoothManager bluetoothManager = new BluetoothManager(mContext);
         WiredHeadsetManager wiredHeadsetManager = new WiredHeadsetManager(mContext);
-        SystemStateProvider systemStateProvider = new SystemStateProvider(mContext);
 
         mMissedCallNotifier = missedCallNotifierImplFactory
                 .makeMissedCallNotifierImpl(mContext, mPhoneAccountRegistrar);
@@ -173,8 +172,7 @@ public final class TelecomSystem {
                 inCallWakeLockControllerFactory,
                 audioServiceFactory,
                 bluetoothManager,
-                wiredHeadsetManager,
-                systemStateProvider);
+                wiredHeadsetManager);
 
         mRespondViaSmsManager = new RespondViaSmsManager(mCallsManager, mLock);
         mCallsManager.setRespondViaSmsManager(mRespondViaSmsManager);

@@ -54,7 +54,6 @@
         <service android:name="com.android.server.telecom.testapps.TestInCallServiceImpl"
                  android:process="com.android.server.telecom.testapps.TestInCallService"
                  android:permission="android.permission.BIND_INCALL_SERVICE" >
-            <meta-data android:name="android.telecom.IN_CALL_SERVICE_CAR_MODE_UI" android:value="true" />
             <intent-filter>
                 <action android:name="android.telecom.InCallService"/>
             </intent-filter>
@@ -68,17 +67,6 @@
                 <data android:scheme="int" />
             </intent-filter>
         </receiver>
-
-        <activity android:name="com.android.server.telecom.testapps.TestInCallUI"
-                android:process="com.android.server.telecom.testapps.TestInCallService"
-                android:label="@string/inCallUiAppLabel"
-                android:launchMode="singleInstance">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
 
         <activity android:name="com.android.server.telecom.testapps.TestCallActivity"
                   android:theme="@android:style/Theme.NoDisplay"

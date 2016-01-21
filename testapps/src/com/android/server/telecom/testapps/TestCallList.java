@@ -24,8 +24,6 @@ import android.util.ArrayMap;
 import android.util.ArraySet;
 import android.util.Log;
 
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -33,12 +31,6 @@ import java.util.Set;
  * Maintains a list of calls received via the {@link TestInCallServiceImpl}.
  */
 public class TestCallList extends Call.Listener {
-
-    public static abstract class Listener {
-        public void onCallAdded(Call call) {}
-        public void onCallRemoved(Call call) {}
-    }
-
     private static final TestCallList INSTANCE = new TestCallList();
     private static final String TAG = "TestCallList";
 
@@ -93,10 +85,9 @@ public class TestCallList extends Call.Listener {
     }
 
     // The calls the call list knows about.
-    private List<Call> mCalls = new LinkedList<Call>();
+    private Set<Call> mCalls = new ArraySet<Call>();
     private Map<Call, TestVideoCallListener> mVideoCallListeners =
             new ArrayMap<Call, TestVideoCallListener>();
-    private Set<Listener> mListeners = new ArraySet<Listener>();
 
     /**
      * Singleton accessor.
@@ -105,32 +96,14 @@ public class TestCallList extends Call.Listener {
         return INSTANCE;
     }
 
-    public void addListener(Listener listener) {
-        if (listener != null) {
-            mListeners.add(listener);
-        }
-    }
-
-    public boolean removeListener(Listener listener) {
-        return mListeners.remove(listener);
-    }
-
-    public Call getCall(int position) {
-        return mCalls.get(position);
-    }
-
     public void addCall(Call call) {
         if (mCalls.contains(call)) {
             Log.e(TAG, "addCall: Call already added.");
             return;
         }
-        Log.i(TAG, "addCall: " + call + " " + System.identityHashCode(this));
+        Log.v(TAG, "addCall: " + call + " " + System.identityHashCode(this));
         mCalls.add(call);
         call.addListener(this);
-
-        for (Listener l : mListeners) {
-            l.onCallAdded(call);
-        }
     }
 
     public void removeCall(Call call) {
@@ -138,13 +111,9 @@ public class TestCallList extends Call.Listener {
             Log.e(TAG, "removeCall: Call cannot be removed -- doesn't exist.");
             return;
         }
-        Log.i(TAG, "removeCall: " + call);
+        Log.v(TAG, "removeCall: " + call);
         mCalls.remove(call);
         call.removeListener(this);
-
-        for (Listener l : mListeners) {
-            l.onCallRemoved(call);
-        }
     }
 
     public void clearCalls() {
@@ -155,10 +124,6 @@ public class TestCallList extends Call.Listener {
             }
         }
         mVideoCallListeners.clear();
-    }
-
-    public int size() {
-        return mCalls.size();
     }
 
     /**

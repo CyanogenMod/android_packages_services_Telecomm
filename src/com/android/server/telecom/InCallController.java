@@ -47,12 +47,10 @@ import android.util.ArrayMap;
 // TODO: Needed for move to system service: import com.android.internal.R;
 import com.android.internal.telecom.IInCallService;
 import com.android.internal.util.IndentingPrintWriter;
-import com.android.server.telecom.SystemStateProvider.SystemStateListener;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -138,19 +136,6 @@ public final class InCallController extends CallsManagerListenerBase {
         }
     };
 
-    private final SystemStateListener mSystemStateListener = new SystemStateListener() {
-        @Override
-        public void onCarModeChanged(boolean isCarMode) {
-            // Do something when the car mode changes.
-        }
-    };
-
-    private static final int IN_CALL_SERVICE_TYPE_INVALID = 0;
-    private static final int IN_CALL_SERVICE_TYPE_DIALER_UI = 1;
-    private static final int IN_CALL_SERVICE_TYPE_SYSTEM_UI = 2;
-    private static final int IN_CALL_SERVICE_TYPE_CAR_MODE_UI = 3;
-    private static final int IN_CALL_SERVICE_TYPE_NON_UI = 4;
-
     /**
      * Maintains a binding connection to the in-call app(s).
      * ConcurrentHashMap constructor params: 8 is initial table size, 0.9f is
@@ -176,21 +161,17 @@ public final class InCallController extends CallsManagerListenerBase {
     private final Context mContext;
     private final TelecomSystem.SyncRoot mLock;
     private final CallsManager mCallsManager;
-    private final SystemStateProvider mSystemStateProvider;
 
-    public InCallController(Context context, TelecomSystem.SyncRoot lock, CallsManager callsManager,
-            SystemStateProvider systemStateProvider) {
+    public InCallController(
+            Context context, TelecomSystem.SyncRoot lock, CallsManager callsManager) {
         mContext = context;
         mLock = lock;
         mCallsManager = callsManager;
-        mSystemStateProvider = systemStateProvider;
-
         Resources resources = mContext.getResources();
+
         mSystemInCallComponentName = new ComponentName(
                 resources.getString(R.string.ui_default_package),
                 resources.getString(R.string.incall_default_class));
-
-        mSystemStateProvider.addListener(mSystemStateListener);
     }
 
     @Override
@@ -349,80 +330,82 @@ public final class InCallController extends CallsManagerListenerBase {
      * @param call The newly added call that triggered the binding to the in-call services.
      */
     private void bindToServices(Call call) {
-        ComponentName inCallUIService = null;
-        ComponentName carModeInCallUIService = null;
-        List<ComponentName> nonUIInCallServices = new LinkedList<>();
-
-        // Loop through all the InCallService implementations that exist in the devices;
         PackageManager packageManager = mContext.getPackageManager();
         Intent serviceIntent = new Intent(InCallService.SERVICE_INTERFACE);
+
+        List<ComponentName> inCallControlServices = new ArrayList<>();
+        ComponentName inCallUIService = null;
+
         for (ResolveInfo entry :
                 packageManager.queryIntentServices(serviceIntent, PackageManager.GET_META_DATA)) {
             ServiceInfo serviceInfo = entry.serviceInfo;
             if (serviceInfo != null) {
-                ComponentName componentName =
-                        new ComponentName(serviceInfo.packageName, serviceInfo.name);
-
-                switch (getInCallServiceType(entry.serviceInfo, packageManager)) {
-                    case IN_CALL_SERVICE_TYPE_DIALER_UI:
-                        if (inCallUIService == null ||
-                                inCallUIService.compareTo(componentName) > 0) {
-                            inCallUIService = componentName;
-                        }
-                        break;
-
-                    case IN_CALL_SERVICE_TYPE_SYSTEM_UI:
-                        // skip, will be added manually
-                        break;
-
-                    case IN_CALL_SERVICE_TYPE_CAR_MODE_UI:
-                        if (carModeInCallUIService == null ||
-                                carModeInCallUIService.compareTo(componentName) > 0) {
-                            carModeInCallUIService = componentName;
-                        }
-                        break;
-
-                    case IN_CALL_SERVICE_TYPE_NON_UI:
-                        nonUIInCallServices.add(componentName);
-                        break;
-
-                    case IN_CALL_SERVICE_TYPE_INVALID:
-                        break;
-
-                    default:
-                        Log.w(this, "unexpected in-call service type");
-                        break;
+                boolean hasServiceBindPermission = serviceInfo.permission != null &&
+                        serviceInfo.permission.equals(
+                                Manifest.permission.BIND_INCALL_SERVICE);
+                if (!hasServiceBindPermission) {
+                    Log.w(this, "InCallService does not have BIND_INCALL_SERVICE permission: " +
+                            serviceInfo.packageName);
+                    continue;
                 }
+
+                boolean hasControlInCallPermission = packageManager.checkPermission(
+                        Manifest.permission.CONTROL_INCALL_EXPERIENCE,
+                        serviceInfo.packageName) == PackageManager.PERMISSION_GRANTED;
+                boolean isDefaultDialerPackage = Objects.equals(serviceInfo.packageName,
+                        DefaultDialerManager.getDefaultDialerApplication(mContext));
+                if (!hasControlInCallPermission && !isDefaultDialerPackage) {
+                    Log.w(this, "Service does not have CONTROL_INCALL_EXPERIENCE permission: %s"
+                            + " and is not system or default dialer.", serviceInfo.packageName);
+                    continue;
+                }
+
+                boolean isUIService = serviceInfo.metaData != null &&
+                        serviceInfo.metaData.getBoolean(
+                                TelecomManager.METADATA_IN_CALL_SERVICE_UI, false);
+                ComponentName componentName = new ComponentName(serviceInfo.packageName,
+                        serviceInfo.name);
+                if (isUIService) {
+                    // For the main UI service, we always prefer the default dialer.
+                    if (isDefaultDialerPackage) {
+                        inCallUIService = componentName;
+                        Log.i(this, "Found default-dialer's In-Call UI: %s", componentName);
+                    }
+                } else {
+                    // for non-UI services that have passed our checks, add them to the list of
+                    // service to bind to.
+                    inCallControlServices.add(componentName);
+                }
+
             }
         }
 
-        Log.i(this, "Car mode InCallService: %s", carModeInCallUIService);
-        Log.i(this, "Dialer InCallService: %s", inCallUIService);
-
-        // Adding the in-call services in order:
-        // (1) The carmode in-call if carmode is on.
-        // (2) The default-dialer in-call if not an emergency call
-        // (3) The system-provided in-call
-        List<ComponentName> orderedInCallUIServices = new LinkedList<>();
-        if (shouldUseCarModeUI() && carModeInCallUIService != null) {
-            orderedInCallUIServices.add(carModeInCallUIService);
+        // Attempt to bind to the default-dialer InCallService first.
+        if (inCallUIService != null) {
+            // skip default dialer if we have an emergency call or if it failed binding.
+            if (mCallsManager.hasEmergencyCall()) {
+                Log.i(this, "Skipping default-dialer because of emergency call");
+                inCallUIService = null;
+            } else if (!bindToInCallService(inCallUIService, call, "def-dialer")) {
+                Log.event(call, Log.Events.ERROR_LOG,
+                        "InCallService UI failed binding: " + inCallUIService);
+                inCallUIService = null;
+            }
         }
-        if (!mCallsManager.hasEmergencyCall() && inCallUIService != null) {
-            orderedInCallUIServices.add(inCallUIService);
-        }
-        orderedInCallUIServices.add(mSystemInCallComponentName);
 
-        // TODO: Need to implement the fall-back logic in case the main UI in-call service rejects
-        // the binding request.
-        ComponentName inCallUIServiceToBind = orderedInCallUIServices.get(0);
-        if (!bindToInCallService(inCallUIServiceToBind, call, "ui")) {
-            Log.event(call, Log.Events.ERROR_LOG,
-                    "InCallService system UI failed binding: " + inCallUIService);
+        if (inCallUIService == null) {
+            // We failed to connect to the default-dialer service, or none was provided. Switch to
+            // the system built-in InCallService UI.
+            inCallUIService = mSystemInCallComponentName;
+            if (!bindToInCallService(inCallUIService, call, "system")) {
+                Log.event(call, Log.Events.ERROR_LOG,
+                        "InCallService system UI failed binding: " + inCallUIService);
+            }
         }
         mInCallUIComponentName = inCallUIService;
 
         // Bind to the control InCallServices
-        for (ComponentName componentName : nonUIInCallServices) {
+        for (ComponentName componentName : inCallControlServices) {
             bindToInCallService(componentName, call, "control");
         }
     }
@@ -460,68 +443,6 @@ public final class InCallController extends CallsManagerListenerBase {
         }
 
         return false;
-    }
-
-    private boolean shouldUseCarModeUI() {
-        return mSystemStateProvider.isCarMode();
-    }
-
-    /**
-     * Returns the type of InCallService described by the specified serviceInfo.
-     */
-    private int getInCallServiceType(ServiceInfo serviceInfo, PackageManager packageManager) {
-        // Verify that the InCallService requires the BIND_INCALL_SERVICE permission which
-        // enforces that only Telecom can bind to it.
-        boolean hasServiceBindPermission = serviceInfo.permission != null &&
-                serviceInfo.permission.equals(
-                        Manifest.permission.BIND_INCALL_SERVICE);
-        if (!hasServiceBindPermission) {
-            Log.w(this, "InCallService does not require BIND_INCALL_SERVICE permission: " +
-                    serviceInfo.packageName);
-            return IN_CALL_SERVICE_TYPE_INVALID;
-        }
-
-        if (mSystemInCallComponentName.getPackageName().equals(serviceInfo.packageName) &&
-                mSystemInCallComponentName.getClassName().equals(serviceInfo.name)) {
-            return IN_CALL_SERVICE_TYPE_SYSTEM_UI;
-        }
-
-        // Check to see if the service is a car-mode UI type by checking that it has the
-        // CONTROL_INCALL_EXPERIENCE (to verify it is a system app) and that it has the
-        // car-mode UI metadata.
-        boolean hasControlInCallPermission = packageManager.checkPermission(
-                Manifest.permission.CONTROL_INCALL_EXPERIENCE,
-                serviceInfo.packageName) == PackageManager.PERMISSION_GRANTED;
-        boolean isCarModeUIService = serviceInfo.metaData != null &&
-                serviceInfo.metaData.getBoolean(
-                        TelecomManager.METADATA_IN_CALL_SERVICE_CAR_MODE_UI, false) &&
-                hasControlInCallPermission;
-        if (isCarModeUIService) {
-            return IN_CALL_SERVICE_TYPE_CAR_MODE_UI;
-        }
-
-
-        // Check to see that it is the default dialer package
-        boolean isDefaultDialerPackage = Objects.equals(serviceInfo.packageName,
-                DefaultDialerManager.getDefaultDialerApplication(mContext));
-        boolean isUIService = serviceInfo.metaData != null &&
-                serviceInfo.metaData.getBoolean(
-                        TelecomManager.METADATA_IN_CALL_SERVICE_UI, false);
-        if (isDefaultDialerPackage && isUIService) {
-            return IN_CALL_SERVICE_TYPE_DIALER_UI;
-        }
-
-        // Also allow any in-call service that has the control-experience permission (to ensure
-        // that it is a system app) and doesn't claim to show any UI.
-        if (hasControlInCallPermission && !isUIService) {
-            return IN_CALL_SERVICE_TYPE_NON_UI;
-        }
-
-        // Anything else that remains, we will not bind to.
-        Log.i(this, "Skipping binding to %s:%s, control: %b, car-mode: %b, ui: %b",
-                serviceInfo.packageName, serviceInfo.name, hasControlInCallPermission,
-                isCarModeUIService, isUIService);
-        return IN_CALL_SERVICE_TYPE_INVALID;
     }
 
     private void adjustServiceBindingsForEmergency() {

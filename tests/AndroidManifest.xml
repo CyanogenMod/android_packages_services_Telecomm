@@ -47,8 +47,8 @@
         adb shell am instrument -w com.android.server.telecom.tests/android.test.InstrumentationTestRunner
 
         To run a single test case:
-        adb shell am instrument -w -e class com.android.server.telecom.tests.unit.FooUnitTest \
-                               com.android.server.telecom.tests/android.test.InstrumentationTestRunner
+        adb shell am instrument -w com.android.server.telecom.tests/android.test.InstrumentationTestRunner
+                                -e com.android.server.telecom.tests.unit.FooUnitTest
     -->
     <instrumentation android:name="android.test.InstrumentationTestRunner"
             android:targetPackage="com.android.server.telecom.tests"

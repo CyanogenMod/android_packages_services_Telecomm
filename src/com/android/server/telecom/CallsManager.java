@@ -192,8 +192,7 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
             InCallWakeLockControllerFactory inCallWakeLockControllerFactory,
             CallAudioManager.AudioServiceFactory audioServiceFactory,
             BluetoothManager bluetoothManager,
-            WiredHeadsetManager wiredHeadsetManager,
-            SystemStateProvider systemStateProvider) {
+            WiredHeadsetManager wiredHeadsetManager) {
         mContext = context;
         mLock = lock;
         mContactsAsyncHelper = contactsAsyncHelper;
@@ -239,7 +238,7 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
         mProximitySensorManager = proximitySensorManagerFactory.create(context, this);
         mPhoneStateBroadcaster = new PhoneStateBroadcaster(this);
         mCallLogManager = new CallLogManager(context, phoneAccountRegistrar);
-        mInCallController = new InCallController(context, mLock, this, systemStateProvider);
+        mInCallController = new InCallController(context, mLock, this);
         mDtmfLocalTonePlayer = new DtmfLocalTonePlayer(context);
         mConnectionServiceRepository =
                 new ConnectionServiceRepository(mPhoneAccountRegistrar, mContext, mLock, this);
