@@ -361,8 +361,10 @@ final class ConnectionServiceWrapper extends ServiceBinder {
                             // it here. That way we can also handle the UI of notifying that
                             // the merged has failed.
                             Bundle extras = call.getExtras();
-                            extras.putInt("MergeFail", new java.util.Random().nextInt());
-                            call.setExtras(extras);
+                            if (extras != null) {
+                                extras.putInt("MergeFail", new java.util.Random().nextInt());
+                                call.setExtras(extras);
+                            }
                             mCallsManager.onMergeFailed(call);
                         } else {
                             Log.w(this, "setConferenceMergeFailed, unknown call id: %s", callId);
