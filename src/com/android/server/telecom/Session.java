@@ -162,10 +162,15 @@ public class Session {
 
     // Builds full session id recursively
     private String getFullSessionId() {
-        if(mParentSession == null) {
+        // Cache mParentSession locally to prevent a concurrency problem where
+        // Log.endParentSessions() is called while a logging statement is running (Log.i, for
+        // example) and setting mParentSession to null in a different thread after the null check
+        // occurred.
+        Session parentSession = mParentSession;
+        if(parentSession == null) {
             return mSessionId;
         } else {
-            return mParentSession.getFullSessionId() + "_" + mSessionId;
+            return parentSession.getFullSessionId() + "_" + mSessionId;
         }
     }
 
