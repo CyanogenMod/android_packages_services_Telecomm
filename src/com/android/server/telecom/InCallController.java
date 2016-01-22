@@ -32,14 +32,11 @@ import android.os.Looper;
 import android.os.RemoteException;
 import android.os.Trace;
 import android.os.UserHandle;
-import android.telecom.Call.Details;
 import android.telecom.CallAudioState;
 import android.telecom.Connection;
 import android.telecom.DefaultDialerManager;
 import android.telecom.InCallService;
 import android.telecom.ParcelableCall;
-import android.telecom.PhoneAccount;
-import android.telecom.PhoneAccountHandle;
 import android.telecom.TelecomManager;
 import android.telecom.VideoCallImpl;
 import android.util.ArrayMap;
@@ -792,7 +789,10 @@ public final class InCallController extends CallsManagerListenerBase {
         android.telecom.Call.Details.CAPABILITY_CAN_PAUSE_VIDEO,
 
         Connection.CAPABILITY_CAN_SEND_RESPONSE_VIA_CONNECTION,
-        android.telecom.Call.Details.CAPABILITY_CAN_SEND_RESPONSE_VIA_CONNECTION
+        android.telecom.Call.Details.CAPABILITY_CAN_SEND_RESPONSE_VIA_CONNECTION,
+
+        Connection.CAPABILITY_CANNOT_DOWNGRADE_VIDEO_TO_AUDIO,
+        android.telecom.Call.Details.CAPABILITY_CANNOT_DOWNGRADE_VIDEO_TO_AUDIO
     };
 
     private static int convertConnectionToCallCapabilities(int connectionCapabilities) {
@@ -818,7 +818,7 @@ public final class InCallController extends CallsManagerListenerBase {
         android.telecom.Call.Details.PROPERTY_GENERIC_CONFERENCE,
 
         Connection.CAPABILITY_SHOW_CALLBACK_NUMBER,
-        android.telecom.Call.Details.PROPERTY_EMERGENCY_CALLBACK_MODE,
+        android.telecom.Call.Details.PROPERTY_EMERGENCY_CALLBACK_MODE
     };
 
     private static int convertConnectionToCallProperties(int connectionCapabilities) {
