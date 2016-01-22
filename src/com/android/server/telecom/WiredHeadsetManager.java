@@ -41,11 +41,16 @@ public class WiredHeadsetManager {
     private class WiredHeadsetBroadcastReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
-            if (intent.getAction().equals(Intent.ACTION_HEADSET_PLUG)) {
-                boolean isPluggedIn = mAudioManager.isWiredHeadsetOn();
-                Log.v(WiredHeadsetManager.this, "ACTION_HEADSET_PLUG event, plugged in: %b",
-                        isPluggedIn);
-                onHeadsetPluggedInChanged(isPluggedIn);
+            Log.startSession("WHBR.oR");
+            try {
+                if (intent.getAction().equals(Intent.ACTION_HEADSET_PLUG)) {
+                    boolean isPluggedIn = mAudioManager.isWiredHeadsetOn();
+                    Log.v(WiredHeadsetManager.this, "ACTION_HEADSET_PLUG event, plugged in: %b",
+                            isPluggedIn);
+                    onHeadsetPluggedInChanged(isPluggedIn);
+                }
+            } finally {
+                Log.endSession();
             }
         }
     }

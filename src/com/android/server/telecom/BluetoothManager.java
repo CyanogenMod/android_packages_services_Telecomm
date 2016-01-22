@@ -46,16 +46,26 @@ public class BluetoothManager {
             new BluetoothProfile.ServiceListener() {
                 @Override
                 public void onServiceConnected(int profile, BluetoothProfile proxy) {
-                    mBluetoothHeadset = (BluetoothHeadset) proxy;
-                    Log.v(this, "- Got BluetoothHeadset: " + mBluetoothHeadset);
-                    updateBluetoothState();
+                    Log.startSession("BMSL.oSC");
+                    try {
+                        mBluetoothHeadset = (BluetoothHeadset) proxy;
+                        Log.v(this, "- Got BluetoothHeadset: " + mBluetoothHeadset);
+                        updateBluetoothState();
+                    } finally {
+                        Log.endSession();
+                    }
                 }
 
                 @Override
                 public void onServiceDisconnected(int profile) {
-                    mBluetoothHeadset = null;
-                    Log.v(this, "Lost BluetoothHeadset: " + mBluetoothHeadset);
-                    updateBluetoothState();
+                    Log.startSession("BMSL.oSD");
+                    try {
+                        mBluetoothHeadset = null;
+                        Log.v(this, "Lost BluetoothHeadset: " + mBluetoothHeadset);
+                        updateBluetoothState();
+                    } finally {
+                        Log.endSession();
+                    }
                 }
            };
 
@@ -65,21 +75,26 @@ public class BluetoothManager {
     private final BroadcastReceiver mReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            String action = intent.getAction();
+            Log.startSession("BM.oR");
+            try {
+                String action = intent.getAction();
 
-            if (action.equals(BluetoothHeadset.ACTION_CONNECTION_STATE_CHANGED)) {
-                int bluetoothHeadsetState = intent.getIntExtra(BluetoothHeadset.EXTRA_STATE,
-                                                          BluetoothHeadset.STATE_DISCONNECTED);
-                Log.d(this, "mReceiver: HEADSET_STATE_CHANGED_ACTION");
-                Log.d(this, "==> new state: %s ", bluetoothHeadsetState);
-                updateBluetoothState();
-            } else if (action.equals(BluetoothHeadset.ACTION_AUDIO_STATE_CHANGED)) {
-                int bluetoothHeadsetAudioState =
-                        intent.getIntExtra(BluetoothHeadset.EXTRA_STATE,
-                                           BluetoothHeadset.STATE_AUDIO_DISCONNECTED);
-                Log.d(this, "mReceiver: HEADSET_AUDIO_STATE_CHANGED_ACTION");
-                Log.d(this, "==> new state: %s", bluetoothHeadsetAudioState);
-                updateBluetoothState();
+                if (action.equals(BluetoothHeadset.ACTION_CONNECTION_STATE_CHANGED)) {
+                    int bluetoothHeadsetState = intent.getIntExtra(BluetoothHeadset.EXTRA_STATE,
+                            BluetoothHeadset.STATE_DISCONNECTED);
+                    Log.d(this, "mReceiver: HEADSET_STATE_CHANGED_ACTION");
+                    Log.d(this, "==> new state: %s ", bluetoothHeadsetState);
+                    updateBluetoothState();
+                } else if (action.equals(BluetoothHeadset.ACTION_AUDIO_STATE_CHANGED)) {
+                    int bluetoothHeadsetAudioState =
+                            intent.getIntExtra(BluetoothHeadset.EXTRA_STATE,
+                                    BluetoothHeadset.STATE_AUDIO_DISCONNECTED);
+                    Log.d(this, "mReceiver: HEADSET_AUDIO_STATE_CHANGED_ACTION");
+                    Log.d(this, "==> new state: %s", bluetoothHeadsetAudioState);
+                    updateBluetoothState();
+                }
+            } finally {
+                Log.endSession();
             }
         }
     };

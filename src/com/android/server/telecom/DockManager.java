@@ -40,10 +40,15 @@ public class DockManager {
     private class DockBroadcastReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
-            if (Intent.ACTION_DOCK_EVENT.equals(intent.getAction())) {
-                int dockState = intent.getIntExtra(
-                        Intent.EXTRA_DOCK_STATE, Intent.EXTRA_DOCK_STATE_UNDOCKED);
-                onDockChanged(dockState);
+            Log.startSession("DM.oR");
+            try {
+                if (Intent.ACTION_DOCK_EVENT.equals(intent.getAction())) {
+                    int dockState = intent.getIntExtra(
+                            Intent.EXTRA_DOCK_STATE, Intent.EXTRA_DOCK_STATE_UNDOCKED);
+                    onDockChanged(dockState);
+                }
+            } finally {
+                Log.endSession();
             }
         }
     }
