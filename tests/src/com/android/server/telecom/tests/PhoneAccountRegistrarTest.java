@@ -63,7 +63,6 @@ public class PhoneAccountRegistrarTest extends TelecomTestCase {
     public void setUp() throws Exception {
         super.setUp();
         MockitoAnnotations.initMocks(this);
-        mComponentContextFixture = new ComponentContextFixture();
         mComponentContextFixture.setTelecomManager(mTelecomManager);
         new File(
                 mComponentContextFixture.getTestDouble().getApplicationContext().getFilesDir(),
@@ -81,7 +80,6 @@ public class PhoneAccountRegistrarTest extends TelecomTestCase {
                 mComponentContextFixture.getTestDouble().getApplicationContext().getFilesDir(),
                 FILE_NAME)
                 .delete();
-        mComponentContextFixture = null;
         super.tearDown();
     }
 
