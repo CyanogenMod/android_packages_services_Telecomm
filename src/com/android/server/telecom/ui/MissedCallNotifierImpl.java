@@ -16,6 +16,8 @@
 
 package com.android.server.telecom.ui;
 
+import static android.Manifest.permission.READ_PHONE_STATE;
+
 import android.content.ComponentName;
 import android.content.ContentProvider;
 import android.content.pm.PackageManager.NameNotFoundException;
@@ -48,6 +50,8 @@ import android.content.AsyncQueryHandler;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
@@ -57,6 +61,7 @@ import android.os.AsyncTask;
 import android.os.Binder;
 import android.os.UserHandle;
 import android.provider.CallLog.Calls;
+import android.telecom.DefaultDialerManager;
 import android.telecom.DisconnectCause;
 import android.telecom.PhoneAccount;
 import android.telephony.PhoneNumberUtils;
@@ -69,6 +74,7 @@ import com.android.internal.telephony.CallerInfo;
 
 import java.lang.Override;
 import java.lang.String;
+import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -164,7 +170,16 @@ public class MissedCallNotifierImpl extends CallsManagerListenerBase implements 
 
     /** Clears missed call notification and marks the call log's missed calls as read. */
     @Override
-    public void clearMissedCalls(final UserHandle userHandle) {
+    public void clearMissedCalls(UserHandle userHandle) {
+        // If the default dialer is showing the missed call notification then it will modify the
+        // call log and we don't have to do anything here.
+        if (!shouldManageNotificationThroughDefaultDialer(userHandle)) {
+            markMissedCallsAsRead(userHandle);
+        }
+        cancelMissedCallNotification(userHandle);
+    }
+
+    private void markMissedCallsAsRead(final UserHandle userHandle) {
         AsyncTask.execute(new Runnable() {
             @Override
             public void run() {
@@ -188,7 +203,6 @@ public class MissedCallNotifierImpl extends CallsManagerListenerBase implements 
                 }
             }
         });
-        cancelMissedCallNotification(userHandle);
     }
 
     /**
@@ -230,6 +244,48 @@ public class MissedCallNotifierImpl extends CallsManagerListenerBase implements 
     }
 
     /**
+     * Returns the missed-call notificatino intent to send to the default dialer for the given user.     * Note, the passed in userHandle is always the non-managed user for SIM calls (multi-user
+     * calls). In this case we return the default dialer for the logged in user. This is never the
+     * managed (work profile) dialer.
+     *
+     * For non-multi-user calls (3rd party phone accounts), the passed in userHandle is the user
+     * handle of the phone account. This could be a managed user. In that case we return the default
+     * dialer for the given user which could be a managed (work profile) dialer.
+     */
+    private Intent getShowMissedCallIntentForDefaultDialer(UserHandle userHandle) {
+        String dialerPackage = DefaultDialerManager
+                .getDefaultDialerApplication(mContext, userHandle.getIdentifier());
+        if (TextUtils.isEmpty(dialerPackage)) {
+            return null;
+        }
+        return new Intent(TelecomManager.ACTION_SHOW_MISSED_CALLS_NOTIFICATION)
+            .setPackage(dialerPackage);
+    }
+
+    private boolean shouldManageNotificationThroughDefaultDialer(UserHandle userHandle) {
+        Intent intent = getShowMissedCallIntentForDefaultDialer(userHandle);
+        if (intent == null) {
+            return false;
+        }
+
+        List<ResolveInfo> receivers =
+                mContext.getPackageManager().queryBroadcastReceivers(intent, 0);
+        return receivers.size() > 0;
+    }
+
+    private void sendNotificationThroughDefaultDialer(Call call, UserHandle userHandle) {
+        int count = mMissedCallCounts.get(userHandle).get();
+        Intent intent = getShowMissedCallIntentForDefaultDialer(userHandle)
+            .setFlags(Intent.FLAG_RECEIVER_FOREGROUND)
+            .putExtra(TelecomManager.EXTRA_NOTIFICATION_COUNT, count)
+            .putExtra(TelecomManager.EXTRA_NOTIFICATION_PHONE_NUMBER,
+                    call != null ? call.getPhoneNumber() : null);
+
+        Log.w(this, "Showing missed calls through default dialer.");
+        mContext.sendBroadcastAsUser(intent, userHandle, READ_PHONE_STATE);
+    }
+
+    /**
      * Create a system notification for the missed call.
      *
      * @param call The missed call.
@@ -254,6 +310,11 @@ public class MissedCallNotifierImpl extends CallsManagerListenerBase implements 
         int missCallCounts = mMissedCallCounts.get(userHandle).incrementAndGet();
 
         if (sendNotificationCustomComponent(call, userHandle)) {
+            return;
+        }
+
+        if (shouldManageNotificationThroughDefaultDialer(userHandle)) {
+            sendNotificationThroughDefaultDialer(call, userHandle);
             return;
         }
 
@@ -365,6 +426,11 @@ public class MissedCallNotifierImpl extends CallsManagerListenerBase implements 
         mMissedCallCounts.get(userHandle).set(0);
 
         if (sendNotificationCustomComponent(null, userHandle)) {
+            return;
+        }
+
+        if (shouldManageNotificationThroughDefaultDialer(userHandle)) {
+            sendNotificationThroughDefaultDialer(null, userHandle);
             return;
         }
 
