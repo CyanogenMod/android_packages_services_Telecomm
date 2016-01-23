@@ -182,6 +182,14 @@ public class ComponentContextFixture implements TestFixture<Context> {
         }
 
         @Override
+        public String getSystemServiceName(Class<?> svcClass) {
+            if (svcClass == UserManager.class) {
+                return Context.USER_SERVICE;
+            }
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
         public int getUserId() {
             return 0;
         }
