@@ -96,6 +96,11 @@ public final class Ringer {
             return;
         }
 
+        if (InCallController.doesDefaultDialerSupportRinging(mContext)) {
+            Log.event(foregroundCall, Log.Events.SKIP_RINGING);
+            return;
+        }
+
         stopCallWaiting();
 
         if (!shouldRingForContact(foregroundCall.getContactUri())) {
@@ -126,6 +131,11 @@ public final class Ringer {
 
     public void startCallWaiting(Call call) {
         if (mSystemSettingsUtil.isTheaterModeOn(mContext)) {
+            return;
+        }
+
+        if (InCallController.doesDefaultDialerSupportRinging(mContext)) {
+            Log.event(call, Log.Events.SKIP_RINGING);
             return;
         }
 

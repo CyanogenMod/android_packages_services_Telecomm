@@ -45,6 +45,7 @@ public class InCallServiceFixture implements TestFixture<IInCallService> {
     public boolean mBringToForeground;
     public boolean mShowDialpad;
     public boolean mCanAddCall;
+    public boolean mSilenceRinger;
 
     public class FakeInCallService extends IInCallService.Stub {
         @Override
@@ -102,6 +103,11 @@ public class InCallServiceFixture implements TestFixture<IInCallService> {
         @Override
         public void onCanAddCallChanged(boolean canAddCall) throws RemoteException {
             mCanAddCall = canAddCall;
+        }
+
+        @Override
+        public void silenceRinger() throws RemoteException {
+            mSilenceRinger = true;
         }
 
         @Override
