@@ -100,7 +100,7 @@ class BlacklistCallNotifier extends CallsManagerListenerBase {
         PendingIntent clearIntent = notificationId == BLACKLISTED_CALL_NOTIFICATION
                 ? createClearBlacklistedCallsIntent() : createClearBlacklistedMessagesIntent();
         int iconDrawableResId = notificationId == BLACKLISTED_CALL_NOTIFICATION
-                ? R.drawable.ic_block_contact_holo_dark : R.drawable.ic_block_message_holo_dark;
+                ? R.drawable.ic_block : R.drawable.ic_block;
 
         // Keep track of the call/message, keeping list sorted from newest to oldest
         items.add(0, new BlacklistedItemInfo(number, date, matchType));
@@ -185,8 +185,8 @@ class BlacklistCallNotifier extends CallsManagerListenerBase {
 
         if (addUnblockAction) {
             int actionDrawableResId = notificationId == BLACKLISTED_CALL_NOTIFICATION
-                    ? R.drawable.ic_unblock_contact_holo_dark
-                    : R.drawable.ic_unblock_message_holo_dark;
+                    ? R.drawable.ic_unblock
+                    : R.drawable.ic_unblock;
             int unblockType = BlacklistUtils.BLOCK_CALLS | BlacklistUtils.BLOCK_MESSAGES;
             PendingIntent action = getUnblockNumberFromNotificationPendingIntent(
                     mContext, number, unblockType);
