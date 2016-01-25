@@ -281,8 +281,8 @@ public class PhoneAccountRegistrar {
     }
 
     boolean isUserSelectedSmsPhoneAccount(PhoneAccountHandle accountHandle) {
-        return getSubscriptionIdForPhoneAccount(accountHandle) == SubscriptionManager
-                .getDefaultSmsSubId();
+        return getSubscriptionIdForPhoneAccount(accountHandle) ==
+                SubscriptionManager.getDefaultSmsSubscriptionId();
     }
 
     public ComponentName getSystemSimCallManagerComponent() {
