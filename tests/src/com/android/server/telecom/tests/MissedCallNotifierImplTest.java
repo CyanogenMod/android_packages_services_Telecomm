@@ -28,6 +28,7 @@ import android.os.UserHandle;
 import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccount.Builder;
 import android.telecom.PhoneAccountHandle;
+import android.telecom.TelecomManager;
 import android.telephony.TelephonyManager;
 
 import com.android.server.telecom.Call;
@@ -83,6 +84,9 @@ public class MissedCallNotifierImplTest extends TelecomTestCase {
     @Mock
     private PhoneAccountRegistrar mPhoneAccountRegistrar;
 
+    @Mock
+    private TelecomManager mTelecomManager;
+
     @Override
     public void setUp() throws Exception {
         super.setUp();
@@ -105,6 +109,7 @@ public class MissedCallNotifierImplTest extends TelecomTestCase {
                 MISSED_CALLS_MSG);
         mComponentContextFixture.putResource(R.string.userCallActivityLabel,
                 USER_CALL_ACTIVITY_LABEL);
+        mComponentContextFixture.setTelecomManager(mTelecomManager);
     }
 
     public void testCancelNotificationInPrimaryUser() {

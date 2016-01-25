@@ -268,8 +268,8 @@ public class MissedCallNotifierImpl extends CallsManagerListenerBase implements 
             return false;
         }
 
-        List<ResolveInfo> receivers =
-                mContext.getPackageManager().queryBroadcastReceivers(intent, 0);
+        List<ResolveInfo> receivers = mContext.getPackageManager()
+                .queryBroadcastReceiversAsUser(intent, 0, userHandle.getIdentifier());
         return receivers.size() > 0;
     }
 
