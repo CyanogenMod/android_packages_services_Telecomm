@@ -94,6 +94,10 @@ public class Log {
         public static final String ERROR_LOG = "ERROR";
         public static final String USER_LOG_MARK = "USER_LOG_MARK";
         public static final String SILENCE = "SILENCE";
+        public static final String BIND_SCREENING = "BIND_SCREENING";
+        public static final String SCREENING_BOUND = "SCREENING_BOUND";
+        public static final String SCREENING_SENT = "SCREENING_SENT";
+        public static final String SCREENING_TIMED_OUT = "SCREENING_TIMED_OUT";
 
         /**
          * Maps from a request to a response.  The same event could be listed as the
@@ -110,6 +114,7 @@ public class Log {
                     put(REQUEST_UNHOLD, SET_ACTIVE);
                     put(START_CONNECTION, SET_DIALING);
                     put(BIND_CS, CS_BOUND);
+                    put(SCREENING_SENT, SCREENING_TIMED_OUT);
                 }};
     }
 
