@@ -263,7 +263,7 @@ public final class PhoneAccountRegistrar {
 
     boolean isUserSelectedSmsPhoneAccount(PhoneAccountHandle accountHandle) {
         return getSubscriptionIdForPhoneAccount(accountHandle) ==
-                SubscriptionManager.getDefaultSmsSubId();
+                SubscriptionManager.getDefaultSmsSubscriptionId();
     }
 
     /**

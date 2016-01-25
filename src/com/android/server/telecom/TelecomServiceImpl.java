@@ -421,7 +421,7 @@ public class TelecomServiceImpl {
                         return null;
                     }
 
-                    int subId = SubscriptionManager.getDefaultVoiceSubId();
+                    int subId = SubscriptionManager.getDefaultVoiceSubscriptionId();
                     if (accountHandle != null) {
                         subId = mPhoneAccountRegistrar
                                 .getSubscriptionIdForPhoneAccount(accountHandle);
@@ -453,7 +453,7 @@ public class TelecomServiceImpl {
                 try {
                     int subId =
                             mPhoneAccountRegistrar.getSubscriptionIdForPhoneAccount(accountHandle);
-                    return getTelephonyManager().getLine1NumberForSubscriber(subId);
+                    return getTelephonyManager().getLine1Number(subId);
                 } catch (Exception e) {
                     Log.e(this, e, "getSubscriptionIdForPhoneAccount");
                     throw e;
