@@ -326,12 +326,6 @@ public class BluetoothPhoneServiceImpl {
         }
 
         @Override
-        public void onForegroundCallChanged(Call oldForegroundCall, Call newForegroundCall) {
-            // The BluetoothPhoneService does not need to respond to changes in foreground calls,
-            // which are always accompanied by call state changes anyway.
-        }
-
-        @Override
         public void onIsConferencedChanged(Call call) {
             /*
              * Filter certain onIsConferencedChanged callbacks. Unfortunately this needs to be done

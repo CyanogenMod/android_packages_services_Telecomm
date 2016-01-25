@@ -81,7 +81,6 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
                 ConnectionServiceWrapper newService);
         void onIncomingCallAnswered(Call call);
         void onIncomingCallRejected(Call call, boolean rejectWithMessage, String textMessage);
-        void onForegroundCallChanged(Call oldForegroundCall, Call newForegroundCall);
         void onCallAudioStateChanged(CallAudioState oldAudioState, CallAudioState newAudioState);
         void onRingbackRequested(Call call, boolean ringback);
         void onIsConferencedChanged(Call call);
@@ -169,12 +168,6 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
 
     private boolean mCanAddCall = true;
 
-    /**
-     * The call the user is currently interacting with. This is the call that should have audio
-     * focus and be visible in the in-call UI.
-     */
-    private Call mForegroundCall;
-
     private Runnable mStopTone;
 
     /**
@@ -204,6 +197,8 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
         mWiredHeadsetManager = wiredHeadsetManager;
         mBluetoothManager = bluetoothManager;
         mDockManager = new DockManager(context);
+
+        mDtmfLocalTonePlayer = new DtmfLocalTonePlayer();
         CallAudioRouteStateMachine callAudioRouteStateMachine = new CallAudioRouteStateMachine(
                 context,
                 this,
@@ -222,25 +217,26 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
                         wiredHeadsetManager,
                         mDockManager);
 
-        mCallAudioManager = new CallAudioManager(context, mLock, this, callAudioRouteStateMachine);
-
-        InCallTonePlayer.Factory playerFactory = new InCallTonePlayer.Factory(mCallAudioManager,
+        InCallTonePlayer.Factory playerFactory = new InCallTonePlayer.Factory(
                 callAudioRoutePeripheralAdapter, lock);
 
+        SystemSettingsUtil systemSettingsUtil = new SystemSettingsUtil();
         RingtoneFactory ringtoneFactory = new RingtoneFactory(context);
         SystemVibrator systemVibrator = new SystemVibrator(context);
         AsyncRingtonePlayer asyncRingtonePlayer = new AsyncRingtonePlayer();
-        SystemSettingsUtil systemSettingsUtil = new SystemSettingsUtil();
-        mRinger = new Ringer(
-                mCallAudioManager, this, playerFactory, context, systemSettingsUtil,
-                asyncRingtonePlayer, ringtoneFactory, systemVibrator);
+        mRinger = new Ringer(playerFactory, context, systemSettingsUtil, asyncRingtonePlayer,
+                ringtoneFactory, systemVibrator);
+
+        mCallAudioManager = new CallAudioManager(callAudioRouteStateMachine,
+                this, new CallAudioModeStateMachine(context), playerFactory,
+                mRinger, new RingbackPlayer(playerFactory), mDtmfLocalTonePlayer);
+
         mHeadsetMediaButton = headsetMediaButtonFactory.create(context, this, mLock);
         mTtyManager = new TtyManager(context, mWiredHeadsetManager);
         mProximitySensorManager = proximitySensorManagerFactory.create(context, this);
         mPhoneStateBroadcaster = new PhoneStateBroadcaster(this);
         mCallLogManager = new CallLogManager(context, phoneAccountRegistrar);
         mInCallController = new InCallController(context, mLock, this, systemStateProvider);
-        mDtmfLocalTonePlayer = new DtmfLocalTonePlayer(context);
         mConnectionServiceRepository =
                 new ConnectionServiceRepository(mPhoneAccountRegistrar, mContext, mLock, this);
         mInCallWakeLockController = inCallWakeLockControllerFactory.create(context, this);
@@ -250,12 +246,8 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
         mListeners.add(mCallLogManager);
         mListeners.add(mPhoneStateBroadcaster);
         mListeners.add(mInCallController);
-        mListeners.add(mRinger);
-        mListeners.add(new RingbackPlayer(this, playerFactory));
-        mListeners.add(new InCallToneMonitor(playerFactory, this));
         mListeners.add(mCallAudioManager);
         mListeners.add(missedCallNotifier);
-        mListeners.add(mDtmfLocalTonePlayer);
         mListeners.add(mHeadsetMediaButton);
         mListeners.add(mProximitySensorManager);
 
@@ -309,7 +301,7 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
     public void onSuccessfulIncomingCall(Call incomingCall, boolean shouldSendToVoicemail) {
         Log.d(this, "onSuccessfulIncomingCall");
 
-        // Only set the incoming call as ringing if it isn't already disconnected.  It is possible
+        // Only set the incoming call as ringing if it isn't already disconnected. It is possible
         // that the connection service disconnected the call before it was even added to Telecom, in
         // which case it makes no sense to set it back to a ringing state.
         if (incomingCall.getState() != CallState.DISCONNECTED &&
@@ -504,11 +496,15 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
 
     @VisibleForTesting
     public Call getForegroundCall() {
-        return mForegroundCall;
+        if (mCallAudioManager == null) {
+            // Happens when getForegroundCall is called before full initialization.
+            return null;
+        }
+        return mCallAudioManager.getForegroundCall();
     }
 
-    Ringer getRinger() {
-        return mRinger;
+    CallAudioManager getCallAudioManager() {
+        return mCallAudioManager;
     }
 
     InCallController getInCallController() {
@@ -595,8 +591,8 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
         );
 
         call.initAnalytics();
-        if (mForegroundCall != null) {
-            mForegroundCall.getAnalytics().setCallIsInterrupted(true);
+        if (getForegroundCall() != null) {
+            getForegroundCall().getAnalytics().setCallIsInterrupted(true);
             call.getAnalytics().setCallIsAdditional(true);
         }
 
@@ -709,8 +705,8 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
                         initiatingUser);
         Log.v(this, "startOutgoingCall found accounts = " + accounts);
 
-        if (mForegroundCall != null) {
-            Call ongoingCall = mForegroundCall;
+        if (getForegroundCall() != null) {
+            Call ongoingCall = getForegroundCall();
             // If there is an ongoing call, use the same phone account to place this new call.
             // If the ongoing call is a conference call, we fetch the phone account from the
             // child calls because we don't have targetPhoneAccount set on Conference calls.
@@ -885,18 +881,19 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
         if (!mCalls.contains(call)) {
             Log.i(this, "Request to answer a non-existent call %s", call);
         } else {
+            Call foregroundCall = getForegroundCall();
             // If the foreground call is not the ringing call and it is currently isActive() or
             // STATE_DIALING, put it on hold before answering the call.
-            if (mForegroundCall != null && mForegroundCall != call &&
-                    (mForegroundCall.isActive() ||
-                     mForegroundCall.getState() == CallState.DIALING)) {
-                if (0 == (mForegroundCall.getConnectionCapabilities()
+            if (foregroundCall != null && foregroundCall != call &&
+                    (foregroundCall.isActive() ||
+                     foregroundCall.getState() == CallState.DIALING)) {
+                if (0 == (foregroundCall.getConnectionCapabilities()
                         & Connection.CAPABILITY_HOLD)) {
                     // This call does not support hold.  If it is from a different connection
                     // service, then disconnect it, otherwise allow the connection service to
                     // figure out the right states.
-                    if (mForegroundCall.getConnectionService() != call.getConnectionService()) {
-                        mForegroundCall.disconnect();
+                    if (foregroundCall.getConnectionService() != call.getConnectionService()) {
+                        foregroundCall.disconnect();
                     }
                 } else {
                     Call heldCall = getHeldCall();
@@ -907,8 +904,8 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
                     }
 
                     Log.v(this, "Holding active/dialing call %s before answering incoming call %s.",
-                            mForegroundCall, call);
-                    mForegroundCall.hold();
+                            foregroundCall, call);
+                    foregroundCall.hold();
                 }
                 // TODO: Wait until we get confirmation of the active call being
                 // on-hold before answering the new call.
@@ -1189,8 +1186,9 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
         removeCall(call);
         if (mLocallyDisconnectingCalls.contains(call)) {
             mLocallyDisconnectingCalls.remove(call);
-            if (mForegroundCall != null && mForegroundCall.getState() == CallState.ON_HOLD) {
-                mForegroundCall.unhold();
+            Call foregroundCall = getForegroundCall();
+            if (foregroundCall != null && foregroundCall.getState() == CallState.ON_HOLD) {
+                foregroundCall.unhold();
             }
         }
     }
@@ -1337,8 +1335,9 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
     Call getFirstCallWithState(Call callToSkip, int... states) {
         for (int currentState : states) {
             // check the foreground first
-            if (mForegroundCall != null && mForegroundCall.getState() == currentState) {
-                return mForegroundCall;
+            Call foregroundCall = getForegroundCall();
+            if (foregroundCall != null && foregroundCall.getState() == currentState) {
+                return foregroundCall;
             }
 
             for (Call call : mCalls) {
@@ -1537,53 +1536,6 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
         }
     }
 
-    /**
-     * Checks which call should be visible to the user and have audio focus.
-     */
-    private void updateForegroundCall() {
-        Trace.beginSection("updateForegroundCall");
-        Call newForegroundCall = null;
-        for (Call call : mCalls) {
-            // TODO: Foreground-ness needs to be explicitly set. No call, regardless
-            // of its state will be foreground by default and instead the connection service should
-            // be notified when its calls enter and exit foreground state. Foreground will mean that
-            // the call should play audio and listen to microphone if it wants.
-
-            // Only top-level calls can be in foreground
-            if (call.getParentCall() != null) {
-                continue;
-            }
-
-            // Active calls have priority.
-            if (call.isActive()) {
-                newForegroundCall = call;
-                break;
-            }
-
-            if (call.isAlive() || call.getState() == CallState.RINGING) {
-                newForegroundCall = call;
-                // Don't break in case there's an active call that has priority.
-            }
-        }
-
-        if (newForegroundCall != mForegroundCall) {
-            Log.v(this, "Updating foreground call, %s -> %s.", mForegroundCall, newForegroundCall);
-            Call oldForegroundCall = mForegroundCall;
-            mForegroundCall = newForegroundCall;
-
-            for (CallsManagerListener listener : mListeners) {
-                if (Log.SYSTRACE_DEBUG) {
-                    Trace.beginSection(listener.getClass().toString() + " updateForegroundCall");
-                }
-                listener.onForegroundCallChanged(oldForegroundCall, mForegroundCall);
-                if (Log.SYSTRACE_DEBUG) {
-                    Trace.endSection();
-                }
-            }
-        }
-        Trace.endSection();
-    }
-
     private void updateCanAddCall() {
         boolean newCanAddCall = canAddCall();
         if (newCanAddCall != mCanAddCall) {
@@ -1601,7 +1553,6 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
     }
 
     private void updateCallsManagerState() {
-        updateForegroundCall();
         updateCanAddCall();
     }
 
@@ -1886,7 +1837,6 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
             }
             pw.decreaseIndent();
         }
-        pw.println("mForegroundCall: " + (mForegroundCall == null ? "none" : mForegroundCall));
 
         if (mCallAudioManager != null) {
             pw.println("mCallAudioManager:");

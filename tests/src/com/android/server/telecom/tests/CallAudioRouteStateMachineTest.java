@@ -23,10 +23,10 @@ import android.telecom.CallAudioState;
 
 import com.android.server.telecom.BluetoothManager;
 import com.android.server.telecom.Call;
-import com.android.server.telecom.CallAudioManager;
 import com.android.server.telecom.CallAudioRouteStateMachine;
 import com.android.server.telecom.CallsManager;
 import com.android.server.telecom.ConnectionServiceWrapper;
+import com.android.server.telecom.CallAudioManager;
 import com.android.server.telecom.StatusBarNotifier;
 import com.android.server.telecom.WiredHeadsetManager;
 

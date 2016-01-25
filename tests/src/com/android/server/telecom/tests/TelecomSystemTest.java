@@ -23,7 +23,6 @@ import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
@@ -40,16 +39,11 @@ import android.media.AudioManager;
 import android.media.IAudioService;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.Debug;
 import android.os.Handler;
 import android.os.Process;
 import android.os.UserHandle;
 import android.telecom.Call;
-import android.telecom.CallAudioState;
-import android.telecom.Connection;
 import android.telecom.ConnectionRequest;
-import android.telecom.DisconnectCause;
-import android.telecom.InCallService;
 import android.telecom.ParcelableCall;
 import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
@@ -57,11 +51,7 @@ import android.telecom.TelecomManager;
 import android.telecom.VideoProfile;
 
 import com.android.internal.telecom.IInCallAdapter;
-import com.android.internal.telecom.IVideoProvider;
-import com.android.internal.util.IndentingPrintWriter;
 import com.android.server.telecom.BluetoothPhoneServiceImpl;
-import com.android.server.telecom.CallAudioManager;
-import com.android.server.telecom.CallIntentProcessor;
 import com.android.server.telecom.CallerInfoAsyncQueryFactory;
 import com.android.server.telecom.CallsManager;
 import com.android.server.telecom.CallsManagerListenerBase;
@@ -70,13 +60,12 @@ import com.android.server.telecom.HeadsetMediaButton;
 import com.android.server.telecom.HeadsetMediaButtonFactory;
 import com.android.server.telecom.InCallWakeLockController;
 import com.android.server.telecom.InCallWakeLockControllerFactory;
-import com.android.server.telecom.Log;
 import com.android.server.telecom.MissedCallNotifier;
+import com.android.server.telecom.CallAudioManager;
 import com.android.server.telecom.PhoneAccountRegistrar;
 import com.android.server.telecom.ProximitySensorManager;
 import com.android.server.telecom.ProximitySensorManagerFactory;
 import com.android.server.telecom.TelecomSystem;
-import com.android.server.telecom.components.PrimaryCallReceiver;
 import com.android.server.telecom.components.UserCallIntentProcessor;
 import com.android.server.telecom.ui.MissedCallNotifierImpl;
 import com.android.server.telecom.ui.MissedCallNotifierImpl.MissedCallNotifierImplFactory;
@@ -85,15 +74,8 @@ import com.google.common.base.Predicate;
 
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
-
-import java.io.StringWriter;
-import java.util.Map;
-import java.util.concurrent.BrokenBarrierException;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.CyclicBarrier;
 
 /**
  * Implements mocks and functionality required to implement telecom system tests.
