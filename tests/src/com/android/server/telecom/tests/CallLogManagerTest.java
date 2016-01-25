@@ -40,7 +40,9 @@ import com.android.server.telecom.PhoneAccountRegistrar;
 import com.android.server.telecom.TelephonyUtil;
 
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
@@ -48,6 +50,8 @@ import static org.mockito.Mockito.when;
 
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 import java.util.Arrays;
 
@@ -70,7 +74,7 @@ public class CallLogManagerTest extends TelecomTestCase {
     private static final String POST_DIAL_STRING = ";12345";
     private static final String TEST_PHONE_ACCOUNT_ID= "testPhoneAccountId";
 
-    private static final int TEST_TIMEOUT_MILLIS = 100;
+    private static final int TEST_TIMEOUT_MILLIS = 200;
     private static final int CURRENT_USER_ID = 0;
     private static final int OTHER_USER_ID = 10;
     private static final int MANAGED_USER_ID = 11;
@@ -109,7 +113,15 @@ public class CallLogManagerTest extends TelecomTestCase {
         UserInfo managedProfileUserInfo = new UserInfo(OTHER_USER_ID, "test3",
                 UserInfo.FLAG_MANAGED_PROFILE);
 
+        doAnswer(new Answer<Uri>() {
+            @Override
+            public Uri answer(InvocationOnMock invocation) throws Throwable {
+                return (Uri) invocation.getArguments()[1];
+            }
+        }).when(mContentProvider).insert(anyString(), any(Uri.class), any(ContentValues.class));
+
         when(userManager.isUserRunning(any(UserHandle.class))).thenReturn(true);
+        when(userManager.isUserUnlocked(any(UserHandle.class))).thenReturn(true);
         when(userManager.hasUserRestriction(any(String.class), any(UserHandle.class)))
                 .thenReturn(false);
         when(userManager.getUsers(any(Boolean.class)))
@@ -549,8 +561,8 @@ public class CallLogManagerTest extends TelecomTestCase {
         ArgumentCaptor<ContentValues> captor = ArgumentCaptor.forClass(ContentValues.class);
         try {
             Uri uri = ContentProvider.maybeAddUserId(CallLog.Calls.CONTENT_URI, userId);
-            verify(mContentProvider, timeout(TEST_TIMEOUT_MILLIS)).insert(any(String.class),
-                    eq(uri), captor.capture());
+            verify(mContentProvider, timeout(TEST_TIMEOUT_MILLIS).atLeastOnce())
+                    .insert(any(String.class), eq(uri), captor.capture());
         } catch (android.os.RemoteException e) {
             fail("Remote exception occurred during test execution");
         }
