@@ -29,6 +29,7 @@ import android.graphics.BitmapFactory;
 import android.graphics.drawable.Icon;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.AsyncTask;
 import android.os.PersistableBundle;
 import android.os.Process;
 import android.os.UserHandle;
@@ -130,6 +131,9 @@ public class PhoneAccountRegistrar {
     private final SubscriptionManager mSubscriptionManager;
     private State mState;
     private UserHandle mCurrentUserHandle;
+    private interface PhoneAccountRegistrarWriteLock {}
+    private final PhoneAccountRegistrarWriteLock mWriteLock =
+            new PhoneAccountRegistrarWriteLock() {};
 
     @VisibleForTesting
     public PhoneAccountRegistrar(Context context) {
@@ -934,26 +938,35 @@ public class PhoneAccountRegistrar {
     // State management
     //
 
-    private void write() {
-        final FileOutputStream os;
-        try {
-            os = mAtomicFile.startWrite();
-            boolean success = false;
+    private class AsyncXmlWriter extends AsyncTask<ByteArrayOutputStream, Void, Void> {
+        @Override
+        public Void doInBackground(ByteArrayOutputStream... args) {
+            final ByteArrayOutputStream buffer = args[0];
+            FileOutputStream fileOutput = null;
             try {
-                XmlSerializer serializer = new FastXmlSerializer();
-                serializer.setOutput(new BufferedOutputStream(os), "utf-8");
-                writeToXml(mState, serializer, mContext);
-                serializer.flush();
-                success = true;
-            } finally {
-                if (success) {
-                    mAtomicFile.finishWrite(os);
-                } else {
-                    mAtomicFile.failWrite(os);
+                synchronized (mWriteLock) {
+                    fileOutput = mAtomicFile.startWrite();
+                    buffer.writeTo(fileOutput);
+                    mAtomicFile.finishWrite(fileOutput);
                 }
+            } catch (IOException e) {
+                Log.e(this, e, "Writing state to XML file");
+                mAtomicFile.failWrite(fileOutput);
             }
+            return null;
+        }
+    }
+
+    private void write() {
+        try {
+            ByteArrayOutputStream os = new ByteArrayOutputStream();
+            XmlSerializer serializer = new FastXmlSerializer();
+            serializer.setOutput(os, "utf-8");
+            writeToXml(mState, serializer, mContext);
+            serializer.flush();
+            new AsyncXmlWriter().execute(os);
         } catch (IOException e) {
-            Log.e(this, e, "Writing state to XML file");
+            Log.e(this, e, "Writing state to XML buffer");
         }
     }
 
