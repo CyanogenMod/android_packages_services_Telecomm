@@ -109,6 +109,7 @@ public class PhoneAccountRegistrarTest extends TelecomTestCase {
                 .addSupportedUriScheme(PhoneAccount.SCHEME_TEL)
                 .addSupportedUriScheme(PhoneAccount.SCHEME_VOICEMAIL)
                 .setExtras(testBundle)
+                .setIsEnabled(true)
                 .build();
         PhoneAccount result = roundTripXml(this, input, PhoneAccountRegistrar.sPhoneAccountXml,
                 mContext);
@@ -399,6 +400,7 @@ public class PhoneAccountRegistrarTest extends TelecomTestCase {
                 assertEquals(a.getShortDescription(), b.getShortDescription());
                 assertEquals(a.getSupportedUriSchemes(), b.getSupportedUriSchemes());
                 assertBundlesEqual(a.getExtras(), b.getExtras());
+                assertEquals(a.isEnabled(), b.isEnabled());
             } else {
                 fail("Phone accounts not equal: " + a + ", " + b);
             }

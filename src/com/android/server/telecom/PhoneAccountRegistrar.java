@@ -1501,7 +1501,6 @@ public class PhoneAccountRegistrar {
                         parser.next();
                         enabled = "true".equalsIgnoreCase(parser.getText());
                     } else if (parser.getName().equals(EXTRAS)) {
-                        parser.next();
                         extras = readBundle(parser);
                     }
                 }
