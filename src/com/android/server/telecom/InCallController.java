@@ -25,7 +25,6 @@ import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.content.pm.ServiceInfo;
 import android.content.res.Resources;
-import android.net.Uri;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
@@ -33,7 +32,6 @@ import android.os.RemoteException;
 import android.os.Trace;
 import android.os.UserHandle;
 import android.telecom.CallAudioState;
-import android.telecom.Connection;
 import android.telecom.DefaultDialerManager;
 import android.telecom.InCallService;
 import android.telecom.ParcelableCall;
@@ -205,8 +203,8 @@ public final class InCallController extends CallsManagerListenerBase {
             for (Map.Entry<ComponentName, IInCallService> entry : mInCallServices.entrySet()) {
                 ComponentName componentName = entry.getKey();
                 IInCallService inCallService = entry.getValue();
-                ParcelableCall parcelableCall = toParcelableCall(call,
-                        true /* includeVideoProvider */);
+                ParcelableCall parcelableCall = ParcelableCallUtils.toParcelableCall(call,
+                        true /* includeVideoProvider */, mCallsManager.getPhoneAccountRegistrar());
                 try {
                     inCallService.addCall(parcelableCall);
                 } catch (RemoteException ignored) {
@@ -582,7 +580,10 @@ public final class InCallController extends CallsManagerListenerBase {
                 try {
                     // Track the call if we don't already know about it.
                     addCall(call);
-                    inCallService.addCall(toParcelableCall(call, true /* includeVideoProvider */));
+                    inCallService.addCall(ParcelableCallUtils.toParcelableCall(
+                            call,
+                            true /* includeVideoProvider */,
+                            mCallsManager.getPhoneAccountRegistrar()));
                 } catch (RemoteException ignored) {
                 }
             }
@@ -659,8 +660,10 @@ public final class InCallController extends CallsManagerListenerBase {
      */
     private void updateCall(Call call, boolean videoProviderChanged) {
         if (!mInCallServices.isEmpty()) {
-            ParcelableCall parcelableCall = toParcelableCall(call,
-                    videoProviderChanged /* includeVideoProvider */);
+            ParcelableCall parcelableCall = ParcelableCallUtils.toParcelableCall(
+                    call,
+                    videoProviderChanged /* includeVideoProvider */,
+                    mCallsManager.getPhoneAccountRegistrar());
             Log.i(this, "Sending updateCall %s ==> %s", call, parcelableCall);
             List<ComponentName> componentsUpdated = new ArrayList<>();
             for (Map.Entry<ComponentName, IInCallService> entry : mInCallServices.entrySet()) {
@@ -677,254 +680,6 @@ public final class InCallController extends CallsManagerListenerBase {
     }
 
     /**
-     * Parcels all information for a {@link Call} into a new {@link ParcelableCall} instance.
-     *
-     * @param call The {@link Call} to parcel.
-     * @param includeVideoProvider {@code true} if the video provider should be parcelled with the
-     *      {@link Call}, {@code false} otherwise.  Since the {@link ParcelableCall#getVideoCall()}
-     *      method creates a {@link VideoCallImpl} instance on access it is important for the
-     *      recipient of the {@link ParcelableCall} to know if the video provider changed.
-     * @return The {@link ParcelableCall} containing all call information from the {@link Call}.
-     */
-    private ParcelableCall toParcelableCall(Call call, boolean includeVideoProvider) {
-        String callId = mCallIdMapper.getCallId(call);
-
-        int state = getParcelableState(call);
-        int capabilities = convertConnectionToCallCapabilities(call.getConnectionCapabilities());
-        int properties = convertConnectionToCallProperties(call.getConnectionCapabilities());
-        if (call.isConference()) {
-            properties |= android.telecom.Call.Details.PROPERTY_CONFERENCE;
-        }
-
-        final PhoneAccountRegistrar phoneAccountRegistrar =
-                mCallsManager.getPhoneAccountRegistrar();
-
-        if (call.isWorkCall(phoneAccountRegistrar)) {
-            properties |= android.telecom.Call.Details.PROPERTY_WORK_CALL;
-        }
-
-        // If this is a single-SIM device, the "default SIM" will always be the only SIM.
-        boolean isDefaultSmsAccount =
-                phoneAccountRegistrar.isUserSelectedSmsPhoneAccount(call.getTargetPhoneAccount());
-        if (call.isRespondViaSmsCapable() && isDefaultSmsAccount) {
-            capabilities |= android.telecom.Call.Details.CAPABILITY_RESPOND_VIA_TEXT;
-        }
-
-        if (call.isEmergencyCall()) {
-            capabilities = removeCapability(
-                    capabilities, android.telecom.Call.Details.CAPABILITY_MUTE);
-        }
-
-        if (state == android.telecom.Call.STATE_DIALING) {
-            capabilities = removeCapability(capabilities,
-                    android.telecom.Call.Details.CAPABILITY_SUPPORTS_VT_LOCAL_BIDIRECTIONAL);
-            capabilities = removeCapability(capabilities,
-                    android.telecom.Call.Details.CAPABILITY_SUPPORTS_VT_REMOTE_BIDIRECTIONAL);
-        }
-
-        String parentCallId = null;
-        Call parentCall = call.getParentCall();
-        if (parentCall != null) {
-            parentCallId = mCallIdMapper.getCallId(parentCall);
-        }
-
-        long connectTimeMillis = call.getConnectTimeMillis();
-        List<Call> childCalls = call.getChildCalls();
-        List<String> childCallIds = new ArrayList<>();
-        if (!childCalls.isEmpty()) {
-            long childConnectTimeMillis = Long.MAX_VALUE;
-            for (Call child : childCalls) {
-                if (child.getConnectTimeMillis() > 0) {
-                    childConnectTimeMillis = Math.min(child.getConnectTimeMillis(),
-                            childConnectTimeMillis);
-                }
-                childCallIds.add(mCallIdMapper.getCallId(child));
-            }
-
-            if (childConnectTimeMillis != Long.MAX_VALUE) {
-                connectTimeMillis = childConnectTimeMillis;
-            }
-        }
-
-        Uri handle = call.getHandlePresentation() == TelecomManager.PRESENTATION_ALLOWED ?
-                call.getHandle() : null;
-        String callerDisplayName = call.getCallerDisplayNamePresentation() ==
-                TelecomManager.PRESENTATION_ALLOWED ?  call.getCallerDisplayName() : null;
-
-        List<Call> conferenceableCalls = call.getConferenceableCalls();
-        List<String> conferenceableCallIds = new ArrayList<String>(conferenceableCalls.size());
-        for (Call otherCall : conferenceableCalls) {
-            String otherId = mCallIdMapper.getCallId(otherCall);
-            if (otherId != null) {
-                conferenceableCallIds.add(otherId);
-            }
-        }
-
-        return new ParcelableCall(
-                callId,
-                state,
-                call.getDisconnectCause(),
-                call.getCannedSmsResponses(),
-                capabilities,
-                properties,
-                connectTimeMillis,
-                handle,
-                call.getHandlePresentation(),
-                callerDisplayName,
-                call.getCallerDisplayNamePresentation(),
-                call.getGatewayInfo(),
-                call.getTargetPhoneAccount(),
-                includeVideoProvider,
-                includeVideoProvider ? call.getVideoProvider() : null,
-                parentCallId,
-                childCallIds,
-                call.getStatusHints(),
-                call.getVideoState(),
-                conferenceableCallIds,
-                call.getIntentExtras(),
-                call.getExtras());
-    }
-
-    private static int getParcelableState(Call call) {
-        int state = CallState.NEW;
-        switch (call.getState()) {
-            case CallState.ABORTED:
-            case CallState.DISCONNECTED:
-                state = android.telecom.Call.STATE_DISCONNECTED;
-                break;
-            case CallState.ACTIVE:
-                state = android.telecom.Call.STATE_ACTIVE;
-                break;
-            case CallState.CONNECTING:
-                state = android.telecom.Call.STATE_CONNECTING;
-                break;
-            case CallState.DIALING:
-                state = android.telecom.Call.STATE_DIALING;
-                break;
-            case CallState.DISCONNECTING:
-                state = android.telecom.Call.STATE_DISCONNECTING;
-                break;
-            case CallState.NEW:
-                state = android.telecom.Call.STATE_NEW;
-                break;
-            case CallState.ON_HOLD:
-                state = android.telecom.Call.STATE_HOLDING;
-                break;
-            case CallState.RINGING:
-                state = android.telecom.Call.STATE_RINGING;
-                break;
-            case CallState.SELECT_PHONE_ACCOUNT:
-                state = android.telecom.Call.STATE_SELECT_PHONE_ACCOUNT;
-                break;
-        }
-
-        // If we are marked as 'locally disconnecting' then mark ourselves as disconnecting instead.
-        // Unless we're disconnect*ED*, in which case leave it at that.
-        if (call.isLocallyDisconnecting() &&
-                (state != android.telecom.Call.STATE_DISCONNECTED)) {
-            state = android.telecom.Call.STATE_DISCONNECTING;
-        }
-        return state;
-    }
-
-    private static final int[] CONNECTION_TO_CALL_CAPABILITY = new int[] {
-        Connection.CAPABILITY_HOLD,
-        android.telecom.Call.Details.CAPABILITY_HOLD,
-
-        Connection.CAPABILITY_SUPPORT_HOLD,
-        android.telecom.Call.Details.CAPABILITY_SUPPORT_HOLD,
-
-        Connection.CAPABILITY_MERGE_CONFERENCE,
-        android.telecom.Call.Details.CAPABILITY_MERGE_CONFERENCE,
-
-        Connection.CAPABILITY_SWAP_CONFERENCE,
-        android.telecom.Call.Details.CAPABILITY_SWAP_CONFERENCE,
-
-        Connection.CAPABILITY_RESPOND_VIA_TEXT,
-        android.telecom.Call.Details.CAPABILITY_RESPOND_VIA_TEXT,
-
-        Connection.CAPABILITY_MUTE,
-        android.telecom.Call.Details.CAPABILITY_MUTE,
-
-        Connection.CAPABILITY_MANAGE_CONFERENCE,
-        android.telecom.Call.Details.CAPABILITY_MANAGE_CONFERENCE,
-
-        Connection.CAPABILITY_SUPPORTS_VT_LOCAL_RX,
-        android.telecom.Call.Details.CAPABILITY_SUPPORTS_VT_LOCAL_RX,
-
-        Connection.CAPABILITY_SUPPORTS_VT_LOCAL_TX,
-        android.telecom.Call.Details.CAPABILITY_SUPPORTS_VT_LOCAL_TX,
-
-        Connection.CAPABILITY_SUPPORTS_VT_LOCAL_BIDIRECTIONAL,
-        android.telecom.Call.Details.CAPABILITY_SUPPORTS_VT_LOCAL_BIDIRECTIONAL,
-
-        Connection.CAPABILITY_SUPPORTS_VT_REMOTE_RX,
-        android.telecom.Call.Details.CAPABILITY_SUPPORTS_VT_REMOTE_RX,
-
-        Connection.CAPABILITY_SUPPORTS_VT_REMOTE_TX,
-        android.telecom.Call.Details.CAPABILITY_SUPPORTS_VT_REMOTE_TX,
-
-        Connection.CAPABILITY_SUPPORTS_VT_REMOTE_BIDIRECTIONAL,
-        android.telecom.Call.Details.CAPABILITY_SUPPORTS_VT_REMOTE_BIDIRECTIONAL,
-
-        Connection.CAPABILITY_SEPARATE_FROM_CONFERENCE,
-        android.telecom.Call.Details.CAPABILITY_SEPARATE_FROM_CONFERENCE,
-
-        Connection.CAPABILITY_DISCONNECT_FROM_CONFERENCE,
-        android.telecom.Call.Details.CAPABILITY_DISCONNECT_FROM_CONFERENCE,
-
-        Connection.CAPABILITY_CAN_UPGRADE_TO_VIDEO,
-        android.telecom.Call.Details.CAPABILITY_CAN_UPGRADE_TO_VIDEO,
-
-        Connection.CAPABILITY_CAN_PAUSE_VIDEO,
-        android.telecom.Call.Details.CAPABILITY_CAN_PAUSE_VIDEO,
-
-        Connection.CAPABILITY_CAN_SEND_RESPONSE_VIA_CONNECTION,
-        android.telecom.Call.Details.CAPABILITY_CAN_SEND_RESPONSE_VIA_CONNECTION,
-
-        Connection.CAPABILITY_CANNOT_DOWNGRADE_VIDEO_TO_AUDIO,
-        android.telecom.Call.Details.CAPABILITY_CANNOT_DOWNGRADE_VIDEO_TO_AUDIO
-    };
-
-    private static int convertConnectionToCallCapabilities(int connectionCapabilities) {
-        int callCapabilities = 0;
-        for (int i = 0; i < CONNECTION_TO_CALL_CAPABILITY.length; i += 2) {
-            if ((CONNECTION_TO_CALL_CAPABILITY[i] & connectionCapabilities) ==
-                    CONNECTION_TO_CALL_CAPABILITY[i]) {
-
-                callCapabilities |= CONNECTION_TO_CALL_CAPABILITY[i + 1];
-            }
-        }
-        return callCapabilities;
-    }
-
-    private static final int[] CONNECTION_TO_CALL_PROPERTIES = new int[] {
-        Connection.CAPABILITY_HIGH_DEF_AUDIO,
-        android.telecom.Call.Details.PROPERTY_HIGH_DEF_AUDIO,
-
-        Connection.CAPABILITY_WIFI,
-        android.telecom.Call.Details.PROPERTY_WIFI,
-
-        Connection.CAPABILITY_GENERIC_CONFERENCE,
-        android.telecom.Call.Details.PROPERTY_GENERIC_CONFERENCE,
-
-        Connection.CAPABILITY_SHOW_CALLBACK_NUMBER,
-        android.telecom.Call.Details.PROPERTY_EMERGENCY_CALLBACK_MODE
-    };
-
-    private static int convertConnectionToCallProperties(int connectionCapabilities) {
-        int callProperties = 0;
-        for (int i = 0; i < CONNECTION_TO_CALL_PROPERTIES.length; i += 2) {
-            if ((CONNECTION_TO_CALL_PROPERTIES[i] & connectionCapabilities) ==
-                    CONNECTION_TO_CALL_PROPERTIES[i]) {
-
-                callProperties |= CONNECTION_TO_CALL_PROPERTIES[i + 1];
-            }
-        }
-        return callProperties;
-    }
-
-    /**
      * Adds the call to the list of calls tracked by the {@link InCallController}.
      * @param call The call to add.
      */
@@ -937,13 +692,6 @@ public final class InCallController extends CallsManagerListenerBase {
 
     private boolean isBoundToServices() {
         return !mInCallServices.isEmpty();
-    }
-
-    /**
-     * Removes the specified capability from the set of capabilities bits and returns the new set.
-     */
-    private static int removeCapability(int capabilities, int capability) {
-        return capabilities & ~capability;
     }
 
     /**

@@ -67,7 +67,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * beyond the com.android.server.telecom package boundary.
  */
 @VisibleForTesting
-public class CallsManager extends Call.ListenerBase implements VideoProviderProxy.Listener {
+public class CallsManager extends Call.ListenerBase
+        implements VideoProviderProxy.Listener, CallScreening.Listener {
 
     // TODO: Consider renaming this CallsManagerPlugin.
     @VisibleForTesting
@@ -301,34 +302,59 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
     public void onSuccessfulIncomingCall(Call incomingCall, boolean shouldSendToVoicemail) {
         Log.d(this, "onSuccessfulIncomingCall");
 
+        if (shouldSendToVoicemail) {
+            onCallScreeningCompleted(incomingCall, false, true, true, true);
+        } else {
+            new CallScreening(mContext, this, mLock, mPhoneAccountRegistrar, incomingCall)
+                    .screenCall();
+        }
+    }
+
+    @Override
+    public void onCallScreeningCompleted(
+                Call incomingCall,
+                boolean shouldAllowCall,
+                boolean shouldReject,
+                boolean shouldAddToCallLog,
+                boolean shouldShowNotification) {
         // Only set the incoming call as ringing if it isn't already disconnected. It is possible
         // that the connection service disconnected the call before it was even added to Telecom, in
         // which case it makes no sense to set it back to a ringing state.
         if (incomingCall.getState() != CallState.DISCONNECTED &&
                 incomingCall.getState() != CallState.DISCONNECTING) {
             setCallState(incomingCall, CallState.RINGING,
-                    shouldSendToVoicemail ? "directing to voicemail" : "successful incoming call");
+                    shouldAllowCall ? "blocking call" : "successful incoming call");
         } else {
-            Log.i(this, "onSuccessfulIncomingCall: call already disconnected.");
+            Log.i(this, "onCallScreeningCompleted: call already disconnected.");
         }
 
-        if (hasMaximumRingingCalls()) {
-            Log.i(this, "onSuccessfulIncomingCall: Call rejected! Exceeds maximum number of " +
-                    "ringing calls.");
-            rejectCallAndLog(incomingCall);
-        } else if (hasMaximumDialingCalls()) {
-            Log.i(this, "onSuccessfulIncomingCall: Call rejected! Exceeds maximum number of " +
-                    "dialing calls.");
-            rejectCallAndLog(incomingCall);
-        } else if (shouldSendToVoicemail) {
-            Log.i(this, "onSuccessfulIncomingCall: Call rejected! Call has been flagged to " +
-                    "be sent to voicemail.");
-            rejectCallAndLog(incomingCall);
+        if (shouldAllowCall) {
+            if (hasMaximumRingingCalls()) {
+                Log.i(this, "onCallScreeningCompleted: Call rejected! Exceeds maximum number of " +
+                        "ringing calls.");
+                rejectCallAndLog(incomingCall);
+            } else if (hasMaximumDialingCalls()) {
+                Log.i(this, "onCallScreeningCompleted: Call rejected! Exceeds maximum number of " +
+                        "dialing calls.");
+                rejectCallAndLog(incomingCall);
+            } else {
+                addCall(incomingCall);
+            }
         } else {
-            addCall(incomingCall);
+            if (shouldReject) {
+                Log.i(this, "onCallScreeningCompleted: blocked call, rejecting.");
+                incomingCall.reject(false, null);
+            }
+            if (shouldAddToCallLog) {
+                Log.i(this, "onCallScreeningCompleted: blocked call, adding to call log.");
+                mCallLogManager.logCall(incomingCall, Calls.MISSED_TYPE);
+            }
+            if (shouldShowNotification) {
+                Log.i(this, "onCallScreeningCompleted: blocked call, showing notification.");
+                mMissedCallNotifier.showMissedCallNotification(incomingCall);
+            }
         }
     }
-
 
     @Override
     public void onFailedIncomingCall(Call call) {
