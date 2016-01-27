@@ -569,6 +569,7 @@ public class TelecomServiceImpl {
                     try {
                         Log.i(this, "Silence Ringer requested by %s", callingPackage);
                         mCallsManager.getCallAudioManager().silenceRingers();
+                        mCallsManager.getInCallController().silenceRinger();
                     } finally {
                         Binder.restoreCallingIdentity(token);
                     }

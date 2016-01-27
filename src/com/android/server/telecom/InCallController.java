@@ -39,6 +39,7 @@ import android.telecom.InCallService;
 import android.telecom.ParcelableCall;
 import android.telecom.TelecomManager;
 import android.telecom.VideoCallImpl;
+import android.text.TextUtils;
 import android.util.ArrayMap;
 
 // TODO: Needed for move to system service: import com.android.internal.R;
@@ -317,6 +318,17 @@ public final class InCallController extends CallsManagerListenerBase {
             }
         } else {
             Log.w(this, "Asking to bring unbound in-call UI to foreground.");
+        }
+    }
+
+    void silenceRinger() {
+        if (!mInCallServices.isEmpty()) {
+            for (IInCallService inCallService : mInCallServices.values()) {
+                try {
+                    inCallService.silenceRinger();
+                } catch (RemoteException ignored) {
+                }
+            }
         }
     }
 
@@ -953,5 +965,29 @@ public final class InCallController extends CallsManagerListenerBase {
             pw.println(componentName);
         }
         pw.decreaseIndent();
+    }
+
+    static boolean doesDefaultDialerSupportRinging(Context context) {
+        String dialerPackage = DefaultDialerManager
+                .getDefaultDialerApplication(context, UserHandle.USER_CURRENT);
+        if (TextUtils.isEmpty(dialerPackage)) {
+            return false;
+        }
+
+        Intent intent = new Intent(InCallService.SERVICE_INTERFACE)
+            .setPackage(dialerPackage);
+        List<ResolveInfo> entries = context.getPackageManager()
+                .queryIntentServices(intent, PackageManager.GET_META_DATA);
+        if (entries.isEmpty()) {
+            return false;
+        }
+
+        ResolveInfo info = entries.get(0);
+        if (info.serviceInfo == null || info.serviceInfo.metaData == null) {
+            return false;
+        }
+
+        return info.serviceInfo.metaData
+                .getBoolean(TelecomManager.METADATA_IN_CALL_SERVICE_RINGING, false);
     }
 }
