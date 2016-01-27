@@ -93,7 +93,7 @@ public class TelecomServiceImpl {
     static class SubscriptionManagerAdapterImpl implements SubscriptionManagerAdapter {
         @Override
         public int getDefaultVoiceSubId() {
-            return SubscriptionManager.getDefaultVoiceSubId();
+            return SubscriptionManager.getDefaultVoiceSubscriptionId();
         }
     }
 
@@ -542,7 +542,7 @@ public class TelecomServiceImpl {
                     try {
                         int subId = mPhoneAccountRegistrar.getSubscriptionIdForPhoneAccount(
                                 accountHandle);
-                        return getTelephonyManager().getLine1NumberForSubscriber(subId);
+                        return getTelephonyManager().getLine1Number(subId);
                     } catch (Exception e) {
                         Log.e(this, e, "getSubscriptionIdForPhoneAccount");
                         throw e;

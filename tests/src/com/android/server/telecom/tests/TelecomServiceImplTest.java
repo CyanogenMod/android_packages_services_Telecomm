@@ -783,7 +783,7 @@ public class TelecomServiceImplTest extends TelecomTestCase {
                 .thenReturn(subId);
         TelephonyManager mockTelephonyManager =
                 (TelephonyManager) mContext.getSystemService(Context.TELEPHONY_SERVICE);
-        when(mockTelephonyManager.getLine1NumberForSubscriber(subId)).thenReturn(line1Number);
+        when(mockTelephonyManager.getLine1Number(subId)).thenReturn(line1Number);
 
         assertEquals(line1Number,
                 mTSIBinder.getLine1Number(TEL_PA_HANDLE_CURRENT, DEFAULT_DIALER_PACKAGE));
