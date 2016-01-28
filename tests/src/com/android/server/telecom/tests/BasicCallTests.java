@@ -31,6 +31,9 @@ import android.telecom.ParcelableCall;
 import android.telecom.ParcelableCallAnalytics;
 import android.telecom.TelecomManager;
 import android.telecom.VideoProfile;
+import android.test.suitebuilder.annotation.LargeTest;
+import android.test.suitebuilder.annotation.MediumTest;
+import android.test.suitebuilder.annotation.SmallTest;
 
 import com.android.internal.telecom.IInCallAdapter;
 
@@ -51,6 +54,7 @@ import static org.mockito.Mockito.verify;
  * Performs various basic call tests in Telecom.
  */
 public class BasicCallTests extends TelecomSystemTest {
+    @LargeTest
     public void testSingleOutgoingCallLocalDisconnect() throws Exception {
         IdPair ids = startAndMakeActiveOutgoingCall("650-555-1212",
                 mPhoneAccountA0.getAccountHandle(), mConnectionServiceFixtureA);
@@ -66,6 +70,7 @@ public class BasicCallTests extends TelecomSystemTest {
                 mInCallServiceFixtureY.getCall(ids.mCallId).getState());
     }
 
+    @LargeTest
     public void testSingleOutgoingCallRemoteDisconnect() throws Exception {
         IdPair ids = startAndMakeActiveOutgoingCall("650-555-1212",
                 mPhoneAccountA0.getAccountHandle(), mConnectionServiceFixtureA);
@@ -83,6 +88,7 @@ public class BasicCallTests extends TelecomSystemTest {
      *
      * @throws Exception
      */
+    @LargeTest
     public void testTelecomManagerAcceptRingingCall() throws Exception {
         IdPair ids = startIncomingPhoneCall("650-555-1212", mPhoneAccountA0.getAccountHandle(),
                 mConnectionServiceFixtureA);
@@ -108,6 +114,7 @@ public class BasicCallTests extends TelecomSystemTest {
      *
      * @throws Exception
      */
+    @LargeTest
     public void testTelecomManagerAcceptRingingVideoCall() throws Exception {
         IdPair ids = startIncomingPhoneCall("650-555-1212", mPhoneAccountA0.getAccountHandle(),
                 VideoProfile.STATE_BIDIRECTIONAL, mConnectionServiceFixtureA);
@@ -135,6 +142,7 @@ public class BasicCallTests extends TelecomSystemTest {
      *
      * @throws Exception
      */
+    @LargeTest
     public void testTelecomManagerAcceptRingingVideoCallAsAudio() throws Exception {
         IdPair ids = startIncomingPhoneCall("650-555-1212", mPhoneAccountA0.getAccountHandle(),
                 VideoProfile.STATE_BIDIRECTIONAL, mConnectionServiceFixtureA);
@@ -161,6 +169,7 @@ public class BasicCallTests extends TelecomSystemTest {
      *
      * @throws Exception
      */
+    @LargeTest
     public void testTelecomManagerAcceptRingingInvalidVideoState() throws Exception {
         IdPair ids = startIncomingPhoneCall("650-555-1212", mPhoneAccountA0.getAccountHandle(),
                 VideoProfile.STATE_BIDIRECTIONAL, mConnectionServiceFixtureA);
@@ -181,6 +190,7 @@ public class BasicCallTests extends TelecomSystemTest {
         mInCallServiceFixtureX.mInCallAdapter.disconnectCall(ids.mCallId);
     }
 
+    @LargeTest
     public void testSingleIncomingCallLocalDisconnect() throws Exception {
         IdPair ids = startAndMakeActiveIncomingCall("650-555-1212",
                 mPhoneAccountA0.getAccountHandle(), mConnectionServiceFixtureA);
@@ -195,6 +205,7 @@ public class BasicCallTests extends TelecomSystemTest {
                 mInCallServiceFixtureY.getCall(ids.mCallId).getState());
     }
 
+    @LargeTest
     public void testSingleIncomingCallRemoteDisconnect() throws Exception {
         IdPair ids = startAndMakeActiveIncomingCall("650-555-1212",
                 mPhoneAccountA0.getAccountHandle(), mConnectionServiceFixtureA);
@@ -231,6 +242,7 @@ public class BasicCallTests extends TelecomSystemTest {
                 });
     }
 
+    @MediumTest
     public void testDeadlockOnOutgoingCall() throws Exception {
         for (int i = 0; i < 100; i++) {
             BasicCallTests test = new BasicCallTests();
@@ -243,6 +255,7 @@ public class BasicCallTests extends TelecomSystemTest {
         }
     }
 
+    @LargeTest
     public void testIncomingThenOutgoingCalls() throws Exception {
         // TODO: We have to use the same PhoneAccount for both; see http://b/18461539
         IdPair incoming = startAndMakeActiveIncomingCall("650-555-2323",
@@ -254,6 +267,7 @@ public class BasicCallTests extends TelecomSystemTest {
         mInCallServiceFixtureX.mInCallAdapter.disconnectCall(outgoing.mCallId);
     }
 
+    @LargeTest
     public void testOutgoingThenIncomingCalls() throws Exception {
         // TODO: We have to use the same PhoneAccount for both; see http://b/18461539
         IdPair outgoing = startAndMakeActiveOutgoingCall("650-555-1212",
@@ -334,10 +348,12 @@ public class BasicCallTests extends TelecomSystemTest {
         }
     }
 
+    @MediumTest
     public void testBasicConferenceCall() throws Exception {
         makeConferenceCall();
     }
 
+    @MediumTest
     public void testAddCallToConference1() throws Exception {
         ParcelableCall conferenceCall = makeConferenceCall();
         IdPair callId3 = startAndMakeActiveOutgoingCall("650-555-1214",
@@ -354,6 +370,7 @@ public class BasicCallTests extends TelecomSystemTest {
         assertTrue(updatedConference.getChildCallIds().contains(callId3.mCallId));
     }
 
+    @MediumTest
     public void testAddCallToConference2() throws Exception {
         ParcelableCall conferenceCall = makeConferenceCall();
         IdPair callId3 = startAndMakeActiveOutgoingCall("650-555-1214",
@@ -396,6 +413,7 @@ public class BasicCallTests extends TelecomSystemTest {
         return conferenceCall;
     }
 
+    @MediumTest
     public void testAnalyticsSingleCall() throws Exception {
         IdPair testCall = startAndMakeActiveIncomingCall(
                 "650-555-1212",
@@ -434,6 +452,7 @@ public class BasicCallTests extends TelecomSystemTest {
         }
     }
 
+    @SmallTest
     public void testAnalyticsDumping() throws Exception {
         Analytics.reset();
         IdPair testCall = startAndMakeActiveIncomingCall(
@@ -467,6 +486,7 @@ public class BasicCallTests extends TelecomSystemTest {
         assertEquals(expectedAnalytics.connectionService, pCA.getConnectionService());
     }
 
+    @MediumTest
     public void testAnalyticsTwoCalls() throws Exception {
         IdPair testCall1 = startAndMakeActiveIncomingCall(
                 "650-555-1212",
