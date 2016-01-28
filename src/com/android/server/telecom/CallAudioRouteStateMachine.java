@@ -252,15 +252,14 @@ public class CallAudioRouteStateMachine extends StateMachine {
             setBluetoothOn(false);
             CallAudioState newState = new CallAudioState(mIsMuted, ROUTE_EARPIECE,
                     mAvailableRoutes);
-            setSystemAudioState(mCurrentCallAudioState, newState);
+            setSystemAudioState(newState);
             updateInternalCallAudioState();
         }
 
         @Override
         public void updateSystemAudioState() {
-            CallAudioState oldAudioState = mCurrentCallAudioState;
             updateInternalCallAudioState();
-            setSystemAudioState(oldAudioState, mCurrentCallAudioState);
+            setSystemAudioState(mCurrentCallAudioState);
         }
 
         @Override
@@ -412,15 +411,14 @@ public class CallAudioRouteStateMachine extends StateMachine {
             setBluetoothOn(false);
             CallAudioState newState = new CallAudioState(mIsMuted, ROUTE_WIRED_HEADSET,
                     mAvailableRoutes);
-            setSystemAudioState(mCurrentCallAudioState, newState);
+            setSystemAudioState(newState);
             updateInternalCallAudioState();
         }
 
         @Override
         public void updateSystemAudioState() {
-            CallAudioState oldAudioState = mCurrentCallAudioState;
             updateInternalCallAudioState();
-            setSystemAudioState(oldAudioState, mCurrentCallAudioState);
+            setSystemAudioState(mCurrentCallAudioState);
         }
 
         @Override
@@ -576,15 +574,14 @@ public class CallAudioRouteStateMachine extends StateMachine {
             setBluetoothOn(true);
             CallAudioState newState = new CallAudioState(mIsMuted, ROUTE_BLUETOOTH,
                     mAvailableRoutes);
-            setSystemAudioState(mCurrentCallAudioState, newState);
+            setSystemAudioState(newState);
             updateInternalCallAudioState();
         }
 
         @Override
         public void updateSystemAudioState() {
-            CallAudioState oldAudioState = mCurrentCallAudioState;
             updateInternalCallAudioState();
-            setSystemAudioState(oldAudioState, mCurrentCallAudioState);
+            setSystemAudioState(mCurrentCallAudioState);
         }
 
         @Override
@@ -737,15 +734,14 @@ public class CallAudioRouteStateMachine extends StateMachine {
             setBluetoothOn(false);
             CallAudioState newState = new CallAudioState(mIsMuted, ROUTE_SPEAKER,
                     mAvailableRoutes);
-            setSystemAudioState(mCurrentCallAudioState, newState);
+            setSystemAudioState(newState);
             updateInternalCallAudioState();
         }
 
         @Override
         public void updateSystemAudioState() {
-            CallAudioState oldAudioState = mCurrentCallAudioState;
             updateInternalCallAudioState();
-            setSystemAudioState(oldAudioState, mCurrentCallAudioState);
+            setSystemAudioState(mCurrentCallAudioState);
         }
 
         @Override
@@ -919,6 +915,7 @@ public class CallAudioRouteStateMachine extends StateMachine {
     // CallAudioState is used as an interface to communicate with many other system components.
     // No internal state transitions should depend on this variable.
     private CallAudioState mCurrentCallAudioState;
+    private CallAudioState mLastKnownCallAudioState;
 
     public CallAudioRouteStateMachine(
             Context context,
@@ -975,6 +972,7 @@ public class CallAudioRouteStateMachine extends StateMachine {
 
     public void initialize(CallAudioState initState) {
         mCurrentCallAudioState = initState;
+        mLastKnownCallAudioState = initState;
         mAvailableRoutes = initState.getSupportedRouteMask();
         mIsMuted = initState.isMuted();
         mWasOnSpeaker = initState.getRoute() == ROUTE_SPEAKER;
@@ -1014,7 +1012,7 @@ public class CallAudioRouteStateMachine extends StateMachine {
                 newCallAudioState = new CallAudioState(mIsMuted,
                         mCurrentCallAudioState.getRoute(),
                         mAvailableRoutes);
-                setSystemAudioState(mCurrentCallAudioState, newCallAudioState);
+                setSystemAudioState(newCallAudioState);
                 updateInternalCallAudioState();
                 return;
             case MUTE_OFF:
@@ -1022,7 +1020,7 @@ public class CallAudioRouteStateMachine extends StateMachine {
                 newCallAudioState = new CallAudioState(mIsMuted,
                         mCurrentCallAudioState.getRoute(),
                         mAvailableRoutes);
-                setSystemAudioState(mCurrentCallAudioState, newCallAudioState);
+                setSystemAudioState(newCallAudioState);
                 updateInternalCallAudioState();
                 return;
             case TOGGLE_MUTE:
@@ -1111,16 +1109,16 @@ public class CallAudioRouteStateMachine extends StateMachine {
         mCurrentCallAudioState = new CallAudioState(mIsMuted, currentRoute, mAvailableRoutes);
     }
 
-    private void setSystemAudioState(CallAudioState oldCallAudioState,
-            CallAudioState newCallAudioState) {
-        Log.i(this, "setSystemAudioState: changing from %s to %s", oldCallAudioState,
+    private void setSystemAudioState(CallAudioState newCallAudioState) {
+        Log.i(this, "setSystemAudioState: changing from %s to %s", mLastKnownCallAudioState,
                 newCallAudioState);
         Log.event(mCallsManager.getForegroundCall(), Log.Events.AUDIO_ROUTE,
                 CallAudioState.audioRouteToString(newCallAudioState.getRoute()));
 
-        if (!oldCallAudioState.equals(newCallAudioState)) {
-            mCallsManager.onCallAudioStateChanged(oldCallAudioState, newCallAudioState);
+        if (!newCallAudioState.equals(mLastKnownCallAudioState)) {
+            mCallsManager.onCallAudioStateChanged(mLastKnownCallAudioState, newCallAudioState);
             updateAudioForForegroundCall(newCallAudioState);
+            mLastKnownCallAudioState = newCallAudioState;
         }
     }
 

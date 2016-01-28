@@ -21,6 +21,8 @@ import org.mockito.ArgumentCaptor;
 import android.telecom.CallAudioState;
 import android.telecom.VideoProfile;
 
+import java.util.List;
+
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
@@ -42,7 +44,7 @@ public class VideoCallTests extends TelecomSystemTest {
                 mPhoneAccountA0.getAccountHandle(), mConnectionServiceFixtureA,
                 VideoProfile.STATE_BIDIRECTIONAL);
 
-        verifyAudioRoute(CallAudioState.ROUTE_SPEAKER, 3);
+        verifyAudioRoute(CallAudioState.ROUTE_SPEAKER, 2);
     }
 
     /**
@@ -57,7 +59,7 @@ public class VideoCallTests extends TelecomSystemTest {
                 mPhoneAccountA0.getAccountHandle(), mConnectionServiceFixtureA,
                 VideoProfile.STATE_RX_ENABLED);
 
-        verifyAudioRoute(CallAudioState.ROUTE_SPEAKER, 3);
+        verifyAudioRoute(CallAudioState.ROUTE_SPEAKER, 2);
     }
 
     /**
@@ -70,7 +72,7 @@ public class VideoCallTests extends TelecomSystemTest {
                 mPhoneAccountA0.getAccountHandle(), mConnectionServiceFixtureA,
                 VideoProfile.STATE_BIDIRECTIONAL);
 
-        verifyAudioRoute(CallAudioState.ROUTE_SPEAKER, 3);
+        verifyAudioRoute(CallAudioState.ROUTE_SPEAKER, 2);
     }
 
     /**
@@ -84,7 +86,7 @@ public class VideoCallTests extends TelecomSystemTest {
                 mPhoneAccountA0.getAccountHandle(), mConnectionServiceFixtureA,
                 VideoProfile.STATE_TX_ENABLED);
 
-        verifyAudioRoute(CallAudioState.ROUTE_SPEAKER, 3);
+        verifyAudioRoute(CallAudioState.ROUTE_SPEAKER, 2);
     }
 
     /**
@@ -98,7 +100,7 @@ public class VideoCallTests extends TelecomSystemTest {
                 mPhoneAccountA0.getAccountHandle(), mConnectionServiceFixtureA,
                 VideoProfile.STATE_AUDIO_ONLY);
 
-        verifyAudioRoute(CallAudioState.ROUTE_EARPIECE, 2);
+        verifyAudioRoute(CallAudioState.ROUTE_EARPIECE, 1);
     }
 
     /**
@@ -111,7 +113,7 @@ public class VideoCallTests extends TelecomSystemTest {
                 mPhoneAccountA0.getAccountHandle(), mConnectionServiceFixtureA,
                 VideoProfile.STATE_AUDIO_ONLY);
 
-        verifyAudioRoute(CallAudioState.ROUTE_EARPIECE, 2);
+        verifyAudioRoute(CallAudioState.ROUTE_EARPIECE, 1);
     }
 
     /**
@@ -123,7 +125,7 @@ public class VideoCallTests extends TelecomSystemTest {
      * @param audioStateChangeCount The number of audio state changes expected.  This is set based
      *                              on how many times we expect the audio route to change when
      *                              setting up a call.  For an audio-only call, we normally expect
-     *                              2 route changes, and for a video call we expect an extra change.
+     *                              1 route change, and for a video call we expect an extra change.
      */
     private void verifyAudioRoute(int expectedRoute, int audioStateChangeCount) throws Exception {
         // Capture all onCallAudioStateChanged callbacks to InCall.
@@ -132,8 +134,7 @@ public class VideoCallTests extends TelecomSystemTest {
         verify(mInCallServiceFixtureX.getTestDouble(),
                 timeout(TEST_TIMEOUT).times(audioStateChangeCount)).
                 onCallAudioStateChanged(callAudioStateArgumentCaptor.capture());
-        assertEquals(expectedRoute,
-                callAudioStateArgumentCaptor.getAllValues().get(audioStateChangeCount - 1)
-                        .getRoute());
+        List<CallAudioState> changes = callAudioStateArgumentCaptor.getAllValues();
+        assertEquals(expectedRoute, changes.get(changes.size() - 1).getRoute());
     }
 }
