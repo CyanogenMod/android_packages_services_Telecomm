@@ -47,6 +47,7 @@ import com.android.internal.telephony.PhoneConstants;
 import com.android.internal.telephony.TelephonyProperties;
 import com.android.internal.telephony.util.BlacklistUtils;
 import com.android.internal.util.IndentingPrintWriter;
+import com.android.server.telecom.ui.ViceNotificationImpl;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -143,6 +144,7 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
     private final CallerInfoAsyncQueryFactory mCallerInfoAsyncQueryFactory;
     private final PhoneAccountRegistrar mPhoneAccountRegistrar;
     private final MissedCallNotifier mMissedCallNotifier;
+    private final ViceNotificationImpl mViceNotificationImpl;
     private final BlacklistCallNotifier mBlacklistCallNotifier;
     private final CallInfoProvider mCallInfoProvider;
     private final Set<Call> mLocallyDisconnectingCalls = new HashSet<>();
@@ -188,6 +190,7 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
             HeadsetMediaButtonFactory headsetMediaButtonFactory,
             ProximitySensorManagerFactory proximitySensorManagerFactory,
             InCallWakeLockControllerFactory inCallWakeLockControllerFactory,
+            ViceNotifier viceNotifier,
             BlacklistCallNotifier blacklistCallNotifier,
             CallInfoProvider callInfoProvider) {
         mContext = context;
@@ -215,6 +218,7 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
         mConnectionServiceRepository =
                 new ConnectionServiceRepository(mPhoneAccountRegistrar, mContext, mLock, this);
         mInCallWakeLockController = inCallWakeLockControllerFactory.create(context, this);
+        mViceNotificationImpl = viceNotifier.create(mContext, this);
         
         mCallInfoProvider = callInfoProvider;
 
@@ -230,11 +234,16 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
         mListeners.add(mDtmfLocalTonePlayer);
         mListeners.add(mHeadsetMediaButton);
         mListeners.add(mProximitySensorManager);
+        mListeners.add(mViceNotificationImpl);
 
         mListeners.add(mCallInfoProvider);
 
         mMissedCallNotifier.updateOnStartup(
                 mLock, this, mContactsAsyncHelper, mCallerInfoAsyncQueryFactory);
+    }
+
+    ViceNotificationImpl getViceNotificationImpl() {
+        return mViceNotificationImpl;
     }
 
     public void setRespondViaSmsManager(RespondViaSmsManager respondViaSmsManager) {
@@ -1341,6 +1350,16 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
         return count;
     }
 
+    int getNumTopLevelCalls() {
+        int count = 0;
+        for (Call call : mCalls) {
+            if (call.getParentCall() == null) {
+                count++;
+            }
+        }
+        return count;
+    }
+
     Call getOutgoingCall() {
         return getFirstCallWithState(OUTGOING_CALL_STATES);
     }
@@ -1618,7 +1637,7 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
                 }
 
                 // If only call in call list is held call it's also a foreground call
-                if (mCalls.size() == 1 && call.getState() == CallState.ON_HOLD) {
+                if (getNumTopLevelCalls() == 1 && call.getState() == CallState.ON_HOLD) {
                     newForegroundCall = call;
                 }
 
@@ -1651,7 +1670,7 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
                 }
 
                 // If only call in call list is held call it's also a foreground call
-                if (mCalls.size() == 1 && call.getState() == CallState.ON_HOLD) {
+                if (getNumTopLevelCalls() == 1 && call.getState() == CallState.ON_HOLD) {
                     newForegroundCall = call;
                 }
 
@@ -1661,6 +1680,16 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
                     // Don't break in case there's an active call that has priority.
                 }
             }
+        }
+
+        /* In the case where there are 2 calls, when the Hold button is pressed for active
+         * call, as an intermediate state we would have both calls in held state before
+         * the background call is moved to active state. In such an intermediate stage
+         * updating the newForegroundCall to null causes issues with abandoning audio
+         * focus. Skip updating the foreground call with null in such cases. */
+        if (newForegroundCall == null && getFirstCallWithState(CallState.ON_HOLD) != null) {
+            Log.v(this, "Skip updating foreground call in intermediate stage");
+            newForegroundCall = mForegroundCall;
         }
 
         /* In the case where there are 2 calls, when the Hold button is pressed for active

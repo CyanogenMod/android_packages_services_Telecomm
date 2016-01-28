@@ -17,6 +17,7 @@
 package com.android.server.telecom;
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.server.telecom.ui.ViceNotificationImpl;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -68,6 +69,7 @@ public final class TelecomSystem {
     private final TelecomServiceImpl mTelecomServiceImpl;
     private final ContactsAsyncHelper mContactsAsyncHelper;
     private final CallInfoProvider mCallInfoProvider;
+    private final ViceNotifier mViceNotifier;
 
     /**
      * Blacklist call notifier. Exists here so that the instance can be shared with
@@ -103,11 +105,13 @@ public final class TelecomSystem {
             CallerInfoAsyncQueryFactory callerInfoAsyncQueryFactory,
             HeadsetMediaButtonFactory headsetMediaButtonFactory,
             ProximitySensorManagerFactory proximitySensorManagerFactory,
-            InCallWakeLockControllerFactory inCallWakeLockControllerFactory) {
+            InCallWakeLockControllerFactory inCallWakeLockControllerFactory,
+            ViceNotifier vicenotifier) {
         mContext = context.getApplicationContext();
 
         mMissedCallNotifier = missedCallNotifier;
         mCallInfoProvider = callInfoProvider;
+        mViceNotifier = vicenotifier;
         mPhoneAccountRegistrar = new PhoneAccountRegistrar(mContext);
         mContactsAsyncHelper = new ContactsAsyncHelper(mLock);
         mBlacklistCallNotifier = new BlacklistCallNotifier(mContext);
@@ -122,6 +126,7 @@ public final class TelecomSystem {
                 headsetMediaButtonFactory,
                 proximitySensorManagerFactory,
                 inCallWakeLockControllerFactory,
+                mViceNotifier,
                 mBlacklistCallNotifier,
                 mCallInfoProvider);
 

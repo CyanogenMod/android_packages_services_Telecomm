@@ -36,6 +36,7 @@ import android.telecom.PhoneAccountHandle;
 import android.telecom.StatusHints;
 import android.telecom.TelecomManager;
 import android.telecom.VideoProfile;
+import android.telephony.TelephonyManager;
 
 import com.android.internal.telecom.IConnectionService;
 import com.android.internal.telecom.IConnectionServiceAdapter;
@@ -360,6 +361,9 @@ final class ConnectionServiceWrapper extends ServiceBinder {
                             // the failure event all the way to InCallUI instead of stopping
                             // it here. That way we can also handle the UI of notifying that
                             // the merged has failed.
+                            Bundle extras = call.getExtras();
+                            extras.putInt("MergeFail", new java.util.Random().nextInt());
+                            call.setExtras(extras);
                             mCallsManager.onMergeFailed(call);
                         } else {
                             Log.w(this, "setConferenceMergeFailed, unknown call id: %s", callId);
