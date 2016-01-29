@@ -283,12 +283,14 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
             mCallLogManager.logCall(incomingCall, Calls.BLACKLIST_TYPE);
             incomingCall.setDisconnectCause(
                     new DisconnectCause(android.telephony.DisconnectCause.CALL_BLACKLISTED));
+            addCall(incomingCall);
         } else if (mCallInfoProvider.shouldBlock(incomingCall.getNumber())) {
             // TODO: show notification for blocked spam calls
             // TODO: add unique call type for spam
             mCallLogManager.logCall(incomingCall, Calls.BLACKLIST_TYPE);
             incomingCall.setDisconnectCause(
                     new DisconnectCause(android.telephony.DisconnectCause.CALL_BLACKLISTED));
+            addCall(incomingCall);
         } else {
             setCallState(incomingCall, CallState.RINGING, "ringing set explicitly");
             if (hasMaximumRingingCalls(incomingCall.getTargetPhoneAccount().getId()) || hasMaximumDialingCalls()) {

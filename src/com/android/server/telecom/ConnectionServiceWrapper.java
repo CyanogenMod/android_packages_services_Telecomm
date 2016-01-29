@@ -254,7 +254,9 @@ final class ConnectionServiceWrapper extends ServiceBinder {
                             .isValidConferenceId(callId)) {
                         Call call = mCallIdMapper.getCall(callId);
                         if (call != null) {
-                            if (call.isAlive()) {
+                            if (call.isAlive() && call.getDisconnectCause()
+                                    != new DisconnectCause(
+                                    android.telephony.DisconnectCause.CALL_BLACKLISTED)) {
                                 mCallsManager.markCallAsDisconnected(
                                         call, new DisconnectCause(DisconnectCause.REMOTE));
                             } else {
