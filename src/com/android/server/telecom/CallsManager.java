@@ -303,12 +303,15 @@ public class CallsManager extends Call.ListenerBase
     public void onSuccessfulIncomingCall(Call incomingCall, boolean shouldSendToVoicemail) {
         Log.d(this, "onSuccessfulIncomingCall");
 
-        if (shouldSendToVoicemail) {
-            onCallScreeningCompleted(incomingCall, false, true, true, true);
-        } else {
-            new CallScreening(mContext, this, mLock, mPhoneAccountRegistrar, incomingCall)
-                    .screenCall();
-        }
+        // TODO: Parallelize Call screening, block check, and send to voicemail.
+        final String number = incomingCall.getHandle() == null ? null : incomingCall.getHandle()
+                .getSchemeSpecificPart();
+        Log.v(this, "Looking up information for: %s.", Log.piiHandle(number));
+
+        new AsyncBlockCheckTask(mContext, incomingCall,
+                new CallScreening(mContext, CallsManager.this, mLock,
+                        mPhoneAccountRegistrar, incomingCall), this, shouldSendToVoicemail)
+                .execute(number);
     }
 
     @Override

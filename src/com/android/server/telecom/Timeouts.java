@@ -124,4 +124,11 @@ public final class Timeouts {
     public static long getCallScreeningTimeoutMillis(ContentResolver contentResolver) {
         return get(contentResolver, "call_screening_timeout", 5000L /* 5 seconds */);
     }
+
+    /**
+     * Returns the amount of time to wait for the block checker to allow or disallow a call.
+     */
+    public static long getBlockCheckTimeoutMillis(ContentResolver contentResolver) {
+        return get(contentResolver, "block_check_timeout_millis", 500L);
+    }
 }
