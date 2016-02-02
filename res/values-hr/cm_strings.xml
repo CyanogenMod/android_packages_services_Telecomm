@@ -19,10 +19,15 @@
   <string name="blacklist_title">Popis blokiranih pozivatelja</string>
   <string name="blacklist_summary_disabled">Onemogućeno</string>
   <string name="blacklist_summary">Nećete primati dolazne pozive ili poruke od telefonskih brojeva na popisu blokiranih pozivatelja</string>
-  <string name="blacklist_call_notification">Blokovi iz %s</string>
+  <string name="blacklist_call_notification">Blokirani poziv sa %s</string>
   <string name="blacklist_call_notification_private_number">Blokiran poziv sa skrivenog broja</string>
   <string name="blacklist_call_notification_unknown_number">Blokirani poziv sa nepoznatog broja %s</string>
-  <string name="blacklist_call_notification_multiple"><xliff:g id="count">%d </xliff:g> pozivi bili su blokirani</string>
+  <string name="blacklist_call_notification_multiple"><xliff:g id="count">%d </xliff:g> poziva je bilo blokirano</string>
+  <string name="blacklist_message_notification">Blokirana poruka od %s</string>
+  <string name="blacklist_message_notification_private_number">Blokirana poruka sa skrivenog broja</string>
+  <string name="blacklist_message_notification_unknown_number">Blokirana poruka od nepoznatog broja %s</string>
+  <string name="blacklist_message_notification_multiple"><xliff:g id="count">%d </xliff:g> poruka je blokirano</string>
   <string name="blacklist_notification_list_private">Privatni</string>
   <string name="unblock_number">Odblokiraj</string>
+  <string name="video_call_not_allowed_if_tty_enabled">Onemogućite TTY način za video pozive.</string>
 </resources>
