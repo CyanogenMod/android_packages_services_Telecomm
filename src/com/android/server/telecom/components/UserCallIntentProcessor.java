@@ -123,15 +123,6 @@ public class UserCallIntentProcessor {
                 VideoProfile.STATE_AUDIO_ONLY);
         Log.d(this, "processOutgoingCallIntent videoState = " + videoState);
 
-        if (VideoProfile.isVideo(videoState) && isTtyModeEnabled() &&
-                !TelephonyUtil.shouldProcessAsEmergency(mContext, handle)) {
-
-            Toast.makeText(mContext, mContext.getResources().getString(R.string.
-                    video_call_not_allowed_if_tty_enabled), Toast.LENGTH_SHORT).show();
-            Log.d(this, "Rejecting video calls as tty is enabled");
-            return;
-        }
-
         intent.putExtra(CallIntentProcessor.KEY_IS_PRIVILEGED_DIALER,
                 isDefaultOrSystemDialer(callingPackageName));
 
@@ -139,13 +130,6 @@ public class UserCallIntentProcessor {
         intent.putExtra(CallIntentProcessor.KEY_INITIATING_USER, mUserHandle);
 
         sendBroadcastToReceiver(intent);
-    }
-
-    private boolean isTtyModeEnabled() {
-        return (android.provider.Settings.Secure.getInt(
-                mContext.getContentResolver(),
-                android.provider.Settings.Secure.PREFERRED_TTY_MODE,
-                TelecomManager.TTY_MODE_OFF) != TelecomManager.TTY_MODE_OFF);
     }
 
     private boolean isDefaultOrSystemDialer(String callingPackageName) {
