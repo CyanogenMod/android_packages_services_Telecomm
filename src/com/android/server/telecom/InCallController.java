@@ -36,7 +36,6 @@ import android.telecom.DefaultDialerManager;
 import android.telecom.InCallService;
 import android.telecom.ParcelableCall;
 import android.telecom.TelecomManager;
-import android.telecom.VideoCallImpl;
 import android.text.TextUtils;
 import android.util.ArrayMap;
 
@@ -426,7 +425,7 @@ public final class InCallController extends CallsManagerListenerBase {
             Log.event(call, Log.Events.ERROR_LOG,
                     "InCallService system UI failed binding: " + inCallUIService);
         }
-        mInCallUIComponentName = inCallUIService;
+        mInCallUIComponentName = inCallUIServiceToBind;
 
         // Bind to the control InCallServices
         for (ComponentName componentName : nonUIInCallServices) {
@@ -572,7 +571,7 @@ public final class InCallController extends CallsManagerListenerBase {
         }
 
         // Upon successful connection, send the state of the world to the service.
-        Collection<Call> calls = mCallsManager.getCalls();
+        List<Call> calls = orderCallsWithChildrenFirst(mCallsManager.getCalls());
         if (!calls.isEmpty()) {
             Log.i(this, "Adding %s calls to InCallService after onConnected: %s", calls.size(),
                     componentName);
@@ -738,5 +737,19 @@ public final class InCallController extends CallsManagerListenerBase {
 
         return info.serviceInfo.metaData
                 .getBoolean(TelecomManager.METADATA_IN_CALL_SERVICE_RINGING, false);
+    }
+
+    private List<Call> orderCallsWithChildrenFirst(Collection<Call> calls) {
+        LinkedList<Call> parentCalls = new LinkedList<>();
+        LinkedList<Call> childCalls = new LinkedList<>();
+        for (Call call : calls) {
+            if (call.getChildCalls().size() > 0) {
+                parentCalls.add(call);
+            } else {
+                childCalls.add(call);
+            }
+        }
+        childCalls.addAll(parentCalls);
+        return childCalls;
     }
 }
