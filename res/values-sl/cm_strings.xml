@@ -29,4 +29,5 @@
   <string name="blacklist_message_notification_multiple"><xliff:g id="count">%d</xliff:g> sporočil je bilo blokiranih</string>
   <string name="blacklist_notification_list_private">Zasebno</string>
   <string name="unblock_number">Odblokiraj</string>
+  <string name="unblock_contact">Odblokiraj stik</string>
 </resources>

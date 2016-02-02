@@ -29,4 +29,5 @@
   <string name="blacklist_message_notification_multiple"><xliff:g id="count">%d</xliff:g> viestiä estettiin</string>
   <string name="blacklist_notification_list_private">Salainen</string>
   <string name="unblock_number">Poista esto</string>
+  <string name="unblock_contact">Salli yhteystieto</string>
 </resources>

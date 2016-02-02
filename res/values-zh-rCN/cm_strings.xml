@@ -29,4 +29,5 @@
   <string name="blacklist_message_notification_multiple">已阻止 <xliff:g id="count">%d</xliff:g> 条信息</string>
   <string name="blacklist_notification_list_private">私人号码</string>
   <string name="unblock_number">取消阻止</string>
+  <string name="unblock_contact">取消阻止联系人</string>
 </resources>

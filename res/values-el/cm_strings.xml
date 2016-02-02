@@ -29,4 +29,5 @@
   <string name="blacklist_message_notification_multiple">Απορρίφθηκαν <xliff:g id="count">%d</xliff:g> μηνύματα</string>
   <string name="blacklist_notification_list_private">Απόρρητο</string>
   <string name="unblock_number">Ακύρωση φραγής</string>
+  <string name="unblock_contact">Άρση αποκλεισμού επαφής</string>
 </resources>
