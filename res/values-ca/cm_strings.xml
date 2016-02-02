@@ -29,4 +29,5 @@
   <string name="blacklist_message_notification_multiple">S\'han bloquejat <xliff:g id="count">%d</xliff:g> missatges</string>
   <string name="blacklist_notification_list_private">Privat</string>
   <string name="unblock_number">Desbloqueja</string>
+  <string name="unblock_contact">Desbloqueja el contacte</string>
 </resources>

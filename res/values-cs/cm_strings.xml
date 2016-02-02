@@ -29,4 +29,5 @@
   <string name="blacklist_message_notification_multiple">Blokovaných zpráv: <xliff:g id="count">%d</xliff:g></string>
   <string name="blacklist_notification_list_private">Skryté</string>
   <string name="unblock_number">Odblokovat</string>
+  <string name="unblock_contact">Odblokovat kontakt</string>
 </resources>

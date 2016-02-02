@@ -29,4 +29,5 @@
   <string name="blacklist_message_notification_multiple"><xliff:g id="count">%d</xliff:g> mensagens foram bloqueadas</string>
   <string name="blacklist_notification_list_private">Privado</string>
   <string name="unblock_number">Desbloquear</string>
+  <string name="unblock_contact">Desbloquear contato</string>
 </resources>

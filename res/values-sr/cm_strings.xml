@@ -29,4 +29,5 @@
   <string name="blacklist_message_notification_multiple"><xliff:g id="count">%d</xliff:g> поруке су блокиране</string>
   <string name="blacklist_notification_list_private">Приватно</string>
   <string name="unblock_number">Одблокирај</string>
+  <string name="unblock_contact">Деблокирај контакт</string>
 </resources>
