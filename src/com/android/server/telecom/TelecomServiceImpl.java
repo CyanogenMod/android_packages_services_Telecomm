@@ -1175,6 +1175,12 @@ public class TelecomServiceImpl {
 
             Log.dumpCallEvents(pw);
         }
+
+        // TODO: Add javadoc which points to TelecomManager
+        @Override
+        public void launchManageBlockedNumbersActivity(String callingPackageName) {
+            // TODO: Add implementation
+        }
     };
 
     private Context mContext;
