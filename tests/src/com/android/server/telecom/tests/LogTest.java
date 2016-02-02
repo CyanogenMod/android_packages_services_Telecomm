@@ -23,6 +23,7 @@ import android.os.HandlerThread;
 import android.os.Message;
 
 import com.android.internal.os.SomeArgs;
+import com.android.server.telecom.Runnable;
 import com.android.server.telecom.Session;
 import com.android.server.telecom.SystemLoggingContainer;
 import com.android.server.telecom.Log;
@@ -192,7 +193,7 @@ public class LogTest extends TelecomTestCase{
     };
 
     private AtomicInteger mCompleteCount;
-    class LogTestRunnable implements Runnable {
+    class LogTestRunnable implements java.lang.Runnable {
         private String mshortMethodName;
         public LogTestRunnable(String shortMethodName) {
             mshortMethodName = shortMethodName;
@@ -414,7 +415,7 @@ public class LogTest extends TelecomTestCase{
         // Don't end session (Oops!)
         Log.startSession(sessionName);
         internalDanglingMethod();
-        Log.sSessionCleanupHandler.postDelayed(new Runnable() {
+        Log.sSessionCleanupHandler.postDelayed(new java.lang.Runnable() {
             @Override
             public void run() {
                 android.util.Log.i(TESTING_TAG, "Running Test SessionCleanupHandler method.");

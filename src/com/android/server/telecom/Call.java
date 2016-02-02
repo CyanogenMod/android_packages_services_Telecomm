@@ -196,28 +196,6 @@ public class Call implements CreateConnectionResponse {
                 }
             };
 
-    private class DirectToVoicemailRunnable implements Runnable {
-
-        Session mSession;
-
-        public DirectToVoicemailRunnable(Session session) {
-            mSession = session;
-        }
-
-        @Override
-        public void run() {
-            try {
-                Log.continueSession(mSession, "DTVR.r");
-                synchronized (mLock) {
-                    processDirectToVoicemail();
-                }
-            } finally {
-                Log.endSession();
-                mSession = null;
-            }
-        }
-    }
-
     private class CallSessionCookie {
         Call mSessionCall;
         Session mSession;
@@ -1093,8 +1071,14 @@ public class Call implements CreateConnectionResponse {
 
                 // Timeout the direct-to-voicemail lookup execution so that we dont wait too long
                 // before showing the user the incoming call screen.
-                mHandler.postDelayed(new DirectToVoicemailRunnable(Log.createSubsession()),
-                        Timeouts.getDirectToVoicemailMillis(mContext.getContentResolver()));
+                mHandler.postDelayed(new Runnable("C.hCCS") {
+                    @Override
+                    public void loggedRun() {
+                         synchronized (mLock) {
+                             processDirectToVoicemail();
+                         }
+                    }
+                }.prepare(), Timeouts.getDirectToVoicemailMillis(mContext.getContentResolver()));
                 break;
             case CALL_DIRECTION_OUTGOING:
                 for (Listener l : mListeners) {
@@ -1595,13 +1579,11 @@ public class Call implements CreateConnectionResponse {
         mCallerInfo = null;
         if (!TextUtils.isEmpty(number)) {
             Log.v(this, "Looking up information for: %s.", Log.piiHandle(number));
-            final Session subsession = Log.createSubsession();
-            mHandler.post(new Runnable() {
+            mHandler.post(new Runnable("C.sCIL") {
                 @Override
-                public void run() {
+                public void loggedRun() {
                     Session subsubsession = null;
                     try {
-                        Log.continueSession(subsession, "CIAQF.sQ");
                         subsubsession = Log.createSubsession();
                         CallerInfoAsyncQuery value = mCallerInfoAsyncQueryFactory.startQuery(
                                 mQueryToken, mContext, number, mCallerInfoQueryListener,
@@ -1615,10 +1597,9 @@ public class Call implements CreateConnectionResponse {
                         if (subsubsession != null) {
                             Log.cancelSubsession(subsubsession);
                         }
-                        Log.endSession();
                     }
                 }
-            });
+            }.prepare());
         }
     }
 

@@ -275,8 +275,9 @@ public class InCallTonePlayer extends Thread {
 
     private void cleanUpTonePlayer() {
         // Release focus on the main thread.
-        mMainThreadHandler.post(new Runnable() {
-            @Override public void run() {
+        mMainThreadHandler.post(new Runnable("ICTP.cUTP") {
+            @Override
+            public void loggedRun() {
                 synchronized (mLock) {
                     if (sTonesPlaying == 0) {
                         Log.wtf(this, "Over-releasing focus for tone player.");
@@ -285,6 +286,6 @@ public class InCallTonePlayer extends Thread {
                     }
                 }
             }
-        });
+        }.prepare());
     }
 }

@@ -1031,7 +1031,7 @@ public class CallAudioRouteStateMachine extends StateMachine {
                 }
                 return;
             case RUN_RUNNABLE:
-                Runnable r = (Runnable) msg.obj;
+                java.lang.Runnable r = (java.lang.Runnable) msg.obj;
                 r.run();
                 return;
             default:

@@ -107,9 +107,9 @@ public class BluetoothManager {
     private BluetoothHeadset mBluetoothHeadset;
     private boolean mBluetoothConnectionPending = false;
     private long mBluetoothConnectionRequestTime;
-    private final Runnable mBluetoothConnectionTimeout = new Runnable() {
+    private final Runnable mBluetoothConnectionTimeout = new Runnable("BM.cBA") {
         @Override
-        public void run() {
+        public void loggedRun() {
             if (!isBluetoothAudioConnected()) {
                 Log.v(this, "Bluetooth audio inexplicably disconnected within 5 seconds of " +
                         "connection. Updating UI.");
@@ -274,8 +274,11 @@ public class BluetoothManager {
         // instantly. (See isBluetoothAudioConnectedOrPending() above.)
         mBluetoothConnectionPending = true;
         mBluetoothConnectionRequestTime = SystemClock.elapsedRealtime();
-        mHandler.removeCallbacks(mBluetoothConnectionTimeout);
-        mHandler.postDelayed(mBluetoothConnectionTimeout,
+        mHandler.removeCallbacks(mBluetoothConnectionTimeout.getRunnableToCancel());
+        mBluetoothConnectionTimeout.cancel();
+        // If the mBluetoothConnectionTimeout runnable has run, the session had been cleared...
+        // Create a new Session before putting it back in the queue to possibly run again.
+        mHandler.postDelayed(mBluetoothConnectionTimeout.prepare(),
                 Timeouts.getBluetoothPendingTimeoutMillis(mContext.getContentResolver()));
     }
 
@@ -285,7 +288,8 @@ public class BluetoothManager {
         if (mBluetoothHeadset != null) {
             mBluetoothHeadset.disconnectAudio();
         }
-        mHandler.removeCallbacks(mBluetoothConnectionTimeout);
+        mHandler.removeCallbacks(mBluetoothConnectionTimeout.getRunnableToCancel());
+        mBluetoothConnectionTimeout.cancel();
         mBluetoothConnectionPending = false;
     }
 

@@ -38,8 +38,18 @@ class AsyncBlockCheckTask extends AsyncTask<String, Void, Boolean> {
     private final Object mCallScreeningListenerLock = new Object();
 
     private Session mLogSubsession;
+    private Runnable mBlockCheckTimeoutRunnable = new Runnable("ABCT.oPE") {
+        @Override
+        public void loggedRun() {
+            synchronized (mCallScreeningListenerLock) {
+                if (mCallScreeningListener != null) {
+                    timeoutBlockCheck();
+                    mCallScreeningListener = null;
+                }
+            }
+        }
+    };
     private CallScreening.Listener mCallScreeningListener;
-    private Session mLogSubsessionForTimeout;
 
     AsyncBlockCheckTask(Context context, Call incomingCall, CallScreening callScreening,
                         CallScreening.Listener callScreeningListener,
@@ -54,26 +64,7 @@ class AsyncBlockCheckTask extends AsyncTask<String, Void, Boolean> {
     @Override
     protected void onPreExecute() {
         mLogSubsession = Log.createSubsession();
-        mLogSubsessionForTimeout = Log.createSubsession();
-        Runnable blockCheckTimeoutRunnable = new Runnable() {
-            @Override
-            public void run() {
-                synchronized (mCallScreeningListenerLock) {
-                    if (mCallScreeningListener != null) {
-                        try {
-                            Log.continueSession(mLogSubsessionForTimeout, "aBCT.oPEr");
-                            timeoutBlockCheck();
-                            mCallScreeningListener = null;
-                        } finally {
-                            Log.endSession();
-                            mLogSubsessionForTimeout = null;
-                        }
-                    }
-
-                }
-            }
-        };
-        mHandler.postDelayed(blockCheckTimeoutRunnable,
+        mHandler.postDelayed(mBlockCheckTimeoutRunnable.prepare(),
                 Timeouts.getBlockCheckTimeoutMillis(mContext.getContentResolver()));
     }
 
@@ -90,7 +81,7 @@ class AsyncBlockCheckTask extends AsyncTask<String, Void, Boolean> {
     @Override
     protected Boolean doInBackground(String... params) {
         try {
-            Log.continueSession(mLogSubsession, "aBCT.dIBg");
+            Log.continueSession(mLogSubsession, "ABCT.DIB");
             Log.event(mIncomingCall, Log.Events.BLOCK_CHECK_INITIATED);
             return BlockChecker.isBlocked(mContext, params[0]);
         } finally {
@@ -102,11 +93,10 @@ class AsyncBlockCheckTask extends AsyncTask<String, Void, Boolean> {
     protected void onPostExecute(Boolean isBlocked) {
         synchronized (mCallScreeningListenerLock) {
             mHandler.removeCallbacks(null);
+            mBlockCheckTimeoutRunnable.cancel();
             if (mCallScreeningListener != null) {
                 processIsBlockedLocked(isBlocked);
                 mCallScreeningListener = null;
-                Log.cancelSubsession(mLogSubsessionForTimeout);
-                mLogSubsessionForTimeout = null;
             }
         }
     }

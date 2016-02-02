@@ -21,8 +21,6 @@ import static android.Manifest.permission.READ_PHONE_STATE;
 import android.content.ComponentName;
 import android.content.ContentProvider;
 import android.content.pm.PackageManager.NameNotFoundException;
-import android.database.DatabaseUtils;
-import android.os.UserManager;
 import android.telecom.PhoneAccountHandle;
 import android.telecom.TelecomManager;
 
@@ -37,9 +35,9 @@ import com.android.server.telecom.Log;
 import com.android.server.telecom.MissedCallNotifier;
 import com.android.server.telecom.PhoneAccountRegistrar;
 import com.android.server.telecom.R;
+import com.android.server.telecom.Runnable;
 import com.android.server.telecom.TelecomBroadcastIntentProcessor;
 import com.android.server.telecom.TelecomSystem;
-import com.android.server.telecom.UserUtil;
 import com.android.server.telecom.components.TelecomBroadcastReceiver;
 
 import android.app.Notification;
@@ -50,7 +48,6 @@ import android.content.AsyncQueryHandler;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.database.Cursor;
 import android.graphics.Bitmap;
@@ -180,9 +177,9 @@ public class MissedCallNotifierImpl extends CallsManagerListenerBase implements 
     }
 
     private void markMissedCallsAsRead(final UserHandle userHandle) {
-        AsyncTask.execute(new Runnable() {
+        AsyncTask.execute(new Runnable("MCNI.mMCAR") {
             @Override
-            public void run() {
+            public void loggedRun() {
                 // Clear the list of new missed calls from the call log.
                 ContentValues values = new ContentValues();
                 values.put(Calls.NEW, 0);
@@ -202,7 +199,7 @@ public class MissedCallNotifierImpl extends CallsManagerListenerBase implements 
                     Log.w(this, "ContactsProvider update command failed", e);
                 }
             }
-        });
+        }.prepare());
     }
 
     /**

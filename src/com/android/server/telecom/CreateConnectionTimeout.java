@@ -29,7 +29,7 @@ import java.util.Objects;
 /**
  * Registers a timeout for a call and disconnects the call when the timeout expires.
  */
-final class CreateConnectionTimeout implements Runnable {
+final class CreateConnectionTimeout extends Runnable {
     private final Context mContext;
     private final PhoneAccountRegistrar mPhoneAccountRegistrar;
     private final ConnectionServiceWrapper mConnectionService;
@@ -40,6 +40,7 @@ final class CreateConnectionTimeout implements Runnable {
 
     CreateConnectionTimeout(Context context, PhoneAccountRegistrar phoneAccountRegistrar,
             ConnectionServiceWrapper service, Call call) {
+        super("CCT");
         mContext = context;
         mPhoneAccountRegistrar = phoneAccountRegistrar;
         mConnectionService = service;
@@ -85,7 +86,7 @@ final class CreateConnectionTimeout implements Runnable {
         if (timeoutLengthMillis <= 0) {
             Log.d(this, "registerTimeout, timeout set to %d, skipping", timeoutLengthMillis);
         } else {
-            mHandler.postDelayed(this, timeoutLengthMillis);
+            mHandler.postDelayed(prepare(), timeoutLengthMillis);
         }
     }
 
@@ -93,6 +94,7 @@ final class CreateConnectionTimeout implements Runnable {
         Log.d(this, "unregisterTimeout");
         mIsRegistered = false;
         mHandler.removeCallbacksAndMessages(null);
+        cancel();
     }
 
     boolean isCallTimedOut() {
@@ -100,7 +102,7 @@ final class CreateConnectionTimeout implements Runnable {
     }
 
     @Override
-    public void run() {
+    public void loggedRun() {
         if (mIsRegistered && isCallBeingPlaced(mCall)) {
             Log.i(this, "run, call timed out, calling disconnect");
             mIsCallTimedOut = true;

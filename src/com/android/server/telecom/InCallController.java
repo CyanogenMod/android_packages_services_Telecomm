@@ -219,27 +219,18 @@ public final class InCallController extends CallsManagerListenerBase {
             /** Let's add a 2 second delay before we send unbind to the services to hopefully
              *  give them enough time to process all the pending messages.
              */
-            final Session subsession = Log.createSubsession();
             Handler handler = new Handler(Looper.getMainLooper());
-            final Runnable runnableUnbind = new Runnable() {
+            handler.postDelayed(new Runnable("ICC.oCR") {
                 @Override
-                public void run() {
-                    try {
-                        Log.continueSession(subsession, "ICC.oCR");
-                        synchronized (mLock) {
-                            // Check again to make sure there are no active calls.
-                            if (mCallsManager.getCalls().isEmpty()) {
-                                unbindFromServices();
-                            }
+                public void loggedRun() {
+                    synchronized (mLock) {
+                        // Check again to make sure there are no active calls.
+                        if (mCallsManager.getCalls().isEmpty()) {
+                            unbindFromServices();
                         }
-                    } finally {
-                        Log.endSession();
                     }
                 }
-            };
-            handler.postDelayed(
-                    runnableUnbind,
-                    Timeouts.getCallRemoveUnbindInCallServicesDelay(
+            }.prepare(), Timeouts.getCallRemoveUnbindInCallServicesDelay(
                             mContext.getContentResolver()));
         }
         call.removeListener(mCallListener);

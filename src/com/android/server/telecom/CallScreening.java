@@ -78,23 +78,15 @@ public class CallScreening {
             Log.d(this, "no service, giving up");
             performCleanup();
         } else {
-            final Session subsession = Log.createSubsession();
-            Runnable runnable = new Runnable() {
+            mHandler.postDelayed(new Runnable("CS.sC") {
                 @Override
-                public void run() {
-                    Log.continueSession(subsession, "CSCR.scrC");
-                    try {
-                        synchronized (mLock) {
-                            Log.event(mCall, Log.Events.SCREENING_TIMED_OUT);
-                            performCleanup();
-                        }
-                    } finally {
-                        Log.endSession();
+                public void loggedRun() {
+                    synchronized (mLock) {
+                        Log.event(mCall, Log.Events.SCREENING_TIMED_OUT);
+                        performCleanup();
                     }
                 }
-            };
-            mHandler.postDelayed(
-                runnable, Timeouts.getCallScreeningTimeoutMillis(mContext.getContentResolver()));
+            }.prepare(), Timeouts.getCallScreeningTimeoutMillis(mContext.getContentResolver()));
         }
     }
 

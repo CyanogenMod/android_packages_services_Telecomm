@@ -400,15 +400,16 @@ public class CallsManager extends Call.ListenerBase
             // Play tone if it is one of the dialpad digits, canceling out the previously queued
             // up stopTone runnable since playing a new tone automatically stops the previous tone.
             if (mStopTone != null) {
-                mHandler.removeCallbacks(mStopTone);
+                mHandler.removeCallbacks(mStopTone.getRunnableToCancel());
+                mStopTone.cancel();
             }
 
             mDtmfLocalTonePlayer.playTone(call, nextChar);
 
             // TODO: Create a LockedRunnable class that does the synchronization automatically.
-            mStopTone = new Runnable() {
+            mStopTone = new Runnable("CM.oPDC") {
                 @Override
-                public void run() {
+                public void loggedRun() {
                     synchronized (mLock) {
                         // Set a timeout to stop the tone in case there isn't another tone to
                         // follow.
@@ -416,15 +417,15 @@ public class CallsManager extends Call.ListenerBase
                     }
                 }
             };
-            mHandler.postDelayed(
-                    mStopTone,
+            mHandler.postDelayed(mStopTone.prepare(),
                     Timeouts.getDelayBetweenDtmfTonesMillis(mContext.getContentResolver()));
         } else if (nextChar == 0 || nextChar == TelecomManager.DTMF_CHARACTER_WAIT ||
                 nextChar == TelecomManager.DTMF_CHARACTER_PAUSE) {
             // Stop the tone if a tone is playing, removing any other stopTone callbacks since
             // the previous tone is being stopped anyway.
             if (mStopTone != null) {
-                mHandler.removeCallbacks(mStopTone);
+                mHandler.removeCallbacks(mStopTone.getRunnableToCancel());
+                mStopTone.cancel();
             }
             mDtmfLocalTonePlayer.stopTone(call);
         } else {
@@ -467,9 +468,9 @@ public class CallsManager extends Call.ListenerBase
     @Override
     public boolean onCanceledViaNewOutgoingCallBroadcast(final Call call) {
         mPendingCallsToDisconnect.add(call);
-        mHandler.postDelayed(new Runnable() {
+        mHandler.postDelayed(new Runnable("CM.oCVNOCB") {
             @Override
-            public void run() {
+            public void loggedRun() {
                 synchronized (mLock) {
                     if (mPendingCallsToDisconnect.remove(call)) {
                         Log.i(this, "Delayed disconnection of call: %s", call);
@@ -477,7 +478,7 @@ public class CallsManager extends Call.ListenerBase
                     }
                 }
             }
-        }, Timeouts.getNewOutgoingCallCancelMillis(mContext.getContentResolver()));
+        }.prepare(), Timeouts.getNewOutgoingCallCancelMillis(mContext.getContentResolver()));
 
         return true;
     }
