@@ -31,6 +31,7 @@ import android.telecom.GatewayInfo;
 import android.telecom.TelecomManager;
 import android.telecom.VideoProfile;
 import android.telephony.DisconnectCause;
+import android.test.suitebuilder.annotation.SmallTest;
 
 import com.android.server.telecom.Call;
 import com.android.server.telecom.CallsManager;
@@ -76,6 +77,7 @@ public class NewOutgoingCallIntentBroadcasterTest extends TelecomTestCase {
         mPhoneNumberUtilsAdapterSpy = spy(new PhoneNumberUtilsAdapterImpl());
     }
 
+    @SmallTest
     public void testNullHandle() {
         Intent intent = new Intent(Intent.ACTION_CALL, null);
         int result = processIntent(intent, true);
@@ -84,6 +86,7 @@ public class NewOutgoingCallIntentBroadcasterTest extends TelecomTestCase {
         verifyNoCallPlaced();
     }
 
+    @SmallTest
     public void testVoicemailCall() {
         String voicemailNumber = "voicemail:18005551234";
         Intent intent = new Intent(Intent.ACTION_CALL, Uri.parse(voicemailNumber));
@@ -96,14 +99,17 @@ public class NewOutgoingCallIntentBroadcasterTest extends TelecomTestCase {
                 any(GatewayInfo.class), eq(true), eq(VideoProfile.STATE_AUDIO_ONLY));
     }
 
+    @SmallTest
     public void testVoicemailCallWithBadAction() {
         badCallActionHelper(Uri.parse("voicemail:18005551234"), DisconnectCause.OUTGOING_CANCELED);
     }
 
+    @SmallTest
     public void testTelCallWithBadCallAction() {
         badCallActionHelper(Uri.parse("tel:6505551234"), DisconnectCause.INVALID_NUMBER);
     }
 
+    @SmallTest
     public void testSipCallWithBadCallAction() {
         badCallActionHelper(Uri.parse("sip:testuser@testsite.com"), DisconnectCause.INVALID_NUMBER);
     }
@@ -118,6 +124,7 @@ public class NewOutgoingCallIntentBroadcasterTest extends TelecomTestCase {
         verifyNoCallPlaced();
     }
 
+    @SmallTest
     public void testNoNumberSupplied() {
         Uri handle = Uri.parse("tel:");
         Intent intent = new Intent(Intent.ACTION_CALL, handle);
@@ -129,7 +136,7 @@ public class NewOutgoingCallIntentBroadcasterTest extends TelecomTestCase {
         verifyNoCallPlaced();
     }
 
-
+    @SmallTest
     public void testEmergencyCallWithNonDefaultDialer() {
         Uri handle = Uri.parse("tel:6505551911");
         doReturn(true).when(mPhoneNumberUtilsAdapterSpy).isPotentialLocalEmergencyNumber(
@@ -158,24 +165,28 @@ public class NewOutgoingCallIntentBroadcasterTest extends TelecomTestCase {
         assertEquals(Intent.FLAG_ACTIVITY_NEW_TASK, dialerIntent.getFlags());
     }
 
+    @SmallTest
     public void testActionCallEmergencyCall() {
         Uri handle = Uri.parse("tel:6505551911");
         Intent intent = buildIntent(handle, Intent.ACTION_CALL, null);
         emergencyCallTestHelper(intent, null);
     }
 
+    @SmallTest
     public void testActionEmergencyWithEmergencyNumber() {
         Uri handle = Uri.parse("tel:6505551911");
         Intent intent = buildIntent(handle, Intent.ACTION_CALL_EMERGENCY, null);
         emergencyCallTestHelper(intent, null);
     }
 
+    @SmallTest
     public void testActionPrivCallWithEmergencyNumber() {
         Uri handle = Uri.parse("tel:6505551911");
         Intent intent = buildIntent(handle, Intent.ACTION_CALL_PRIVILEGED, null);
         emergencyCallTestHelper(intent, null);
     }
 
+    @SmallTest
     public void testEmergencyCallWithGatewayExtras() {
         Uri handle = Uri.parse("tel:6505551911");
         Bundle gatewayExtras = new Bundle();
@@ -187,6 +198,7 @@ public class NewOutgoingCallIntentBroadcasterTest extends TelecomTestCase {
         emergencyCallTestHelper(intent, gatewayExtras);
     }
 
+    @SmallTest
     public void testActionEmergencyWithNonEmergencyNumber() {
         Uri handle = Uri.parse("tel:6505551911");
         doReturn(false).when(mPhoneNumberUtilsAdapterSpy).isPotentialLocalEmergencyNumber(
@@ -222,6 +234,7 @@ public class NewOutgoingCallIntentBroadcasterTest extends TelecomTestCase {
         assertNull(receiver);
     }
 
+    @SmallTest
     public void testUnmodifiedRegularCall() {
         Uri handle = Uri.parse("tel:6505551234");
         Intent callIntent = buildIntent(handle, Intent.ACTION_CALL, null);
@@ -236,6 +249,7 @@ public class NewOutgoingCallIntentBroadcasterTest extends TelecomTestCase {
                 eq(true), eq(VideoProfile.STATE_BIDIRECTIONAL));
     }
 
+    @SmallTest
     public void testUnmodifiedSipCall() {
         Uri handle = Uri.parse("sip:test@test.com");
         Intent callIntent = buildIntent(handle, Intent.ACTION_CALL, null);
@@ -252,6 +266,7 @@ public class NewOutgoingCallIntentBroadcasterTest extends TelecomTestCase {
                 eq(true), eq(VideoProfile.STATE_BIDIRECTIONAL));
     }
 
+    @SmallTest
     public void testCallWithGatewayInfo() {
         Uri handle = Uri.parse("tel:6505551234");
         Intent callIntent = buildIntent(handle, Intent.ACTION_CALL, null);
@@ -270,6 +285,7 @@ public class NewOutgoingCallIntentBroadcasterTest extends TelecomTestCase {
                 isNotNull(GatewayInfo.class), eq(true), eq(VideoProfile.STATE_BIDIRECTIONAL));
     }
 
+    @SmallTest
     public void testCallNumberModifiedToNull() {
         Uri handle = Uri.parse("tel:6505551234");
         Intent callIntent = buildIntent(handle, Intent.ACTION_CALL, null);
@@ -282,6 +298,7 @@ public class NewOutgoingCallIntentBroadcasterTest extends TelecomTestCase {
         verify(mCall).disconnect(true);
     }
 
+    @SmallTest
     public void testCallModifiedToEmergency() {
         Uri handle = Uri.parse("tel:6505551234");
         Intent callIntent = buildIntent(handle, Intent.ACTION_CALL, null);
