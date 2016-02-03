@@ -270,8 +270,9 @@ public class NewOutgoingCallIntentBroadcaster {
             // initiate the call again because of the presence of the EXTRA_ALREADY_CALLED extra.
         }
 
-        Log.i(this, "Sending NewOutgoingCallBroadcast for %s", mCall);
-        broadcastIntent(intent, number, !callImmediately);
+        UserHandle targetUser = mCall.getInitiatingUser();
+        Log.i(this, "Sending NewOutgoingCallBroadcast for %s to %s", mCall, targetUser);
+        broadcastIntent(intent, number, !callImmediately, targetUser);
         return DisconnectCause.NOT_DISCONNECTED;
     }
 
@@ -282,12 +283,14 @@ public class NewOutgoingCallIntentBroadcaster {
      * @param originalCallIntent The original call intent.
      * @param number Call number that was stored in the original call intent.
      * @param receiverRequired Whether or not the result from the ordered broadcast should be
-     *     processed using a {@link NewOutgoingCallIntentBroadcaster}.
+     *                         processed using a {@link NewOutgoingCallIntentBroadcaster}.
+     * @param targetUser User that the broadcast sent to.
      */
     private void broadcastIntent(
             Intent originalCallIntent,
             String number,
-            boolean receiverRequired) {
+            boolean receiverRequired,
+            UserHandle targetUser) {
         Intent broadcastIntent = new Intent(Intent.ACTION_NEW_OUTGOING_CALL);
         if (number != null) {
             broadcastIntent.putExtra(Intent.EXTRA_PHONE_NUMBER, number);
@@ -302,7 +305,7 @@ public class NewOutgoingCallIntentBroadcaster {
 
         mContext.sendOrderedBroadcastAsUser(
                 broadcastIntent,
-                UserHandle.CURRENT,
+                targetUser,
                 android.Manifest.permission.PROCESS_OUTGOING_CALLS,
                 AppOpsManager.OP_PROCESS_OUTGOING_CALLS,
                 receiverRequired ? new NewOutgoingCallBroadcastIntentReceiver() : null,
