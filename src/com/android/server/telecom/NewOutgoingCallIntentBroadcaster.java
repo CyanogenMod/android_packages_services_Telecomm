@@ -148,6 +148,7 @@ public class NewOutgoingCallIntentBroadcaster {
                 }
 
                 GatewayInfo gatewayInfo = getGateWayInfoFromIntent(intent, resultHandleUri);
+                mCall.setNewOutgoingCallIntentBroadcastIsDone();
                 mCallsManager.placeOutgoingCall(mCall, resultHandleUri, gatewayInfo,
                         mIntent.getBooleanExtra(TelecomManager.EXTRA_START_CALL_WITH_SPEAKERPHONE,
                                 false),

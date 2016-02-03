@@ -1149,13 +1149,11 @@ public class CallsManager extends Call.ListenerBase
         if (!mCalls.contains(call)) {
             Log.i(this, "Attempted to add account to unknown call %s", call);
         } else {
-            // TODO: There is an odd race condition here. Since NewOutgoingCallIntentBroadcaster and
-            // the SELECT_PHONE_ACCOUNT sequence run in parallel, if the user selects an account before the
-            // NEW_OUTGOING_CALL sequence finishes, we'll start the call immediately without
-            // respecting a rewritten number or a canceled number. This is unlikely since
-            // NEW_OUTGOING_CALL sequence, in practice, runs a lot faster than the user selecting
-            // a phone account from the in-call UI.
             call.setTargetPhoneAccount(account);
+
+            if (!call.isNewOutgoingCallIntentBroadcastDone()) {
+                return;
+            }
 
             // Note: emergency calls never go through account selection dialog so they never
             // arrive here.

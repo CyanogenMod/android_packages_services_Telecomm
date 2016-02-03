@@ -384,6 +384,9 @@ public class Call implements CreateConnectionResponse {
 
     private Boolean mIsWorkCall;
 
+    // Set to true once the NewOutgoingCallIntentBroadcast comes back and is processed.
+    private boolean mIsNewOutgoingCallIntentBroadcastDone = false;
+
     /**
      * Persists the specified parameters and initializes the new instance.
      *
@@ -1050,7 +1053,13 @@ public class Call implements CreateConnectionResponse {
      * @param phoneAccountRegistrar The phone account registrar.
      */
     void startCreateConnection(PhoneAccountRegistrar phoneAccountRegistrar) {
-        Preconditions.checkState(mCreateConnectionProcessor == null);
+        if (mCreateConnectionProcessor != null) {
+            Log.w(this, "mCreateConnectionProcessor in startCreateConnection is not null. This is" +
+                    " due to a race between NewOutgoingCallIntentBroadcaster and " +
+                    "phoneAccountSelected, but is harmlessly resolved by ignoring the second " +
+                    "invocation.");
+            return;
+        }
         mCreateConnectionProcessor = new CreateConnectionProcessor(this, mRepository, this,
                 phoneAccountRegistrar, mContext);
         mCreateConnectionProcessor.process();
@@ -1603,7 +1612,7 @@ public class Call implements CreateConnectionResponse {
                                 new CallSessionCookie(Call.this, subsubsession));
                         // If there is an exception in startQuery, then this assignment will never
                         // occur.
-                        if(value != null) {
+                        if (value != null) {
                             subsubsession = null;
                         }
                     } finally {
@@ -1924,4 +1933,15 @@ public class Call implements CreateConnectionResponse {
         return mCallDataUsage;
     }
 
+    /**
+     * Returns true if the call is outgoing and the NEW_OUTGOING_CALL ordered broadcast intent
+     * has come back to telecom and was processed.
+     */
+    public boolean isNewOutgoingCallIntentBroadcastDone() {
+        return mIsNewOutgoingCallIntentBroadcastDone;
+    }
+
+    public void setNewOutgoingCallIntentBroadcastIsDone() {
+        mIsNewOutgoingCallIntentBroadcastDone = true;
+    }
 }
