@@ -52,6 +52,7 @@ import android.telecom.VideoProfile;
 
 import com.android.internal.telecom.IInCallAdapter;
 import com.android.server.telecom.BluetoothPhoneServiceImpl;
+import com.android.server.telecom.CallAudioManager;
 import com.android.server.telecom.CallerInfoAsyncQueryFactory;
 import com.android.server.telecom.CallsManager;
 import com.android.server.telecom.CallsManagerListenerBase;
@@ -61,13 +62,11 @@ import com.android.server.telecom.HeadsetMediaButtonFactory;
 import com.android.server.telecom.InCallWakeLockController;
 import com.android.server.telecom.InCallWakeLockControllerFactory;
 import com.android.server.telecom.MissedCallNotifier;
-import com.android.server.telecom.CallAudioManager;
 import com.android.server.telecom.PhoneAccountRegistrar;
 import com.android.server.telecom.ProximitySensorManager;
 import com.android.server.telecom.ProximitySensorManagerFactory;
 import com.android.server.telecom.TelecomSystem;
 import com.android.server.telecom.components.UserCallIntentProcessor;
-import com.android.server.telecom.ui.MissedCallNotifierImpl;
 import com.android.server.telecom.ui.MissedCallNotifierImpl.MissedCallNotifierImplFactory;
 
 import com.google.common.base.Predicate;
@@ -486,6 +485,7 @@ public class TelecomSystemTest extends TelecomTestCase {
         final int startingNumConnections = connectionServiceFixture.mConnectionById.size();
         final int startingNumCalls = mInCallServiceFixtureX.mCallById.size();
         boolean hasInCallAdapter = mInCallServiceFixtureX.mInCallAdapter != null;
+        connectionServiceFixture.mConnectionServiceDelegate.mVideoState = videoState;
 
         Bundle extras = new Bundle();
         extras.putParcelable(
@@ -498,13 +498,12 @@ public class TelecomSystemTest extends TelecomTestCase {
                 .createConnection(any(PhoneAccountHandle.class), anyString(),
                         any(ConnectionRequest.class), eq(true), eq(false));
 
-        mConnectionServiceFixtureA.mConnectionById.get(
-                connectionServiceFixture.mLatestConnectionId).videoState = videoState;
-
-        connectionServiceFixture.sendHandleCreateConnectionComplete(
-                connectionServiceFixture.mLatestConnectionId);
         connectionServiceFixture.sendSetRinging(connectionServiceFixture.mLatestConnectionId);
-        connectionServiceFixture.sendSetVideoState(connectionServiceFixture.mLatestConnectionId);
+
+        for (CallerInfoAsyncQueryFactoryFixture.Request request :
+                mCallerInfoAsyncQueryFactoryFixture.mRequests) {
+            request.reply();
+        }
 
         // For the case of incoming calls, Telecom connecting the InCall services and adding the
         // Call is triggered by the async completion of the CallerInfoAsyncQuery. Once the Call
