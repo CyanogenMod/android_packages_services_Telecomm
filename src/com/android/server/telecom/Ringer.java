@@ -96,6 +96,11 @@ public final class Ringer {
             return;
         }
 
+        if (foregroundCall == null) {
+            Log.wtf(this, "startRinging called with null foreground call.");
+            return;
+        }
+
         if (InCallController.doesDefaultDialerSupportRinging(mContext)) {
             Log.event(foregroundCall, Log.Events.SKIP_RINGING);
             return;
