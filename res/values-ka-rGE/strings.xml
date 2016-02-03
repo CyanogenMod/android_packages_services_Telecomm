@@ -42,7 +42,6 @@
     <string name="outgoing_call_not_allowed_no_permission" msgid="1996571596464271228">"ეს აპლიკაცია ტელეფონის ნებართვის გარეშე გამავალ ზარებს ვერ განახორციელებს."</string>
     <string name="outgoing_call_error_no_phone_number_supplied" msgid="1940125199802007505">"ზარის განხორციელებისათვის, შეიყვანეთ მოქმედი ნომერი."</string>
     <string name="duplicate_video_call_not_allowed" msgid="3749211605014548386">"ამ ეტაპზე ზარის დამატება ვერ ხერხდება."</string>
-    <string name="video_call_not_allowed_if_tty_enabled" msgid="7593649283571253283">"ვიდეოზარების განხორციელებისათვის, გთხოვთ, გამორთოთ TTY რეჟიმი"</string>
     <string name="no_vm_number" msgid="4164780423805688336">"ხმოვანი ფოსტის ნომერი არ არის"</string>
     <string name="no_vm_number_msg" msgid="1300729501030053828">"SIM ბარათზე ხმოვანი ფოსტის ნომერი შენახული არ არის."</string>
     <string name="add_vm_number_str" msgid="4676479471644687453">"ნომრის დამატება"</string>

@@ -42,7 +42,6 @@
     <string name="outgoing_call_not_allowed_no_permission" msgid="1996571596464271228">"ਇਹ ਐਪਲੀਕੇਸ਼ਨ ਫੋਨ ਅਨੁਮਤੀ ਦੇ ਬਿਨਾਂ ਆਉਟਗੋਇੰਗ ਕਾਲਾਂ ਨਹੀਂ ਕਰ ਸਕਦੀ।"</string>
     <string name="outgoing_call_error_no_phone_number_supplied" msgid="1940125199802007505">"ਇੱਕ ਕਾਲ ਕਰਨ ਲਈ, ਇੱਕ ਪ੍ਰਮਾਣਿਕ ਨੰਬਰ ਦਰਜ ਕਰੋ।"</string>
     <string name="duplicate_video_call_not_allowed" msgid="3749211605014548386">"ਇਸ ਵੇਲੇ ਕਾਲ ਨਹੀਂ ਜੋੜੀ ਸਕਦੀ।"</string>
-    <string name="video_call_not_allowed_if_tty_enabled" msgid="7593649283571253283">"ਕਿਰਪਾ ਕਰਕੇ ਵੀਡੀਓ ਕਾਲਾਂ ਨੂੰ ਕਰਨ ਲਈ TTY ਮੋਡ ਅਸਮਰਥਿਤ ਕਰੋ."</string>
     <string name="no_vm_number" msgid="4164780423805688336">"ਲੁਪਤ ਵੌਇਸਮੇਲ ਨੰਬਰ"</string>
     <string name="no_vm_number_msg" msgid="1300729501030053828">"SIM ਕਾਰਡ ਤੇ ਕੋਈ ਵੌਇਸਮੇਲ ਨੰਬਰ ਸਟੋਰ ਨਹੀਂ ਕੀਤਾ ਗਿਆ ਹੈ।"</string>
     <string name="add_vm_number_str" msgid="4676479471644687453">"ਨੰਬਰ ਜੋੜੋ"</string>

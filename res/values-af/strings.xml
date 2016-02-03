@@ -42,7 +42,6 @@
     <string name="outgoing_call_not_allowed_no_permission" msgid="1996571596464271228">"Hierdie program kan nie uitgaande oproepe maak sonder die foon se toestemming nie."</string>
     <string name="outgoing_call_error_no_phone_number_supplied" msgid="1940125199802007505">"Voer \'n geldige nommer in om \'n oproep te maak."</string>
     <string name="duplicate_video_call_not_allowed" msgid="3749211605014548386">"Oproep kan nie op die oomblik bygevoeg word nie."</string>
-    <string name="video_call_not_allowed_if_tty_enabled" msgid="7593649283571253283">"Deaktiveer TTY-modus om video-oproepe te maak."</string>
     <string name="no_vm_number" msgid="4164780423805688336">"Vermiste stemboodskapnommer"</string>
     <string name="no_vm_number_msg" msgid="1300729501030053828">"Geen stemboodskapnommer is op die SIM-kaart gestoor nie."</string>
     <string name="add_vm_number_str" msgid="4676479471644687453">"Voeg nommer by"</string>

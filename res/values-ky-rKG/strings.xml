@@ -42,7 +42,6 @@
     <string name="outgoing_call_not_allowed_no_permission" msgid="1996571596464271228">"Бул колдонмо тийиштүү уруксатсыз чалууларды жасай албайт."</string>
     <string name="outgoing_call_error_no_phone_number_supplied" msgid="1940125199802007505">"Чалуу үчүн, жарактуу номер киргизиңиз."</string>
     <string name="duplicate_video_call_not_allowed" msgid="3749211605014548386">"Бул жолу чалууну кошуу мүмкүн эмес."</string>
-    <string name="video_call_not_allowed_if_tty_enabled" msgid="7593649283571253283">"Видео чалууларды аткаруу үчүн Телетайп түзмөк режимин өчүрүңүз."</string>
     <string name="no_vm_number" msgid="4164780423805688336">"Үн почтасынын номери жок болуп жатат"</string>
     <string name="no_vm_number_msg" msgid="1300729501030053828">"SIM-картада сакталган үн почтасынын номери жок."</string>
     <string name="add_vm_number_str" msgid="4676479471644687453">"Номер кошуу"</string>

@@ -42,7 +42,6 @@
     <string name="outgoing_call_not_allowed_no_permission" msgid="1996571596464271228">"This application cannot make outgoing calls without Phone permission."</string>
     <string name="outgoing_call_error_no_phone_number_supplied" msgid="1940125199802007505">"To place a call, enter a valid number."</string>
     <string name="duplicate_video_call_not_allowed" msgid="3749211605014548386">"Call cannot be added at this time."</string>
-    <string name="video_call_not_allowed_if_tty_enabled" msgid="7593649283571253283">"Please disable TTY Mode to make video calls."</string>
     <string name="no_vm_number" msgid="4164780423805688336">"Missing voicemail number"</string>
     <string name="no_vm_number_msg" msgid="1300729501030053828">"No voicemail number is stored on the SIM card."</string>
     <string name="add_vm_number_str" msgid="4676479471644687453">"Add number"</string>

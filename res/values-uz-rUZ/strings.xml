@@ -42,7 +42,6 @@
     <string name="outgoing_call_not_allowed_no_permission" msgid="1996571596464271228">"Bu ilova Telefon ruxsatnomasisiz chiquvchi qo‘ng‘iroqlarni amalga oshira olmaydi."</string>
     <string name="outgoing_call_error_no_phone_number_supplied" msgid="1940125199802007505">"Qo‘ng‘iroq qilish uchun raqamni to‘g‘ri kiriting."</string>
     <string name="duplicate_video_call_not_allowed" msgid="3749211605014548386">"Hozirgi vaqtda qo‘ng‘iroq qo‘shib bo‘lmaydi."</string>
-    <string name="video_call_not_allowed_if_tty_enabled" msgid="7593649283571253283">"Video qo\'ng\'iroqlarni amalga oshirish uchun TTY rejimini o‘chirib qo‘yish kerak"</string>
     <string name="no_vm_number" msgid="4164780423805688336">"Ovozli pochta raqami ko‘rsatilmagan"</string>
     <string name="no_vm_number_msg" msgid="1300729501030053828">"SIM kartada birorta ham ovozli pochta raqami yo‘q."</string>
     <string name="add_vm_number_str" msgid="4676479471644687453">"Raqam qo‘shish"</string>
