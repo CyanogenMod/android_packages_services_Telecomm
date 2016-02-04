@@ -147,6 +147,9 @@ public class ConnectionServiceFixture implements TestFixture<IConnectionService>
         public void addParticipantWithConference(String callId, String recipients) {}
 
         @Override
+        public void explicitTransfer(String callId) { }
+
+        @Override
         public IBinder asBinder() {
             return this;
         }
