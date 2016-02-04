@@ -27,6 +27,7 @@ import junit.framework.TestCase;
 import org.mockito.Mockito;
 
 import android.content.ComponentName;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.IInterface;
@@ -41,6 +42,7 @@ import android.telecom.ParcelableConference;
 import android.telecom.ParcelableConnection;
 import android.telecom.PhoneAccountHandle;
 import android.telecom.StatusHints;
+import android.telecom.TelecomManager;
 
 import java.lang.Override;
 import java.util.ArrayList;
@@ -55,28 +57,33 @@ import java.util.Set;
  * to the Telecom framework.
  */
 public class ConnectionServiceFixture implements TestFixture<IConnectionService> {
+    static int INVALID_VIDEO_STATE = -1;
 
     /**
      * Implementation of ConnectionService that performs no-ops for tasks normally meant for
      * Telephony and reports success back to Telecom
      */
     public class FakeConnectionServiceDelegate extends ConnectionService {
+        int mVideoState = INVALID_VIDEO_STATE;
+
         @Override
         public Connection onCreateUnknownConnection(
                 PhoneAccountHandle connectionManagerPhoneAccount, ConnectionRequest request) {
-            return new FakeConnection(request.getVideoState());
+            return new FakeConnection(request.getVideoState(), request.getAddress());
         }
 
         @Override
         public Connection onCreateIncomingConnection(
                 PhoneAccountHandle connectionManagerPhoneAccount, ConnectionRequest request) {
-            return new FakeConnection(request.getVideoState());
+            return new FakeConnection(
+                    mVideoState == INVALID_VIDEO_STATE ? request.getVideoState() : mVideoState,
+                    request.getAddress());
         }
 
         @Override
         public Connection onCreateOutgoingConnection(
                 PhoneAccountHandle connectionManagerPhoneAccount, ConnectionRequest request) {
-            return new FakeConnection(request.getVideoState());
+            return new FakeConnection(request.getVideoState(), request.getAddress());
         }
 
         @Override
@@ -92,7 +99,7 @@ public class ConnectionServiceFixture implements TestFixture<IConnectionService>
     }
 
     public class FakeConnection extends Connection {
-        public FakeConnection(int videoState) {
+        public FakeConnection(int videoState, Uri address) {
             super();
             int capabilities = getConnectionCapabilities();
             capabilities |= CAPABILITY_MUTE;
@@ -101,6 +108,7 @@ public class ConnectionServiceFixture implements TestFixture<IConnectionService>
             setVideoState(videoState);
             setConnectionCapabilities(capabilities);
             setActive();
+            setAddress(address, TelecomManager.PRESENTATION_ALLOWED);
         }
     }
 
@@ -232,7 +240,7 @@ public class ConnectionServiceFixture implements TestFixture<IConnectionService>
         }
     }
 
-    private FakeConnectionServiceDelegate mConnectionServiceDelegate =
+    FakeConnectionServiceDelegate mConnectionServiceDelegate =
             new FakeConnectionServiceDelegate();
     private IConnectionService mConnectionServiceDelegateAdapter =
             IConnectionService.Stub.asInterface(mConnectionServiceDelegate.onBind(null));
