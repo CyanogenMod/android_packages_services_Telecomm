@@ -382,7 +382,7 @@ public class Call implements CreateConnectionResponse {
      */
     private long mCallDataUsage = DATA_USAGE_NOT_SET;
 
-    private Boolean mIsWorkCall;
+    private boolean mIsWorkCall;
 
     // Set to true once the NewOutgoingCallIntentBroadcast comes back and is processed.
     private boolean mIsNewOutgoingCallIntentBroadcastDone = false;
@@ -437,7 +437,6 @@ public class Call implements CreateConnectionResponse {
         mIsConference = isConference;
         mShouldAttachToExistingConnection = shouldAttachToExistingConnection
                 || callDirection == CALL_DIRECTION_INCOMING;
-
         maybeLoadCannedSmsResponses();
         mAnalytics = new Analytics.CallInfo();
 
@@ -861,6 +860,7 @@ public class Call implements CreateConnectionResponse {
             for (Listener l : mListeners) {
                 l.onTargetPhoneAccountChanged(this);
             }
+            configureIsWorkCall();
         }
     }
 
@@ -869,31 +869,27 @@ public class Call implements CreateConnectionResponse {
         return mCallDirection == CALL_DIRECTION_INCOMING;
     }
 
-    public boolean isWorkCall(PhoneAccountRegistrar phoneAccountRegistrar) {
-        if (mIsWorkCall == null) {
-            PhoneAccount phoneAccount =
-                    phoneAccountRegistrar.getPhoneAccountUnchecked(mTargetPhoneAccountHandle);
-            // If we are on a multi-SIM device and the user must select the SIM phoneAccount to use,
-            // the PhoneAccount will be null when InCallController.onConnected(...) is called. For
-            // now, do not set mIsWorkCall and return false. It will be correctly selected when
-            // InCallAdapter.phoneAccountSelected() is called.
-            if (phoneAccount == null) {
-                // Don't set mIsWorkCall so it doesn't get cached to the wrong value.
-                return false;
-            }
+    public boolean isWorkCall() {
+        return mIsWorkCall;
+    }
+
+    private void configureIsWorkCall() {
+        PhoneAccountRegistrar phoneAccountRegistrar = mCallsManager.getPhoneAccountRegistrar();
+        boolean isWorkCall = false;
+        PhoneAccount phoneAccount =
+                phoneAccountRegistrar.getPhoneAccountUnchecked(mTargetPhoneAccountHandle);
+        if (phoneAccount != null) {
             final UserHandle userHandle;
             if (phoneAccount.hasCapabilities(PhoneAccount.CAPABILITY_MULTI_USER)) {
                 userHandle = mInitiatingUser;
             } else {
                 userHandle = mTargetPhoneAccountHandle.getUserHandle();
             }
-            if (userHandle == null) {
-                mIsWorkCall = false;
-            } else {
-                mIsWorkCall = UserUtil.isManagedProfile(mContext, userHandle);
+            if (userHandle != null) {
+                isWorkCall = UserUtil.isManagedProfile(mContext, userHandle);
             }
         }
-        return mIsWorkCall;
+        mIsWorkCall = isWorkCall;
     }
 
     boolean shouldAttachToExistingConnection() {

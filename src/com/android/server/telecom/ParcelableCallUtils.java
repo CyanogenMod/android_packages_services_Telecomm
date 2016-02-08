@@ -50,7 +50,7 @@ public class ParcelableCallUtils {
             properties |= android.telecom.Call.Details.PROPERTY_CONFERENCE;
         }
 
-        if (call.isWorkCall(phoneAccountRegistrar)) {
+        if (call.isWorkCall()) {
             properties |= android.telecom.Call.Details.PROPERTY_WORK_CALL;
         }
 
