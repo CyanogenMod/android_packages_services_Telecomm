@@ -21,6 +21,7 @@ import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
+import android.test.suitebuilder.annotation.SmallTest;
 
 import com.android.server.telecom.ContactsAsyncHelper;
 
@@ -85,6 +86,7 @@ public class ContactsAsyncHelperTest extends TelecomTestCase {
         super.setUp();
     }
 
+    @SmallTest
     public void testEmptyUri() {
         ContactsAsyncHelper cah = new ContactsAsyncHelper(mNullContentResolverAdapter);
         try {
@@ -96,6 +98,7 @@ public class ContactsAsyncHelperTest extends TelecomTestCase {
                 any(Drawable.class), any(Bitmap.class), anyObject());
     }
 
+    @SmallTest
     public void testNullReturnFromOpenInputStream() {
         ContactsAsyncHelper cah = new ContactsAsyncHelper(mNullContentResolverAdapter);
         cah.startObtainPhotoAsync(TOKEN, mContext, SAMPLE_CONTACT_PHOTO_URI, mListener, COOKIE);
@@ -104,6 +107,7 @@ public class ContactsAsyncHelperTest extends TelecomTestCase {
                 isNull(Drawable.class), isNull(Bitmap.class), eq(COOKIE));
     }
 
+    @SmallTest
     public void testImageScaling() {
         ContactsAsyncHelper cah = new ContactsAsyncHelper(mWorkingContentResolverAdapter);
         cah.startObtainPhotoAsync(TOKEN, mContext, SAMPLE_CONTACT_PHOTO_URI, mListener, COOKIE);
@@ -122,6 +126,7 @@ public class ContactsAsyncHelperTest extends TelecomTestCase {
         assertTrue(iconSize >= iconCaptor.getValue().getWidth());
     }
 
+    @SmallTest
     public void testNoScaling() {
         ContactsAsyncHelper cah = new ContactsAsyncHelper(mWorkingContentResolverAdapter);
         cah.startObtainPhotoAsync(TOKEN, mContext, SAMPLE_CONTACT_PHOTO_URI_SMALL,
