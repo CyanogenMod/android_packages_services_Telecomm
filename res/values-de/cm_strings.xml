@@ -16,16 +16,16 @@
      limitations under the License.
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-  <string name="blacklist_title">Gesperrte Anruferliste</string>
+  <string name="blacklist_title">Liste der gesperrten Anrufer</string>
   <string name="blacklist_summary_disabled">Deaktiviert</string>
-  <string name="blacklist_summary">Sie werden keine Anrufe oder Nachrichten von Nummern aus der Sperrliste empfangen</string>
-  <string name="blacklist_call_notification">Ein Anruf von %s wurde abgewiesen</string>
-  <string name="blacklist_call_notification_private_number">Ein Anruf mit unterdrückter Nummer wurde abgewiesen</string>
+  <string name="blacklist_summary">Sie werden keine Anrufe oder Nachrichten von Nummern aus der Sperrliste empfangen.</string>
+  <string name="blacklist_call_notification">Ein Anruf von %s wurde abgewiesen.</string>
+  <string name="blacklist_call_notification_private_number">Ein Anruf mit unterdrückter Nummer wurde abgewiesen.</string>
   <string name="blacklist_call_notification_unknown_number">Ein Anruf mit unbekannter Nummer %s wurde abgewiesen</string>
   <string name="blacklist_call_notification_multiple"><xliff:g id="count">%d</xliff:g> Anrufe wurden abgewiesen</string>
   <string name="blacklist_message_notification">Eine Nachricht von %s wurde abgewiesen</string>
-  <string name="blacklist_message_notification_private_number">Eine Nachricht mit unterdrückter Nummer wurde abgewiesen</string>
-  <string name="blacklist_message_notification_unknown_number">Eine Nachricht von unbekannter Nummer %s wurde abgewiesen</string>
+  <string name="blacklist_message_notification_private_number">Eine Nachricht mit unterdrückter Nummer wurde abgewiesen.</string>
+  <string name="blacklist_message_notification_unknown_number">Eine Nachricht von unbekannter Nummer %s wurde abgewiesen.</string>
   <string name="blacklist_message_notification_multiple"><xliff:g id="count">%d</xliff:g> Nachrichten wurden abgewiesen</string>
   <string name="blacklist_notification_list_private">Unterdrückte Nummer</string>
   <string name="unblock_number">Sperre aufheben</string>
