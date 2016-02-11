@@ -97,6 +97,7 @@ public final class TelecomSystem {
             ProximitySensorManagerFactory proximitySensorManagerFactory,
             InCallWakeLockControllerFactory inCallWakeLockControllerFactory) {
         mContext = context.getApplicationContext();
+        Log.initMd5Sum();
 
         mMissedCallNotifier = missedCallNotifier;
         mPhoneAccountRegistrar = new PhoneAccountRegistrar(mContext);

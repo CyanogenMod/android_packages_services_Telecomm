@@ -17,6 +17,7 @@
 package com.android.server.telecom;
 
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.telecom.PhoneAccount;
 import android.telephony.PhoneNumberUtils;
 import android.text.TextUtils;
@@ -217,7 +218,25 @@ public class Log {
     private static final LinkedBlockingQueue<CallEventRecord> mCallEventRecords =
             new LinkedBlockingQueue<CallEventRecord>(MAX_CALLS_TO_CACHE);
 
+    private static MessageDigest sMessageDigest;
+
     private Log() {}
+
+    public static void initMd5Sum() {
+        new AsyncTask<Void, Void, Void>() {
+            @Override
+            public Void doInBackground(Void... args) {
+                MessageDigest md;
+                try {
+                    md = MessageDigest.getInstance("SHA-1");
+                } catch (NoSuchAlgorithmException e) {
+                    md = null;
+                }
+                sMessageDigest = md;
+                return null;
+            }
+        }.execute();
+    }
 
     @VisibleForTesting
     public static void setTag(String tag) {
@@ -396,15 +415,14 @@ public class Log {
     }
 
     private static String secureHash(byte[] input) {
-        MessageDigest messageDigest;
-        try {
-            messageDigest = MessageDigest.getInstance("SHA-1");
-        } catch (NoSuchAlgorithmException e) {
-            return null;
+        if (sMessageDigest != null) {
+            sMessageDigest.reset();
+            sMessageDigest.update(input);
+            byte[] result = sMessageDigest.digest();
+            return encodeHex(result);
+        } else {
+            return "Uninitialized SHA1";
         }
-        messageDigest.update(input);
-        byte[] result = messageDigest.digest();
-        return encodeHex(result);
     }
 
     private static String encodeHex(byte[] bytes) {
