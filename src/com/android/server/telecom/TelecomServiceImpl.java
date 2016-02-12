@@ -36,7 +36,7 @@ import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
 import android.telecom.TelecomManager;
 import android.telephony.TelephonyManager;
-
+import android.util.EventLog;
 
 // TODO: Needed for move to system service: import com.android.internal.R;
 import com.android.internal.telecom.ITelecomService;
@@ -463,6 +463,7 @@ public class TelecomServiceImpl extends ITelecomService.Stub {
         if (phoneAccountHandle != null && phoneAccountHandle.getComponentName() != null) {
             mAppOpsManager.checkPackage(
                     Binder.getCallingUid(), phoneAccountHandle.getComponentName().getPackageName());
+            enforcePhoneAccountIsRegistered(phoneAccountHandle);
 
             Intent intent = new Intent(TelecomManager.ACTION_INCOMING_CALL);
             intent.setPackage(mContext.getPackageName());
@@ -487,6 +488,7 @@ public class TelecomServiceImpl extends ITelecomService.Stub {
                 TelephonyUtil.isPstnComponentName(phoneAccountHandle.getComponentName())) {
             mAppOpsManager.checkPackage(
                     Binder.getCallingUid(), phoneAccountHandle.getComponentName().getPackageName());
+            enforcePhoneAccountIsRegistered(phoneAccountHandle);
 
             Intent intent = new Intent(TelecomManager.ACTION_NEW_UNKNOWN_CALL);
             intent.setClass(mContext, CallReceiver.class);
@@ -534,6 +536,16 @@ public class TelecomServiceImpl extends ITelecomService.Stub {
         }
 
         return false;
+    }
+
+    // Enforce that the PhoneAccountHandle being passed in is registered to a valid PhoneAccount.
+    private void enforcePhoneAccountIsRegistered(PhoneAccountHandle phoneAccountHandle) {
+        PhoneAccount phoneAccount = mPhoneAccountRegistrar.getPhoneAccount(phoneAccountHandle);
+        if(phoneAccount == null) {
+            EventLog.writeEvent(0x534e4554, "26864502", Binder.getCallingUid(), "R");
+            throw new SecurityException("This PhoneAccountHandle is not registered to a valid " +
+                    "PhoneAccount!");
+        }
     }
 
     private void enforcePhoneAccountModificationForPackage(String packageName) {
