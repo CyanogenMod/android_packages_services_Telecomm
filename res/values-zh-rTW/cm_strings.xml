@@ -29,4 +29,5 @@
   <string name="blacklist_message_notification_multiple">已封鎖 <xliff:g id="count">%d</xliff:g> 則簡訊</string>
   <string name="blacklist_notification_list_private">私人</string>
   <string name="unblock_number">解除封鎖</string>
+  <string name="unblock_contact">解除封鎖聯絡人</string>
 </resources>

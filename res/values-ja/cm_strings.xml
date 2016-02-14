@@ -29,5 +29,5 @@
   <string name="blacklist_message_notification_multiple"><xliff:g id="count">%d</xliff:g>通のメッセージを受信拒否しました</string>
   <string name="blacklist_notification_list_private">非通知</string>
   <string name="unblock_number">ブロック解除</string>
-  <string name="unblock_contact">連絡先を着信/受信拒否解除</string>
+  <string name="unblock_contact">連絡先を拒否解除</string>
 </resources>

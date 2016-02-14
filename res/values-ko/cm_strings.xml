@@ -29,4 +29,5 @@
   <string name="blacklist_message_notification_multiple"><xliff:g id="count">%d</xliff:g>개의 메시지 차단됨</string>
   <string name="blacklist_notification_list_private">비공개</string>
   <string name="unblock_number">차단 해제</string>
+  <string name="unblock_contact">연락처 차단 해제</string>
 </resources>

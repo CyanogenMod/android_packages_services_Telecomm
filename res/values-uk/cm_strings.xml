@@ -29,4 +29,5 @@
   <string name="blacklist_message_notification_multiple">Заблоковано повідомлень: <xliff:g id="count">%d</xliff:g></string>
   <string name="blacklist_notification_list_private">Прихований номер</string>
   <string name="unblock_number">Розблокувати</string>
+  <string name="unblock_contact">Розблокувати контакт</string>
 </resources>
