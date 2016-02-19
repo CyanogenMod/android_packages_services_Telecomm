@@ -1319,7 +1319,8 @@ public class Call implements CreateConnectionResponse {
         }
     }
 
-    Bundle getIntentExtras() {
+    @VisibleForTesting
+    public Bundle getIntentExtras() {
         return mIntentExtras;
     }
 
