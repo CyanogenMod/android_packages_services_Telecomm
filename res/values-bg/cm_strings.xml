@@ -16,7 +16,7 @@
      limitations under the License.
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-  <string name="blacklist_title">Списък на блокираните абонати</string>
+  <string name="blacklist_title">Списък на блокираните контакти</string>
   <string name="blacklist_summary_disabled">Изключено</string>
   <string name="blacklist_summary">Няма да получавате входящи повиквания или съобщения от телефонните номера в списъка</string>
   <string name="blacklist_call_notification">Блокирано обаждане от %s</string>

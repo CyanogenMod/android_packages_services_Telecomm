@@ -21,11 +21,11 @@
   <string name="blacklist_summary">Vous ne recevrez pas d’appels ou de messages de numéros présents dans la liste des appelants bloqués</string>
   <string name="blacklist_call_notification">Appel de %s bloqué</string>
   <string name="blacklist_call_notification_private_number">Appel bloqué d\'un numéro privé</string>
-  <string name="blacklist_call_notification_unknown_number">Appel bloqué d\'un numéro inconnu %s</string>
+  <string name="blacklist_call_notification_unknown_number">Appel en provenance d\'un numéro inconnu %s bloqué</string>
   <string name="blacklist_call_notification_multiple"><xliff:g id="count">%d</xliff:g> appels bloqués</string>
   <string name="blacklist_message_notification">Message de %s bloqué</string>
-  <string name="blacklist_message_notification_private_number">Message d\'un numéro privé bloqué</string>
-  <string name="blacklist_message_notification_unknown_number">Message d\'un numéro inconnu %s bloqué</string>
+  <string name="blacklist_message_notification_private_number">Message en provenance d\'un numéro privé bloqué</string>
+  <string name="blacklist_message_notification_unknown_number">Message en provenance d\'un numéro inconnu %s bloqué</string>
   <string name="blacklist_message_notification_multiple"><xliff:g id="count">%d</xliff:g> messages ont été bloqués</string>
   <string name="blacklist_notification_list_private">Privé</string>
   <string name="unblock_number">Débloquer</string>
