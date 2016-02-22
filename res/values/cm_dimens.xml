@@ -1,5 +1,5 @@
-<!--
-     Copyright (C) 2015 The CyanogenMod Project
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright (C) 2016 The CyanogenMod Project
 
      Licensed under the Apache License, Version 2.0 (the "License");
      you may not use this file except in compliance with the License.
@@ -13,10 +13,14 @@
      See the License for the specific language governing permissions and
      limitations under the License.
 -->
-<resources>
-    <color name="theme_color">#0288d1</color>
 
-    <color name="dialer_settings_actionbar_text_color">#ffffff</color>
-    <color name="dialer_settings_actionbar_background_color">@color/theme_color</color>
-    <color name="dialer_settings_color_dark">#0277bd</color>
+<resources>
+    <dimen name="call_waiting_dialog_title_textSize">20sp</dimen>
+    <dimen name="call_waiting_dialog_width">308dp</dimen>
+    <dimen name="call_waiting_dialog_height">120dp</dimen>
+    <dimen name="call_waiting_button_height">48dp</dimen>
+    <dimen name="call_waiting_button_textSize">18sp</dimen>
+    <dimen name="call_waiting_button_paddingTop">8dp</dimen>
+    <dimen name="call_waiting_button_layoutHeight">48dp</dimen>
+    <dimen name="call_waiting_button_paddingLeft">8dp</dimen>
 </resources>

@@ -1,5 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
 <!--
-     Copyright (C) 2015 The CyanogenMod Project
+     Copyright (C) 2016 The CyanogenMod Project
 
      Licensed under the Apache License, Version 2.0 (the "License");
      you may not use this file except in compliance with the License.
@@ -13,10 +14,17 @@
      See the License for the specific language governing permissions and
      limitations under the License.
 -->
-<resources>
-    <color name="theme_color">#0288d1</color>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="@dimen/call_waiting_dialog_width"
+    android:layout_height="@dimen/call_waiting_dialog_height"
+    android:weightSum="1.0"
+    android:orientation="vertical">
 
-    <color name="dialer_settings_actionbar_text_color">#ffffff</color>
-    <color name="dialer_settings_actionbar_background_color">@color/theme_color</color>
-    <color name="dialer_settings_color_dark">#0277bd</color>
-</resources>
+    <ListView
+        android:id="@+id/lv_buttons"
+        android:paddingTop="@dimen/call_waiting_button_paddingLeft"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"/>
+
+</LinearLayout>
