@@ -24,7 +24,7 @@
   <string name="blacklist_call_notification_unknown_number">Blockerade ett samtal från okänt nummer %s</string>
   <string name="blacklist_call_notification_multiple"><xliff:g id="count">%d</xliff:g> samtal blockerades</string>
   <string name="blacklist_message_notification">Blockerade meddelande från %s</string>
-  <string name="blacklist_message_notification_private_number">Blockerade meddelande från hemligt nummer</string>
+  <string name="blacklist_message_notification_private_number">Blockerade meddelande från ett hemligt nummer</string>
   <string name="blacklist_message_notification_unknown_number">Blockerade meddelande från okänt nummer %s</string>
   <string name="blacklist_message_notification_multiple"><xliff:g id="count">%d</xliff:g> meddelanden har blockerats</string>
   <string name="blacklist_notification_list_private">Hemligt</string>
