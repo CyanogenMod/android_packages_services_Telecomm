@@ -16,7 +16,9 @@
 
 package com.android.server.telecom;
 
+import android.app.Dialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -41,12 +43,11 @@ import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 
 import com.android.internal.annotations.VisibleForTesting;
-import com.android.internal.telephony.CallStateException;
-import com.android.internal.telephony.CallerInfo;
 import com.android.internal.telephony.PhoneConstants;
 import com.android.internal.telephony.TelephonyProperties;
 import com.android.internal.telephony.util.BlacklistUtils;
 import com.android.internal.util.IndentingPrintWriter;
+import com.android.server.telecom.ui.CallWaitingDialog;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -848,11 +849,11 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
      * @param call The call to answer.
      * @param videoState The video state in which to answer the call.
      */
-    void answerCall(Call call, int videoState) {
+    void answerCall(final Call call, final int videoState) {
         if (!mCalls.contains(call)) {
             Log.i(this, "Request to answer a non-existent call %s", call);
         } else {
-            Call activeCall = getFirstCallWithState(call.getTargetPhoneAccount()
+            final Call activeCall = getFirstCallWithState(call.getTargetPhoneAccount()
                     .getId(), CallState.ACTIVE, CallState.DIALING);
             // If the foreground call is not the ringing call and it is currently isActive() or
             // STATE_DIALING, put it on hold before answering the call.
@@ -868,20 +869,19 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
                         activeCall.disconnect();
                     }
                 } else {
-                    Call heldCall = getHeldCall();
-                    if (heldCall != null) {
-                        Log.v(this, "Disconnecting held call %s before holding active call.",
-                                heldCall);
-                        heldCall.disconnect();
-                    }
-
-                    Log.v(this, "Holding active/dialing call %s before answering incoming call %s.",
-                            mForegroundCall, call);
-                    activeCall.hold();
+                    mHandler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            CallWaitingListener listener = new CallWaitingListener(call,
+                                    activeCall, videoState, CallsManager.this);
+                            Dialog dialog =
+                                    CallWaitingDialog.createCallWaitingDialog(mContext, call,
+                                            listener, listener);
+                            dialog.show();
+                        }
+                    });
+                    return;
                 }
-                // TODO: Wait until we get confirmation of the active call being
-                // on-hold before answering the new call.
-                // TODO: Import logic from CallManager.acceptCall()
             }
 
             for (CallsManagerListener listener : mListeners) {
@@ -2403,4 +2403,90 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
         }
         return false;
     }
+
+    private static class CallWaitingListener implements DialogInterface
+            .OnClickListener {
+
+        private final Call mNewCall;
+        private final Call mActiveCall;
+        private final CallsManager mLocalCallsManager;
+        private final int mVideoState;
+
+        /* package */ CallWaitingListener(Call newCall, Call activeCall, int videoState,
+                CallsManager callsManager) {
+            mNewCall = newCall;
+            mActiveCall = activeCall;
+            mLocalCallsManager = callsManager;
+            mVideoState = videoState;
+        }
+
+        @Override
+        public void onClick(DialogInterface dialog, int which) {
+            switch (which) {
+                case DialogInterface.BUTTON_POSITIVE:
+                    // Hold call
+                    handleHoldCallAndAnswer();
+                    break;
+                case DialogInterface.BUTTON_NEGATIVE:
+                default:
+                    // End call
+                    handleEndCallAndAnswer();
+                    break;
+            }
+        }
+
+        private void handleHoldCallAndAnswer() {
+            // We only want one held call, so if we have a held call already we need to
+            // disconnect it
+            Call heldCall = mLocalCallsManager.getHeldCall();
+            if (heldCall != null) {
+                Log.v(this,
+                        "Disconnecting held call %s before holding active call ", heldCall);
+                heldCall.disconnect();
+            }
+
+            Log.v(this, "Holding active/dialing call %s before answering incoming call %s.",
+                    mLocalCallsManager.mForegroundCall, mNewCall);
+
+            mActiveCall.hold();
+            // TODO: Wait until we get confirmation of
+            // the active call being
+            // on-hold before answering the new call.
+            // TODO: Import logic from
+            // CallManager.acceptCall()
+            updateListeners();
+        }
+
+        private void handleEndCallAndAnswer() {
+            // We don't want to hold, just disconnect
+
+            Log.v(this, "Disconnecting active/dialing call %s before answering incoming call %s.",
+                    mLocalCallsManager.mForegroundCall, mNewCall);
+
+            mActiveCall.disconnect();
+            // TODO: Wait until we get confirmation of
+            // the active call being
+            // on-hold before answering the new call.
+            // TODO: Import logic from
+            // CallManager.acceptCall()
+            updateListeners();
+        }
+
+        private void updateListeners() {
+            for (CallsManagerListener listener : mLocalCallsManager.mListeners) {
+                listener.onIncomingCallAnswered(mNewCall);
+            }
+            mLocalCallsManager.updateLchStatus(mNewCall.getTargetPhoneAccount().getId());
+            // We do not update the UI until we get
+            // confirmation of
+            // the answer() through
+            // {@link #markCallAsActive}.
+            mNewCall.answer(mVideoState);
+            if (mLocalCallsManager.isSpeakerphoneAutoEnabled(mVideoState)) {
+                mNewCall.setStartWithSpeakerphoneOn(true);
+            }
+        }
+
+    }
+
 }
