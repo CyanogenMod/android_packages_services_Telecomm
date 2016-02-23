@@ -3,7 +3,7 @@ LOCAL_PATH:= $(call my-dir)
 # Build the Telecom service.
 include $(CLEAR_VARS)
 
-LOCAL_JAVA_LIBRARIES := telephony-common
+LOCAL_JAVA_LIBRARIES := telephony-common telephony-ext
 
 LOCAL_SRC_FILES := $(call all-java-files-under, src)
 LOCAL_RESOURCE_DIR := $(LOCAL_PATH)/res
