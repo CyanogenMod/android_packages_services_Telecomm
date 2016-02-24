@@ -597,10 +597,11 @@ final class CallAudioManager extends CallsManagerListenerBase
         }
 
         boolean isVoiceCall = mAudioFocusStreamType == AudioManager.STREAM_VOICE_CALL;
+        boolean isIncomingCall = callToUpdate != null && callToUpdate.isIncoming();
 
-        // If we transition from not a voice call to a voice call, we need to set an initial audio
-        // state for the call.
-        if (!wasVoiceCall && isVoiceCall) {
+        // If we transition from not a voice call to a voice call, or we receive an incoming call,
+        // we need to set an initial audio state for the call.
+        if (!wasVoiceCall && isVoiceCall || isIncomingCall) {
             setInitialAudioState(callToUpdate, true /* force */);
         }
     }
