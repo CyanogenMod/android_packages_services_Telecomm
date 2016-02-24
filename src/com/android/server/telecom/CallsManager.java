@@ -23,6 +23,7 @@ import android.content.pm.ResolveInfo;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.CallLog.Calls;
+import android.provider.Settings;
 import android.telecom.AudioState;
 import android.telecom.CallState;
 import android.telecom.DisconnectCause;
@@ -840,6 +841,13 @@ public final class CallsManager extends Call.ListenerBase {
      * @return Whether the add-call feature should be enabled for the call.
      */
     protected boolean isAddCallCapable(Call call) {
+        boolean isDeviceProvisioned = Settings.Global.getInt(mContext.getContentResolver(),
+                Settings.Global.DEVICE_PROVISIONED, 0) != 0;
+        if (!isDeviceProvisioned) {
+            Log.d(TAG, "Device not provisioned, canAddCall is false.");
+            return false;
+        }
+
         if (call.getParentCall() != null) {
             // Never true for child calls.
             return false;
