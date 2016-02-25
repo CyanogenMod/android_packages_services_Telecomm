@@ -656,9 +656,9 @@ final class CallAudioManager extends CallsManagerListenerBase
         if (route == CallAudioState.ROUTE_WIRED_OR_EARPIECE) {
             route = CallAudioState.ROUTE_WIRED_OR_EARPIECE & supportedRouteMask;
             if (route == 0) {
-                Log.wtf(this, "One of wired headset or earpiece should always be valid.");
-                // assume earpiece in this case.
-                route = CallAudioState.ROUTE_EARPIECE;
+                Log.w(this, "One of wired headset or earpiece should always be valid.");
+                // assume speaker in this case. This covers the watch case
+                route = CallAudioState.ROUTE_SPEAKER;
             }
         }
         return route;
