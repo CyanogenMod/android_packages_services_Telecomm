@@ -43,6 +43,8 @@ import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
 
+import android.util.EventLog;
+
 // TODO: Needed for move to system service: import com.android.internal.R;
 import com.android.internal.telecom.ITelecomService;
 import com.android.internal.util.IndentingPrintWriter;
@@ -660,6 +662,7 @@ public class TelecomService extends Service {
                 mAppOpsManager.checkPackage(
                         Binder.getCallingUid(), phoneAccountHandle.getComponentName().getPackageName());
 
+                enforcePhoneAccountIsRegistered(phoneAccountHandle);
                 // Make sure it doesn't cross the UserHandle boundary
                 enforceUserHandleMatchesCaller(phoneAccountHandle);
 
@@ -685,6 +688,7 @@ public class TelecomService extends Service {
                 mAppOpsManager.checkPackage(
                         Binder.getCallingUid(), phoneAccountHandle.getComponentName().getPackageName());
 
+                enforcePhoneAccountIsRegistered(phoneAccountHandle);
                 // Make sure it doesn't cross the UserHandle boundary
                 enforceUserHandleMatchesCaller(phoneAccountHandle);
 
@@ -848,6 +852,16 @@ public class TelecomService extends Service {
         }
 
         return false;
+    }
+
+    // Enforce that the PhoneAccountHandle being passed in is registered to a valid PhoneAccount.
+    private void enforcePhoneAccountIsRegistered(PhoneAccountHandle phoneAccountHandle) {
+        PhoneAccount phoneAccount = mPhoneAccountRegistrar.getPhoneAccount(phoneAccountHandle);
+        if(phoneAccount == null) {
+            EventLog.writeEvent(0x534e4554, "26864502", Binder.getCallingUid(), "R");
+            throw new SecurityException("This PhoneAccountHandle is not registered to a valid " +
+                    "PhoneAccount!");
+        }
     }
 
     private void enforcePhoneAccountModificationForPackage(String packageName) {
