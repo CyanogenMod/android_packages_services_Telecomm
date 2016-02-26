@@ -1,5 +1,6 @@
 package com.android.server.telecom;
 
+import com.android.internal.telephony.PhoneConstants;
 import com.android.internal.telephony.TelephonyProperties;
 import com.android.server.telecom.components.ErrorDialogActivity;
 
@@ -71,6 +72,7 @@ public class CallIntentProcessor {
         String scheme = handle.getScheme();
         String uriString = handle.getSchemeSpecificPart();
         Bundle clientExtras = null;
+        String origin = null;
 
         if (clientExtras == null) {
             clientExtras = new Bundle();
@@ -95,6 +97,9 @@ public class CallIntentProcessor {
 
         if (intent.hasExtra(TelecomManager.EXTRA_OUTGOING_CALL_EXTRAS)) {
             clientExtras = intent.getBundleExtra(TelecomManager.EXTRA_OUTGOING_CALL_EXTRAS);
+        }
+        if (intent.hasExtra(PhoneConstants.EXTRA_CALL_ORIGIN)) {
+            origin = intent.getStringExtra(PhoneConstants.EXTRA_CALL_ORIGIN);
         }
         boolean isConferenceUri = intent.getBooleanExtra(
                 TelephonyProperties.EXTRA_DIAL_CONFERENCE_URI, false);
@@ -139,7 +144,8 @@ public class CallIntentProcessor {
         final boolean isPrivilegedDialer = intent.getBooleanExtra(KEY_IS_PRIVILEGED_DIALER, false);
 
         // Send to CallsManager to ensure the InCallUI gets kicked off before the broadcast returns
-        Call call = callsManager.startOutgoingCall(handle, phoneAccountHandle, clientExtras);
+        Call call = callsManager.startOutgoingCall(handle, phoneAccountHandle, clientExtras,
+                origin);
 
         if (call != null) {
             // Asynchronous calls should not usually be made inside a BroadcastReceiver because once
