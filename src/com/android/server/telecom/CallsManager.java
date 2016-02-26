@@ -653,6 +653,22 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
      * @param extras The optional extras Bundle passed with the intent used for the incoming call.
      */
     Call startOutgoingCall(Uri handle, PhoneAccountHandle phoneAccountHandle, Bundle extras) {
+        return startOutgoingCall(handle, phoneAccountHandle, extras, null);
+    }
+
+
+    /**
+     * Kicks off the first steps to creating an outgoing call so that InCallUI can launch.
+     *
+     * @param handle Handle to connect the call with.
+     * @param phoneAccountHandle The phone account which contains the component name of the
+     *        connection service to use for this call.
+     * @param extras The optional extras Bundle passed with the intent used for the incoming call.
+     * @param origin The string that contains the origin on the system where the call was
+     *               made.
+     */
+    Call startOutgoingCall(Uri handle, PhoneAccountHandle phoneAccountHandle, Bundle extras,
+                           String origin) {
         Call call = getNewOutgoingCall(handle);
 
         if (extras!=null) {
@@ -749,6 +765,10 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
             call.setState(
                     CallState.CONNECTING,
                     phoneAccountHandle == null ? "no-handle" : phoneAccountHandle.toString());
+        }
+
+        if (!TextUtils.isEmpty(origin)) {
+            extras.putString(PhoneConstants.EXTRA_CALL_ORIGIN, origin);
         }
 
         call.setIntentExtras(extras);
