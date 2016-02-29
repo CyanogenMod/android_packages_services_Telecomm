@@ -28,6 +28,7 @@ import android.os.Looper;
 import android.os.Message;
 import android.os.RemoteException;
 import android.os.ServiceManager;
+import android.os.SystemProperties;
 import android.os.UserHandle;
 import android.telecom.CallAudioState;
 
@@ -669,19 +670,45 @@ final class CallAudioManager extends CallsManagerListenerBase
     }
 
     private int calculateSupportedRoutes(Call call) {
-        int routeMask = CallAudioState.ROUTE_SPEAKER;
+        // minRouteMask ORed with final result to ensure baseline route coverage.
+        int minRouteMask = CallAudioState.ROUTE_SPEAKER;
 
-        if (mWiredHeadsetManager.isPluggedIn()) {
-            routeMask |= CallAudioState.ROUTE_WIRED_HEADSET;
-        } else {
-            routeMask |= CallAudioState.ROUTE_EARPIECE;
+        if (doesDeviceSupportEarpieceRoute()) {
+            if (mWiredHeadsetManager.isPluggedIn()) {
+                minRouteMask |= CallAudioState.ROUTE_WIRED_HEADSET;
+            } else {
+                minRouteMask |= CallAudioState.ROUTE_EARPIECE;
+            }
         }
+
+        int routeMask = minRouteMask;
 
         if (mBluetoothManager.isBluetoothAvailable()) {
             routeMask |=  CallAudioState.ROUTE_BLUETOOTH;
         }
 
-        return call != null ? routeMask & call.getSupportedAudioRoutes() : routeMask;
+        if (call != null) {
+            final int mask = call.getSupportedAudioRoutes();
+
+            int minMask = mask;
+            for (Call targetCall : mCallsManager.getCalls()) {
+                minMask &= targetCall.getSupportedAudioRoutes();
+            }
+
+            routeMask = minMask != 0 ? minMask : mask;
+        }
+
+        return routeMask | minRouteMask;
+    }
+
+    private static boolean doesDeviceSupportEarpieceRoute() {
+        String[] characteristics = SystemProperties.get("ro.build.characteristics").split(",");
+        for (String characteristic : characteristics) {
+            if ("watch".equals(characteristic)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private CallAudioState getInitialAudioState(Call call) {
