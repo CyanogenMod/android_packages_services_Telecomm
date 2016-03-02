@@ -59,7 +59,7 @@
     <string name="non_primary_user" msgid="5180129233352533459">"Alleen de eigenaar van het apparaat kan geblokkeerd nummers bekijken en beheren."</string>
     <string name="delete_icon_description" msgid="1828583824185681368">"Tik om blokkering op te heffen"</string>
     <string name="blocked_numbers_butter_bar_title" msgid="438170866438793182">"Blokkering tijdelijk uitgeschakeld"</string>
-    <string name="blocked_numbers_butter_bar_body" msgid="2223244484319442431">"Als je een noodnummer belt of hier een sms naar stuurt, wordt de blokkering uitgeschakeld om te zorgen dat hulpdiensten contact met je kunnen opnemen."</string>
+    <string name="blocked_numbers_butter_bar_body" msgid="2223244484319442431">"Als je een noodnummer belt of er een sms naartoe stuurt, wordt de blokkering uitgeschakeld om te zorgen dat hulpdiensten contact met je kunnen opnemen."</string>
     <string name="blocked_numbers_butter_bar_button" msgid="2197943354922010696">"Nu opnieuw inschakelen"</string>
     <string name="toast_personal_call_msg" msgid="5115361633476779723">"De persoonlijke kiezer gebruiken om te bellen"</string>
 </resources>
