@@ -175,6 +175,7 @@ public class CallsManager extends Call.ListenerBase
     private final CallerInfoAsyncQueryFactory mCallerInfoAsyncQueryFactory;
     private final PhoneAccountRegistrar mPhoneAccountRegistrar;
     private final MissedCallNotifier mMissedCallNotifier;
+    private final CallerInfoLookupHelper mCallerInfoLookupHelper;
     private final Set<Call> mLocallyDisconnectingCalls = new HashSet<>();
     private final Set<Call> mPendingCallsToDisconnect = new HashSet<>();
     /* Handler tied to thread in which CallManager was initialized. */
@@ -211,6 +212,8 @@ public class CallsManager extends Call.ListenerBase
         mWiredHeadsetManager = wiredHeadsetManager;
         mBluetoothManager = bluetoothManager;
         mDockManager = new DockManager(context);
+        mCallerInfoLookupHelper = new CallerInfoLookupHelper(context, mCallerInfoAsyncQueryFactory,
+                mContactsAsyncHelper);
 
         mDtmfLocalTonePlayer = new DtmfLocalTonePlayer();
         CallAudioRouteStateMachine callAudioRouteStateMachine = new CallAudioRouteStateMachine(
@@ -284,6 +287,10 @@ public class CallsManager extends Call.ListenerBase
 
     public RespondViaSmsManager getRespondViaSmsManager() {
         return mRespondViaSmsManager;
+    }
+
+    public CallerInfoLookupHelper getCallerInfoLookupHelper() {
+        return mCallerInfoLookupHelper;
     }
 
     @Override
