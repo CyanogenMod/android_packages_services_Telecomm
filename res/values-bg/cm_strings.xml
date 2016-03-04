@@ -16,12 +16,14 @@
      limitations under the License.
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+  <!-- Blacklist preferences -->
   <string name="blacklist_title">Списък на блокираните контакти</string>
   <string name="blacklist_summary_disabled">Изключено</string>
   <string name="blacklist_summary">Няма да получавате входящи повиквания или съобщения от телефонните номера в списъка</string>
+  <!-- Blacklist notifications -->
   <string name="blacklist_call_notification">Блокирано обаждане от %s</string>
-  <string name="blacklist_call_notification_private_number">Блокиране на повикване от скрит номер</string>
-  <string name="blacklist_call_notification_unknown_number">Блокиране на повикване от непознат номер %s</string>
+  <string name="blacklist_call_notification_private_number">Блокирано повикване от скрит номер</string>
+  <string name="blacklist_call_notification_unknown_number">Блокирано повикване от непознат номер %s</string>
   <string name="blacklist_call_notification_multiple"><xliff:g id="count">%d </xliff:g> повиквания са били блокирани</string>
   <string name="blacklist_message_notification">Блокирано съобщение от %s</string>
   <string name="blacklist_message_notification_private_number">Блокирано съобщение от скрит номер</string>

@@ -16,9 +16,11 @@
      limitations under the License.
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+  <!-- Blacklist preferences -->
   <string name="blacklist_title">Λίστα αποκλεισμένων καλούντων</string>
   <string name="blacklist_summary_disabled">Απενεργοποιημένη</string>
   <string name="blacklist_summary">Δε θα λαμβάνετε εισερχόμενες κλήσεις ή μηνύματα από τηλεφωνικούς αριθμούς στη λίστα αποκλεισμένων καλούντων</string>
+  <!-- Blacklist notifications -->
   <string name="blacklist_call_notification">Απορρίφθηκε κλήση από %s</string>
   <string name="blacklist_call_notification_private_number">Απορρίφθηκε κλήση από απόρρητο αριθμό</string>
   <string name="blacklist_call_notification_unknown_number">Απορρίφθηκε κλήση από άγνωστο αριθμό %s</string>
