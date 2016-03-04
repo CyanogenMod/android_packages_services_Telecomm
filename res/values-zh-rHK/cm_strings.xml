@@ -16,8 +16,10 @@
      limitations under the License.
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+  <!-- Blacklist preferences -->
   <string name="blacklist_title">通話黑名單</string>
   <string name="blacklist_summary">您將不會收到來自通話黑名單上電話號碼的來電或短訊</string>
+  <!-- Blacklist notifications -->
   <string name="blacklist_call_notification">已封鎖來自 %s 的來電</string>
   <string name="blacklist_call_notification_private_number">已封鎖來自私人號碼的來電</string>
   <string name="blacklist_call_notification_unknown_number">已封鎖來自 %s 的不明號碼來電</string>

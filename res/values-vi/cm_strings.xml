@@ -16,9 +16,11 @@
      limitations under the License.
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+  <!-- Blacklist preferences -->
   <string name="blacklist_title">Danh sách người gọi đã bị chặn</string>
   <string name="blacklist_summary_disabled">Đã tắt</string>
   <string name="blacklist_summary">Bạn sẽ không nhận được cuộc gọi hoặc tin nhắn đến từ số điện thoại trong danh sách chặn người gọi</string>
+  <!-- Blacklist notifications -->
   <string name="blacklist_call_notification">Đã chặn một cuộc gọi từ %s</string>
   <string name="blacklist_call_notification_private_number">Đã chặn một cuộc gọi từ một số riêng tư</string>
   <string name="blacklist_call_notification_unknown_number">Đã chặn một cuộc gọi từ số không quen %s</string>

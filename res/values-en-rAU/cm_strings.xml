@@ -16,7 +16,9 @@
      limitations under the License.
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+  <!-- Blacklist preferences -->
   <string name="blacklist_summary_disabled">Disabled</string>
+  <!-- Blacklist notifications -->
   <string name="blacklist_call_notification">Blocked a call from %s</string>
   <string name="blacklist_call_notification_private_number">Blocked a call from a private number</string>
   <string name="blacklist_call_notification_unknown_number">Blocked a call from unknown number %s</string>
