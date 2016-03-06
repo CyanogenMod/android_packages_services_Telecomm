@@ -215,6 +215,19 @@ final class CallAudioManager extends CallsManagerListenerBase
     @Override
     public void onCallAdded(Call call) {
         Log.v(this, "onCallAdded");
+
+        // If this is the first incomingCall, get initial audioState and update audioState for the
+        // call.
+        boolean isOnlyCall = mCallsManager.getCalls().size() == 1;
+        if (isOnlyCall && call.isIncoming()) {
+            CallAudioState oldAudioState = mCallAudioState;
+            mCallAudioState = getInitialAudioState(call);
+            if (!oldAudioState.equals(mCallAudioState)) {
+                Log.i(this, "get initial audioState and update audioState for first incomingCall");
+                mCallsManager.onCallAudioStateChanged(oldAudioState, mCallAudioState);
+            }
+        }
+
         onCallUpdated(call);
 
         if (hasFocus() && getForegroundCall() == call) {
