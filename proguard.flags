@@ -6,3 +6,8 @@
 -keep class com.android.server.telecom.Log {
   *;
 }
+
+-keep public class cyanogenmod.app.StatusBarPanelCustomTile
+-keep public class cyanogenmod.app.CustomTile
+
+-dontwarn cyanogenmod.app.*
