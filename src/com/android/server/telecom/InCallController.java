@@ -32,7 +32,6 @@ import android.os.Looper;
 import android.os.RemoteException;
 import android.os.Trace;
 import android.os.UserHandle;
-import android.telecom.AudioState;
 import android.telecom.CallAudioState;
 import android.telecom.Connection;
 import android.telecom.DefaultDialerManager;
@@ -805,7 +804,10 @@ public final class InCallController extends CallsManagerListenerBase {
         android.telecom.Call.Details.CAPABILITY_SUPPORTS_DOWNGRADE_TO_VOICE_REMOTE,
 
         Connection.CAPABILITY_SUPPORTS_TRANSFER,
-        android.telecom.Call.Details.CAPABILITY_SUPPORTS_TRANSFER
+        android.telecom.Call.Details.CAPABILITY_SUPPORTS_TRANSFER,
+
+        Connection.CAPABILITY_CAN_SEND_RESPONSE_VIA_CONNECTION,
+        android.telecom.Call.Details.CAPABILITY_CAN_SEND_RESPONSE_VIA_CONNECTION
     };
 
     private static int convertConnectionToCallCapabilities(int connectionCapabilities) {

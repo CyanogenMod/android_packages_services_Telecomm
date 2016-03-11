@@ -16,6 +16,8 @@
 
 package com.android.server.telecom.ui;
 
+import android.content.ComponentName;
+import android.telecom.TelecomManager;
 import com.android.server.telecom.Call;
 import com.android.server.telecom.CallState;
 import com.android.server.telecom.CallerInfoAsyncQueryFactory;
@@ -66,6 +68,8 @@ import android.text.TextUtils;
 import android.text.format.DateUtils;
 import android.text.style.RelativeSizeSpan;
 
+import java.lang.Override;
+import java.lang.String;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -119,6 +123,7 @@ public class MissedCallNotifierImpl extends CallsManagerListenerBase implements 
     private boolean mNetworkConnected;
     private final List<MissedCallInfo> mMissedCalls =
             Collections.synchronizedList(new ArrayList<MissedCallInfo>());
+    private final ComponentName mNotificationComponent;
 
     public MissedCallNotifierImpl(Context context, CallInfoProvider callInfoProvider) {
         mContext = context;
@@ -126,6 +131,11 @@ public class MissedCallNotifierImpl extends CallsManagerListenerBase implements 
                 (NotificationManager) mContext.getSystemService(Context.NOTIFICATION_SERVICE);
         mCallInfoProvider = callInfoProvider;
         registerForNetwork();
+
+        final String notificationComponent = context.getString(R.string.notification_component);
+
+        mNotificationComponent = notificationComponent != null
+                ? ComponentName.unflattenFromString(notificationComponent) : null;
     }
 
 
@@ -247,6 +257,44 @@ public class MissedCallNotifierImpl extends CallsManagerListenerBase implements 
         cancelMissedCallNotification();
     }
 
+    /**
+     * Broadcasts missed call notification to custom component if set.
+     * @param number The phone number associated with the notification. null if
+     *               no call.
+     * @param count The number of calls associated with the notification.
+     * @return {@code true} if the broadcast was sent. {@code false} otherwise.
+     */
+    private boolean sendNotificationCustomComponent(Call call, int count) {
+        if (mNotificationComponent != null) {
+            Intent intent = new Intent();
+            intent.setFlags(Intent.FLAG_RECEIVER_FOREGROUND);
+            intent.setComponent(mNotificationComponent);
+            intent.setAction(TelecomManager.ACTION_SHOW_MISSED_CALLS_NOTIFICATION);
+            intent.putExtra(TelecomManager.EXTRA_NOTIFICATION_COUNT, count);
+            intent.putExtra(TelecomManager.EXTRA_NOTIFICATION_PHONE_NUMBER,
+                    call != null ? call.getPhoneNumber() : null);
+            intent.putExtra(TelecomManager.EXTRA_CLEAR_MISSED_CALLS_INTENT,
+                    createClearMissedCallsPendingIntent());
+
+
+            if (count == 1 && call != null) {
+                final Uri handleUri = call.getHandle();
+                String handle = handleUri == null ? null : handleUri.getSchemeSpecificPart();
+
+                if (!TextUtils.isEmpty(handle) && !TextUtils.equals(handle,
+                        mContext.getString(R.string.handle_restricted))) {
+                    intent.putExtra(TelecomManager.EXTRA_CALL_BACK_INTENT,
+                            createCallBackPendingIntent(handleUri));
+                }
+            }
+
+            mContext.sendBroadcast(intent);
+            return true;
+        }
+
+        return false;
+    }
+
     private void showMissedCallNotificationInternal(MissedCallInfo call) {
         // Create a public viewable version of the notification, suitable for display when sensitive
         // notification content is hidden.
@@ -366,6 +414,11 @@ public class MissedCallNotifierImpl extends CallsManagerListenerBase implements 
     private void cancelMissedCallNotification() {
         // Reset the list of missed calls
         mMissedCalls.clear();
+
+        if (sendNotificationCustomComponent(null, mMissedCalls.size())) {
+            return;
+        }
+
         long token = Binder.clearCallingIdentity();
         try {
             mNotificationManager.cancelAsUser(null, MISSED_CALL_NOTIFICATION_ID,

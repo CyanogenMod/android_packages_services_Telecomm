@@ -20,6 +20,9 @@
         coreApp="true"
         android:sharedUserId="android.uid.system">
 
+
+    <protected-broadcast android:name="android.intent.action.SHOW_MISSED_CALLS_NOTIFICATION" />
+
     <!-- Prevents the activity manager from delaying any activity-start
          requests by this package, including requests immediately after
          the user presses "home". -->

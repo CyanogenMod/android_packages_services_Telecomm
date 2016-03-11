@@ -37,7 +37,7 @@
     <string name="respond_via_sms_edittext_dialog_title" msgid="20379890418289778">"ຕອບກັບດ່ວນ"</string>
     <string name="respond_via_sms_confirmation_format" msgid="7229149977515784269">"ສົ່ງຂໍ້ຄວາມຫາ <xliff:g id="PHONE_NUMBER">%s</xliff:g> ແລ້ວ."</string>
     <string name="enable_account_preference_title" msgid="2021848090086481720">"ບັນ​ຊີ​ໂທ"</string>
-    <string name="outgoing_call_not_allowed_user_restriction" msgid="8504993498756056279">"ພຽງ​ແຕ່​ການ​ໂທ​ສຸກ​ເສີນ​ທີ່​ໄດ້​ຮັບ​ອະ​ນຸ​ຍາດ​ຈາກ​ເຈົ້າ​ຂອງ​ອຸ​ປະ​ກອນ​ເທົ່າ​ນັ້ນ."</string>
+    <string name="outgoing_call_not_allowed_user_restriction" msgid="6872406278300131364">"ອະນຸຍາດໃຫ້ໂທສຸກເສີນເທົ່ານັ້ນ."</string>
     <string name="outgoing_call_not_allowed_no_permission" msgid="1996571596464271228">"ແອັບ​ພ​ລິ​ເຄ​ຊັນ​ນີ້​ບໍ່​ສາ​ມາດ​ໂທ​ອອກ​ໄດ້ ໂດຍ​ບໍ່​ມີ​ການ​ອະ​ນຸ​ຍາດ​ຂອງ​ໂທ​ລະ​ສັບ."</string>
     <string name="outgoing_call_error_no_phone_number_supplied" msgid="1940125199802007505">"ເພື່ອ​ທີ່​ຈະ​ໂທ, ປ້ອນ​ເບີ​ໂທ​ທີ່​ໃຊ້​ໄດ້​ເຂົ້າ​ໄປ."</string>
     <string name="duplicate_video_call_not_allowed" msgid="3749211605014548386">"​ບໍ່​ສາ​ມາດ​ເພີ່ມ​ການ​ໂທ​ໄດ້​ໃນ​ເວ​ລາ​ນີ້."</string>

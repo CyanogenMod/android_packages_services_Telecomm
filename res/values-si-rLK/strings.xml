@@ -37,7 +37,7 @@
     <string name="respond_via_sms_edittext_dialog_title" msgid="20379890418289778">"ක්ෂණික ප්‍රතිචාරය"</string>
     <string name="respond_via_sms_confirmation_format" msgid="7229149977515784269">"<xliff:g id="PHONE_NUMBER">%s</xliff:g> හට පණිවිඩය යවන්න."</string>
     <string name="enable_account_preference_title" msgid="2021848090086481720">"ඇමතීමේ ගිණුම්"</string>
-    <string name="outgoing_call_not_allowed_user_restriction" msgid="8504993498756056279">"උපාංගයේ හිමිකරු හදිසි ඇමතුම්වලට පමණක් ඉඩ දෙයි."</string>
+    <string name="outgoing_call_not_allowed_user_restriction" msgid="6872406278300131364">"හදිසි ඇමතුම්වලට පමණක් ඉඩ දේ."</string>
     <string name="outgoing_call_not_allowed_no_permission" msgid="1996571596464271228">"දුරකථන අවසරයෙන් තොරව මෙම යෙදුමට පිටතට යන ඇමතුම් සිදු කළ නොහැකිය."</string>
     <string name="outgoing_call_error_no_phone_number_supplied" msgid="1940125199802007505">"ඇමතුමක් ලබාගැනීමට, වලංගු අංකයක් ලබාගන්න."</string>
     <string name="duplicate_video_call_not_allowed" msgid="3749211605014548386">"මේ වේලාවේ ඇමතුම එකතු කළ නොහැක."</string>

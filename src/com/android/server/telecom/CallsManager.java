@@ -799,10 +799,25 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
                 || mDockManager.isDocked());
         call.setVideoState(videoState);
 
+        if (speakerphoneOn) {
+            Log.i(this, "%s Starting with speakerphone as requested", call);
+        } else {
+            Log.i(this, "%s Starting with speakerphone because car is docked.", call);
+        }
+
+        final boolean useSpeakerWhenDocked = mContext.getResources().getBoolean(
+                R.bool.use_speaker_when_docked);
+
+        call.setStartWithSpeakerphoneOn(speakerphoneOn
+                || (useSpeakerWhenDocked && mDockManager.isDocked()));
+
         if (call.isEmergencyCall()) {
             // Emergency -- CreateConnectionProcessor will choose accounts automatically
             call.setTargetPhoneAccount(null);
         }
+
+        final boolean requireCallCapableAccountByHandle = mContext.getResources().getBoolean(
+                com.android.internal.R.bool.config_requireCallCapableAccountForHandle);
 
         if (call.getTargetPhoneAccount() != null || call.isEmergencyCall()) {
             if (!call.isEmergencyCall()) {
@@ -811,6 +826,13 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
             // If the account has been set, proceed to place the outgoing call.
             // Otherwise the connection will be initiated when the account is set by the user.
             call.startCreateConnection(mPhoneAccountRegistrar);
+        } else if (mPhoneAccountRegistrar.getCallCapablePhoneAccounts(
+                requireCallCapableAccountByHandle ? call.getHandle().getScheme() : null, false)
+                .isEmpty()) {
+            // If there are no call capable accounts, disconnect the call.
+            markCallAsDisconnected(call, new DisconnectCause(DisconnectCause.CANCELED,
+                    "No registered PhoneAccounts"));
+            markCallAsRemoved(call);
         }
     }
 

@@ -98,4 +98,13 @@ public final class Timeouts {
         return get(contentResolver, "call_remove_unbind_in_call_services_delay",
                 2000L /* 2 seconds */);
     }
+
+    /**
+     * Returns the amount of time for which bluetooth is considered connected after requesting
+     * connection. This compensates for the amount of time it takes for the audio route to
+     * actually change to bluetooth.
+     */
+    public static long getBluetoothPendingTimeoutMillis(ContentResolver contentResolver) {
+        return get(contentResolver, "bluetooth_pending_timeout_millis", 5000L);
+    }
 }

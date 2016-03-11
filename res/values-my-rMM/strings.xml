@@ -37,7 +37,7 @@
     <string name="respond_via_sms_edittext_dialog_title" msgid="20379890418289778">"အမြန်တုံ့ပြန်ချက်"</string>
     <string name="respond_via_sms_confirmation_format" msgid="7229149977515784269">"<xliff:g id="PHONE_NUMBER">%s</xliff:g> ထံ စာတိုပို့လိုက်ပါပြီ"</string>
     <string name="enable_account_preference_title" msgid="2021848090086481720">"ခေါ်ဆိုသော အကောင့်များ"</string>
-    <string name="outgoing_call_not_allowed_user_restriction" msgid="8504993498756056279">"အရေးပေါ်ဖုန်းများကိုသာ ခေါ်ဆိုနိုင်ရန် စက်ကိရိယာပိုင်ရှင်က ခွင့်ပြုထားသည်။"</string>
+    <string name="outgoing_call_not_allowed_user_restriction" msgid="6872406278300131364">"အရေးပေါ်ခေါ်ဆိုမှုများသာ ခွင့်ပြုပါသည်။"</string>
     <string name="outgoing_call_not_allowed_no_permission" msgid="1996571596464271228">"ဤအပ္ပလီကေးရှင်းသည် ဖုန်းခွင့်ပြုချက်မရှိဘဲ အထွက်ခေါ်ဆိုမှု ပြုလုပ်၍မရပါ။"</string>
     <string name="outgoing_call_error_no_phone_number_supplied" msgid="1940125199802007505">"ဖုန်းခေါ်ရန်အတွက်၊ သင့်လျော်သည့်နံပါတ် ရိုက်ထည့်ပါ။"</string>
     <string name="duplicate_video_call_not_allowed" msgid="3749211605014548386">"ဗွီဒီယိုခေါ်နေစဉ် ထပ်ခေါ်မရပါ။"</string>
