@@ -40,6 +40,7 @@ import android.telecom.ParcelableConnection;
 import android.telecom.PhoneAccountHandle;
 import android.telecom.StatusHints;
 
+import java.lang.Override;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -107,7 +108,13 @@ public class ConnectionServiceFixture implements TestFixture<IConnectionService>
         public void reject(String callId) throws RemoteException { }
 
         @Override
+        public void rejectWithMessage(String callId, String message) throws RemoteException { }
+
+        @Override
         public void disconnect(String callId) throws RemoteException { }
+
+        @Override
+        public void silence(String callId) throws RemoteException { }
 
         @Override
         public void hold(String callId) throws RemoteException { }

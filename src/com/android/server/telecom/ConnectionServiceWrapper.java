@@ -764,6 +764,18 @@ final class ConnectionServiceWrapper extends ServiceBinder {
         removeCall(call, new DisconnectCause(DisconnectCause.LOCAL));
     }
 
+    /** @see IConnectionService#silence(String) */
+    void silence(Call call) {
+        final String callId = mCallIdMapper.getCallId(call);
+        if (callId != null && isServiceValid("silence")) {
+            try {
+                logOutgoing("silence %s", callId);
+                mServiceInterface.silence(callId);
+            } catch (RemoteException e) {
+            }
+        }
+    }
+
     /** @see IConnectionService#hold(String) */
     void hold(Call call) {
         final String callId = mCallIdMapper.getCallId(call);
@@ -829,12 +841,18 @@ final class ConnectionServiceWrapper extends ServiceBinder {
     }
 
     /** @see IConnectionService#reject(String) */
-    void reject(Call call) {
+    void reject(Call call, boolean rejectWithMessage, String message) {
         final String callId = mCallIdMapper.getCallId(call);
         if (callId != null && isServiceValid("reject")) {
             try {
                 logOutgoing("reject %s", callId);
-                mServiceInterface.reject(callId);
+
+                if (rejectWithMessage && call.can(
+                        android.telecom.Call.Details.CAPABILITY_CAN_SEND_RESPONSE_VIA_CONNECTION)) {
+                    mServiceInterface.rejectWithMessage(callId, message);
+                } else {
+                    mServiceInterface.reject(callId);
+                }
             } catch (RemoteException e) {
             }
         }

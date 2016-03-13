@@ -37,7 +37,7 @@
     <string name="respond_via_sms_edittext_dialog_title" msgid="20379890418289778">"Mabilisang tugon"</string>
     <string name="respond_via_sms_confirmation_format" msgid="7229149977515784269">"Naipadala ang mensahe sa <xliff:g id="PHONE_NUMBER">%s</xliff:g>."</string>
     <string name="enable_account_preference_title" msgid="2021848090086481720">"Account sa pagtawag"</string>
-    <string name="outgoing_call_not_allowed_user_restriction" msgid="8504993498756056279">"Mga pang-emergency na tawag lang ang pinapayagan ng may-ari ng device."</string>
+    <string name="outgoing_call_not_allowed_user_restriction" msgid="6872406278300131364">"Ang mga pang-emergency na tawag lang ang pinapayagan."</string>
     <string name="outgoing_call_not_allowed_no_permission" msgid="1996571596464271228">"Hindi makakapagsagawa ng mga papalabas na tawag ang application na ito nang wala ang pahintulot ng Telepono."</string>
     <string name="outgoing_call_error_no_phone_number_supplied" msgid="1940125199802007505">"Upang tumawag, maglagay ng wastong numero."</string>
     <string name="duplicate_video_call_not_allowed" msgid="3749211605014548386">"Hindi maidadagdag ang tawag sa oras na ito."</string>

@@ -37,7 +37,7 @@
     <string name="respond_via_sms_edittext_dialog_title" msgid="20379890418289778">"Шуурхай хариу"</string>
     <string name="respond_via_sms_confirmation_format" msgid="7229149977515784269">"Зурвасыг <xliff:g id="PHONE_NUMBER">%s</xliff:g> руу илгээв."</string>
     <string name="enable_account_preference_title" msgid="2021848090086481720">"Дуудлагын эрхтэй бүртгэлүүд"</string>
-    <string name="outgoing_call_not_allowed_user_restriction" msgid="8504993498756056279">"Энэхүү төхөөрөмжийн эзэмшигч нь зөвхөн түргэн тусламжийн дуудлага хийх боломжтой болгосон."</string>
+    <string name="outgoing_call_not_allowed_user_restriction" msgid="6872406278300131364">"Зөвхөн яаралтай тусламжийн дуудлага хийх боломжтой."</string>
     <string name="outgoing_call_not_allowed_no_permission" msgid="1996571596464271228">"Энэ апп нь утасны зөвшөөрөлгүйгээр дуудлага хийх боломжгүй."</string>
     <string name="outgoing_call_error_no_phone_number_supplied" msgid="1940125199802007505">"Дуудлага хийхийн тулд хүчин төгөлдөр дугаар оруулна уу."</string>
     <string name="duplicate_video_call_not_allowed" msgid="3749211605014548386">"Одоо дуудлага нэмэх боломжгүй."</string>

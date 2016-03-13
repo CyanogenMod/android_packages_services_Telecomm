@@ -37,7 +37,7 @@
     <string name="respond_via_sms_edittext_dialog_title" msgid="20379890418289778">"ઝડપી પ્રતિસાદ"</string>
     <string name="respond_via_sms_confirmation_format" msgid="7229149977515784269">"<xliff:g id="PHONE_NUMBER">%s</xliff:g> પર સંદેશ મોકલ્યો."</string>
     <string name="enable_account_preference_title" msgid="2021848090086481720">"કૉલિંગ એકાઉન્ટ્સ"</string>
-    <string name="outgoing_call_not_allowed_user_restriction" msgid="8504993498756056279">"ઉપકરણના માલિક દ્વારા ફક્ત કટોકટીના કૉલ્સને મંજૂરી અપાયેલ છે."</string>
+    <string name="outgoing_call_not_allowed_user_restriction" msgid="6872406278300131364">"ફક્ત કટોકટીના કૉલ્સને મંજૂરી છે."</string>
     <string name="outgoing_call_not_allowed_no_permission" msgid="1996571596464271228">"ફોન પરવાનગી વિના આ એપ્લિકેશન આઉટગોઇંગ કૉલ્સ કરી શકતી નથી."</string>
     <string name="outgoing_call_error_no_phone_number_supplied" msgid="1940125199802007505">"કૉલ કરવા માટે, માન્ય નંબર દાખલ કરો."</string>
     <string name="duplicate_video_call_not_allowed" msgid="3749211605014548386">"આ સમયે કૉલ ઉમેરી શકાતો નથી."</string>

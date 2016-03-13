@@ -37,7 +37,7 @@
     <string name="respond_via_sms_edittext_dialog_title" msgid="20379890418289778">"Izimpendulo ezisheshayo"</string>
     <string name="respond_via_sms_confirmation_format" msgid="7229149977515784269">"Umlayezo othunyelwe ku <xliff:g id="PHONE_NUMBER">%s</xliff:g>."</string>
     <string name="enable_account_preference_title" msgid="2021848090086481720">"Ama-akhawunti wokushaya"</string>
-    <string name="outgoing_call_not_allowed_user_restriction" msgid="8504993498756056279">"Amakholi aphuthumayo kuphela avunyelwe ngumnikazi wedivayisi."</string>
+    <string name="outgoing_call_not_allowed_user_restriction" msgid="6872406278300131364">"Amakholi aphuthumayo kuphela avunyelwe."</string>
     <string name="outgoing_call_not_allowed_no_permission" msgid="1996571596464271228">"Lolu hlelo lokusebenza alikwazi ukwenza amakhli aphumayo ngaphandle kwemvume yefoni."</string>
     <string name="outgoing_call_error_no_phone_number_supplied" msgid="1940125199802007505">"Ukuze wenze ikholi, faka inombolo evumelekile."</string>
     <string name="duplicate_video_call_not_allowed" msgid="3749211605014548386">"Ikholi ayikwazi ukungezwa ngalesi sikhathi."</string>

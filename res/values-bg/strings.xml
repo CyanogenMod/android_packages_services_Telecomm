@@ -37,7 +37,7 @@
     <string name="respond_via_sms_edittext_dialog_title" msgid="20379890418289778">"Бърз отговор"</string>
     <string name="respond_via_sms_confirmation_format" msgid="7229149977515784269">"До <xliff:g id="PHONE_NUMBER">%s</xliff:g> бе изпратено съобщение."</string>
     <string name="enable_account_preference_title" msgid="2021848090086481720">"Профили за обаждане"</string>
-    <string name="outgoing_call_not_allowed_user_restriction" msgid="8504993498756056279">"Собственикът на устройството разрешава само спешни обаждания."</string>
+    <string name="outgoing_call_not_allowed_user_restriction" msgid="6872406278300131364">"Разрешени са само спешни обаждания."</string>
     <string name="outgoing_call_not_allowed_no_permission" msgid="1996571596464271228">"Това приложение не може да извършва изходящи обаждания без разрешението за телефон."</string>
     <string name="outgoing_call_error_no_phone_number_supplied" msgid="1940125199802007505">"За да извършите обаждане, въведете валиден номер."</string>
     <string name="duplicate_video_call_not_allowed" msgid="3749211605014548386">"Понастоящем обаждането не може да бъде добавено."</string>

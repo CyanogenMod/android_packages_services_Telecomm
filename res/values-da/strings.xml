@@ -17,7 +17,7 @@
 <resources xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
     <string name="telecommAppLabel" product="default" msgid="9166784827254469057">"Opkaldsstyring"</string>
-    <string name="userCallActivityLabel" product="default" msgid="5415173590855187131">"Telefon"</string>
+    <string name="userCallActivityLabel" product="default" msgid="5415173590855187131">"Opkald"</string>
     <string name="unknown" msgid="6878797917991465859">"Ukendt"</string>
     <string name="notification_missedCallTitle" msgid="7554385905572364535">"Ubesvarede opkald"</string>
     <string name="notification_missedCallsTitle" msgid="1361677948941502522">"Ubesvarede opkald"</string>
@@ -37,7 +37,7 @@
     <string name="respond_via_sms_edittext_dialog_title" msgid="20379890418289778">"Hurtigt svar"</string>
     <string name="respond_via_sms_confirmation_format" msgid="7229149977515784269">"Meddelelsen er sendt til <xliff:g id="PHONE_NUMBER">%s</xliff:g>."</string>
     <string name="enable_account_preference_title" msgid="2021848090086481720">"Opkaldskonti"</string>
-    <string name="outgoing_call_not_allowed_user_restriction" msgid="8504993498756056279">"Enhedens ejer tillader kun nødopkald."</string>
+    <string name="outgoing_call_not_allowed_user_restriction" msgid="6872406278300131364">"Kun nødopkald er tilladt."</string>
     <string name="outgoing_call_not_allowed_no_permission" msgid="1996571596464271228">"Denne app kan ikke foretage udgående opkald uden opkaldstilladelse."</string>
     <string name="outgoing_call_error_no_phone_number_supplied" msgid="1940125199802007505">"Indtast et gyldigt nummer for at foretage et opkald."</string>
     <string name="duplicate_video_call_not_allowed" msgid="3749211605014548386">"Opkaldet kan ikke tilføjes på nuværende tidspunkt."</string>

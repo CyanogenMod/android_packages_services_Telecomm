@@ -83,6 +83,7 @@ public class Log {
         public static final String MUTE = "MUTE";
         public static final String AUDIO_ROUTE = "AUDIO_ROUTE";
         public static final String ERROR_LOG = "ERROR";
+        public static final String SILENCE = "SILENCE";
 
         /**
          * Maps from a request to a response.  The same event could be listed as the

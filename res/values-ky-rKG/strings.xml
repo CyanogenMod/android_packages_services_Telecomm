@@ -37,7 +37,7 @@
     <string name="respond_via_sms_edittext_dialog_title" msgid="20379890418289778">"Тез жооп"</string>
     <string name="respond_via_sms_confirmation_format" msgid="7229149977515784269">"<xliff:g id="PHONE_NUMBER">%s</xliff:g> номуруна билдирүү жөнөтүлдү."</string>
     <string name="enable_account_preference_title" msgid="2021848090086481720">"Чалуу каттоо эсептери"</string>
-    <string name="outgoing_call_not_allowed_user_restriction" msgid="8504993498756056279">"Түзмөк ээси шашылыш кырдаалдарда чалууга гана уруксат берген"</string>
+    <string name="outgoing_call_not_allowed_user_restriction" msgid="6872406278300131364">"Шашылыш чалууларга гана уруксат берилген."</string>
     <string name="outgoing_call_not_allowed_no_permission" msgid="1996571596464271228">"Бул колдонмо тийиштүү уруксатсыз чалууларды жасай албайт."</string>
     <string name="outgoing_call_error_no_phone_number_supplied" msgid="1940125199802007505">"Чалуу үчүн, жарактуу номер киргизиңиз."</string>
     <string name="duplicate_video_call_not_allowed" msgid="3749211605014548386">"Бул жолу чалууну кошуу мүмкүн эмес."</string>
