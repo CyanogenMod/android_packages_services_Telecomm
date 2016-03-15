@@ -184,10 +184,7 @@ public class CallAudioManager extends CallsManagerListenerBase {
             }
         }
 
-        if (mRingingCalls.size() == 0) {
-            mRinger.stopRinging();
-            mRinger.stopCallWaiting();
-        }
+        maybeStopRingingAndCallWaitingForAnsweredOrRejectedCall(call);
     }
 
     @Override
@@ -248,13 +245,7 @@ public class CallAudioManager extends CallsManagerListenerBase {
 
     @Override
     public void onIncomingCallRejected(Call call, boolean rejectWithMessage, String message) {
-        // This gets called after the UI rejects a call but before the CS processes the rejection.
-        // Will get called before the state change from ringing to not ringing.
-
-        if (mRingingCalls.size() == 0 || call == mRingingCalls.iterator().next()) {
-            mRinger.stopRinging();
-            mRinger.stopCallWaiting();
-        }
+        maybeStopRingingAndCallWaitingForAnsweredOrRejectedCall(call);
     }
 
     @Override
@@ -621,6 +612,16 @@ public class CallAudioManager extends CallsManagerListenerBase {
     private void dumpCallsInCollection(IndentingPrintWriter pw, Collection<Call> calls) {
         for (Call call : calls) {
             if (call != null) pw.println(call.getId());
+        }
+    }
+
+    private void maybeStopRingingAndCallWaitingForAnsweredOrRejectedCall(Call call) {
+        // Check to see if the call being answered/rejected is the only ringing call, since this
+        // will be called before the connection service acknowledges the state change.
+        if (mRingingCalls.size() == 0 ||
+                (mRingingCalls.size() == 1 && call == mRingingCalls.iterator().next())) {
+            mRinger.stopRinging();
+            mRinger.stopCallWaiting();
         }
     }
 }
