@@ -31,6 +31,7 @@ import android.telecom.TelecomManager;
 import android.telephony.PhoneNumberUtils;
 import android.telephony.TelephonyManager;
 
+import com.android.server.telecom.BluetoothAdapterProxy;
 import com.android.server.telecom.BluetoothHeadsetProxy;
 import com.android.server.telecom.BluetoothPhoneServiceImpl;
 import com.android.server.telecom.Call;
@@ -107,7 +108,7 @@ public class BluetoothPhoneServiceTest extends TelecomTestCase {
         doReturn(null).when(mMockCallsManager).getOutgoingCall();
         doReturn(0).when(mMockCallsManager).getNumHeldCalls();
         mBluetoothPhoneService = new BluetoothPhoneServiceImpl(mContext, mLock, mMockCallsManager,
-                mMockPhoneAccountRegistrar);
+                mock(BluetoothAdapterProxy.class), mMockPhoneAccountRegistrar);
 
         // Bring in test Bluetooth Headset
         mBluetoothPhoneService.setBluetoothHeadset(mMockBluetoothHeadset);
