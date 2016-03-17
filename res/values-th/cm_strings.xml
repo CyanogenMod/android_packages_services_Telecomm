@@ -31,4 +31,5 @@
   <string name="blacklist_message_notification_multiple"><xliff:g id="count">%d</xliff:g> ข้อความถูกบล็อค</string>
   <string name="blacklist_notification_list_private">ส่วนตัว</string>
   <string name="unblock_number">ปลดการบล็อค</string>
+  <string name="unblock_contact">ปลดบล็อคผู้ติดต่อ</string>
 </resources>

@@ -31,4 +31,5 @@
   <string name="blacklist_message_notification_multiple"><xliff:g id="count">%d</xliff:g> ಸಂದೇಶಗಳನ್ನು ನಿರ್ಬಂಧಿಸಲಾಗಿದೆ</string>
   <string name="blacklist_notification_list_private">ಖಾಸಗಿ</string>
   <string name="unblock_number">ನಿರ್ಬಂಧ ತೆಗೆ</string>
+  <string name="unblock_contact">ಸಂಪರ್ಕ ಅನ್‌ಬ್ಲಾಕ್ ಮಾಡಿ</string>
 </resources>
