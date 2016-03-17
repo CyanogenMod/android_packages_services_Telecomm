@@ -32,4 +32,7 @@
   <string name="blacklist_notification_list_private">Скрит</string>
   <string name="unblock_number">Разблокирай</string>
   <string name="unblock_contact">Разблокиране на контакт</string>
+  <string name="call_waiting_dialog_title">Отговор %s</string>
+  <string name="call_waiting_dialog_hold_call">Постави текущия разговор на изчакване</string>
+  <string name="call_waiting_dialog_end_call">Прекратяване на текущия разговор</string>
 </resources>

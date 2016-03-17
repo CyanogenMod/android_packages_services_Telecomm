@@ -32,4 +32,7 @@
   <string name="blacklist_notification_list_private">Unterdrückte Nummer</string>
   <string name="unblock_number">Sperre aufheben</string>
   <string name="unblock_contact">Kontaktsperre aufheben</string>
+  <string name="call_waiting_dialog_title">%s annehmen</string>
+  <string name="call_waiting_dialog_hold_call">Aktuellen Anruf auf Halten legen</string>
+  <string name="call_waiting_dialog_end_call">Aktuellen Anruf beenden</string>
 </resources>

@@ -32,4 +32,7 @@
   <string name="blacklist_notification_list_private">Prywatne</string>
   <string name="unblock_number">Odblokuj</string>
   <string name="unblock_contact">Odblokuj kontakt</string>
+  <string name="call_waiting_dialog_title">Odbierz %s</string>
+  <string name="call_waiting_dialog_hold_call">Zawieś aktywne połączenie</string>
+  <string name="call_waiting_dialog_end_call">Zakończ aktywne połączenie</string>
 </resources>

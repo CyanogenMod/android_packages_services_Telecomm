@@ -32,4 +32,7 @@
   <string name="blacklist_notification_list_private">Rejtett szám</string>
   <string name="unblock_number">Eltávolítás</string>
   <string name="unblock_contact">Kapcsolat blokkolásának feloldása</string>
+  <string name="call_waiting_dialog_title">Válasz %s</string>
+  <string name="call_waiting_dialog_hold_call">Aktuális hívás tartásba</string>
+  <string name="call_waiting_dialog_end_call">Aktuális hívás befejezése</string>
 </resources>

@@ -32,4 +32,7 @@
   <string name="blacklist_notification_list_private">Privat</string>
   <string name="unblock_number">Desbloqueja</string>
   <string name="unblock_contact">Desbloqueja el contacte</string>
+  <string name="call_waiting_dialog_title">Respondre %s</string>
+  <string name="call_waiting_dialog_hold_call">Posa la trucada actual en espera</string>
+  <string name="call_waiting_dialog_end_call">Finalitza la trucada actual</string>
 </resources>
