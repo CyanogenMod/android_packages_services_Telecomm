@@ -307,6 +307,8 @@ public class BasicCallTests extends TelecomSystemTest {
 
         verify(mInCallServiceFixtureX.getTestDouble(), timeout(TEST_TIMEOUT))
                 .setInCallAdapter(any(IInCallAdapter.class));
+        verify(mInCallServiceFixtureY.getTestDouble(), timeout(TEST_TIMEOUT))
+                .setInCallAdapter(any(IInCallAdapter.class));
 
         assertEquals(0, mConnectionServiceFixtureA.mConnectionService.rejectedCallIds.size());
         assertEquals(0, mMissedCallNotifier.missedCallsNotified.size());
@@ -319,6 +321,8 @@ public class BasicCallTests extends TelecomSystemTest {
         });
 
         verify(mInCallServiceFixtureX.getTestDouble(), timeout(TEST_TIMEOUT))
+                .addCall(any(ParcelableCall.class));
+        verify(mInCallServiceFixtureY.getTestDouble(), timeout(TEST_TIMEOUT))
                 .addCall(any(ParcelableCall.class));
 
         disconnectCall(mInCallServiceFixtureX.mLatestCallId,
