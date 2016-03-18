@@ -20,14 +20,13 @@ import android.media.ToneGenerator;
 import android.telecom.Connection;
 import android.telecom.VideoProfile;
 
-import java.util.Collection;
-
 /**
  * Monitors events from CallsManager and plays in-call tones for events which require them, such as
  * different type of call disconnections (busy tone, congestion tone, etc).
  */
 public final class InCallToneMonitor extends CallsManagerListenerBase {
     private final InCallTonePlayer.Factory mPlayerFactory;
+    private InCallTonePlayer mHoldTonePlayer = null;
 
     private final CallsManager mCallsManager;
 
@@ -77,6 +76,9 @@ public final class InCallToneMonitor extends CallsManagerListenerBase {
             if (toneToPlay != InCallTonePlayer.TONE_INVALID) {
                 mPlayerFactory.createPlayer(toneToPlay).startTone();
             }
+        } else {
+            // If foreground call changes state, we may need to start or stop the hold tone.
+            maybePlayHoldTone();
         }
     }
 
@@ -110,5 +112,79 @@ public final class InCallToneMonitor extends CallsManagerListenerBase {
         if (isUpgradeRequest) {
             mPlayerFactory.createPlayer(InCallTonePlayer.TONE_VIDEO_UPGRADE).startTone();
         }
+    }
+
+    /**
+     * Play or stop a call hold tone for a call.  Triggered via
+     * {@link Connection#sendConnectionEvent(String)} when the
+     * {@link Connection#EVENT_ON_HOLD_TONE_START} event or
+     * {@link Connection#EVENT_ON_HOLD_TONE_STOP} event is passed through to the
+     *
+     * @param call The call which requested the hold tone.
+     */
+    @Override
+    public void onHoldToneRequested(Call call) {
+        maybePlayHoldTone();
+    }
+
+    @Override
+    public void onCallAdded(Call call) {
+        maybePlayHoldTone();
+    }
+
+    @Override
+    public void onCallRemoved(Call call) {
+        maybePlayHoldTone();
+    }
+
+    @Override
+    public void onForegroundCallChanged(Call oldForegroundCall, Call newForegroundCall) {
+        maybePlayHoldTone();
+    }
+
+    /**
+     * Determines if a hold tone should be played and then starts or stops it accordingly.
+     */
+    private void maybePlayHoldTone() {
+        if (shouldPlayHoldTone()) {
+            if (mHoldTonePlayer == null) {
+                mHoldTonePlayer = mPlayerFactory.createPlayer(InCallTonePlayer.TONE_CALL_WAITING);
+                mHoldTonePlayer.start();
+            }
+        } else {
+            if (mHoldTonePlayer != null) {
+                mHoldTonePlayer.stopTone();
+                mHoldTonePlayer = null;
+            }
+        }
+    }
+
+    /**
+     * Determines if a hold tone should be played.
+     * A hold tone should be played only if foreground call is equals with call which is
+     * remotely held.
+     *
+     * @return {@code true} if the the hold tone should be played, {@code false} otherwise.
+     */
+    private boolean shouldPlayHoldTone() {
+        Call foregroundCall = mCallsManager.getForegroundCall();
+        // If there is no foreground call, no hold tone should play.
+        if (foregroundCall == null) {
+            // Clean up mPlayHoldToneId
+            return false;
+        }
+
+        // If another call is ringing, no hold tone should play.
+        if (mCallsManager.hasRingingCall()) {
+            return false;
+        }
+
+        // If the foreground call isn't active, no hold tone should play. This might happen, for
+        // example, if the user puts a remotely held call on hold itself.
+        if (!foregroundCall.isActive()) {
+            return false;
+        }
+
+        return foregroundCall.isRemotelyHeld();
     }
 }

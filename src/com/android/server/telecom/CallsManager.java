@@ -82,6 +82,7 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
         void onVideoStateChanged(Call call);
         void onCanAddCallChanged(boolean canAddCall);
         void onSessionModifyRequestReceived(Call call, VideoProfile videoProfile);
+        void onHoldToneRequested(Call call);
     }
 
     private static final String TAG = "CallsManager";
@@ -412,6 +413,21 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
 
         for (CallsManagerListener listener : mListeners) {
             listener.onSessionModifyRequestReceived(call, videoProfile);
+        }
+    }
+
+    /**
+     * Play or stop a call hold tone for a call.  Triggered via
+     * {@link Connection#sendConnectionEvent(String)} when the
+     * {@link Connection#EVENT_ON_HOLD_TONE_START} event or
+     * {@link Connection#EVENT_ON_HOLD_TONE_STOP} event is passed through to the
+     *
+     * @param call The call which requested the hold tone.
+     */
+    @Override
+    public void onHoldToneRequested(Call call) {
+        for (CallsManagerListener listener : mListeners) {
+            listener.onHoldToneRequested(call);
         }
     }
 

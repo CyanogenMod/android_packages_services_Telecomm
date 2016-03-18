@@ -588,6 +588,21 @@ final class ConnectionServiceWrapper extends ServiceBinder {
                 Binder.restoreCallingIdentity(token);
             }
         }
+
+        @Override
+        public void onConnectionEvent(String callId, String event) {
+            long token = Binder.clearCallingIdentity();
+            try {
+                synchronized (mLock) {
+                    Call call = mCallIdMapper.getCall(callId);
+                    if (call != null) {
+                        call.onConnectionEvent(event);
+                    }
+                }
+            } finally {
+                Binder.restoreCallingIdentity(token);
+            }
+        }
     }
 
     private final Adapter mAdapter = new Adapter();
