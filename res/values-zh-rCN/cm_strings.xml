@@ -32,4 +32,7 @@
   <string name="blacklist_notification_list_private">私人号码</string>
   <string name="unblock_number">取消阻止</string>
   <string name="unblock_contact">取消阻止联系人</string>
+  <string name="call_waiting_dialog_title">接听 %s</string>
+  <string name="call_waiting_dialog_hold_call">保留当前通话</string>
+  <string name="call_waiting_dialog_end_call">结束当前通话</string>
 </resources>

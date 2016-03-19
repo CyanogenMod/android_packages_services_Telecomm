@@ -30,6 +30,6 @@
   <string name="blacklist_message_notification_unknown_number">נחסמה הודעה ממספר לא ידוע %s</string>
   <string name="blacklist_message_notification_multiple"><xliff:g id="count">%d</xliff:g> הודעות נחסמו</string>
   <string name="blacklist_notification_list_private">חסוי</string>
-  <string name="unblock_number">הורד חסימה</string>
+  <string name="unblock_number">בטל חסימה</string>
   <string name="unblock_contact">בטל חסימת איש קשר</string>
 </resources>

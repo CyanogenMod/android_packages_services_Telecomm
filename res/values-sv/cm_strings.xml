@@ -32,4 +32,7 @@
   <string name="blacklist_notification_list_private">Privat</string>
   <string name="unblock_number">Häv blockering</string>
   <string name="unblock_contact">Avblockera kontakt</string>
+  <string name="call_waiting_dialog_title">Svara %s</string>
+  <string name="call_waiting_dialog_hold_call">Parkera pågående samtal</string>
+  <string name="call_waiting_dialog_end_call">Avsluta pågående samtal</string>
 </resources>

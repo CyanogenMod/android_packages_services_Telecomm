@@ -32,4 +32,7 @@
   <string name="blacklist_notification_list_private">Afgeschermd</string>
   <string name="unblock_number">Deblokkeren</string>
   <string name="unblock_contact">Contact deblokkeren</string>
+  <string name="call_waiting_dialog_title">%s beantwoorden</string>
+  <string name="call_waiting_dialog_hold_call">Huidige gesprek in de wacht zetten</string>
+  <string name="call_waiting_dialog_end_call">Huidige gesprek beëindigen</string>
 </resources>

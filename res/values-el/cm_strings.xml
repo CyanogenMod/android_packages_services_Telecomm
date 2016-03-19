@@ -32,4 +32,7 @@
   <string name="blacklist_notification_list_private">Απόρρητο</string>
   <string name="unblock_number">Ακύρωση φραγής</string>
   <string name="unblock_contact">Άρση αποκλεισμού επαφής</string>
+  <string name="call_waiting_dialog_title">Απάντηση %s</string>
+  <string name="call_waiting_dialog_hold_call">Βάλτε την τρέχουσα κλήση σε αναμονή</string>
+  <string name="call_waiting_dialog_end_call">Τερματισμός τρέχουσας κλήσης</string>
 </resources>
