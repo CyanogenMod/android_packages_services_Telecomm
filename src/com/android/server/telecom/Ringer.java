@@ -28,6 +28,8 @@ import android.os.SystemVibrator;
 import android.os.Vibrator;
 import android.provider.Settings;
 
+import android.text.TextUtils;
+import com.android.internal.telephony.PhoneFactory;
 import cyanogenmod.providers.CMSettings;
 
 import android.telephony.SubscriptionManager;
@@ -228,8 +230,16 @@ final class Ringer extends CallsManagerListenerBase {
                 // call (for the purposes of direct-to-voicemail), the information about custom
                 // ringtones should be available by the time this code executes. We can safely
                 // request the custom ringtone from the call and expect it to be current.
-                int phoneId = SubscriptionManager.getPhoneId(
-                        Integer.valueOf(foregroundCall.getTargetPhoneAccount().getId()));
+
+                String foregroundCallId = foregroundCall.getTargetPhoneAccount().getId();
+                int phoneId = PhoneFactory.getDefaultPhone().getPhoneId();
+                // Also make sure that the id passed into the call object is a valid digit
+                // before attempting to fetch the phone id from subscriptionmanager
+                // (CYNGNOS-2261)
+                if (TextUtils.isDigitsOnly(foregroundCallId)) {
+                    phoneId = SubscriptionManager.getPhoneId(Integer.valueOf(foregroundCallId));
+                }
+
                 mRingtonePlayer.setPhoneId(phoneId);
                 mRingtonePlayer.play(foregroundCall.getRingtone(), startVolume, rampUpTime);
             } else {
