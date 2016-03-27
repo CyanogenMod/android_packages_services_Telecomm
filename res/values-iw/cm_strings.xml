@@ -32,4 +32,7 @@
   <string name="blacklist_notification_list_private">חסוי</string>
   <string name="unblock_number">בטל חסימה</string>
   <string name="unblock_contact">בטל חסימת איש קשר</string>
+  <string name="call_waiting_dialog_title">לענות ל־%s</string>
+  <string name="call_waiting_dialog_hold_call">העברת שיחה נוכחית להמתנה</string>
+  <string name="call_waiting_dialog_end_call">סיים שיחה נוכחית</string>
 </resources>

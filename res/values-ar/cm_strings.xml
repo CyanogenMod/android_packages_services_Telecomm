@@ -31,4 +31,8 @@
   <string name="blacklist_message_notification_multiple">تم حظر <xliff:g id="count">%d</xliff:g> رسائل</string>
   <string name="blacklist_notification_list_private">خاص</string>
   <string name="unblock_number">إلغاء الحظر</string>
+  <string name="unblock_contact">إلغاء حظر جهة اتصال</string>
+  <string name="call_waiting_dialog_title">الإجابة %s</string>
+  <string name="call_waiting_dialog_hold_call">وضع المكالمة الحالية في الانتظار</string>
+  <string name="call_waiting_dialog_end_call">إنهاء المكالمة الحالية</string>
 </resources>

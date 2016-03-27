@@ -17,9 +17,9 @@
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
   <!-- Blacklist preferences -->
-  <string name="blacklist_title">Elenco chiamanti bloccati</string>
+  <string name="blacklist_title">Contatti bloccati</string>
   <string name="blacklist_summary_disabled">Disattivato</string>
-  <string name="blacklist_summary">Non riceverai nessuna chiamata o messaggio da numeri nella lista dei chiamanti bloccati</string>
+  <string name="blacklist_summary">Non riceverai nessuna chiamata o messaggio da numeri nella lista bloccati</string>
   <!-- Blacklist notifications -->
   <string name="blacklist_call_notification">Bloccata una chiamata dal %s</string>
   <string name="blacklist_call_notification_private_number">Bloccata una chiamata da un numero privato</string>
