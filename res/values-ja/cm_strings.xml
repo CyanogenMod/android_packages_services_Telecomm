@@ -32,4 +32,7 @@
   <string name="blacklist_notification_list_private">非通知</string>
   <string name="unblock_number">ブロック解除</string>
   <string name="unblock_contact">連絡先を拒否解除</string>
+  <string name="call_waiting_dialog_title">%sに応答</string>
+  <string name="call_waiting_dialog_hold_call">現在の通話を保留</string>
+  <string name="call_waiting_dialog_end_call">現在の通話を終了</string>
 </resources>
