@@ -31,4 +31,5 @@
   <string name="blacklist_message_notification_multiple"><xliff:g id="count">%d</xliff:g> meldinger ble blokkert</string>
   <string name="blacklist_notification_list_private">Privat</string>
   <string name="unblock_number">Opphev blokkering</string>
+  <string name="unblock_contact">Oppheve blokkering av kontakt</string>
 </resources>

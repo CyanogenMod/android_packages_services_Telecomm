@@ -32,4 +32,7 @@
   <string name="blacklist_notification_list_private">Приватно</string>
   <string name="unblock_number">Одблокирај</string>
   <string name="unblock_contact">Деблокирај контакт</string>
+  <string name="call_waiting_dialog_title">Одговори %s</string>
+  <string name="call_waiting_dialog_hold_call">Стави тренутни позив на чекање</string>
+  <string name="call_waiting_dialog_end_call">Заврши тренутни позив</string>
 </resources>

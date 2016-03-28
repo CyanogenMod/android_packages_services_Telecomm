@@ -32,4 +32,7 @@
   <string name="blacklist_notification_list_private">ส่วนตัว</string>
   <string name="unblock_number">ปลดการบล็อค</string>
   <string name="unblock_contact">ปลดบล็อคผู้ติดต่อ</string>
+  <string name="call_waiting_dialog_title">รับสาย %s</string>
+  <string name="call_waiting_dialog_hold_call">ให้ผู้โทรปัจจุบันรอสาย</string>
+  <string name="call_waiting_dialog_end_call">วางสายปัจจุบัน</string>
 </resources>

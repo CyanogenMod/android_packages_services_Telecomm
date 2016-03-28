@@ -31,4 +31,8 @@
   <string name="blacklist_message_notification_multiple"><xliff:g id="count">%d</xliff:g> mesaj engellendi</string>
   <string name="blacklist_notification_list_private">Özel</string>
   <string name="unblock_number">Engeli kaldır</string>
+  <string name="unblock_contact">Kişinin engelini kaldır</string>
+  <string name="call_waiting_dialog_title">%s Cevap ver</string>
+  <string name="call_waiting_dialog_hold_call">Mevcut aramayı beklemeye al</string>
+  <string name="call_waiting_dialog_end_call">Geçerli aramayı sonlandır</string>
 </resources>
