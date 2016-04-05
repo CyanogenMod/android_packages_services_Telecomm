@@ -25,6 +25,7 @@ import android.os.Message;
 import android.os.SystemProperties;
 import android.os.Trace;
 import android.provider.CallLog.Calls;
+import android.provider.Settings;
 import android.telecom.AudioState;
 import android.telecom.CallState;
 import android.telecom.Conference;
@@ -1187,6 +1188,13 @@ public final class CallsManager extends Call.ListenerBase {
      * Returns true if telecom supports adding another top-level call.
      */
     boolean canAddCall() {
+        boolean isDeviceProvisioned = Settings.Global.getInt(mContext.getContentResolver(),
+                Settings.Global.DEVICE_PROVISIONED, 0) != 0;
+        if (!isDeviceProvisioned) {
+            Log.d(TAG, "Device not provisioned, canAddCall is false.");
+            return false;
+        }
+
         if (getFirstCallWithState(OUTGOING_CALL_STATES) != null) {
             return false;
         }
