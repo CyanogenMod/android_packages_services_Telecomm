@@ -46,8 +46,4 @@
 
     <!-- DTMF key to be used for LCH hold tone -->
     <string name="Lch_dtmf_key" translatable="false">D</string>
-
-    <!-- Flag indicating if the speed up audio on mt call code should be executed -->
-    <bool name="config_speed_up_audio_on_mt_calls">false</bool>
-
 </resources>
