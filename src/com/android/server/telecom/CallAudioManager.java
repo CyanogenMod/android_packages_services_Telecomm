@@ -47,9 +47,6 @@ final class CallAudioManager extends CallsManagerListenerBase
     private boolean mIsTonePlaying;
     private boolean mWasSpeakerOn;
     private int mMostRecentlyUsedMode = AudioManager.MODE_IN_CALL;
-    private boolean mSpeedUpAudioForMtCall = false;
-    private Context mContext;
-    private String mSubId;
 
     CallAudioManager(Context context, StatusBarNotifier statusBarNotifier,
             WiredHeadsetManager wiredHeadsetManager) {
@@ -61,7 +58,6 @@ final class CallAudioManager extends CallsManagerListenerBase
 
         saveAudioState(getInitialAudioState(null));
         mAudioFocusStreamType = STREAM_NONE;
-        mContext = context;
     }
 
     AudioState getAudioState() {
@@ -113,21 +109,6 @@ final class CallAudioManager extends CallsManagerListenerBase
         }
 
         setSystemAudioState(false /* isMute */, route, mAudioState.getSupportedRouteMask());
-
-        if (mContext == null) {
-            Log.d(this, "Speedup Audio Path enhancement: Context is null");
-        } else if (mContext.getResources().getBoolean(
-                com.android.server.telecom.R.bool.config_speed_up_audio_on_mt_calls)) {
-            Log.d(this, "Speedup Audio Path enhancement");
-            mSpeedUpAudioForMtCall = true;
-            mSubId = call.getTargetPhoneAccount().getId();
-            if (mIsRinging) {
-                setIsRinging(false);
-            } else {
-                updateAudioStreamAndMode();
-                setInitialAudioState(call, true /* force */);
-            }
-        }
     }
 
     @Override
@@ -305,12 +286,7 @@ final class CallAudioManager extends CallsManagerListenerBase
     private void onCallUpdated(Call call) {
         boolean wasNotVoiceCall = mAudioFocusStreamType != AudioManager.STREAM_VOICE_CALL;
         updateAudioStreamAndMode();
-        if ((call != null) && (call.getState() == CallState.ACTIVE) &&
-                (call.getTargetPhoneAccount() != null) &&
-                call.getTargetPhoneAccount().getId().equals(mSubId) && mSpeedUpAudioForMtCall) {
-            Log.d(this,"Reset mSpeedUpAudioForMtCall");
-            mSpeedUpAudioForMtCall = false;
-        }
+
         // If we transition from not voice call to voice call, we need to set an initial state.
         if (wasNotVoiceCall && mAudioFocusStreamType == AudioManager.STREAM_VOICE_CALL) {
             setInitialAudioState(call, true /* force */);
@@ -384,8 +360,7 @@ final class CallAudioManager extends CallsManagerListenerBase
     private void updateAudioStreamAndMode() {
         Log.i(this, "updateAudioStreamAndMode, mIsRinging: %b, mIsTonePlaying: %b", mIsRinging,
                 mIsTonePlaying);
-        Log.v(this, "updateAudioStreamAndMode, mSpeedUpAudioForMtCall: %b", mSpeedUpAudioForMtCall);
-        if (mIsRinging && !mSpeedUpAudioForMtCall) {
+        if (mIsRinging) {
             requestAudioFocusAndSetMode(AudioManager.STREAM_RING, AudioManager.MODE_RINGTONE);
         } else {
             Call foregroundCall = getForegroundCall();
@@ -442,7 +417,6 @@ final class CallAudioManager extends CallsManagerListenerBase
             Log.v(this, "abandoning audio focus");
             mAudioManager.abandonAudioFocusForCall();
             mAudioFocusStreamType = STREAM_NONE;
-            mSpeedUpAudioForMtCall = false;
         }
     }
 
@@ -503,7 +477,6 @@ final class CallAudioManager extends CallsManagerListenerBase
                 setAudioParameters(call, newMode);
             }
             mAudioManager.setMode(newMode);
-            Log.d(this, "SetMode Done");
             mMostRecentlyUsedMode = newMode;
         }
     }
@@ -590,7 +563,7 @@ final class CallAudioManager extends CallsManagerListenerBase
 
         // We ignore any foreground call that is in the ringing state because we deal with ringing
         // calls exclusively through the mIsRinging variable set by {@link Ringer}.
-        if (call != null && call.getState() == CallState.RINGING && !mSpeedUpAudioForMtCall ) {
+        if (call != null && call.getState() == CallState.RINGING) {
             call = null;
         }
 
