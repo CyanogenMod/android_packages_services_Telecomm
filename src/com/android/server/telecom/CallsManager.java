@@ -243,6 +243,16 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
                 mLock, this, mContactsAsyncHelper, mCallerInfoAsyncQueryFactory);
     }
 
+    /**
+     * Refreshes the missed calls notification(s).
+     * @hide
+     */
+    public void refreshMissedCalls() {
+        mMissedCallNotifier.clearMissedCallNotifications();
+        mMissedCallNotifier.updateOnStartup(
+                mLock, this, mContactsAsyncHelper, mCallerInfoAsyncQueryFactory);
+    }
+
     public void setRespondViaSmsManager(RespondViaSmsManager respondViaSmsManager) {
         if (mRespondViaSmsManager != null) {
             mListeners.remove(mRespondViaSmsManager);
