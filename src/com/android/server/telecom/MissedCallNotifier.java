@@ -23,6 +23,8 @@ public interface MissedCallNotifier extends CallsManager.CallsManagerListener {
 
     void clearMissedCalls();
 
+    void clearMissedCallNotifications();
+
     void showMissedCallNotification(Call call);
 
     void updateOnStartup(
