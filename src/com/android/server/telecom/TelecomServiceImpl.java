@@ -1248,4 +1248,22 @@ public class TelecomServiceImpl {
     private TelephonyManager getTelephonyManager() {
         return (TelephonyManager)mContext.getSystemService(Context.TELEPHONY_SERVICE);
     }
+
+    /**
+     * Reposting is useful when the device configuration changes and we need to reload
+     * based on resources.
+     *
+     * @hide
+     */
+    public void repostMissedCallNotification(String callingPackage) {
+        synchronized (mLock) {
+            enforcePermissionOrPrivilegedDialer(MODIFY_PHONE_STATE, callingPackage);
+            long token = Binder.clearCallingIdentity();
+            try {
+                mCallsManager.refreshMissedCalls();
+            } finally {
+                Binder.restoreCallingIdentity(token);
+            }
+        }
+    }
 }
