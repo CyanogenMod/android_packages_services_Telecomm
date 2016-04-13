@@ -632,6 +632,8 @@ final class CallAudioManager extends CallsManagerListenerBase
     private void abandonAudioFocus() {
         if (hasFocus()) {
             setMode(AudioManager.MODE_NORMAL);
+            // Unmute after call is finished
+            mute(false);
             Log.v(this, "abandoning audio focus");
             mAudioManagerHandler.obtainMessage(MSG_AUDIO_MANAGER_ABANDON_AUDIO_FOCUS_FOR_CALL, 0, 0)
                     .sendToTarget();
