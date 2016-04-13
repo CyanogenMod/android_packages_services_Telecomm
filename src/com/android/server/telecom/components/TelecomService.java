@@ -20,7 +20,9 @@ import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
 import android.content.Context;
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.os.IBinder;
+import android.os.RemoteException;
 
 import com.android.internal.telephony.CallerInfoAsyncQuery;
 import com.android.server.telecom.CallerInfoAsyncQueryFactory;
@@ -35,6 +37,10 @@ import com.android.server.telecom.Log;
 import com.android.server.telecom.ProximitySensorManager;
 import com.android.server.telecom.TelecomSystem;
 import com.android.server.telecom.ui.MissedCallNotifierImpl;
+
+import java.util.Locale;
+
+import libcore.util.Objects;
 
 /**
  * Implementation of the ITelecom interface.
@@ -115,5 +121,19 @@ public class TelecomService extends Service implements TelecomSystem.Component {
     @Override
     public TelecomSystem getTelecomSystem() {
         return TelecomSystem.getInstance();
+    }
+
+    private Locale mLastLocale;
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        if (!Objects.equal(mLastLocale, newConfig.locale)) {
+            synchronized (getTelecomSystem().getLock()) {
+                getTelecomSystem().getTelecomServiceImpl()
+                        .repostMissedCallNotification(getPackageName());
+            }
+            mLastLocale = newConfig.locale;
+        }
     }
 }
