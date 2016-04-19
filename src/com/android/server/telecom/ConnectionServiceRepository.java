@@ -41,7 +41,9 @@ final class ConnectionServiceRepository {
                 @Override
                 public void onUnbind(ConnectionServiceWrapper service) {
                     synchronized (mLock) {
-                        mServiceCache.remove(service.getComponentName());
+                        Pair<ComponentName, UserHandle> cacheKey = Pair.create(
+                                service.getComponentName(), service.getUserHandle());
+                        mServiceCache.remove(cacheKey);
                     }
                 }
             };

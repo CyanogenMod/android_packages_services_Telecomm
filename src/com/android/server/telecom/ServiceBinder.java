@@ -167,7 +167,7 @@ abstract class ServiceBinder {
     private ServiceConnection mServiceConnection;
 
     /** {@link UserHandle} to use for binding, to support work profiles and multi-user. */
-    private UserHandle mUserHandle;
+    private final UserHandle mUserHandle;
 
     /** The binder provided by {@link ServiceConnection#onServiceConnected} */
     private IBinder mBinder;
@@ -251,6 +251,10 @@ abstract class ServiceBinder {
 
     final ComponentName getComponentName() {
         return mComponentName;
+    }
+
+    final UserHandle getUserHandle() {
+        return mUserHandle;
     }
 
     final boolean isServiceValid(String actionName) {
