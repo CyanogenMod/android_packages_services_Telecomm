@@ -16,9 +16,11 @@
      limitations under the License.
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+  <!-- Blacklist preferences -->
   <string name="blacklist_title">Чёрный список</string>
   <string name="blacklist_summary_disabled">Отключен</string>
   <string name="blacklist_summary">Вы не будете получать входящие вызовы или сообщения от телефонных номеров из черного списка</string>
+  <!-- Blacklist notifications -->
   <string name="blacklist_call_notification">Вызов от %s отклонён</string>
   <string name="blacklist_call_notification_private_number">Вызов со скрытого номера отклонён</string>
   <string name="blacklist_call_notification_unknown_number">Вызов с неизвестного номера (%s) отклонён</string>
@@ -29,5 +31,6 @@
   <string name="blacklist_message_notification_multiple">Заблокировано сообщений: <xliff:g id="count">%d</xliff:g></string>
   <string name="blacklist_notification_list_private">Скрытый номер</string>
   <string name="unblock_number">Разблокировать</string>
+  <!-- Message indicating video calls not allowed if user enabled TTY Mode -->
   <string name="video_call_not_allowed_if_tty_enabled">Отключите режим TTY для выполнения видеозвонков.</string>
 </resources>

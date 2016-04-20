@@ -16,9 +16,11 @@
      limitations under the License.
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+  <!-- Blacklist preferences -->
   <string name="blacklist_title">अवरुद्ध किए गए कॉलरों की सूची</string>
   <string name="blacklist_summary_disabled">अक्षम किया गया</string>
   <string name="blacklist_summary">आपको अवरुद्ध किए गए कॉलरों की सूची में मौजूद फ़ोन नंबरों से कॉल और संदेश नहीं आया करेंगे</string>
+  <!-- Blacklist notifications -->
   <string name="blacklist_call_notification">%s से अवरुद्ध किया गया कॉल</string>
   <string name="blacklist_call_notification_private_number">निजी नंबर से अवरुद्ध किया गया कॉल</string>
   <string name="blacklist_call_notification_unknown_number">अज्ञात नंबर %s से अवरुद्ध किया गया कॉल</string>
@@ -29,5 +31,6 @@
   <string name="blacklist_message_notification_multiple"><xliff:g id="count">%d</xliff:g> संदेश अवरुद्ध किए गए</string>
   <string name="blacklist_notification_list_private">निजी</string>
   <string name="unblock_number">अनवरुद्ध करें</string>
+  <!-- Message indicating video calls not allowed if user enabled TTY Mode -->
   <string name="video_call_not_allowed_if_tty_enabled">वीडियो कॉल करने के लिए कृपया टीटीवाई मोड को अक्षम करें।</string>
 </resources>
