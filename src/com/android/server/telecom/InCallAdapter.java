@@ -60,6 +60,27 @@ class InCallAdapter extends IInCallAdapter.Stub {
     }
 
     @Override
+    public void answerCallWithCallWaitingResponse(String callId, int videoState, int
+            callWaitingResponseType) {
+        long token = Binder.clearCallingIdentity();
+        try {
+            synchronized (mLock) {
+                Log.d(this, "answerCall(%s,%d)", callId, videoState);
+                if (mCallIdMapper.isValidCallId(callId)) {
+                    Call call = mCallIdMapper.getCall(callId);
+                    if (call != null) {
+                        mCallsManager.answerCall(call, videoState, callWaitingResponseType);
+                    } else {
+                        Log.w(this, "answerCall, unknown call id: %s", callId);
+                    }
+                }
+            }
+        } finally {
+            Binder.restoreCallingIdentity(token);
+        }
+    }
+
+    @Override
     public void rejectCall(String callId, boolean rejectWithMessage, String textMessage) {
         long token = Binder.clearCallingIdentity();
         try {
