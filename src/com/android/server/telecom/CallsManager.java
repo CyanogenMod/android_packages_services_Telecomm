@@ -893,6 +893,19 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
      * @param videoState The video state in which to answer the call.
      */
     void answerCall(final Call call, final int videoState) {
+        answerCall(call, videoState, TelecomManager.CALL_WAITING_RESPONSE_SHOW_POPUP);
+    }
+
+    /**
+     * Instructs Telecom to answer the specified call. Intended to be invoked by the in-call
+     * app through {@link InCallAdapter} after Telecom notifies it of an incoming call followed by
+     * the user opting to answer said call.
+     *
+     * @param call The call to answer.
+     * @param videoState The video state in which to answer the call.
+     * @param callWaitingResponseType Response type for call waiting.
+     */
+    void answerCall(final Call call, final int videoState, final int callWaitingResponseType) {
         if (!mCalls.contains(call)) {
             Log.i(this, "Request to answer a non-existent call %s", call);
         } else {
@@ -917,10 +930,19 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
                         public void run() {
                             CallWaitingListener listener = new CallWaitingListener(call,
                                     activeCall, videoState, CallsManager.this);
-                            Dialog dialog =
-                                    CallWaitingDialog.createCallWaitingDialog(mContext, call,
-                                            listener, listener);
-                            dialog.show();
+
+                            if (callWaitingResponseType ==
+                                    TelecomManager.CALL_WAITING_RESPONSE_NO_POPUP_END_CALL) {
+                                listener.handleEndCallAndAnswer();
+                            } else if (callWaitingResponseType ==
+                                    TelecomManager.CALL_WAITING_RESPONSE_NO_POPUP_HOLD_CALL){
+                                listener.handleHoldCallAndAnswer();
+                            } else {
+                                Dialog dialog =
+                                        CallWaitingDialog.createCallWaitingDialog(mContext, call,
+                                                listener, listener);
+                                dialog.show();
+                            }
                         }
                     });
                     return;
