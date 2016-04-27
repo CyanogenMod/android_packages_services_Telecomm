@@ -18,6 +18,7 @@ package com.android.server.telecom;
 
 import android.app.ActivityManagerNative;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.content.pm.UserInfo;
 import android.media.AudioManager;
 import android.media.IAudioService;
@@ -164,6 +165,7 @@ final class CallAudioManager extends CallsManagerListenerBase
     private boolean mIsRinging;
     private boolean mIsTonePlaying;
     private boolean mWasSpeakerOn;
+    private boolean mHasAudioOutput;
     private int mMostRecentlyUsedMode = AudioManager.MODE_IN_CALL;
     private Call mCallToSpeedUpMTAudio = null;
 
@@ -188,6 +190,9 @@ final class CallAudioManager extends CallsManagerListenerBase
 
         saveAudioState(getInitialAudioState(null));
         mAudioFocusStreamType = STREAM_NONE;
+
+        mHasAudioOutput = mContext.getPackageManager().hasSystemFeature(
+                PackageManager.FEATURE_AUDIO_OUTPUT);
     }
 
     CallAudioState getCallAudioState() {
@@ -653,6 +658,11 @@ final class CallAudioManager extends CallsManagerListenerBase
     }
 
     private int selectWiredOrEarpiece(int route, int supportedRouteMask) {
+        if (!mHasAudioOutput) {
+            // Device does not support audio output, do not default to SPEAKER and return 0.
+            return 0;
+        }
+
         // Since they are mutually exclusive and one is ALWAYS valid, we allow a special input of
         // ROUTE_WIRED_OR_EARPIECE so that callers dont have to make a call to check which is
         // supported before calling setAudioRoute.
@@ -672,6 +682,11 @@ final class CallAudioManager extends CallsManagerListenerBase
     }
 
     private int calculateSupportedRoutes(Call call) {
+        if (!mHasAudioOutput) {
+            // Device does not support audio output, no audio routes available.
+            return 0;
+        }
+
         // minRouteMask ORed with final result to ensure baseline route coverage.
         int minRouteMask = CallAudioState.ROUTE_SPEAKER;
 
