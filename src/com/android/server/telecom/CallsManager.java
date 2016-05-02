@@ -2505,10 +2505,13 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
                 heldCall.disconnect();
             }
 
-            Log.v(this, "Holding active/dialing call %s before answering incoming call %s.",
-                    mLocalCallsManager.mForegroundCall, mNewCall);
-
-            mActiveCall.hold();
+            // TODO: This active call reference can be nullified and discarded from another thread,
+            // Fix this by reworking the state machine surrounding calls within telecomm.
+            if (mActiveCall != null) {
+                Log.v(this, "Holding active/dialing call %s before answering incoming call %s.",
+                        mLocalCallsManager.mForegroundCall, mNewCall);
+                mActiveCall.hold();
+            }
             // TODO: Wait until we get confirmation of
             // the active call being
             // on-hold before answering the new call.
@@ -2520,10 +2523,13 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
         private void handleEndCallAndAnswer() {
             // We don't want to hold, just disconnect
 
-            Log.v(this, "Holding active/dialing call %s for termination before answering incoming call %s.",
-                    mLocalCallsManager.mForegroundCall, mNewCall);
-
-            mActiveCall.hold();
+            // TODO: This active call reference can be nullified and discarded from another thread,
+            // Fix this by reworking the state machine surrounding calls within telecomm.
+            if (mActiveCall != null) {
+                Log.v(this, "Holding active/dialing call %s for termination before answering incoming call %s.",
+                        mLocalCallsManager.mForegroundCall, mNewCall);
+                mActiveCall.hold();
+            }
             // TODO: Wait until we get confirmation of
             // the active call being
             // on-hold before answering the new call.
