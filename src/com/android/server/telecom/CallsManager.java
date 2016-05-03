@@ -179,6 +179,8 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
 
     private Runnable mStopTone;
 
+    private CallWaitingData mCallWaitingData = null;
+
     /**
      * Initializes the required Telecom components.
      */
@@ -925,8 +927,9 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
                     mHandler.post(new Runnable() {
                         @Override
                         public void run() {
-                            CallWaitingListener listener = new CallWaitingListener(call,
-                                    activeCall, videoState, CallsManager.this);
+                            mCallWaitingData = new CallWaitingData(call, activeCall, videoState);
+
+                            CallWaitingListener listener = new CallWaitingListener(mCallWaitingData, CallsManager.this);
                             Dialog dialog =
                                     CallWaitingDialog.createCallWaitingDialog(mContext, call,
                                             listener, listener);
@@ -936,6 +939,9 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
                     return;
                 }
             }
+
+            // If we get here, we're answering. Make sure there are no pending answers.
+            mCallWaitingData = null;
 
             for (CallsManagerListener listener : mListeners) {
                 listener.onIncomingCallAnswered(call);
@@ -1650,6 +1656,11 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
                     }
                 }
                 updateCallsManagerState();
+                // We have a pending answer after this call's state change
+                if (mCallWaitingData != null && mCallWaitingData.oldCall == call) {
+                    answerCall(mCallWaitingData.newCall, mCallWaitingData.videoState);
+                    mCallWaitingData = null;
+                }
             }
             Trace.endSection();
         }
@@ -2464,20 +2475,28 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
         return false;
     }
 
+    private static class CallWaitingData {
+        final Call newCall;
+        final Call oldCall;
+        final int videoState;
+
+        /* package */ CallWaitingData(Call incomingCall, Call activeCall, int newVideoState) {
+            newCall = incomingCall;
+            oldCall = activeCall;
+            videoState = newVideoState;
+        }
+    }
+
     private static class CallWaitingListener implements DialogInterface
             .OnClickListener {
 
-        private final Call mNewCall;
-        private final Call mActiveCall;
+        private final CallWaitingData mCallData;
         private final CallsManager mLocalCallsManager;
-        private final int mVideoState;
 
-        /* package */ CallWaitingListener(Call newCall, Call activeCall, int videoState,
+        /* package */ CallWaitingListener(CallWaitingData callData,
                 CallsManager callsManager) {
-            mNewCall = newCall;
-            mActiveCall = activeCall;
+            mCallData = callData;
             mLocalCallsManager = callsManager;
-            mVideoState = videoState;
         }
 
         @Override
@@ -2502,61 +2521,22 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
             if (heldCall != null) {
                 Log.v(this,
                         "Disconnecting held call %s before holding active call ", heldCall);
-                heldCall.disconnect();
+                mLocalCallsManager.disconnectCall(heldCall);
             }
 
-            // TODO: This active call reference can be nullified and discarded from another thread,
-            // Fix this by reworking the state machine surrounding calls within telecomm.
-            if (mActiveCall != null) {
-                Log.v(this, "Holding active/dialing call %s before answering incoming call %s.",
-                        mLocalCallsManager.mForegroundCall, mNewCall);
-                mActiveCall.hold();
-            }
-            // TODO: Wait until we get confirmation of
-            // the active call being
-            // on-hold before answering the new call.
-            // TODO: Import logic from
-            // CallManager.acceptCall()
-            updateListeners(false);
+            Log.v(this, "Holding active/dialing call %s before answering incoming call %s.",
+                    mLocalCallsManager.mForegroundCall, mCallData.newCall);
+            mLocalCallsManager.holdCall(mCallData.oldCall);
+            // Mark it to trigger the state change
+            mLocalCallsManager.markCallAsOnHold(mCallData.oldCall);
         }
 
         private void handleEndCallAndAnswer() {
             // We don't want to hold, just disconnect
 
-            // TODO: This active call reference can be nullified and discarded from another thread,
-            // Fix this by reworking the state machine surrounding calls within telecomm.
-            if (mActiveCall != null) {
-                Log.v(this, "Holding active/dialing call %s for termination before answering incoming call %s.",
-                        mLocalCallsManager.mForegroundCall, mNewCall);
-                mActiveCall.hold();
-            }
-            // TODO: Wait until we get confirmation of
-            // the active call being
-            // on-hold before answering the new call.
-            // TODO: Import logic from
-            // CallManager.acceptCall()
-            updateListeners(true);
-        }
-
-        private void updateListeners(boolean terminateActive) {
-            for (CallsManagerListener listener : mLocalCallsManager.mListeners) {
-                listener.onIncomingCallAnswered(mNewCall);
-            }
-            mLocalCallsManager.updateLchStatus(mNewCall.getTargetPhoneAccount().getId());
-            // We do not update the UI until we get
-            // confirmation of
-            // the answer() through
-            // {@link #markCallAsActive}.
-            mNewCall.answer(mVideoState);
-            if (terminateActive && mActiveCall != null) {
-                Log.v(this, "Terminating active call %s after answering incoming call %s.",
-                    mActiveCall, mNewCall);
-                mActiveCall.disconnect();
-            }
-
-            if (mLocalCallsManager.isSpeakerphoneAutoEnabled(mVideoState)) {
-                mNewCall.setStartWithSpeakerphoneOn(true);
-            }
+            Log.v(this, "Disconnecting active/dialing call %s before answering incoming call %s.",
+                    mLocalCallsManager.mForegroundCall, mCallData.newCall);
+            mLocalCallsManager.disconnectCall(mCallData.oldCall);
         }
 
     }
