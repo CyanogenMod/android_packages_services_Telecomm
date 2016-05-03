@@ -2505,13 +2505,9 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
                 heldCall.disconnect();
             }
 
-            // TODO: This active call reference can be nullified and discarded from another thread,
-            // Fix this by reworking the state machine surrounding calls within telecomm.
-            if (mActiveCall != null) {
-                Log.v(this, "Holding active/dialing call %s before answering incoming call %s.",
-                        mLocalCallsManager.mForegroundCall, mNewCall);
-                mActiveCall.hold();
-            }
+            Log.v(this, "Holding active/dialing call %s before answering incoming call %s.",
+                    mLocalCallsManager.mForegroundCall, mNewCall);
+            mLocalCallsManager.holdCall(mActiveCall);
             // TODO: Wait until we get confirmation of
             // the active call being
             // on-hold before answering the new call.
@@ -2521,15 +2517,9 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
         }
 
         private void handleEndCallAndAnswer() {
-            // We don't want to hold, just disconnect
-
-            // TODO: This active call reference can be nullified and discarded from another thread,
-            // Fix this by reworking the state machine surrounding calls within telecomm.
-            if (mActiveCall != null) {
-                Log.v(this, "Holding active/dialing call %s for termination before answering incoming call %s.",
-                        mLocalCallsManager.mForegroundCall, mNewCall);
-                mActiveCall.hold();
-            }
+            mLocalCallsManager.holdCall(mActiveCall);
+            Log.v(this, "Holding active/dialing call %s for termination before answering incoming call %s.",
+                    mLocalCallsManager.mForegroundCall, mNewCall);
             // TODO: Wait until we get confirmation of
             // the active call being
             // on-hold before answering the new call.
@@ -2539,6 +2529,12 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
         }
 
         private void updateListeners(boolean terminateActive) {
+            if (mNewCall == null) {
+                Log.v(this, "Unable to answer new call which may have been terminated " +
+                        "outside of this scope");
+                return;
+            }
+
             for (CallsManagerListener listener : mLocalCallsManager.mListeners) {
                 listener.onIncomingCallAnswered(mNewCall);
             }
@@ -2547,11 +2543,11 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
             // confirmation of
             // the answer() through
             // {@link #markCallAsActive}.
-            mNewCall.answer(mVideoState);
-            if (terminateActive && mActiveCall != null) {
+            mLocalCallsManager.answerCall(mNewCall, mVideoState);
+            if (terminateActive) {
                 Log.v(this, "Terminating active call %s after answering incoming call %s.",
                     mActiveCall, mNewCall);
-                mActiveCall.disconnect();
+                mLocalCallsManager.disconnectCall(mActiveCall);
             }
 
             if (mLocalCallsManager.isSpeakerphoneAutoEnabled(mVideoState)) {
