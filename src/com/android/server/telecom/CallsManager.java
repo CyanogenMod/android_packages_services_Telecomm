@@ -2511,13 +2511,13 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
                 Log.v(this, "Holding active/dialing call %s before answering incoming call %s.",
                         mLocalCallsManager.mForegroundCall, mNewCall);
                 mActiveCall.hold();
+                // TODO: Wait until we get confirmation of
+                // the active call being
+                // on-hold before answering the new call.
+                // TODO: Import logic from
+                // CallManager.acceptCall()
+                updateListeners(false);
             }
-            // TODO: Wait until we get confirmation of
-            // the active call being
-            // on-hold before answering the new call.
-            // TODO: Import logic from
-            // CallManager.acceptCall()
-            updateListeners(false);
         }
 
         private void handleEndCallAndAnswer() {
@@ -2529,16 +2529,22 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
                 Log.v(this, "Holding active/dialing call %s for termination before answering incoming call %s.",
                         mLocalCallsManager.mForegroundCall, mNewCall);
                 mActiveCall.hold();
+                // TODO: Wait until we get confirmation of
+                // the active call being
+                // on-hold before answering the new call.
+                // TODO: Import logic from
+                // CallManager.acceptCall()
+                updateListeners(true);
             }
-            // TODO: Wait until we get confirmation of
-            // the active call being
-            // on-hold before answering the new call.
-            // TODO: Import logic from
-            // CallManager.acceptCall()
-            updateListeners(true);
         }
 
         private void updateListeners(boolean terminateActive) {
+            if (mNewCall == null) {
+                Log.v(this, "Unable to answer new call which may have been terminated " +
+                        "outside of this scope");
+                return;
+            }
+
             for (CallsManagerListener listener : mLocalCallsManager.mListeners) {
                 listener.onIncomingCallAnswered(mNewCall);
             }
