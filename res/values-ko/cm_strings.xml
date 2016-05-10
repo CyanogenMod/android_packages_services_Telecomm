@@ -32,4 +32,7 @@
   <string name="blacklist_notification_list_private">비공개</string>
   <string name="unblock_number">차단 해제</string>
   <string name="unblock_contact">연락처 차단 해제</string>
+  <string name="call_waiting_dialog_title">%s 받기</string>
+  <string name="call_waiting_dialog_hold_call">현재 통화 대기</string>
+  <string name="call_waiting_dialog_end_call">현재 통화 종료</string>
 </resources>

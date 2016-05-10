@@ -33,6 +33,6 @@
   <string name="unblock_number">Buka blokir</string>
   <string name="unblock_contact">Buka kontak</string>
   <string name="call_waiting_dialog_title">Jawab %s</string>
-  <string name="call_waiting_dialog_hold_call">Menunda panggilan aktif</string>
-  <string name="call_waiting_dialog_end_call">Mengakhiri panggilan saat ini</string>
+  <string name="call_waiting_dialog_hold_call">Tahan panggilan aktif</string>
+  <string name="call_waiting_dialog_end_call">Akhiri panggilan aktif</string>
 </resources>
