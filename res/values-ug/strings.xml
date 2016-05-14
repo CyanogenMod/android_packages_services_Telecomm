@@ -18,6 +18,7 @@
   <!-- Official label of the Telecomm/Phone app, as seen in "Manage Applications"
          and other settings UIs. This is the "app name" used in notification, recents,
          and app info screens. -->
+  <string name="telecommAppLabel" product="default">تېلېفون ئۇرۇشنى باشقۇرۇش</string>
   <!-- Title used for the activity for placing a call. This name appears
          in activity disambig dialogs -->
   <!-- Name for an "unknown" caller. -->
@@ -54,6 +55,7 @@
          [CHAR LIMIT=30] -->
   <!-- Message indicating that the user is not allowed to make non-emergency outgoing phone calls
          due to a user restriction -->
+  <string name="outgoing_call_not_allowed_user_restriction">تېلېفون ئىگىسى پەقەت جىددىي تېلېفون ئۇرۇشقىلا يول قويىدۇ.</string>
   <!-- Message indicating that the user is not allowed to make non-emergency outgoing phone calls
          due to the lack of the CALL_PHONE permission -->
   <!-- Call failure message displayed in an error dialog used to indicate that a phone number was not provided -->
