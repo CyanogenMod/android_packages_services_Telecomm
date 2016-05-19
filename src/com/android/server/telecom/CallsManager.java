@@ -1613,7 +1613,7 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
                     }
                     // The incoming call gave up, or was otherwise disconnected. Go back to
                     // original and dismiss the dialog if present
-                    if (mCallWaitingData.newCall == call && newState == CallState.DISCONNECTED) {
+                    else if (mCallWaitingData.newCall == call && newState == CallState.DISCONNECTED) {
                         if (mCallWaitingData.dialog != null) { mCallWaitingData.dialog.dismiss(); }
                         if (mCallWaitingData.oldCall.getState() == CallState.ON_HOLD) {
                             unholdCall(mCallWaitingData.oldCall);
