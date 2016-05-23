@@ -16,9 +16,11 @@
      limitations under the License.
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+  <!-- Blacklist preferences -->
   <string name="blacklist_title">Seznam blokiranih klicateljev</string>
   <string name="blacklist_summary_disabled">Onemogočeno</string>
   <string name="blacklist_summary">Ne boste več prejemali dohodnih klicev in sporočil s telefonskih številk, ki so na seznamu blokiranih klicateljev</string>
+  <!-- Blacklist notifications -->
   <string name="blacklist_call_notification">Blokiran klic iz %s</string>
   <string name="blacklist_call_notification_private_number">Blokiran klic iz zasebne številke</string>
   <string name="blacklist_call_notification_unknown_number">Blokiran klic iz neznane številke %s</string>
@@ -29,5 +31,6 @@
   <string name="blacklist_message_notification_multiple"><xliff:g id="count">%d</xliff:g> sporočil je bilo blokiranih</string>
   <string name="blacklist_notification_list_private">Zasebno</string>
   <string name="unblock_number">Odblokiraj</string>
+  <!-- Message indicating video calls not allowed if user enabled TTY Mode -->
   <string name="video_call_not_allowed_if_tty_enabled">Za opravljanje videoklicev onemogočite način TTY.</string>
 </resources>

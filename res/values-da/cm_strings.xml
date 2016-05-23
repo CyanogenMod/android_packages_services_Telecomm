@@ -16,9 +16,11 @@
      limitations under the License.
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+  <!-- Blacklist preferences -->
   <string name="blacklist_title">Blokeret opkaldsliste</string>
   <string name="blacklist_summary_disabled">Deaktiveret</string>
   <string name="blacklist_summary">Du vil ikke modtage indgående opkald eller beskeder fra telefonnumre på den blokeret opkaldsliste</string>
+  <!-- Blacklist notifications -->
   <string name="blacklist_call_notification">Blokerede et opkald fra %s</string>
   <string name="blacklist_call_notification_private_number">Blokerede et opkald fra et privat nummer</string>
   <string name="blacklist_call_notification_unknown_number">Blokerede et opkald fra et ukendt nummer %s</string>
@@ -29,5 +31,6 @@
   <string name="blacklist_message_notification_multiple"><xliff:g id="count">%d</xliff:g> beskeder blev blokeret</string>
   <string name="blacklist_notification_list_private">Privat</string>
   <string name="unblock_number">Fjern blokering</string>
+  <!-- Message indicating video calls not allowed if user enabled TTY Mode -->
   <string name="video_call_not_allowed_if_tty_enabled">Deaktiver TTY-tilstand for at foretage videoopkald.</string>
 </resources>

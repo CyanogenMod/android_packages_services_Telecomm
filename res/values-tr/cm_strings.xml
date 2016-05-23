@@ -16,9 +16,11 @@
      limitations under the License.
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+  <!-- Blacklist preferences -->
   <string name="blacklist_title">Engellenen arayan listesi</string>
   <string name="blacklist_summary_disabled">Devre dışı</string>
   <string name="blacklist_summary">Engellenen arayan listesindeki numaralardan gelen çağrıları ya da mesajları almayacaksınız</string>
+  <!-- Blacklist notifications -->
   <string name="blacklist_call_notification">%s kişisinden gelen bir çağrı engellendi</string>
   <string name="blacklist_call_notification_private_number">Özel numaradan gelen bir çağrı engellendi</string>
   <string name="blacklist_call_notification_unknown_number">Bilinmeyen bir numaradan \'%s\' gelen bir çağrı engellendi</string>
@@ -29,5 +31,6 @@
   <string name="blacklist_message_notification_multiple"><xliff:g id="count">%d</xliff:g> mesaj engellendi</string>
   <string name="blacklist_notification_list_private">Özel</string>
   <string name="unblock_number">Engeli kaldır</string>
+  <!-- Message indicating video calls not allowed if user enabled TTY Mode -->
   <string name="video_call_not_allowed_if_tty_enabled">Lütfen görüntülü görüşme yapmak için TTY modunu devre dışı bırakın.</string>
 </resources>

@@ -16,9 +16,11 @@
      limitations under the License.
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+  <!-- Blacklist preferences -->
   <string name="blacklist_title">Užblokuotų skambintojų sąrašas</string>
   <string name="blacklist_summary_disabled">Neleidžiamas</string>
   <string name="blacklist_summary">Jūs negausite įeinančių skambučių ar pranešimų iš telefonų numerių kurie yra užblokuotų skambintojų sąraše</string>
+  <!-- Blacklist notifications -->
   <string name="blacklist_call_notification">Skambutis užblokuotas iš %s</string>
   <string name="blacklist_call_notification_private_number">Užblokuotas skambutis iš privataus numerio</string>
   <string name="blacklist_call_notification_unknown_number">Užblokuotas skambutis iš nežinomo numerio %s</string>
@@ -29,5 +31,6 @@
   <string name="blacklist_message_notification_multiple"><xliff:g id="count">%d</xliff:g> pranešimai buvo užblokuoti</string>
   <string name="blacklist_notification_list_private">Privatus</string>
   <string name="unblock_number">Atblokuoti</string>
+  <!-- Message indicating video calls not allowed if user enabled TTY Mode -->
   <string name="video_call_not_allowed_if_tty_enabled">Prašome neleisti TTY režimo, kad atliktumėte vaizdo skambučius.</string>
 </resources>

@@ -16,9 +16,11 @@
      limitations under the License.
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+  <!-- Blacklist preferences -->
   <string name="blacklist_title">呼叫黑名单列表</string>
   <string name="blacklist_summary_disabled">已禁用</string>
   <string name="blacklist_summary">您将不会接到来自来电黑名单列表中的电话或短信</string>
+  <!-- Blacklist notifications -->
   <string name="blacklist_call_notification">阻止来自 %s 的来电</string>
   <string name="blacklist_call_notification_private_number">阻挡了一个私人号码的来电</string>
   <string name="blacklist_call_notification_unknown_number">阻止了未知号码 %s 的来电</string>
@@ -29,5 +31,6 @@
   <string name="blacklist_message_notification_multiple">已阻止 <xliff:g id="count">%d</xliff:g> 条信息</string>
   <string name="blacklist_notification_list_private">私人号码</string>
   <string name="unblock_number">取消阻止</string>
+  <!-- Message indicating video calls not allowed if user enabled TTY Mode -->
   <string name="video_call_not_allowed_if_tty_enabled">如想拨打视频电话请禁用 TTY 模式</string>
 </resources>

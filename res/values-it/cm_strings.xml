@@ -16,9 +16,11 @@
      limitations under the License.
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-  <string name="blacklist_title">Elenco chiamanti bloccati</string>
+  <!-- Blacklist preferences -->
+  <string name="blacklist_title">Contatti bloccati</string>
   <string name="blacklist_summary_disabled">Disattivato</string>
-  <string name="blacklist_summary">Non riceverai nessuna chiamata o messaggio da numeri nella lista dei chiamanti bloccati</string>
+  <string name="blacklist_summary">Non riceverai nessuna chiamata o messaggio da numeri nella lista bloccati</string>
+  <!-- Blacklist notifications -->
   <string name="blacklist_call_notification">Bloccata una chiamata dal %s</string>
   <string name="blacklist_call_notification_private_number">Bloccata una chiamata da un numero privato</string>
   <string name="blacklist_call_notification_unknown_number">Bloccata una chiamata da un numero sconosciuto: %s</string>
@@ -29,5 +31,6 @@
   <string name="blacklist_message_notification_multiple"><xliff:g id="count">%d</xliff:g> messaggi sono stati bloccati</string>
   <string name="blacklist_notification_list_private">Privato</string>
   <string name="unblock_number">Sblocca</string>
+  <!-- Message indicating video calls not allowed if user enabled TTY Mode -->
   <string name="video_call_not_allowed_if_tty_enabled">Si prega di disattivare modalità TTY per fare chiamate video.</string>
 </resources>
