@@ -20,6 +20,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.UserHandle;
 import com.android.internal.telephony.util.BlacklistUtils;
+import android.telecom.TelecomManager;
+import com.android.internal.telephony.TelephonyProperties;
+import com.android.server.telecom.ui.ViceNotificationImpl;
 
 public final class TelecomBroadcastIntentProcessor {
     /** The action used to send SMS response for the missed call notification. */
@@ -33,6 +36,9 @@ public final class TelecomBroadcastIntentProcessor {
     /** The action used to clear missed calls. */
     public static final String ACTION_CLEAR_MISSED_CALLS =
             "com.android.server.telecom.ACTION_CLEAR_MISSED_CALLS";
+
+    public static final String ACTION_CALL_PULL =
+            "org.codeaurora.ims.ACTION_CALL_PULL";
 
     private final Context mContext;
     private final CallsManager mCallsManager;
@@ -115,6 +121,21 @@ public final class TelecomBroadcastIntentProcessor {
 
             BlacklistCallNotifier bcn = mCallsManager.getBlacklistCallNotifier();
             bcn.notifyBlacklistedMessage(sender, timestamp, matchType);
+        } else if (ACTION_CALL_PULL.equals(action)) {
+            // Close the notification shade and the notification itself.
+            closeSystemDialogs(mContext);
+
+            String dialogId =  intent.getStringExtra("org.codeaurora.ims.VICE_CLEAR");
+            int callType =  intent.getIntExtra(TelecomManager.EXTRA_START_CALL_WITH_VIDEO_STATE, 0);
+            Log.i(this,"ACTION_CALL_PULL: calltype = " + callType + ", dialogId = " + dialogId);
+
+            Intent callIntent = new Intent(Intent.ACTION_CALL_PRIVILEGED, intent.getData());
+            callIntent.putExtra(TelephonyProperties.EXTRA_IS_CALL_PULL, true);
+            callIntent.putExtra(TelephonyProperties.EXTRA_SKIP_SCHEMA_PARSING, true);
+            callIntent.putExtra(TelecomManager.EXTRA_START_CALL_WITH_VIDEO_STATE, callType);
+            callIntent.setFlags(
+                    Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS);
+            mContext.startActivityAsUser(callIntent, UserHandle.CURRENT);
         }
     }
 

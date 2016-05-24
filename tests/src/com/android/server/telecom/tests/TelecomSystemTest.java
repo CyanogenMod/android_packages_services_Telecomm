@@ -62,7 +62,8 @@ import com.android.server.telecom.MissedCallNotifier;
 import com.android.server.telecom.ProximitySensorManager;
 import com.android.server.telecom.ProximitySensorManagerFactory;
 import com.android.server.telecom.TelecomSystem;
-
+import com.android.server.telecom.ViceNotifier;
+import com.android.server.telecom.ui.ViceNotificationImpl;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 
@@ -79,6 +80,7 @@ public class TelecomSystemTest extends TelecomTestCase {
     @Mock HeadsetMediaButton mHeadsetMediaButton;
     @Mock ProximitySensorManager mProximitySensorManager;
     @Mock InCallWakeLockController mInCallWakeLockController;
+    @Mock ViceNotifier mViceNotifier;
 
     final ComponentName mInCallServiceComponentNameX =
             new ComponentName(
@@ -205,7 +207,8 @@ public class TelecomSystemTest extends TelecomTestCase {
                 mCallerInfoAsyncQueryFactoryFixture.getTestDouble(),
                 headsetMediaButtonFactory,
                 proximitySensorManagerFactory,
-                inCallWakeLockControllerFactory);
+                inCallWakeLockControllerFactory,
+                mViceNotifier);
 
         verify(headsetMediaButtonFactory).create(
                 eq(mComponentContextFixture.getTestDouble().getApplicationContext()),
