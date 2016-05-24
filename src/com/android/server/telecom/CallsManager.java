@@ -911,7 +911,7 @@ public class CallsManager extends Call.ListenerBase implements VideoProviderProx
      * @param videoState The video state in which to answer the call.
      */
     void answerCall(final Call call, final int videoState) {
-        answerCall(call, videoState, TelecomManager.CALL_WAITING_RESPONSE_NO_POPUP_END_CALL);
+        answerCall(call, videoState, TelecomManager.CALL_WAITING_RESPONSE_NO_POPUP_HOLD_CALL);
     }
 
     /**
