@@ -70,6 +70,7 @@ import java.io.InputStream;
 import java.lang.Integer;
 import java.lang.SecurityException;
 import java.lang.String;
+import java.lang.IllegalArgumentException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -246,12 +247,16 @@ public final class PhoneAccountRegistrar {
                 return mState.accounts.get(i).getAccountHandle();
             }
 
-            long subId = Long.parseLong(id);
-            Log.i(this, "getUserSelectedVoicePhoneAccount, voice subId = "
-                         + voiceSubId + " subId = " + subId + " mId = " + id);
-            if (subId == voiceSubId) {
-                prefPhoneAccount = mState.accounts.get(i).getAccountHandle();
-                break;
+            try {
+                long subId = Long.parseLong(id);
+                Log.i(this, "getUserSelectedVoicePhoneAccount, voice subId = "
+                             + voiceSubId + " subId = " + subId + " mId = " + id);
+                if (subId == voiceSubId) {
+                    prefPhoneAccount = mState.accounts.get(i).getAccountHandle();
+                    break;
+                }
+            } catch (IllegalArgumentException e) {
+                Log.w(this, "getUserSelectedVoicePhoneAccount, accountHandle ID = " + id);
             }
         }
 
