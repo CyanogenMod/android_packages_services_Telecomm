@@ -16,7 +16,9 @@
      limitations under the License.
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+  <!-- Blacklist preferences -->
   <string name="blacklist_summary_disabled">Deshabilitada</string>
+  <!-- Blacklist notifications -->
   <string name="blacklist_call_notification">Bloquióse una llamada de %s</string>
   <string name="blacklist_call_notification_private_number">Bloquióse una llamada d\'un númberu priváu</string>
   <string name="blacklist_call_notification_unknown_number">Bloquióse una llamada del númberu %s</string>
@@ -27,5 +29,6 @@
   <string name="blacklist_message_notification_multiple">Bloquiáronse <xliff:g id="count">%d</xliff:g> mensaxes</string>
   <string name="blacklist_notification_list_private">Priváu</string>
   <string name="unblock_number">Desbloquiar</string>
+  <!-- Message indicating video calls not allowed if user enabled TTY Mode -->
   <string name="video_call_not_allowed_if_tty_enabled">Deshabilita\'l mou TTY pa facer videollamaes.</string>
 </resources>

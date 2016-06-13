@@ -16,18 +16,21 @@
      limitations under the License.
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
-  <string name="blacklist_title">Gesperrte Anruferliste</string>
+  <!-- Blacklist preferences -->
+  <string name="blacklist_title">Anrufer-Sperrliste</string>
   <string name="blacklist_summary_disabled">Deaktiviert</string>
-  <string name="blacklist_summary">Sie werden keine Anrufe oder Nachrichten von Nummern aus der Sperrliste empfangen</string>
-  <string name="blacklist_call_notification">Ein Anruf von %s wurde abgewiesen</string>
-  <string name="blacklist_call_notification_private_number">Ein Anruf mit unterdrückter Nummer wurde abgewiesen</string>
-  <string name="blacklist_call_notification_unknown_number">Ein Anruf mit unbekannter Nummer %s wurde abgewiesen</string>
-  <string name="blacklist_call_notification_multiple"><xliff:g id="count">%d</xliff:g> Anrufe wurden abgewiesen</string>
-  <string name="blacklist_message_notification">Eine Nachricht von %s wurde abgewiesen</string>
-  <string name="blacklist_message_notification_private_number">Eine Nachricht mit unterdrückter Nummer wurde abgewiesen</string>
-  <string name="blacklist_message_notification_unknown_number">Eine Nachricht von unbekannter Nummer %s wurde abgewiesen</string>
-  <string name="blacklist_message_notification_multiple"><xliff:g id="count">%d</xliff:g> Nachrichten wurden abgewiesen</string>
+  <string name="blacklist_summary">Sie werden keine Anrufe oder Nachrichten von Nummern aus der Sperrliste empfangen.</string>
+  <!-- Blacklist notifications -->
+  <string name="blacklist_call_notification">Ein Anruf von %s wurde blockiert.</string>
+  <string name="blacklist_call_notification_private_number">Ein Anruf mit unterdrückter Nummer wurde blockiert.</string>
+  <string name="blacklist_call_notification_unknown_number">Ein Anruf mit unbekannter Nummer %s wurde blockiert.</string>
+  <string name="blacklist_call_notification_multiple"><xliff:g id="count">%d</xliff:g> Anrufe wurden blockiert.</string>
+  <string name="blacklist_message_notification">Eine Nachricht von %s wurde blockiert.</string>
+  <string name="blacklist_message_notification_private_number">Eine Nachricht mit unterdrückter Nummer wurde blockiert.</string>
+  <string name="blacklist_message_notification_unknown_number">Eine Nachricht von unbekannter Nummer %s wurde blockiert.</string>
+  <string name="blacklist_message_notification_multiple"><xliff:g id="count">%d</xliff:g> Nachrichten wurden blockiert.</string>
   <string name="blacklist_notification_list_private">Unterdrückte Nummer</string>
   <string name="unblock_number">Sperre aufheben</string>
+  <!-- Message indicating video calls not allowed if user enabled TTY Mode -->
   <string name="video_call_not_allowed_if_tty_enabled">Deaktivieren Sie den TTY-Modus, um Videoanrufe tätigen zu können.</string>
 </resources>
