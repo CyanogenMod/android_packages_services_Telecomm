@@ -543,6 +543,22 @@ public class CallAudioManager extends CallsManagerListenerBase {
         }
     }
 
+    //give preference to call on Active sub
+    private Call getCallFromList(LinkedHashSet<Call> list) {
+        Call CallInActiveSub = null;
+        for (Call call : list) {
+            String subId = (call.getTargetPhoneAccount() == null) ? null :
+                    call.getTargetPhoneAccount().getId();
+            if (subId != null && subId.equals(mCallsManager.getActiveSubscription())) {
+                CallInActiveSub = call;
+            }
+        }
+        if (CallInActiveSub == null) {
+            CallInActiveSub = list.iterator().next();
+        }
+        return CallInActiveSub;
+    }
+
     private void updateForegroundCall() {
         Call oldForegroundCall = mForegroundCall;
         if (mActiveDialingOrConnectingCalls.size() > 0) {
@@ -553,12 +569,15 @@ public class CallAudioManager extends CallsManagerListenerBase {
                     possibleConnectingCall = call;
                 }
             }
-            mForegroundCall = possibleConnectingCall == null ?
-                    mActiveDialingOrConnectingCalls.iterator().next() : possibleConnectingCall;
+            if (possibleConnectingCall != null) {
+                mForegroundCall = possibleConnectingCall;
+            } else {
+                mForegroundCall = getCallFromList(mActiveDialingOrConnectingCalls);
+            }
         } else if (mRingingCalls.size() > 0) {
-            mForegroundCall = mRingingCalls.iterator().next();
+            mForegroundCall = getCallFromList(mRingingCalls);
         } else if (mHoldingCalls.size() > 0) {
-            mForegroundCall = mHoldingCalls.iterator().next();
+            mForegroundCall = getCallFromList(mHoldingCalls);
         } else {
             mForegroundCall = null;
         }

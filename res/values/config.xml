@@ -45,4 +45,7 @@
 
     <!-- Flag indicating whether audio should be routed to speaker when docked -->
     <bool name="use_speaker_when_docked">true</bool>
+
+    <!-- DTMF key to be used for LCH hold tone -->
+    <string name="lch_dtmf_key" translatable="false">D</string>
 </resources>

@@ -493,4 +493,15 @@ class InCallAdapter extends IInCallAdapter.Stub {
              Log.endSession();
         }
     }
+
+    public void switchToOtherActiveSub(String sub) {
+        long token = Binder.clearCallingIdentity();
+        try {
+            synchronized (mLock) {
+                mCallsManager.switchToOtherActiveSub(sub);
+            }
+        } finally {
+            Binder.restoreCallingIdentity(token);
+        }
+    }
 }

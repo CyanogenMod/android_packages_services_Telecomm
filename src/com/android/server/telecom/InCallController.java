@@ -949,6 +949,7 @@ public final class InCallController extends CallsManagerListenerBase {
             return false;
         }
         Trace.endSection();
+        mCallsManager.setDsdaAdapter();
         return true;
     }
 

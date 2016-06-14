@@ -296,6 +296,10 @@ public class ConnectionServiceWrapper extends ServiceBinder {
                             childCall.setParentCall(null);
                         } else {
                             Call conferenceCall = mCallIdMapper.getCall(conferenceCallId);
+                            if (conferenceCall.getTargetPhoneAccount() == null) {
+                                PhoneAccountHandle ph = childCall.getTargetPhoneAccount();
+                                conferenceCall.setTargetPhoneAccount(ph);
+                            }
                             childCall.setParentCall(conferenceCall);
                         }
                     } else {

@@ -70,6 +70,7 @@ public class InCallTonePlayer extends Thread {
     public static final int TONE_UNOBTAINABLE_NUMBER = 12;
     public static final int TONE_VOICE_PRIVACY = 13;
     public static final int TONE_VIDEO_UPGRADE = 14;
+    public static final int TONE_HOLD_RECALL = 15;
 
     private static final int RELATIVE_VOLUME_EMERGENCY = 100;
     private static final int RELATIVE_VOLUME_HIPRI = 80;
@@ -201,6 +202,12 @@ public class InCallTonePlayer extends Thread {
                     toneType = ToneGenerator.TONE_SUP_ERROR;
                     toneVolume = RELATIVE_VOLUME_HIPRI;
                     toneLengthMillis = 4000;
+                    break;
+                case TONE_HOLD_RECALL:
+                    toneType = ToneGenerator.TONE_HOLD_RECALL;
+                    toneVolume = RELATIVE_VOLUME_HIPRI;
+                    // Call hold recall tone is stopped by stopTone() method
+                    toneLengthMillis = Integer.MAX_VALUE - TIMEOUT_BUFFER_MILLIS;
                     break;
                 case TONE_VOICE_PRIVACY:
                     // TODO: fill in.
