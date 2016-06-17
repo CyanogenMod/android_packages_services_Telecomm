@@ -18,6 +18,7 @@
   <!-- Official label of the Telecomm/Phone app, as seen in "Manage Applications"
          and other settings UIs. This is the "app name" used in notification, recents,
          and app info screens. -->
+  <string name="telecommAppLabel" product="default">Xestión de llamaes de teléfonu</string>
   <!-- Title used for the activity for placing a call. This name appears
          in activity disambig dialogs -->
   <string name="userCallActivityLabel" product="default">Teléfonu</string>
@@ -70,13 +71,17 @@
          Each method for placing a call (SIM1, SIM2, SIP account, etc) has a phone-account.
          Phone-accounts that are created by third party apps can be disabled and enabled by user.
          [CHAR LIMIT=30] -->
+  <string name="enable_account_preference_title">Cuentes de llamaes</string>
   <!-- Message indicating that the user is not allowed to make non-emergency outgoing phone calls
          due to a user restriction -->
+  <string name="outgoing_call_not_allowed_user_restriction">Namái s\'almiten llames d\'emerxencia.</string>
   <!-- Message indicating that the user is not allowed to make non-emergency outgoing phone calls
          due to the lack of the CALL_PHONE permission -->
+  <string name="outgoing_call_not_allowed_no_permission">Esta aplicación nun pue facer llamaes salientes ensin el permisu de Teléfonu.</string>
   <!-- Call failure message displayed in an error dialog used to indicate that a phone number was not provided -->
   <!-- Message shown when the user tries to make a video call when already in a video call. -->
   <!-- Message indicating video calls not allowed if user enabled TTY Mode -->
+  <string name="video_call_not_allowed_if_tty_enabled">Deshabilita\'l mou TTY pa facer llamaes de videu, por favor.</string>
   <!-- missing voicemail number -->
   <!-- Title of the "Missing voicemail number" dialog -->
   <string name="no_vm_number">Falta\'l númberu del buzón de voz</string>
@@ -86,8 +91,11 @@
   <string name="add_vm_number_str">Amestar númberu</string>
   <!-- Title of dialog used to comfirm whether the user intends to change the default dialer
             application [CHAR LIMIT=55]-->
+  <string name="change_default_dialer_dialog_title">¿Camudar l\'aplicación por defeutu del marcador?</string>
   <!-- Text in dialog used to confirm whether or not the user intends to change the default dialer, if a different default dialer has been previously set. -->
+  <string name="change_default_dialer_with_previous_app_set_text">¿Usar <xliff:g id="new_app">%1$s</xliff:g> en cuentes de <xliff:g id="current_app">%2$s</xliff:g> como la to aplicación por defeutu del marcador?</string>
   <!-- Text in dialog used to confirm whether or not the user intends to change the default dialer, if a different default dialer has not been previously set. -->
+  <string name="change_default_dialer_no_previous_app_set_text">¿Usar <xliff:g id="new_app">%s</xliff:g> como la to aplicación por defeutu del marcador?</string>
   <!-- DO NOT TRANSLATE. Label for test Subscription 0. -->
   <!-- DO NOT TRANSLATE. Label for test Subscription 1. -->
   <!-- DO NOT TRANSLATE. Label for test Subscription 2. -->
