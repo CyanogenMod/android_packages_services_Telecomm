@@ -72,6 +72,7 @@ import java.lang.SecurityException;
 import java.lang.String;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -797,6 +798,31 @@ public class PhoneAccountRegistrar {
                 includeDisabledAccounts, userHandle)) {
             handles.add(account.getAccountHandle());
         }
+
+        Collections.sort(handles, new Comparator<PhoneAccountHandle>() {
+            public int compare(PhoneAccountHandle accountHandle1
+                        , PhoneAccountHandle accountHandle2) {
+                TelephonyManager tm = (TelephonyManager) mContext
+                        .getSystemService(Context.TELEPHONY_SERVICE);
+                int max = tm.getPhoneCount();
+                int phoneId1 = max;
+                int phoneId2 = max;
+                try {
+                    phoneId1 = SubscriptionManager
+                            .getPhoneId(Integer.parseInt(accountHandle1.getId()));
+                } catch (NumberFormatException e) {
+                    Log.e(this, e, "Could not parse subId1 " + accountHandle1.getId());
+                }
+                try {
+                    phoneId2 = SubscriptionManager
+                            .getPhoneId(Integer.parseInt(accountHandle2.getId()));
+                } catch (NumberFormatException e) {
+                    Log.e(this, e, "Could not parse subId2 " + accountHandle2.getId());
+                }
+                return (phoneId1 < phoneId2 ? -1 : (phoneId1 == phoneId2 ? 0 : 1));
+            }
+        });
+
         return handles;
     }
 
