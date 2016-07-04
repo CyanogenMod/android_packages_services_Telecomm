@@ -62,7 +62,6 @@ public final class InCallTonePlayer extends Thread {
     public static final int TONE_VOICE_PRIVACY = 13;
     public static final int TONE_VIDEO_UPGRADE = 14;
     public static final int TONE_HOLD_RECALL = 15;
-    public static final int TONE_SUPERVISORY_CH = 16;
 
     private static final int RELATIVE_VOLUME_EMERGENCY = 100;
     private static final int RELATIVE_VOLUME_HIPRI = 80;
@@ -187,12 +186,6 @@ public final class InCallTonePlayer extends Thread {
                     toneType = ToneGenerator.TONE_HOLD_RECALL;
                     toneVolume = RELATIVE_VOLUME_HIPRI;
                     // Call hold recall tone is stopped by stopTone() method
-                    toneLengthMillis = Integer.MAX_VALUE - TIMEOUT_BUFFER_MILLIS;
-                    break;
-                case TONE_SUPERVISORY_CH:
-                    toneType = ToneGenerator.TONE_SUPERVISORY_CH;
-                    toneVolume = RELATIVE_VOLUME_HIPRI;
-                    // Supervisory call held tone is stopped by stopTone() method
                     toneLengthMillis = Integer.MAX_VALUE - TIMEOUT_BUFFER_MILLIS;
                     break;
                 case TONE_VOICE_PRIVACY:
