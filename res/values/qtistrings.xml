@@ -36,4 +36,6 @@
     <!-- Message for "Call Pull"" Action, which is displayed in the Vice Notification
          The user will be able to call back to the person or the phone number. -->
     <string name="pull_to_call_back">Tap to pull</string>
+    <!-- Message to notify when incoming call is rejected due to low battery -->
+    <string name="incoming_call_failed_low_battery">Incoming Call is failed due to low battery.</string>
 </resources>

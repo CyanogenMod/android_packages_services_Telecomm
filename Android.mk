@@ -9,8 +9,6 @@ LOCAL_STATIC_JAVA_LIBRARIES := ims-ext-common
 LOCAL_SRC_FILES := $(call all-java-files-under, src)
 LOCAL_RESOURCE_DIR := $(LOCAL_PATH)/res
 
-LOCAL_STATIC_JAVA_LIBRARIES := ims-ext-common
-
 LOCAL_PACKAGE_NAME := Telecom
 
 LOCAL_CERTIFICATE := platform

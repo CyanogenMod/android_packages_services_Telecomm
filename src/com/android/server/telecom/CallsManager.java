@@ -51,6 +51,7 @@ import android.telecom.VideoProfile;
 import android.telephony.PhoneNumberUtils;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
+import android.widget.Toast;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.telephony.AsyncEmergencyContactNotifier;
@@ -81,6 +82,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.codeaurora.ims.QtiCallConstants;
+import org.codeaurora.ims.utils.QtiImsExtUtils;
 import org.codeaurora.internal.IExtTelephony;
 /**
  * Singleton.
@@ -411,6 +414,11 @@ public class CallsManager extends Call.ListenerBase
                 Log.i(this, "onCallFilteringCompleted: Call rejected! Exceeds maximum number of " +
                         "dialing calls.");
                 rejectCallAndLog(incomingCall);
+            } else if (!isIncomingVideoCallAllowed(incomingCall, mContext)) {
+                Toast.makeText(mContext, mContext.getResources().
+                        getString(R.string.incoming_call_failed_low_battery), Toast.LENGTH_LONG).
+                        show();
+                rejectCallAndLog(incomingCall);
             } else {
                 addCall(incomingCall);
                 setActiveSubscription(incomingCall.getTargetPhoneAccount().getId());
@@ -432,6 +440,36 @@ public class CallsManager extends Call.ListenerBase
                 mMissedCallNotifier.showMissedCallNotification(incomingCall);
             }
         }
+    }
+
+    /**
+     * Determines if the incoming video call is allowed or not
+     *
+     * @param Call The incoming call.
+     * @return {@code false} if incoming video call is not allowed.
+     */
+    private static boolean isIncomingVideoCallAllowed(Call call, Context context) {
+        Bundle extras = call.getExtras();
+        if (extras == null || (!isIncomingVideoCall(call)) ||
+                QtiImsExtUtils.allowVideoCallsInLowBattery(context)) {
+            Log.w(TAG, "isIncomingVideoCallAllowed: null Extras or not an incoming video call " +
+                    "or allow video calls in low battery");
+            return true;
+        }
+
+        final boolean isLowBattery = extras.getBoolean(QtiCallConstants.LOW_BATTERY_EXTRA_KEY,
+                false);
+        Log.d(TAG, "isIncomingVideoCallAllowed: lowbattery = " + isLowBattery);
+        return !isLowBattery;
+    }
+
+    private static boolean isIncomingVideoCall(Call call) {
+        if (VideoProfile.isAudioOnly(call.getVideoState())) {
+            return false;
+        }
+
+        final int state = call.getState();
+        return (state == CallState.RINGING);
     }
 
     @Override
