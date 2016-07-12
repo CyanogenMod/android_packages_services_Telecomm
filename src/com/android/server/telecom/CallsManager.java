@@ -1474,7 +1474,8 @@ public class CallsManager extends Call.ListenerBase
             setActiveSubscription(lchSub);
             manageDsdaInCallTones(false);
         }
-        if ((subId != null) && (mLchStatus.get(subId) == true)) {
+        boolean isLchEnabled = (mLchStatus.get(subId) == null) ? false : mLchStatus.get(subId);
+        if ((subId != null) && isLchEnabled) {
             Call activecall = getFirstCallWithState(subId, CallState.RINGING, CallState.DIALING,
                     CallState.ACTIVE, CallState.ON_HOLD);
             Log.d(this,"activecall: " + activecall);
@@ -2610,7 +2611,10 @@ public class CallsManager extends Call.ListenerBase
     private void updateLchStatusToRil(String subInConversation) {
         String removeFromLch = null;
         Log.d(this, "updateLchStatusToRil subInConversation: " + subInConversation);
-        if (subInConversation != null && subInConversation.contains("sip")) {
+        if ((subInConversation != null && (subInConversation.contains("sip")
+                || subInConversation.contains("@")))
+                || (TelephonyManager.getDefault()
+                .getMultiSimConfiguration() != TelephonyManager.MultiSimVariants.DSDA)) {
             return;
         }
         for (PhoneAccountHandle ph : getPhoneAccountRegistrar()
