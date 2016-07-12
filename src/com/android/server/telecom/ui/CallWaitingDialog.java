@@ -82,6 +82,7 @@ public class CallWaitingDialog extends Dialog implements AdapterView.OnItemClick
         dialog.setCancelable(false);
         dialog.getWindow()
                 .setType(WindowManager.LayoutParams.TYPE_SYSTEM_ALERT);
+        dialog.getWindow().addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED);
         return dialog;
     }
 
