@@ -1410,6 +1410,13 @@ public class CallsManager extends Call.ListenerBase
       * speaker phone.
       */
     void setAudioRoute(int route) {
+        Call call = getDialingCall();
+        if (call != null && call.getStartWithSpeakerphoneOn()) {
+            /* There is a change in audio routing preferance for the call.
+             * So, honour the new audio routing preferance.
+             */
+            call.setStartWithSpeakerphoneOn(false);
+        }
         mCallAudioManager.setAudioRoute(route);
     }
 
