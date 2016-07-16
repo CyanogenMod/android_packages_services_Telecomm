@@ -72,6 +72,7 @@
          [CHAR LIMIT=30] -->
   <!-- Message indicating that the user is not allowed to make non-emergency outgoing phone calls
          due to a user restriction -->
+  <string name="outgoing_call_not_allowed_user_restriction">Just Noutriff si vum Besëtzer vum Apparat erlaabt.</string>
   <!-- Message indicating that the user is not allowed to make non-emergency outgoing phone calls
          due to the lack of the CALL_PHONE permission -->
   <!-- Call failure message displayed in an error dialog used to indicate that a phone number was not provided -->
