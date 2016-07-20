@@ -30,6 +30,7 @@ import android.os.IBinder;
 import android.os.RemoteException;
 import android.telecom.Connection;
 import android.telecom.PhoneAccount;
+import android.telecom.VideoProfile;
 import android.telephony.PhoneNumberUtils;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
@@ -98,7 +99,7 @@ public class BluetoothPhoneServiceImpl {
                     Log.i(TAG, "BT - answering call");
                     Call call = mCallsManager.getRingingCall();
                     if (call != null) {
-                        mCallsManager.answerCall(call, call.getVideoState());
+                        mCallsManager.answerCall(call, VideoProfile.STATE_AUDIO_ONLY);
                         return true;
                     }
                     return false;
@@ -499,7 +500,7 @@ public class BluetoothPhoneServiceImpl {
             if (activeCall != null) {
                 mCallsManager.disconnectCall(activeCall);
                 if (ringingCall != null) {
-                    mCallsManager.answerCall(ringingCall, ringingCall.getVideoState());
+                    mCallsManager.answerCall(ringingCall, VideoProfile.STATE_AUDIO_ONLY);
                 } else if (heldCall != null) {
                     mCallsManager.unholdCall(heldCall);
                 }
@@ -512,7 +513,7 @@ public class BluetoothPhoneServiceImpl {
                 updateHeadsetWithCallState(true /* force */);
                 return true;
             } else if (ringingCall != null) {
-                mCallsManager.answerCall(ringingCall, ringingCall.getVideoState());
+                mCallsManager.answerCall(ringingCall, VideoProfile.STATE_AUDIO_ONLY);
                 return true;
             } else if (heldCall != null) {
                 // CallsManager will hold any active calls when unhold() is called on a
