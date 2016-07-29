@@ -1120,6 +1120,7 @@ public class CallAudioRouteStateMachine extends StateMachine {
         if (mAudioManager.isSpeakerphoneOn() != on) {
             Log.i(this, "turning speaker phone %s", on);
             mAudioManager.setSpeakerphoneOn(on);
+            mStatusBarNotifier.notifySpeakerphone(on);
         }
     }
 
@@ -1154,6 +1155,7 @@ public class CallAudioRouteStateMachine extends StateMachine {
                     // user and not the current foreground, which we want to avoid.
                     audio.setMicrophoneMute(
                             mute, mContext.getOpPackageName(), getCurrentUserId());
+                    mStatusBarNotifier.notifyMute(mute);
 
                 } catch (RemoteException e) {
                     Log.e(this, e, "Remote exception while toggling mute.");
