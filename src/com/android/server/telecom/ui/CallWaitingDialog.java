@@ -17,6 +17,7 @@ package com.android.server.telecom.ui;
 
 import android.annotation.NonNull;
 import android.app.Dialog;
+import android.app.KeyguardManager;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.text.TextUtils;
@@ -80,8 +81,10 @@ public class CallWaitingDialog extends Dialog implements AdapterView.OnItemClick
         String title = String.format(template, name);
         dialog.setTitle(title);
         dialog.setCancelable(false);
-        dialog.getWindow()
-                .setType(WindowManager.LayoutParams.TYPE_SYSTEM_ERROR);
+        KeyguardManager km = (KeyguardManager) context.getSystemService(Context.KEYGUARD_SERVICE);
+        boolean keyguardShowing = km.inKeyguardRestrictedInputMode();
+        dialog.getWindow().setType(keyguardShowing ? WindowManager.LayoutParams.TYPE_SYSTEM_ERROR
+                                                   : WindowManager.LayoutParams.TYPE_SYSTEM_ALERT);
         return dialog;
     }
 
