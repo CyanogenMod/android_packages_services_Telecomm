@@ -18,6 +18,7 @@ package com.android.server.telecom;
 
 import android.content.Context;
 import android.os.PowerManager;
+import android.os.SystemProperties;
 
 /**
  * This class manages the proximity sensor and allows callers to turn it on and off.
@@ -27,6 +28,9 @@ public class ProximitySensorManager extends CallsManagerListenerBase {
 
     private final PowerManager.WakeLock mProximityWakeLock;
     private final CallsManager mCallsManager;
+
+    // MTK/Meizu workaround
+    private static final boolean mIsMTKHardware = !(SystemProperties.get("ro.mediatek.platform", "").equals(""));
 
     public ProximitySensorManager(Context context, CallsManager callsManager) {
         PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
@@ -46,7 +50,19 @@ public class ProximitySensorManager extends CallsManagerListenerBase {
     public void onCallRemoved(Call call) {
         if (mCallsManager.getCalls().isEmpty()) {
             Log.i(this, "All calls removed, resetting proximity sensor to default state");
-            turnOff(true);
+
+            // MTK has screenOnImmediately set to false, at least on Meizu MX4
+            // passing true would result in tap-to-wake or proximity sensor
+            // stopping working if remote hung up.
+            turnOff(!mIsMTKHardware);
+
+            // Seems only calling turnOff with false can't eliminate all cases
+            // of malfunctioning... will have to re-calibrate then.
+            if (mIsMTKHardware) {
+                // call into calibration service if one exists
+                // hopefully none will run into namespace collision with me...
+                SystemProperties.set("ctl.start", "ps_calibrate");
+            }
         }
         super.onCallRemoved(call);
     }
