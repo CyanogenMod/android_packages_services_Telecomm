@@ -81,7 +81,7 @@ public class CallWaitingDialog extends Dialog implements AdapterView.OnItemClick
         dialog.setTitle(title);
         dialog.setCancelable(false);
         dialog.getWindow()
-                .setType(WindowManager.LayoutParams.TYPE_SYSTEM_ALERT);
+                .setType(WindowManager.LayoutParams.TYPE_SYSTEM_ERROR);
         return dialog;
     }
 
