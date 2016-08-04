@@ -324,6 +324,11 @@ public class ConnectionServiceWrapper extends ServiceBinder {
                     // deliver the message anyway that they want. b/20530631.
                     Call call = mCallIdMapper.getCall(callId);
                     if (call != null) {
+                        // Update extras so that event reaches to InCallUi and InCallUi
+                        // updates merge button.
+                        Bundle extras = new Bundle();
+                        extras.putBoolean("update", true);
+                        call.putExtras(Call.SOURCE_CONNECTION_SERVICE, extras);
                         // Just refresh the connection capabilities so that the UI
                         // is forced to reenable the merge button as the capability
                         // is still on the connection. Note when b/20530631 is fixed, we need
