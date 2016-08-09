@@ -1535,6 +1535,10 @@ public class CallsManager extends Call.ListenerBase
      * Removes an existing disconnected call, and notifies the in-call app.
      */
     void markCallAsRemoved(Call call) {
+        boolean isHoldInConference = call.isHoldInConference();
+        Log.v(this, "markCallAsRemoved: isHoldInConference = "
+                + isHoldInConference + "call -> %s", call);
+
         removeCall(call);
         if (!hasAnyCalls()) {
             updateLchStatus(null);
@@ -1544,7 +1548,8 @@ public class CallsManager extends Call.ListenerBase
         if (mLocallyDisconnectingCalls.contains(call)) {
             mLocallyDisconnectingCalls.remove(call);
             Call foregroundCall = mCallAudioManager.getPossiblyHeldForegroundCall();
-            if (foregroundCall != null && foregroundCall.getState() == CallState.ON_HOLD) {
+            if (!isHoldInConference && foregroundCall != null
+                    && foregroundCall.getState() == CallState.ON_HOLD) {
                 foregroundCall.unhold();
             }
         }

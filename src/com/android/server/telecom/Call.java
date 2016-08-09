@@ -272,6 +272,8 @@ public class Call implements CreateConnectionResponse {
 
     private boolean mSpeakerphoneOn;
 
+    private boolean mIsHoldInConference = false;
+
     /**
      * Tracks the video states which were applicable over the duration of a call.
      * See {@link VideoProfile} for a list of valid video states.
@@ -612,6 +614,14 @@ public class Call implements CreateConnectionResponse {
 
             mState = newState;
             maybeLoadCannedSmsResponses();
+
+            if (mState == CallState.ON_HOLD && getParentCall() != null) {
+                Log.v(this, "setState is conference hold, %s", mState);
+                mIsHoldInConference = true;
+            } else if (mState != CallState.DISCONNECTED) {
+                Log.v(this, "setState is not conference hold, %s", mState);
+                mIsHoldInConference = false;
+            }
 
             if (mState == CallState.ACTIVE || mState == CallState.ON_HOLD) {
                 if (mConnectTimeMillis == 0) {
@@ -1030,6 +1040,10 @@ public class Call implements CreateConnectionResponse {
         return mWasConferencePreviouslyMerged;
     }
 
+    boolean isHoldInConference() {
+        return mIsHoldInConference;
+    }
+
     @VisibleForTesting
     public Call getConferenceLevelActiveCall() {
         return mConferenceLevelActiveCall;
@@ -1326,6 +1340,9 @@ public class Call implements CreateConnectionResponse {
         if (mState == CallState.ACTIVE) {
             mConnectionService.hold(this);
             Log.event(this, Log.Events.REQUEST_HOLD);
+            if (getParentCall() != null) {
+                mIsHoldInConference = true;
+            }
         }
     }
 
@@ -1338,6 +1355,7 @@ public class Call implements CreateConnectionResponse {
         if (mState == CallState.ON_HOLD) {
             mConnectionService.unhold(this);
             Log.event(this, Log.Events.REQUEST_UNHOLD);
+            mIsHoldInConference = false;
         }
     }
 
