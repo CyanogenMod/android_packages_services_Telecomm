@@ -442,11 +442,9 @@ public class ViceNotificationImpl extends CallsManagerListenerBase {
             intent.putExtra(TelecomManager.EXTRA_START_CALL_WITH_VIDEO_STATE,
                     VideoProfile.STATE_AUDIO_ONLY);
         }
-        final PhoneAccountHandle phoneAccountHandle =
-                mTelecomManager.getUserSelectedOutgoingPhoneAccount();
 
         intent.putExtra(TelecomBroadcastIntentProcessor.EXTRA_USERHANDLE,
-                phoneAccountHandle.getUserHandle());
+                UserHandle.of(UserHandle.myUserId()));
 
         return PendingIntent.getBroadcast(mContext, 0, intent, PendingIntent.FLAG_CANCEL_CURRENT);
     }
