@@ -69,6 +69,7 @@ import com.android.server.telecom.callfiltering.IncomingCallFilter;
 import com.android.server.telecom.components.ErrorDialogActivity;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import com.android.server.telecom.ui.ViceNotificationImpl;
 
 import java.util.Collection;
@@ -1308,8 +1309,27 @@ public class CallsManager extends Call.ListenerBase
         if (source != Call.SOURCE_CONNECTION_SERVICE) {
             return;
         }
+
         handleCallTechnologyChange(c);
         handleChildAddressChange(c);
+
+        if (extras != null) {
+            boolean isNeedReset = extras.getBoolean("isNeedReset", false);
+            handleCdmaConnectionTimeReset(c, isNeedReset);
+        }
+    }
+
+    void handleCdmaConnectionTimeReset(Call call, boolean isNeedReset) {
+        if (isNeedReset && call != null) {
+            call.setConnectTimeMillis(System.currentTimeMillis());
+            if (mCalls.contains(call)) {
+                for (CallsManagerListener listener : mListeners) {
+                    listener.onCallStateChanged(call, CallState.ACTIVE, CallState.ACTIVE);
+                }
+            }
+            call.removeExtras(Call.SOURCE_INCALL_SERVICE,
+                    new ArrayList<String>(Arrays.asList("isNeedReset")));
+        }
     }
 
     // Construct the list of possible PhoneAccounts that the outgoing call can use based on the

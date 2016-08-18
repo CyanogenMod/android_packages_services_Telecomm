@@ -964,6 +964,10 @@ public class Call implements CreateConnectionResponse {
         mCreationTimeMillis = time;
     }
 
+    public void setConnectTimeMillis(long connectTimeMillis) {
+        mConnectTimeMillis = connectTimeMillis;
+    }
+
     long getConnectTimeMillis() {
         return mConnectTimeMillis;
     }
