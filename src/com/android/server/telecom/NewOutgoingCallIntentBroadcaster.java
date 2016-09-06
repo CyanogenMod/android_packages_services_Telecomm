@@ -288,6 +288,11 @@ public class NewOutgoingCallIntentBroadcaster {
             int videoState = mIntent.getIntExtra(
                     TelecomManager.EXTRA_START_CALL_WITH_VIDEO_STATE,
                     VideoProfile.STATE_AUDIO_ONLY);
+            // Since we will not start NewOutgoingCallBroadcastIntentReceiver in case of
+            // callImmediately is true, make sure to mark it as ready, so that when user
+            // selects account, call can go ahead in case of numbers which are potential emergency
+            // but not actual emergeny.
+            mCall.setNewOutgoingCallIntentBroadcastIsDone();
             mCallsManager.placeOutgoingCall(mCall, Uri.fromParts(scheme, number, null), null,
                     speakerphoneOn, videoState);
 
