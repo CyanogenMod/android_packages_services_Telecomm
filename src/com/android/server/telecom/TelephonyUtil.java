@@ -44,6 +44,10 @@ public final class TelephonyUtil {
             new PhoneAccountHandle(
                     new ComponentName(TELEPHONY_PACKAGE_NAME, PSTN_CALL_SERVICE_CLASS_NAME), "E");
 
+    public static final int INCOMING_IMS_TYPE = 8;
+    public static final int OUTGOING_IMS_TYPE = 9;
+    public static final int MISSED_IMS_TYPE = 10;
+
     private TelephonyUtil() {}
 
     /**
