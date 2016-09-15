@@ -69,10 +69,10 @@ public final class TelephonyUtil {
     }
 
     public static boolean shouldProcessAsEmergency(Context context, Uri handle) {
-        return handle != null && isLocalEmergencyNumber(handle.getSchemeSpecificPart());
+        return handle != null && isLocalEmergencyNumber(context, handle.getSchemeSpecificPart());
     }
 
-    public static boolean isLocalEmergencyNumber(String address) {
+    public static boolean isLocalEmergencyNumber(Context context, String address) {
         IExtTelephony mIExtTelephony =
             IExtTelephony.Stub.asInterface(ServiceManager.getService("extphone"));
         boolean result = false;
@@ -80,13 +80,16 @@ public final class TelephonyUtil {
             result = mIExtTelephony.isLocalEmergencyNumber(address);
         }catch (RemoteException ex) {
             Log.e(LOG_TAG, ex, "RemoteException");
+            result = PhoneNumberUtils.isLocalEmergencyNumber(context, address);
         } catch (NullPointerException ex) {
             Log.e(LOG_TAG, ex, "NullPointerException");
+            result = PhoneNumberUtils.isLocalEmergencyNumber(context, address);
         }
         return result;
     }
 
-    public static boolean isPotentialLocalEmergencyNumber(String address) {
+    public static boolean isPotentialLocalEmergencyNumber(
+            PhoneNumberUtilsAdapter adapter, Context context, String address) {
         IExtTelephony mIExtTelephony =
             IExtTelephony.Stub.asInterface(ServiceManager.getService("extphone"));
         boolean result = false;
@@ -94,8 +97,10 @@ public final class TelephonyUtil {
             result = mIExtTelephony.isPotentialLocalEmergencyNumber(address);
         }catch (RemoteException ex) {
             Log.e(LOG_TAG, ex, "RemoteException");
+            result = adapter.isPotentialLocalEmergencyNumber(context, address);
         } catch (NullPointerException ex) {
             Log.e(LOG_TAG, ex, "NullPointerException");
+            result = adapter.isPotentialLocalEmergencyNumber(context, address);
         }
         return result;
     }
