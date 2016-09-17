@@ -38,9 +38,11 @@ import android.telephony.PhoneNumberUtils;
 import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
+import android.os.UserHandle;
 
 import android.telecom.TelecomManager;
-import android.telephony.SubscriptionManager;
+
+import com.android.internal.annotations.VisibleForTesting;
 import com.android.server.telecom.CallsManager.CallsManagerListener;
 
 import java.lang.NumberFormatException;
@@ -58,7 +60,13 @@ import android.content.ComponentName;
  * Bluetooth headset manager for Telecom. This class shares the call state with the bluetooth device
  * and accepts call-related commands to perform on behalf of the BT device.
  */
-public final class BluetoothPhoneServiceImpl {
+public class BluetoothPhoneServiceImpl {
+
+    public interface BluetoothPhoneServiceImplFactory {
+        BluetoothPhoneServiceImpl makeBluetoothPhoneServiceImpl(Context context,
+                TelecomSystem.SyncRoot lock, CallsManager callsManager,
+                PhoneAccountRegistrar phoneAccountRegistrar);
+    }
 
     private TelecomManager mTelecomManager = null;
     private IBluetoothDsdaService mBluetoothDsda = null; //Handles DSDA Service.
@@ -98,12 +106,13 @@ public final class BluetoothPhoneServiceImpl {
      * Binder implementation of IBluetoothHeadsetPhone. Implements the command interface that the
      * bluetooth headset code uses to control call.
      */
-    private final IBluetoothHeadsetPhone.Stub mBinder = new IBluetoothHeadsetPhone.Stub() {
+    @VisibleForTesting
+    public final IBluetoothHeadsetPhone.Stub mBinder = new IBluetoothHeadsetPhone.Stub() {
         @Override
         public boolean answerCall() throws RemoteException {
             synchronized (mLock) {
                 enforceModifyPermission();
-
+                Log.startSession("BPSI.aC");
                 long token = Binder.clearCallingIdentity();
                 try {
                     Log.i(TAG, "BT - answering call");
@@ -115,6 +124,7 @@ public final class BluetoothPhoneServiceImpl {
                     return false;
                 } finally {
                     Binder.restoreCallingIdentity(token);
+                    Log.endSession();
                 }
 
             }
@@ -124,7 +134,7 @@ public final class BluetoothPhoneServiceImpl {
         public boolean hangupCall() throws RemoteException {
             synchronized (mLock) {
                 enforceModifyPermission();
-
+                Log.startSession("BPSI.hC");
                 long token = Binder.clearCallingIdentity();
                 try {
                     Log.i(TAG, "BT - hanging up call");
@@ -136,6 +146,7 @@ public final class BluetoothPhoneServiceImpl {
                     return false;
                 } finally {
                     Binder.restoreCallingIdentity(token);
+                    Log.endSession();
                 }
             }
         }
@@ -144,7 +155,7 @@ public final class BluetoothPhoneServiceImpl {
         public boolean sendDtmf(int dtmf) throws RemoteException {
             synchronized (mLock) {
                 enforceModifyPermission();
-
+                Log.startSession("BPSI.sD");
                 long token = Binder.clearCallingIdentity();
                 try {
                     Log.i(TAG, "BT - sendDtmf %c", Log.DEBUG ? dtmf : '.');
@@ -159,6 +170,7 @@ public final class BluetoothPhoneServiceImpl {
                     return false;
                 } finally {
                     Binder.restoreCallingIdentity(token);
+                    Log.endSession();
                 }
             }
         }
@@ -167,7 +179,7 @@ public final class BluetoothPhoneServiceImpl {
         public String getNetworkOperator() throws RemoteException {
             synchronized (mLock) {
                 enforceModifyPermission();
-
+                Log.startSession("BPSI.gNO");
                 long token = Binder.clearCallingIdentity();
                 try {
                     Log.i(TAG, "getNetworkOperator");
@@ -182,7 +194,7 @@ public final class BluetoothPhoneServiceImpl {
                                 sub = Integer.parseInt(subId);
                             } catch (NumberFormatException e){
                                 Log.w(this, " NumberFormatException " + e);
-                                sub = SubscriptionManager.getDefaultVoiceSubId();
+                                sub = SubscriptionManager.getDefaultVoiceSubscriptionId();
                             }
                             label = TelephonyManager.from(mContext)
                                     .getNetworkOperatorName(sub);
@@ -197,6 +209,7 @@ public final class BluetoothPhoneServiceImpl {
                     return label;
                 } finally {
                     Binder.restoreCallingIdentity(token);
+                    Log.endSession();
                 }
             }
         }
@@ -205,7 +218,7 @@ public final class BluetoothPhoneServiceImpl {
         public String getSubscriberNumber() throws RemoteException {
             synchronized (mLock) {
                 enforceModifyPermission();
-
+                Log.startSession("BPSI.gSN");
                 long token = Binder.clearCallingIdentity();
                 try {
                     Log.i(TAG, "getSubscriberNumber");
@@ -224,6 +237,7 @@ public final class BluetoothPhoneServiceImpl {
                     return address;
                 } finally {
                     Binder.restoreCallingIdentity(token);
+                    Log.endSession();
                 }
             }
         }
@@ -232,7 +246,7 @@ public final class BluetoothPhoneServiceImpl {
         public boolean listCurrentCalls() throws RemoteException {
             synchronized (mLock) {
                 enforceModifyPermission();
-
+                Log.startSession("BPSI.lCC");
                 long token = Binder.clearCallingIdentity();
                 try {
                     // only log if it is after we recently updated the headset state or else it can
@@ -248,6 +262,7 @@ public final class BluetoothPhoneServiceImpl {
                     return true;
                 } finally {
                     Binder.restoreCallingIdentity(token);
+                    Log.endSession();
                 }
             }
         }
@@ -256,15 +271,17 @@ public final class BluetoothPhoneServiceImpl {
         public boolean queryPhoneState() throws RemoteException {
             synchronized (mLock) {
                 enforceModifyPermission();
-
+                Log.startSession("BPSI.qPS");
                 long token = Binder.clearCallingIdentity();
                 try {
                     Log.i(TAG, "queryPhoneState");
-                    if (isDsdaEnabled() && (mBluetoothDsda != null)) {
-                        try {
-                            mBluetoothDsda.processQueryPhoneState();
-                        } catch (RemoteException e) {
-                            Log.i(TAG, "DSDA Service not found exception " + e);
+                    if (isDsdaEnabled()) {
+                        if (mBluetoothDsda != null) {
+                            try {
+                                mBluetoothDsda.processQueryPhoneState();
+                            } catch (RemoteException e) {
+                                Log.i(TAG, "DSDA Service not found exception " + e);
+                            }
                         }
                     } else {
                         updateHeadsetWithCallState(true /* force */, null);
@@ -272,6 +289,7 @@ public final class BluetoothPhoneServiceImpl {
                     return true;
                 } finally {
                     Binder.restoreCallingIdentity(token);
+                    Log.endSession();
                 }
             }
         }
@@ -280,13 +298,14 @@ public final class BluetoothPhoneServiceImpl {
         public boolean processChld(int chld) throws RemoteException {
             synchronized (mLock) {
                 enforceModifyPermission();
-
+                Log.startSession("BPSI.pC");
                 long token = Binder.clearCallingIdentity();
                 try {
                     Log.i(TAG, "processChld %d", chld);
                     return BluetoothPhoneServiceImpl.this.processChld(chld);
                 } finally {
                     Binder.restoreCallingIdentity(token);
+                    Log.endSession();
                 }
             }
         }
@@ -314,7 +333,8 @@ public final class BluetoothPhoneServiceImpl {
      * Listens to call changes from the CallsManager and calls into methods to update the bluetooth
      * headset with the new states.
      */
-    private CallsManagerListener mCallsManagerListener = new CallsManagerListenerBase() {
+    @VisibleForTesting
+    public CallsManagerListener mCallsManagerListener = new CallsManagerListenerBase() {
         @Override
         public void onCallAdded(Call call) {
             Log.d(TAG, "onCallAdded");
@@ -334,6 +354,22 @@ public final class BluetoothPhoneServiceImpl {
             updateHeadsetWithCallState(false /* force */, call);
         }
 
+        /**
+         * Where a call which was external becomes a regular call, or a regular call becomes
+         * external, treat as an add or remove, respectively.
+         *
+         * @param call The call.
+         * @param isExternalCall {@code True} if the call became external, {@code false} otherwise.
+         */
+        @Override
+        public void onExternalCallChanged(Call call, boolean isExternalCall) {
+            if (isExternalCall) {
+                onCallRemoved(call);
+            } else {
+                onCallAdded(call);
+            }
+        }
+
         @Override
         public void onCallStateChanged(Call call, int oldState, int newState) {
             Log.d(TAG, "onCallStateChanged, call: " + call + " oldState: " + oldState +
@@ -342,7 +378,7 @@ public final class BluetoothPhoneServiceImpl {
             // check if the call is on ActiveSub. If so, this callback is called for
             // Active Subscription change.
             if (isDsdaEnabled() && (oldState == newState)) {
-                if (call.mIsActiveSub) {
+                if (isCallonActiveSub(call)) {
                     Log.d(TAG, "Active subscription changed");
                     updateActiveSubChange();
                     return;
@@ -373,19 +409,12 @@ public final class BluetoothPhoneServiceImpl {
                     newState == CallState.DIALING) {
                 if (!isDsdaEnabled()) {
                     return;
-                } else if (anyActiveCall.mIsActiveSub) {
+                } else if (isCallonActiveSub(anyActiveCall)) {
                     Log.d(TAG, "Dialing attempted on active sub when call is active");
                     return;
                 }
             }
             updateHeadsetWithCallState(false /* force */, call);
-        }
-
-        @Override
-        public void onForegroundCallChanged(Call oldForegroundCall, Call newForegroundCall) {
-            Log.d(TAG, "onForegroundCallChanged");
-            // The BluetoothPhoneService does not need to respond to changes in foreground calls,
-            // which are always accompanied by call state changes anyway.
         }
 
         @Override
@@ -425,27 +454,29 @@ public final class BluetoothPhoneServiceImpl {
      * Listens to connections and disconnections of bluetooth headsets.  We need to save the current
      * bluetooth headset so that we know where to send call updates.
      */
-    private BluetoothProfile.ServiceListener mProfileListener =
+    @VisibleForTesting
+    public BluetoothProfile.ServiceListener mProfileListener =
             new BluetoothProfile.ServiceListener() {
-        @Override
-        public void onServiceConnected(int profile, BluetoothProfile proxy) {
-            synchronized (mLock) {
-                mBluetoothHeadset = (BluetoothHeadset) proxy;
-            }
-        }
+                @Override
+                public void onServiceConnected(int profile, BluetoothProfile proxy) {
+                    synchronized (mLock) {
+                        setBluetoothHeadset(new BluetoothHeadsetProxy((BluetoothHeadset) proxy));
+                    }
+                }
 
-        @Override
-        public void onServiceDisconnected(int profile) {
-            synchronized (mLock) {
-                mBluetoothHeadset = null;
-            }
-        }
-    };
+                @Override
+                public void onServiceDisconnected(int profile) {
+                    synchronized (mLock) {
+                        mBluetoothHeadset = null;
+                    }
+                }
+            };
 
     /**
      * Receives events for global state changes of the bluetooth adapter.
      */
-    private final BroadcastReceiver mBluetoothAdapterReceiver = new BroadcastReceiver() {
+    @VisibleForTesting
+    public final BroadcastReceiver mBluetoothAdapterReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             synchronized (mLock) {
@@ -462,9 +493,18 @@ public final class BluetoothPhoneServiceImpl {
             }
         }
     };
+        public static final String ACTIVE_SUBSCRIPTION = "active_sub";
+        private boolean isCallonActiveSub(Call call){
+            boolean isActiveSub = false;
+            if (call.getExtras() != null &&
+                (call.getExtras().containsKey(ACTIVE_SUBSCRIPTION))){
+                isActiveSub = call.getExtras().getBoolean(ACTIVE_SUBSCRIPTION);
+            }
+            return isActiveSub;
+        }
 
-    private BluetoothAdapter mBluetoothAdapter;
-    private BluetoothHeadset mBluetoothHeadset;
+    private BluetoothAdapterProxy mBluetoothAdapter;
+    private BluetoothHeadsetProxy mBluetoothHeadset;
 
     // A map from Calls to indexes used to identify calls for CLCC (C* List Current Calls).
     private Map<Call, Integer> mClccIndexMap = new HashMap<>();
@@ -484,6 +524,7 @@ public final class BluetoothPhoneServiceImpl {
             Context context,
             TelecomSystem.SyncRoot lock,
             CallsManager callsManager,
+            BluetoothAdapterProxy bluetoothAdapter,
             PhoneAccountRegistrar phoneAccountRegistrar) {
         Log.d(this, "onCreate");
 
@@ -492,7 +533,7 @@ public final class BluetoothPhoneServiceImpl {
         mCallsManager = callsManager;
         mPhoneAccountRegistrar = phoneAccountRegistrar;
 
-        mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+        mBluetoothAdapter = bluetoothAdapter;
         if (mBluetoothAdapter == null) {
             Log.d(this, "BluetoothPhoneService shutting down, no BT Adapter found.");
             return;
@@ -516,6 +557,11 @@ public final class BluetoothPhoneServiceImpl {
 
         mCallsManager.addListener(mCallsManagerListener);
         updateHeadsetWithCallState(false /* force */, null);
+    }
+
+    @VisibleForTesting
+    public void setBluetoothHeadset(BluetoothHeadsetProxy bluetoothHeadset) {
+        mBluetoothHeadset = bluetoothHeadset;
     }
 
     private void createBtMultiSimService() {
@@ -572,15 +618,17 @@ public final class BluetoothPhoneServiceImpl {
                 return true;
             }
         } else if (chld == CHLD_TYPE_RELEASEACTIVE_ACCEPTHELD) {
+            if (activeCall == null && ringingCall == null && heldCall == null)
+                return false;
             if (activeCall != null) {
                 mCallsManager.disconnectCall(activeCall);
-                if (ringingCall != null) {
-                    mCallsManager.answerCall(ringingCall, ringingCall.getVideoState());
-                } else if (heldCall != null) {
-                    mCallsManager.unholdCall(heldCall);
-                }
-                return true;
             }
+            if (ringingCall != null) {
+                mCallsManager.answerCall(ringingCall, ringingCall.getVideoState());
+            } else if (heldCall != null) {
+                mCallsManager.unholdCall(heldCall);
+            }
+            return true;
         } else if (chld == CHLD_TYPE_HOLDACTIVE_ACCEPTHELD) {
             if (activeCall != null && activeCall.can(Connection.CAPABILITY_SWAP_CONFERENCE)) {
                 activeCall.swapConference();
@@ -609,7 +657,7 @@ public final class BluetoothPhoneServiceImpl {
                     if (!conferenceable.isEmpty()) {
                         mCallsManager.conference(activeCall, conferenceable.get(0));
                         return true;
-                   }
+                    }
                 }
             }
         }
@@ -676,7 +724,7 @@ public final class BluetoothPhoneServiceImpl {
                 boolean shouldReevaluateState =
                         conferenceCall.can(Connection.CAPABILITY_MERGE_CONFERENCE) ||
                         (conferenceCall.can(Connection.CAPABILITY_SWAP_CONFERENCE) &&
-                         !conferenceCall.wasConferencePreviouslyMerged());
+                        !conferenceCall.wasConferencePreviouslyMerged());
 
                 if (shouldReevaluateState) {
                     isPartOfConference = false;
@@ -729,7 +777,7 @@ public final class BluetoothPhoneServiceImpl {
         boolean allowDsda = false;
         int state = convertCallState(call.getState(), isForeground);
         int subForCall = Integer.parseInt(call.getTargetPhoneAccount().getId());
-        int activeSub = mTelecomManager.getActiveSubscription();
+        int activeSub = getActiveSubscription();
         if (INVALID_SUBID == activeSub) {
             Log.i(TAG, "Invalid activeSub id, returning");
             return;
@@ -780,13 +828,14 @@ public final class BluetoothPhoneServiceImpl {
                     if (call == activeChild) {
                         Log.i(this, "this is active child");
                         if ((mBluetoothDsda.hasCallsOnBothSubs() == true) &&
-                                activeChild.mIsActiveSub) {
+                                isCallonActiveSub(activeChild)) {
                             isActive = true;
                         }
                         state = CALL_STATE_ACTIVE;
                     } else {
                         Log.i(this, "this is not active child");
-                        if ((mBluetoothDsda.hasCallsOnBothSubs() == true) && call.mIsActiveSub) {
+                        if ((mBluetoothDsda.hasCallsOnBothSubs() == true) &&
+                             isCallonActiveSub(call)) {
                             isActive = false;
                         }
                         state = CALL_STATE_HELD;
@@ -805,7 +854,7 @@ public final class BluetoothPhoneServiceImpl {
         //Special case:
         //Sub1: 1A(isPartOfConference=true), 2A(isPartOfConference=true)
         //Sub2: 3A(isPartOfConference should set to true), 4W(isPartOfConference=false)
-        if ((mBluetoothDsda.hasCallsOnBothSubs() == true) && call.mIsActiveSub
+        if ((mBluetoothDsda.hasCallsOnBothSubs() == true) && isCallonActiveSub(call)
                 && (activeSubRingingCall != null) && (call != activeSubRingingCall)) {
             Log.i(this, "A fake mparty special scenario");
             isPartOfConference = true;
@@ -912,7 +961,7 @@ public final class BluetoothPhoneServiceImpl {
      * @ param call is specified call for which Headset is to be updated.
      */
     private void updateHeadsetWithCallState(boolean force, Call call) {
-        if (isDsdaEnabled() && (call != null) && (mBluetoothDsda != null)) {
+        if (isDsdaEnabled() && (call != null)) {
             Log.d(TAG, "DSDA call operation, handle it separately");
             updateDsdaServiceWithCallState(call);
         } else {
@@ -978,6 +1027,15 @@ public final class BluetoothPhoneServiceImpl {
                 boolean sendDialingFirst = mBluetoothCallState != bluetoothCallState &&
                         bluetoothCallState == CALL_STATE_ALERTING;
 
+                if (numActiveCalls > 0) {
+                Log.i(TAG, "updateHeadsetWithCallState: Call active");
+                boolean isCsCall = ((activeCall != null) &&
+                        !(activeCall.hasProperty(Connection.PROPERTY_HIGH_DEF_AUDIO) ||
+                        activeCall.hasProperty(Connection.PROPERTY_WIFI)));
+                final Intent intent = new Intent(TelecomManager.ACTION_CALL_TYPE);
+                intent.putExtra(TelecomManager.EXTRA_CALL_TYPE_CS, isCsCall);
+                mContext.sendBroadcastAsUser(intent, UserHandle.ALL);
+            }
                 mOldHeldCall = heldCall;
                 mNumActiveCalls = numActiveCalls;
                 mNumHeldCalls = numHeldCalls;
@@ -1005,6 +1063,7 @@ public final class BluetoothPhoneServiceImpl {
                             mRingingAddress,
                             mRingingAddressType);
                 }
+
 
                 Log.i(TAG, "updateHeadsetWithCallState " +
                         "numActive %s, " +
@@ -1042,7 +1101,7 @@ public final class BluetoothPhoneServiceImpl {
             Log.d(TAG, "Get the Sub on which call state change happened");
             if (call.getTargetPhoneAccount() != null) {
                 String sub = call.getTargetPhoneAccount().getId();
-                subscription = SubscriptionManager.getDefaultVoiceSubId();
+                subscription = SubscriptionManager.getDefaultVoiceSubscriptionId();
                 try {
                     subscription = Integer.parseInt(sub);
                 } catch (NumberFormatException e) {
@@ -1052,7 +1111,7 @@ public final class BluetoothPhoneServiceImpl {
                 for (Call childCall : call.getChildCalls()) {
                     if (childCall.getTargetPhoneAccount() != null) {
                         String sub = childCall.getTargetPhoneAccount().getId();
-                        subscription = SubscriptionManager.getDefaultVoiceSubId();
+                        subscription = SubscriptionManager.getDefaultVoiceSubscriptionId();
                         try {
                             subscription = Integer.parseInt(sub);
                         } catch (NumberFormatException e) {
@@ -1125,7 +1184,7 @@ public final class BluetoothPhoneServiceImpl {
         if (activeCall != null && activeCall.isConference()) {
             if (activeCall.getTargetPhoneAccount() != null) {
                 String sub = activeCall.getTargetPhoneAccount().getId();
-                activeCallSub = SubscriptionManager.getDefaultVoiceSubId();
+                activeCallSub = SubscriptionManager.getDefaultVoiceSubscriptionId();
                 try {
                     activeCallSub = Integer.parseInt(sub);
                 } catch (NumberFormatException e) {
@@ -1135,7 +1194,7 @@ public final class BluetoothPhoneServiceImpl {
                 for (Call childCall : activeCall.getChildCalls()) {
                     if (childCall.getTargetPhoneAccount() != null) {
                         String sub = childCall.getTargetPhoneAccount().getId();
-                        activeCallSub = SubscriptionManager.getDefaultVoiceSubId();
+                        activeCallSub = SubscriptionManager.getDefaultVoiceSubscriptionId();
                         try {
                             activeCallSub = Integer.parseInt(sub);
                         } catch (NumberFormatException e) {
@@ -1181,7 +1240,7 @@ public final class BluetoothPhoneServiceImpl {
         int bluetoothCallState = CALL_STATE_IDLE;
         if (ringingCall != null) {
             bluetoothCallState = CALL_STATE_INCOMING;
-        } else if (dialingCall != null && dialingCall.getState() == CallState.DIALING) {
+        } else if (dialingCall != null) {
             bluetoothCallState = CALL_STATE_ALERTING;
         }
         return bluetoothCallState;
@@ -1246,15 +1305,15 @@ public final class BluetoothPhoneServiceImpl {
         PhoneAccount account = null;
         if (call != null) {
             // First try to get the network name of the foreground call.
-            account = mPhoneAccountRegistrar.getPhoneAccountCheckCallingUser(
+            account = mPhoneAccountRegistrar.getPhoneAccountOfCurrentUser(
                     call.getTargetPhoneAccount());
         }
 
         if (account == null) {
             // Second, Try to get the label for the default Phone Account.
-            account = mPhoneAccountRegistrar.getPhoneAccountCheckCallingUser(
-                    mPhoneAccountRegistrar.getOutgoingPhoneAccountForScheme(
-                        PhoneAccount.SCHEME_TEL));
+            account = mPhoneAccountRegistrar.getPhoneAccountUnchecked(
+                    mPhoneAccountRegistrar.getOutgoingPhoneAccountForSchemeOfCurrentUser(
+                            PhoneAccount.SCHEME_TEL));
         }
         return account;
     }
@@ -1281,11 +1340,17 @@ public final class BluetoothPhoneServiceImpl {
         return count;
     }
 
+    private int getActiveSubscription() {
+        String activeSub = mCallsManager.getActiveSubscription();
+        return (activeSub == null) ? SubscriptionManager.INVALID_SUBSCRIPTION_ID:
+            Integer.parseInt(activeSub);
+    }
+
     private boolean processDsdaChld(int chld) throws  RemoteException {
         boolean status = true;
         CallsManager callsManager = mCallsManager;
         Log.i(TAG, "processDsdaChld: " + chld );
-        int activeSub = mTelecomManager.getActiveSubscription();
+        int activeSub = getActiveSubscription();
         Log.i(TAG, "activeSub: " + activeSub);
         if (INVALID_SUBID == activeSub) {
             Log.i(TAG, "Invalid activeSub id, returning");
@@ -1405,7 +1470,7 @@ public final class BluetoothPhoneServiceImpl {
     private Call getCallOnOtherSub(boolean isActive) throws  RemoteException {
         CallsManager callsManager = mCallsManager;
         Log.d(TAG, "getCallOnOtherSub, isActiveSub call required: " + isActive);
-        int activeSub = mTelecomManager.getActiveSubscription();
+        int activeSub = getActiveSubscription();
         if (INVALID_SUBID == activeSub) {
             Log.i(TAG, "Invalid activeSub id, returning");
             return null;

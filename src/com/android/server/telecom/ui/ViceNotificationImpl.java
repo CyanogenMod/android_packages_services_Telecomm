@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014-2015 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2014-2016 The Linux Foundation. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -53,6 +53,8 @@ import android.os.Process;
 import android.os.RemoteException;
 import android.os.UserHandle;
 import android.telecom.TelecomManager;
+import android.telecom.PhoneAccountHandle;
+import android.telecom.TelecomManager;
 import android.telecom.VideoProfile;
 import android.telephony.TelephonyManager;
 import android.text.TextUtils;
@@ -68,11 +70,12 @@ import com.android.server.telecom.Log;
 import com.android.server.telecom.components.TelecomBroadcastReceiver;
 import com.android.server.telecom.TelecomBroadcastIntentProcessor;
 
-import org.codeaurora.ims.qtiims.IQtiImsInterface;
-import org.codeaurora.ims.qtiims.IQtiImsInterfaceListener;
-import org.codeaurora.ims.qtiims.QtiImsInterfaceListenerBaseImpl;
-import org.codeaurora.ims.qtiims.QtiImsInterfaceUtils;
-import org.codeaurora.ims.qtiims.QtiViceInfo;
+import org.codeaurora.ims.internal.IQtiImsExt;
+import org.codeaurora.ims.QtiImsException;
+import org.codeaurora.ims.QtiImsExtListenerBaseImpl;
+import org.codeaurora.ims.QtiImsExtManager;
+import org.codeaurora.ims.QtiViceInfo;
+import org.codeaurora.ims.utils.QtiImsExtUtils;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -89,11 +92,13 @@ import java.util.Set;
 public class ViceNotificationImpl extends CallsManagerListenerBase {
     private final Context mContext;
     private final NotificationManager mNotificationManager;
-    private IQtiImsInterface mQtiImsInterface = null;
+    private IQtiImsExt mQtiImsExt = null;
     private boolean mImsServiceBound = false;
     private Notification.Builder mBuilder = null;
     private Notification.Builder mPublicNotificationBuilder = null;
+    private UserHandle mCurrentUserHandle;
 
+    private static final String LOG_TAG = "ViceNotificationImpl";
     private MyHandler mHandler = new MyHandler();
 
     /**
@@ -120,17 +125,17 @@ public class ViceNotificationImpl extends CallsManagerListenerBase {
 
     private ImsIntentReceiver mImsIntentReceiver = null;
 
-    private static final String IMS_SERVICE_PKG_NAME = "org.codeaurora.ims";
+    private static final String IMS_SERVICE_PKG_NAME = "org.codeaurora.ims.internal";
+
+    private final TelecomManager mTelecomManager;
 
     public ViceNotificationImpl(Context context, CallsManager callsManager) {
         mContext = context;
         mNotificationManager =
                 (NotificationManager) mContext.getSystemService(Context.NOTIFICATION_SERVICE);
         Log.i(this,"ViceNotificationImpl");
-        if (!bindImsService()) {
-            //Register for IMS ready intent to re try bind
-            registerImsReceiver();
-        }
+        registerImsReceiver();
+        mTelecomManager = TelecomManager.from(mContext);
     }
 
     private class MyHandler extends Handler {
@@ -166,9 +171,7 @@ public class ViceNotificationImpl extends CallsManagerListenerBase {
         public void onReceive(Context context, Intent intent) {
             Log.i("ViceNotificationImpl", "mImsIntentReceiver: action " + intent.getAction());
             if (ImsManager.ACTION_IMS_SERVICE_UP.equals(intent.getAction())) {
-                if (bindImsService()) {
-                    unregisterImsReceiver();
-                }
+                registerForViceRefreshInfo();
             }
         }
     }
@@ -182,35 +185,9 @@ public class ViceNotificationImpl extends CallsManagerListenerBase {
         checkAndUpdateNotification();
     }
 
-    /* Service connection bound to IQtiImsInterface */
-    private ServiceConnection mConnection = new ServiceConnection() {
-
-        /* Below API gets invoked when connection to ImsService is established */
-        public void onServiceConnected(ComponentName className, IBinder service) {
-            Log.i("ViceNotificationImpl", "onServiceConnected");
-            /* Retrieve the IQtiImsInterface */
-            mQtiImsInterface = IQtiImsInterface.Stub.asInterface(service);
-
-            /**
-             * If interface is available register for Vice notifications
-             */
-            if (mQtiImsInterface != null) {
-                registerForViceRefreshInfo();
-            } else {
-                /* Request or interface is unavailable, unbind the service */
-                unbindImsService();
-            }
-        }
-
-        /* Below API gets invoked when connection to ImsService is disconnected */
-        public void onServiceDisconnected(ComponentName className) {
-            Log.i("ViceNotificationImpl", "onServiceDisconnected");
-        }
-    };
-
-    /* QtiImsInterfaceListenerBaseImpl instance to handle call backs */
-    private IQtiImsInterfaceListener imsInterfaceListener =
-        new QtiImsInterfaceListenerBaseImpl() {
+    /* QtiImsExtListenerBaseImpl instance to handle call backs */
+    private QtiImsExtListenerBaseImpl imsInterfaceListener =
+        new QtiImsExtListenerBaseImpl() {
 
         @Override
         public void notifyRefreshViceInfo(QtiViceInfo qtiViceInfo) {
@@ -221,55 +198,9 @@ public class ViceNotificationImpl extends CallsManagerListenerBase {
 
     public void registerForViceRefreshInfo() {
         try {
-            Log.d(this, "registerForViceRefreshInfo");
-            mQtiImsInterface.registerForViceRefreshInfo(imsInterfaceListener);
-        } catch (RemoteException e) {
-            Log.d(this, "registerForViceRefreshInfo exception " + e);
-        }
-    }
-
-    /**
-     * Informs if call deflection interafce is available or not.
-     * Returns true if allowed, false otherwise.
-     */
-    public boolean isQtiImsInterfaceAvailable() {
-        return (mImsServiceBound && (mQtiImsInterface != null));
-    }
-
-    /**
-     * Checks if ims service is bound or not
-     * Returns true when bound, false otherwise.
-     */
-    public boolean isImsServiceAvailable() {
-        return mImsServiceBound;
-    }
-
-    /**
-     * Bind to the ims service
-     * Returns true if bound sucessfully, false otherwise.
-     */
-    public boolean bindImsService() {
-        if (!ImsManager.getInstance(mContext, 0).isServiceAvailable()) {
-            Log.d(this, "bindImsService: IMS service is not available!");
-            return false;
-        }
-        Intent intent = new Intent(IQtiImsInterface.class.getName());
-        intent.setPackage(IMS_SERVICE_PKG_NAME);
-        mImsServiceBound = mContext.bindService(intent,
-                                   mConnection,
-                                   0);
-        Log.d(this, "Getting IQtiImsInterface : " + (mImsServiceBound?"yes":"failed"));
-        return mImsServiceBound;
-    }
-
-    /* Unbind the ims service if was already bound */
-    public void unbindImsService() {
-        if (mImsServiceBound) {
-            Log.d(this, "UnBinding IQtiImsInterface");
-
-            /* When disconnecting, reset the globals variables */
-            mImsServiceBound = false;
-            mContext.unbindService(mConnection);
+            QtiImsExtManager.getInstance().registerForViceRefreshInfo(imsInterfaceListener);
+        } catch (QtiImsException e) {
+            Log.i(this, "registerForViceRefreshInfo failed. Exception = " + e);
         }
     }
 
@@ -511,6 +442,10 @@ public class ViceNotificationImpl extends CallsManagerListenerBase {
             intent.putExtra(TelecomManager.EXTRA_START_CALL_WITH_VIDEO_STATE,
                     VideoProfile.STATE_AUDIO_ONLY);
         }
+
+        intent.putExtra(TelecomBroadcastIntentProcessor.EXTRA_USERHANDLE,
+                UserHandle.of(UserHandle.myUserId()));
+
         return PendingIntent.getBroadcast(mContext, 0, intent, PendingIntent.FLAG_CANCEL_CURRENT);
     }
 

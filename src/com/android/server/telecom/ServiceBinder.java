@@ -25,6 +25,7 @@ import android.os.UserHandle;
 import android.text.TextUtils;
 import android.util.ArraySet;
 
+import com.android.internal.annotations.VisibleForTesting;
 import com.android.internal.util.Preconditions;
 
 import java.util.Collections;
@@ -114,36 +115,46 @@ abstract class ServiceBinder {
 
         @Override
         public void onServiceConnected(ComponentName componentName, IBinder binder) {
-            synchronized (mLock) {
-                Log.i(this, "Service bound %s", componentName);
+            try {
+                Log.startSession("SBC.oSC");
+                synchronized (mLock) {
+                    Log.i(this, "Service bound %s", componentName);
 
-                Log.event(mCall, Log.Events.CS_BOUND, componentName);
-                mCall = null;
+                    Log.event(mCall, Log.Events.CS_BOUND, componentName);
+                    mCall = null;
 
-                // Unbind request was queued so unbind immediately.
-                if (mIsBindingAborted) {
-                    clearAbort();
-                    logServiceDisconnected("onServiceConnected");
-                    mContext.unbindService(this);
-                    handleFailedConnection();
-                    return;
+                    // Unbind request was queued so unbind immediately.
+                    if (mIsBindingAborted) {
+                        clearAbort();
+                        logServiceDisconnected("onServiceConnected");
+                        mContext.unbindService(this);
+                        handleFailedConnection();
+                        return;
+                    }
+
+                    mServiceConnection = this;
+                    setBinder(binder);
+                    handleSuccessfulConnection();
                 }
-
-                mServiceConnection = this;
-                setBinder(binder);
-                handleSuccessfulConnection();
+            } finally {
+                Log.endSession();
             }
         }
 
         @Override
         public void onServiceDisconnected(ComponentName componentName) {
-            synchronized (mLock) {
-                logServiceDisconnected("onServiceDisconnected");
+            try {
+                Log.startSession("SBC.oSD");
+                synchronized (mLock) {
+                    logServiceDisconnected("onServiceDisconnected");
 
-                mServiceConnection = null;
-                clearAbort();
+                    mServiceConnection = null;
+                    clearAbort();
 
-                handleServiceDisconnected();
+                    handleServiceDisconnected();
+                }
+            } finally {
+                Log.endSession();
             }
         }
     }
@@ -167,7 +178,7 @@ abstract class ServiceBinder {
     private ServiceConnection mServiceConnection;
 
     /** {@link UserHandle} to use for binding, to support work profiles and multi-user. */
-    private final UserHandle mUserHandle;
+    private UserHandle mUserHandle;
 
     /** The binder provided by {@link ServiceConnection#onServiceConnected} */
     private IBinder mBinder;
@@ -253,11 +264,8 @@ abstract class ServiceBinder {
         return mComponentName;
     }
 
-    final UserHandle getUserHandle() {
-        return mUserHandle;
-    }
-
-    final boolean isServiceValid(String actionName) {
+    @VisibleForTesting
+    public boolean isServiceValid(String actionName) {
         if (mBinder == null) {
             Log.w(this, "%s invoked while service is unbound", actionName);
             return false;

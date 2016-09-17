@@ -16,52 +16,41 @@
 
 package com.android.server.telecom.components;
 
-import android.app.ActivityManager;
-import android.app.ActivityManagerNative;
 import android.app.Service;
 import android.bluetooth.BluetoothAdapter;
 import android.content.Context;
 import android.content.Intent;
-import android.content.res.Configuration;
+import android.media.IAudioService;
 import android.os.IBinder;
-import android.os.RemoteException;
+import android.os.PowerManager;
+import android.os.ServiceManager;
 
 import com.android.internal.telephony.CallerInfoAsyncQuery;
+import com.android.server.telecom.AsyncRingtonePlayer;
+import com.android.server.telecom.BluetoothAdapterProxy;
+import com.android.server.telecom.BluetoothPhoneServiceImpl;
 import com.android.server.telecom.CallerInfoAsyncQueryFactory;
-import com.android.server.telecom.CallInfoProvider;
 import com.android.server.telecom.CallsManager;
 import com.android.server.telecom.HeadsetMediaButton;
 import com.android.server.telecom.HeadsetMediaButtonFactory;
 import com.android.server.telecom.InCallWakeLockControllerFactory;
+import com.android.server.telecom.CallAudioManager;
+import com.android.server.telecom.PhoneAccountRegistrar;
 import com.android.server.telecom.ProximitySensorManagerFactory;
 import com.android.server.telecom.InCallWakeLockController;
 import com.android.server.telecom.Log;
 import com.android.server.telecom.ProximitySensorManager;
 import com.android.server.telecom.TelecomSystem;
+import com.android.server.telecom.TelecomWakeLock;
+import com.android.server.telecom.Timeouts;
 import com.android.server.telecom.ViceNotifier;
 import com.android.server.telecom.ui.MissedCallNotifierImpl;
 import com.android.server.telecom.ui.ViceNotificationImpl;
-
-import java.util.Locale;
-
-import libcore.util.Objects;
 
 /**
  * Implementation of the ITelecom interface.
  */
 public class TelecomService extends Service implements TelecomSystem.Component {
-
-    private Locale mLastLocale;
-
-    @Override
-    public void onCreate() {
-        super.onCreate();
-        try {
-            mLastLocale = ActivityManagerNative.getDefault().getConfiguration().locale;
-        } catch (RemoteException e) {
-            mLastLocale = null;
-        }
-    }
 
     @Override
     public IBinder onBind(Intent intent) {
@@ -84,13 +73,18 @@ public class TelecomService extends Service implements TelecomSystem.Component {
      */
     static void initializeTelecomSystem(Context context) {
         if (TelecomSystem.getInstance() == null) {
-            final CallInfoProvider callInfoProvider = new CallInfoProvider(context);
             TelecomSystem.setInstance(
                     new TelecomSystem(
                             context,
-                            new MissedCallNotifierImpl(context.getApplicationContext(),
-                                                       callInfoProvider),
-                            callInfoProvider,
+                            new MissedCallNotifierImpl.MissedCallNotifierImplFactory() {
+                                @Override
+                                public MissedCallNotifierImpl makeMissedCallNotifierImpl(
+                                        Context context,
+                                        PhoneAccountRegistrar phoneAccountRegistrar) {
+                                    return new MissedCallNotifierImpl(context,
+                                            phoneAccountRegistrar);
+                                }
+                            },
                             new CallerInfoAsyncQueryFactory() {
                                 @Override
                                 public CallerInfoAsyncQuery startQuery(int token, Context context,
@@ -118,16 +112,45 @@ public class TelecomService extends Service implements TelecomSystem.Component {
                                 public ProximitySensorManager create(
                                         Context context,
                                         CallsManager callsManager) {
-                                    return new ProximitySensorManager(context, callsManager);
+                                    return new ProximitySensorManager(
+                                            new TelecomWakeLock(
+                                                    context,
+                                                    PowerManager.PROXIMITY_SCREEN_OFF_WAKE_LOCK,
+                                                    ProximitySensorManager.class.getSimpleName()),
+                                            callsManager);
                                 }
                             },
                             new InCallWakeLockControllerFactory() {
                                 @Override
                                 public InCallWakeLockController create(Context context,
                                         CallsManager callsManager) {
-                                    return new InCallWakeLockController(context, callsManager);
+                                    return new InCallWakeLockController(
+                                            new TelecomWakeLock(context,
+                                                    PowerManager.FULL_WAKE_LOCK,
+                                                    InCallWakeLockController.class.getSimpleName()),
+                                            callsManager);
                                 }
                             },
+                            new CallAudioManager.AudioServiceFactory() {
+                                @Override
+                                public IAudioService getAudioService() {
+                                    return IAudioService.Stub.asInterface(
+                                            ServiceManager.getService(Context.AUDIO_SERVICE));
+                                }
+                            },
+                            new BluetoothPhoneServiceImpl.BluetoothPhoneServiceImplFactory() {
+                                @Override
+                                public BluetoothPhoneServiceImpl makeBluetoothPhoneServiceImpl(
+                                        Context context, TelecomSystem.SyncRoot lock,
+                                        CallsManager callsManager,
+                                        PhoneAccountRegistrar phoneAccountRegistrar) {
+                                    return new BluetoothPhoneServiceImpl(context, lock,
+                                            callsManager, new BluetoothAdapterProxy(),
+                                            phoneAccountRegistrar);
+                                }
+                            },
+                            new Timeouts.Adapter(),
+                            new AsyncRingtonePlayer(),
                             new ViceNotifier() {
                                 @Override
                                 public ViceNotificationImpl create(Context context,
@@ -145,15 +168,5 @@ public class TelecomService extends Service implements TelecomSystem.Component {
     @Override
     public TelecomSystem getTelecomSystem() {
         return TelecomSystem.getInstance();
-    }
-
-    @Override
-    public void onConfigurationChanged(Configuration newConfig) {
-        super.onConfigurationChanged(newConfig);
-        if (!Objects.equal(mLastLocale, newConfig.locale)) {
-            getTelecomSystem().getTelecomServiceImpl()
-                    .repostMissedCallNotification(getPackageName());
-            mLastLocale = newConfig.locale;
-        }
     }
 }

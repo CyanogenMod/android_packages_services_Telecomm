@@ -37,13 +37,7 @@
     <string name="dialer_default_class" translatable="false">com.android.dialer.DialtactsActivity</string>
 
     <!-- Flag indicating if the tty is enabled -->
-    <bool name="tty_enabled">false</bool>
-
-    <!-- DTMF key to be used for LCH hold tone -->
-    <string name="lch_dtmf_key" translatable="false">D</string>
-
-    <!-- DSDA phones that don't support local call hold need special handling -->
-    <bool name="dsda_supports_lch">true</bool>
+    <bool name="tty_enabled">true</bool>
 
     <!-- Component name for the notification handler. The presence of this value will disable
          MissedCallNotifierImpl's presentation of missed call/voice notifications [DO NOT TRANSLATE] -->
@@ -51,4 +45,7 @@
 
     <!-- Flag indicating whether audio should be routed to speaker when docked -->
     <bool name="use_speaker_when_docked">true</bool>
+
+    <!-- DTMF key to be used for LCH hold tone -->
+    <string name="lch_dtmf_key" translatable="false">D</string>
 </resources>

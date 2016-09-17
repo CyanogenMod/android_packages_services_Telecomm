@@ -31,8 +31,12 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.telecom.Response;
+import android.telephony.PhoneNumberUtils;
 import android.telephony.SubscriptionManager;
 import android.telephony.TelephonyManager;
+import android.text.Spannable;
+import android.text.SpannableString;
+import android.text.TextUtils;
 import android.widget.Toast;
 
 import java.util.ArrayList;
@@ -145,7 +149,12 @@ public class RespondViaSmsManager extends CallsManagerListenerBase {
         final String formatString = res.getString(
                 R.string.respond_via_sms_confirmation_format);
         final String confirmationMsg = String.format(formatString, phoneNumber);
-        Toast.makeText(context, confirmationMsg,
+        int startingPosition = confirmationMsg.indexOf(phoneNumber);
+        int endingPosition = startingPosition + phoneNumber.length();
+
+        Spannable styledConfirmationMsg = new SpannableString(confirmationMsg);
+        PhoneNumberUtils.addTtsSpan(styledConfirmationMsg, startingPosition, endingPosition);
+        Toast.makeText(context, styledConfirmationMsg,
                 Toast.LENGTH_LONG).show();
 
         // TODO: If the device is locked, this toast won't actually ever
@@ -168,7 +177,7 @@ public class RespondViaSmsManager extends CallsManagerListenerBase {
      */
     private void rejectCallWithMessage(Context context, String phoneNumber, String textMessage,
             int subId) {
-        if (textMessage != null) {
+        if (textMessage != null && !TextUtils.isEmpty(textMessage)) {
             final ComponentName component =
                     SmsApplication.getDefaultRespondViaMessageApplication(context,
                             true /*updateIfNeeded*/);

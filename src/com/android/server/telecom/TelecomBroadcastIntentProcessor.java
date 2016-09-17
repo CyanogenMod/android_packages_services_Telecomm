@@ -19,7 +19,6 @@ package com.android.server.telecom;
 import android.content.Context;
 import android.content.Intent;
 import android.os.UserHandle;
-import com.android.internal.telephony.util.BlacklistUtils;
 import android.telecom.TelecomManager;
 import com.android.internal.telephony.TelephonyProperties;
 import com.android.server.telecom.ui.ViceNotificationImpl;
@@ -37,6 +36,7 @@ public final class TelecomBroadcastIntentProcessor {
     public static final String ACTION_CLEAR_MISSED_CALLS =
             "com.android.server.telecom.ACTION_CLEAR_MISSED_CALLS";
 
+    public static final String EXTRA_USERHANDLE = "userhandle";
     public static final String ACTION_CALL_PULL =
             "org.codeaurora.ims.ACTION_CALL_PULL";
 
@@ -48,26 +48,15 @@ public final class TelecomBroadcastIntentProcessor {
         mCallsManager = callsManager;
     }
 
-    public static final String ACTION_CLEAR_BLACKLISTED_CALLS =
-            "com.android.phone.intent.CLEAR_BLACKLISTED_CALLS";
-    /** This action is used to clear blacklisted messages. */
-    public static final String ACTION_CLEAR_BLACKLISTED_MESSAGES =
-            "com.android.phone.intent.CLEAR_BLACKLISTED_MESSAGES";
-
-    public static final String ACTION_REJECTED_SMS =
-            "android.provider.Telephony.SMS_REJECTED";
-
-    // For adding to Blacklist from call log
-    static final String REMOVE_BLACKLIST = "com.android.phone.REMOVE_BLACKLIST";
-    static final String EXTRA_NUMBER = "number";
-    static final String EXTRA_TYPE = "type";
-    static final String EXTRA_FROM_NOTIFICATION = "fromNotification";
-
-
     public void processIntent(Intent intent) {
         String action = intent.getAction();
 
         Log.v(this, "Action received: %s.", action);
+        UserHandle userHandle = intent.getParcelableExtra(EXTRA_USERHANDLE);
+        if (userHandle == null) {
+            Log.d(this, "user handle can't be null, not processing the broadcast");
+            return;
+        }
 
         MissedCallNotifier missedCallNotifier = mCallsManager.getMissedCallNotifier();
 
@@ -75,52 +64,26 @@ public final class TelecomBroadcastIntentProcessor {
         if (ACTION_SEND_SMS_FROM_NOTIFICATION.equals(action)) {
             // Close the notification shade and the notification itself.
             closeSystemDialogs(mContext);
-            missedCallNotifier.clearMissedCalls();
+            missedCallNotifier.clearMissedCalls(userHandle);
 
             Intent callIntent = new Intent(Intent.ACTION_SENDTO, intent.getData());
             callIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            mContext.startActivityAsUser(callIntent, UserHandle.CURRENT);
+            mContext.startActivityAsUser(callIntent, userHandle);
 
         // Call back recent caller from the missed call notification.
         } else if (ACTION_CALL_BACK_FROM_NOTIFICATION.equals(action)) {
             // Close the notification shade and the notification itself.
             closeSystemDialogs(mContext);
-            missedCallNotifier.clearMissedCalls();
+            missedCallNotifier.clearMissedCalls(userHandle);
 
-            Intent callIntent = new Intent(Intent.ACTION_CALL_PRIVILEGED, intent.getData());
+            Intent callIntent = new Intent(Intent.ACTION_CALL, intent.getData());
             callIntent.setFlags(
                     Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS);
-            mContext.startActivityAsUser(callIntent, UserHandle.CURRENT);
+            mContext.startActivityAsUser(callIntent, userHandle);
 
         // Clear the missed call notification and call log entries.
         } else if (ACTION_CLEAR_MISSED_CALLS.equals(action)) {
-            missedCallNotifier.clearMissedCalls();
-        }  else if (ACTION_CLEAR_BLACKLISTED_CALLS.equals(action)) {
-            BlacklistCallNotifier bcn = mCallsManager.getBlacklistCallNotifier();
-            bcn.cancelBlacklistedNotification(BlacklistUtils.BLOCK_CALLS);
-        } else if (ACTION_CLEAR_BLACKLISTED_MESSAGES.equals(action)) {
-            BlacklistCallNotifier bcn = mCallsManager.getBlacklistCallNotifier();
-            bcn.cancelBlacklistedNotification(BlacklistUtils.BLOCK_MESSAGES);
-        } else if (intent.getAction().equals(REMOVE_BLACKLIST)) {
-            if (intent.getBooleanExtra(EXTRA_FROM_NOTIFICATION, false)) {
-                // Dismiss the notification that brought us here
-                int blacklistType = intent.getIntExtra(EXTRA_TYPE, 0);
-                BlacklistCallNotifier bcn = mCallsManager.getBlacklistCallNotifier();
-                bcn.cancelBlacklistedNotification(blacklistType);
-                BlacklistUtils.addOrUpdate(mContext, intent.getStringExtra(EXTRA_NUMBER),
-                        0, blacklistType);
-            }
-        } else if (ACTION_REJECTED_SMS.equals(action)) {
-            if (!intent.getBooleanExtra("blacklisted", false)) {
-                return;
-            }
-
-            String sender = intent.getStringExtra("sender");
-            long timestamp = intent.getLongExtra("timestamp", 0);
-            int matchType = intent.getIntExtra("blacklistMatchType", -1);
-
-            BlacklistCallNotifier bcn = mCallsManager.getBlacklistCallNotifier();
-            bcn.notifyBlacklistedMessage(sender, timestamp, matchType);
+            missedCallNotifier.clearMissedCalls(userHandle);
         } else if (ACTION_CALL_PULL.equals(action)) {
             // Close the notification shade and the notification itself.
             closeSystemDialogs(mContext);
@@ -135,7 +98,7 @@ public final class TelecomBroadcastIntentProcessor {
             callIntent.putExtra(TelecomManager.EXTRA_START_CALL_WITH_VIDEO_STATE, callType);
             callIntent.setFlags(
                     Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS);
-            mContext.startActivityAsUser(callIntent, UserHandle.CURRENT);
+            mContext.startActivityAsUser(callIntent, userHandle);
         }
     }
 

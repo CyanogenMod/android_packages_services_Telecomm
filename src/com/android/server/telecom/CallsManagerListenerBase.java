@@ -52,10 +52,6 @@ public class CallsManagerListenerBase implements CallsManager.CallsManagerListen
     }
 
     @Override
-    public void onForegroundCallChanged(Call oldForegroundCall, Call newForegroundCall) {
-    }
-
-    @Override
     public void onCallAudioStateChanged(CallAudioState oldAudioState,
             CallAudioState newAudioState) {
     }
@@ -86,10 +82,10 @@ public class CallsManagerListenerBase implements CallsManager.CallsManagerListen
     }
 
     @Override
-    public void onMergeFailed(Call call) {
+    public void onHoldToneRequested(Call call) {
     }
 
     @Override
-    public void onProcessIncomingCall(Call call) {
+    public void onExternalCallChanged(Call call, boolean isExternalCall) {
     }
 }

@@ -18,19 +18,15 @@ package com.android.server.telecom;
 
 import android.content.ComponentName;
 import android.content.Context;
-import android.content.Intent;
-import android.content.pm.PackageManager;
-import android.content.pm.ResolveInfo;
-import android.content.res.Resources;
 import android.net.Uri;
-import android.telecom.InCallService;
+import android.os.ServiceManager;
+import android.os.RemoteException;
 import android.telecom.PhoneAccount;
 import android.telecom.PhoneAccountHandle;
 import android.telephony.PhoneNumberUtils;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import com.android.internal.annotations.VisibleForTesting;
+import org.codeaurora.internal.IExtTelephony;
 
 /**
  * Utilities to deal with the system telephony services. The system telephony services are treated
@@ -41,6 +37,8 @@ public final class TelephonyUtil {
 
     private static final String PSTN_CALL_SERVICE_CLASS_NAME =
             "com.android.services.telephony.TelephonyConnectionService";
+
+    private static final String LOG_TAG = "TelephonyUtil";
 
     private static final PhoneAccountHandle DEFAULT_EMERGENCY_PHONE_ACCOUNT_HANDLE =
             new PhoneAccountHandle(
@@ -54,7 +52,8 @@ public final class TelephonyUtil {
      * account are not expected to be displayed in the UI, so the description, etc are not
      * populated.
      */
-    static PhoneAccount getDefaultEmergencyPhoneAccount() {
+    @VisibleForTesting
+    public static PhoneAccount getDefaultEmergencyPhoneAccount() {
         return PhoneAccount.builder(DEFAULT_EMERGENCY_PHONE_ACCOUNT_HANDLE, "E")
                 .setCapabilities(PhoneAccount.CAPABILITY_SIM_SUBSCRIPTION |
                         PhoneAccount.CAPABILITY_CALL_PROVIDER |
@@ -70,41 +69,34 @@ public final class TelephonyUtil {
     }
 
     public static boolean shouldProcessAsEmergency(Context context, Uri handle) {
-        return handle != null && PhoneNumberUtils.isLocalEmergencyNumber(
-                context, handle.getSchemeSpecificPart());
+        return handle != null && isLocalEmergencyNumber(handle.getSchemeSpecificPart());
     }
 
-    static ComponentName getDialerComponentName(Context context) {
-        Resources resources = context.getResources();
-        PackageManager packageManager = context.getPackageManager();
-        Intent i = new Intent(Intent.ACTION_DIAL);
-        List<ResolveInfo> resolveInfo = packageManager.queryIntentActivities(i, 0);
-        List<String> entries = Arrays.asList(resources.getStringArray(
-                R.array.dialer_default_classes));
-        for (ResolveInfo info : resolveInfo) {
-            ComponentName componentName = new ComponentName(info.activityInfo.packageName,
-                    info.activityInfo.name);
-            if (entries.contains(componentName.flattenToString())) {
-                return componentName;
-            }
+    public static boolean isLocalEmergencyNumber(String address) {
+        IExtTelephony mIExtTelephony =
+            IExtTelephony.Stub.asInterface(ServiceManager.getService("extphone"));
+        boolean result = false;
+        try {
+            result = mIExtTelephony.isLocalEmergencyNumber(address);
+        }catch (RemoteException ex) {
+            Log.e(LOG_TAG, ex, "RemoteException");
+        } catch (NullPointerException ex) {
+            Log.e(LOG_TAG, ex, "NullPointerException");
         }
-        return null;
+        return result;
     }
 
-    static ComponentName getInCallComponentName(Context context) {
-        Resources resources = context.getResources();
-        PackageManager packageManager = context.getPackageManager();
-        Intent i = new Intent(InCallService.SERVICE_INTERFACE);
-        List<ResolveInfo> resolveInfo = packageManager.queryIntentServices(i, 0);
-        List<String> entries = Arrays.asList(resources.getStringArray(
-                R.array.incall_default_classes));
-        for (ResolveInfo info : resolveInfo) {
-            ComponentName componentName = new ComponentName(info.serviceInfo.packageName,
-                    info.serviceInfo.name);
-            if (entries.contains(componentName.flattenToString())) {
-                return componentName;
-            }
+    public static boolean isPotentialLocalEmergencyNumber(String address) {
+        IExtTelephony mIExtTelephony =
+            IExtTelephony.Stub.asInterface(ServiceManager.getService("extphone"));
+        boolean result = false;
+        try {
+            result = mIExtTelephony.isPotentialLocalEmergencyNumber(address);
+        }catch (RemoteException ex) {
+            Log.e(LOG_TAG, ex, "RemoteException");
+        } catch (NullPointerException ex) {
+            Log.e(LOG_TAG, ex, "NullPointerException");
         }
-        return null;
+        return result;
     }
 }

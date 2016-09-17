@@ -22,12 +22,11 @@ LOCAL_STATIC_JAVA_LIBRARIES := \
         android-support-v4 \
         guava \
         mockito-target \
-        org.cyanogenmod.platform.sdk
+        ims-ext-common
 
 LOCAL_SRC_FILES := \
         $(call all-java-files-under, src) \
-        $(call all-java-files-under, ../src) \
-        $(call all-java-files-under, ../callinfo_provider/src)
+        $(call all-java-files-under, ../src)
 
 LOCAL_SRC_FILES += \
         src/org/codeaurora/btmultisim/IBluetoothDsdaService.aidl
@@ -40,15 +39,20 @@ LOCAL_RESOURCE_DIR := \
 LOCAL_JAVA_LIBRARIES := \
         android.test.runner \
         telephony-common \
+        telephony-ext \
         ims-common
 
 LOCAL_AAPT_FLAGS := \
     --auto-add-overlay \
     --extra-packages com.android.server.telecom
 
+LOCAL_PROGUARD_ENABLED := disabled
+
 LOCAL_PACKAGE_NAME := TelecomUnitTests
 LOCAL_CERTIFICATE := platform
 
 LOCAL_MODULE_TAGS := tests
+
+include frameworks/base/packages/SettingsLib/common.mk
 
 include $(BUILD_PACKAGE)

@@ -21,27 +21,36 @@ import android.media.ToneGenerator;
 import android.os.Handler;
 import android.os.Looper;
 
+import com.android.internal.annotations.VisibleForTesting;
+
 /**
  * Play a call-related tone (ringback, busy signal, etc.) through ToneGenerator. To use, create an
  * instance using InCallTonePlayer.Factory (passing in the TONE_* constant for the tone you want)
  * and start() it. Implemented on top of {@link Thread} so that the tone plays in its own thread.
  */
-public final class InCallTonePlayer extends Thread {
+public class InCallTonePlayer extends Thread {
 
     /**
      * Factory used to create InCallTonePlayers. Exists to aid with testing mocks.
      */
     public static class Factory {
-        private final CallAudioManager mCallAudioManager;
+        private CallAudioManager mCallAudioManager;
+        private final CallAudioRoutePeripheralAdapter mCallAudioRoutePeripheralAdapter;
         private final TelecomSystem.SyncRoot mLock;
 
-        Factory(CallAudioManager callAudioManager, TelecomSystem.SyncRoot lock) {
-            mCallAudioManager = callAudioManager;
+        Factory(CallAudioRoutePeripheralAdapter callAudioRoutePeripheralAdapter,
+                TelecomSystem.SyncRoot lock) {
+            mCallAudioRoutePeripheralAdapter = callAudioRoutePeripheralAdapter;
             mLock = lock;
         }
 
-        InCallTonePlayer createPlayer(int tone) {
-            return new InCallTonePlayer(tone, mCallAudioManager, mLock);
+        public void setCallAudioManager(CallAudioManager callAudioManager) {
+            mCallAudioManager = callAudioManager;
+        }
+
+        public InCallTonePlayer createPlayer(int tone) {
+            return new InCallTonePlayer(tone, mCallAudioManager,
+                    mCallAudioRoutePeripheralAdapter, mLock);
         }
     }
 
@@ -84,6 +93,7 @@ public final class InCallTonePlayer extends Thread {
     private static int sTonesPlaying = 0;
 
     private final CallAudioManager mCallAudioManager;
+    private final CallAudioRoutePeripheralAdapter mCallAudioRoutePeripheralAdapter;
 
     private final Handler mMainThreadHandler = new Handler(Looper.getMainLooper());
 
@@ -96,6 +106,9 @@ public final class InCallTonePlayer extends Thread {
     /** Telecom lock object. */
     private final TelecomSystem.SyncRoot mLock;
 
+    private Session mSession;
+    private final Object mSessionLock = new Object();
+
     /**
      * Initializes the tone player. Private; use the {@link Factory} to create tone players.
      *
@@ -104,10 +117,12 @@ public final class InCallTonePlayer extends Thread {
     private InCallTonePlayer(
             int toneId,
             CallAudioManager callAudioManager,
+            CallAudioRoutePeripheralAdapter callAudioRoutePeripheralAdapter,
             TelecomSystem.SyncRoot lock) {
         mState = STATE_OFF;
         mToneId = toneId;
         mCallAudioManager = callAudioManager;
+        mCallAudioRoutePeripheralAdapter = callAudioRoutePeripheralAdapter;
         mLock = lock;
     }
 
@@ -116,6 +131,12 @@ public final class InCallTonePlayer extends Thread {
     public void run() {
         ToneGenerator toneGenerator = null;
         try {
+            synchronized (mSessionLock) {
+                if (mSession != null) {
+                    Log.continueSession(mSession, "ICTP.r");
+                    mSession = null;
+                }
+            }
             Log.d(this, "run(toneId = %s)", mToneId);
 
             final int toneType;  // Passed to ToneGenerator.startTone.
@@ -202,7 +223,7 @@ public final class InCallTonePlayer extends Thread {
             }
 
             int stream = AudioManager.STREAM_VOICE_CALL;
-            if (mCallAudioManager.isBluetoothAudioOn()) {
+            if (mCallAudioRoutePeripheralAdapter.isBluetoothAudioOn()) {
                 stream = AudioManager.STREAM_BLUETOOTH_SCO;
             }
 
@@ -241,13 +262,22 @@ public final class InCallTonePlayer extends Thread {
                 toneGenerator.release();
             }
             cleanUpTonePlayer();
+            Log.endSession();
         }
     }
-
-    void startTone() {
+    
+    @VisibleForTesting
+    public void startTone() {
         sTonesPlaying++;
         if (sTonesPlaying == 1) {
             mCallAudioManager.setIsTonePlaying(true);
+        }
+
+        synchronized (mSessionLock) {
+            if (mSession != null) {
+                Log.cancelSubsession(mSession);
+            }
+            mSession = Log.createSubsession();
         }
 
         start();
@@ -256,7 +286,8 @@ public final class InCallTonePlayer extends Thread {
     /**
      * Stops the tone.
      */
-    void stopTone() {
+    @VisibleForTesting
+    public void stopTone() {
         synchronized (this) {
             if (mState == STATE_ON) {
                 Log.d(this, "Stopping the tone %d.", mToneId);
@@ -268,8 +299,9 @@ public final class InCallTonePlayer extends Thread {
 
     private void cleanUpTonePlayer() {
         // Release focus on the main thread.
-        mMainThreadHandler.post(new Runnable() {
-            @Override public void run() {
+        mMainThreadHandler.post(new Runnable("ICTP.cUTP") {
+            @Override
+            public void loggedRun() {
                 synchronized (mLock) {
                     if (sTonesPlaying == 0) {
                         Log.wtf(this, "Over-releasing focus for tone player.");
@@ -278,6 +310,6 @@ public final class InCallTonePlayer extends Thread {
                     }
                 }
             }
-        });
+        }.prepare());
     }
 }
