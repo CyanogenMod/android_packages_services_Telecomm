@@ -20,7 +20,9 @@
          and app info screens. -->
   <!-- Title used for the activity for placing a call. This name appears
          in activity disambig dialogs -->
+  <string name="userCallActivityLabel" product="default">Telefono</string>
   <!-- Name for an "unknown" caller. -->
+  <string name="unknown">Nekonata</string>
   <!-- Notification strings -->
   <!-- Missed call notification label, used when there's exactly one missed call -->
   <!-- Missed call notification label, used when there are two or more missed calls -->
