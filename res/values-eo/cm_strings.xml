@@ -17,7 +17,6 @@
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
   <!-- Blacklist preferences -->
-  <string name="blacklist_title">Listo de blokitaj alvokantoj</string>
   <string name="blacklist_summary_disabled">Malŝaltita</string>
   <string name="blacklist_summary">Vi ne plu ricevos alvokojn aŭ mesaĝojn el numero de la blokita listo</string>
   <!-- Blacklist notifications -->

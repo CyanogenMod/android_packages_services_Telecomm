@@ -31,4 +31,8 @@
   <string name="blacklist_message_notification_multiple">Bloqueáronse <xliff:g id="count">%d</xliff:g> mensaxes</string>
   <string name="blacklist_notification_list_private">Privado</string>
   <string name="unblock_number">Desbloquear</string>
+  <string name="unblock_contact">Desbloquear contacto</string>
+  <string name="call_waiting_dialog_title">Responder a %s</string>
+  <string name="call_waiting_dialog_hold_call">Poñer a chamada en espera</string>
+  <string name="call_waiting_dialog_end_call">Rematar a chamada actual</string>
 </resources>
