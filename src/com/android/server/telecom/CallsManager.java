@@ -2095,7 +2095,24 @@ public class CallsManager extends Call.ListenerBase
         return MAXIMUM_DIALING_CALLS <= getNumCallsWithState(CallState.DIALING);
     }
 
+    /**
+     * Returns true if there is an Emergency Call in Call list.
+     */
+    private boolean IsEmergencyCallInProgress() {
+        for (Call call : mCalls) {
+            if (call.isEmergencyCall()) {
+                // We never support add call if one of the calls is an emergency call.
+                return true;
+            }
+        }
+        return false;
+    }
+
     private boolean makeRoomForOutgoingCall(Call call, boolean isEmergency) {
+        if (isEmergency && IsEmergencyCallInProgress()) {
+            Log.i(this, "emergency call is progress so no room for new E Call");
+            return false;
+        }
         if (TelephonyManager.getDefault().getMultiSimConfiguration()
                 == TelephonyManager.MultiSimVariants.DSDA) {
             return makeRoomForOutgoingCallForDsda(call, isEmergency);
