@@ -1775,9 +1775,8 @@ public class Call implements CreateConnectionResponse {
      */
     private void setCallerInfo(Uri handle, CallerInfo callerInfo) {
         Trace.beginSection("setCallerInfo");
-        Preconditions.checkNotNull(callerInfo);
 
-        if (!handle.equals(mHandle)) {
+        if ((handle != null) && !handle.equals(mHandle)) {
             Log.i(this, "setCallerInfo received stale caller info for an old handle. Ignoring.");
             return;
         }
@@ -1785,8 +1784,8 @@ public class Call implements CreateConnectionResponse {
         mCallerInfo = callerInfo;
         Log.i(this, "CallerInfo received for %s: %s", Log.piiHandle(mHandle), callerInfo);
 
-        if (mCallerInfo.contactDisplayPhotoUri == null ||
-                mCallerInfo.cachedPhotoIcon != null || mCallerInfo.cachedPhoto != null) {
+        if ((mCallerInfo != null) && (mCallerInfo.contactDisplayPhotoUri == null ||
+                mCallerInfo.cachedPhotoIcon != null || mCallerInfo.cachedPhoto != null)) {
             for (Listener l : mListeners) {
                 l.onCallerInfoChanged(this);
             }

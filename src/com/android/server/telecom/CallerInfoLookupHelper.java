@@ -74,11 +74,13 @@ public class CallerInfoLookupHelper {
 
     public void startLookup(final Uri handle, OnQueryCompleteListener listener) {
         if (handle == null) {
+            listener.onCallerInfoQueryComplete(handle, null);
             return;
         }
 
         final String number = handle.getSchemeSpecificPart();
         if (TextUtils.isEmpty(number)) {
+            listener.onCallerInfoQueryComplete(handle, null);
             return;
         }
 

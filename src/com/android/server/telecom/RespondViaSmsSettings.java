@@ -25,6 +25,7 @@ import android.preference.EditTextPreference;
 import android.preference.Preference;
 import android.preference.PreferenceActivity;
 import android.preference.PreferenceScreen;
+import android.text.TextUtils;
 import android.view.Menu;
 import android.view.MenuItem;
 
@@ -101,6 +102,10 @@ public class RespondViaSmsSettings extends PreferenceActivity
         // (Watch out: onPreferenceChange() is called *before* the
         // Preference itself gets updated, so we need to use newValue here
         // rather than pref.getText().)
+        String quickResponse = ((String) newValue).trim();
+        if (TextUtils.isEmpty(quickResponse)) {
+            return false;
+        }
         pref.setTitle((String) newValue);
 
         // Save the new preference value.
