@@ -790,13 +790,6 @@ public class Call implements CreateConnectionResponse {
         return mCallerInfo == null ? null : mCallerInfo.name;
     }
 
-    public String getNumber() {
-        if (mCallerInfo != null) {
-            return mCallerInfo.phoneNumber;
-        }
-        return mHandle == null ? null : mHandle.getSchemeSpecificPart();
-    }
-
     public String getPhoneNumber() {
         return mCallerInfo == null ? null : mCallerInfo.phoneNumber;
     }
