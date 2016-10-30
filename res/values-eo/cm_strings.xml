@@ -17,17 +17,5 @@
 -->
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
   <!-- Blacklist preferences -->
-  <string name="blacklist_summary_disabled">Malŝaltita</string>
-  <string name="blacklist_summary">Vi ne plu ricevos alvokojn aŭ mesaĝojn el numero de la blokita listo</string>
   <!-- Blacklist notifications -->
-  <string name="blacklist_call_notification">Alvoko de %s blokita</string>
-  <string name="blacklist_call_notification_private_number">Alvoko de privata numero blokita</string>
-  <string name="blacklist_call_notification_unknown_number">Alvoko de nekonata numero %s blokita</string>
-  <string name="blacklist_call_notification_multiple"><xliff:g id="count">%d</xliff:g> alvokoj estas blokitaj</string>
-  <string name="blacklist_message_notification">Blokis mesaĝon de %s</string>
-  <string name="blacklist_message_notification_private_number">Blokis mesaĝon el privata numero</string>
-  <string name="blacklist_message_notification_unknown_number">Blokis mesaĝon de nekonata numero %s</string>
-  <string name="blacklist_message_notification_multiple"><xliff:g id="count">%d</xliff:g> mesaĝoj estas blokitaj</string>
-  <string name="blacklist_notification_list_private">Privata</string>
-  <string name="unblock_number">Malbloki</string>
 </resources>
