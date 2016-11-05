@@ -8,6 +8,10 @@ LOCAL_STATIC_JAVA_LIBRARIES := \
         ims-ext-common \
         org.cyanogenmod.platform.sdk
 
+LOCAL_STATIC_JAVA_LIBRARIES += libSudaSdk
+LOCAL_STATIC_JAVA_LIBRARIES += libOkHttp
+LOCAL_STATIC_JAVA_LIBRARIES += libOKIO
+
 LOCAL_SRC_FILES := $(call all-java-files-under, src)
 LOCAL_SRC_FILES += \
        src/org/codeaurora/btmultisim/IBluetoothDsdaService.aidl
