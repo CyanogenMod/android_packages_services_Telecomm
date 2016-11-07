@@ -1544,6 +1544,9 @@ public class PhoneAccountRegistrar {
                             } else if (parser.getName().equals(GROUP_ID)) {
                                 parser.next();
                                 groupId = parser.getText();
+                                if (groupId == null) {
+                                    groupId = "";
+                                }
                             }
                         }
                         UserHandle userHandle = null;
