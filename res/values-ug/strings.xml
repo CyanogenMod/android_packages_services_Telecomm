@@ -18,24 +18,30 @@
   <!-- Official label of the Telecomm/Phone app, as seen in "Manage Applications"
          and other settings UIs. This is the "app name" used in notification, recents,
          and app info screens. -->
-  <string name="telecommAppLabel" product="default">Upravljanje pozivima</string>
   <!-- Title used for the activity for placing a call. This name appears
          in activity disambig dialogs -->
+  <string name="userCallActivityLabel" product="default">تېلېفون</string>
   <!-- Name for an "unknown" caller. -->
+  <string name="unknown">يوچۇن</string>
   <!-- Notification strings -->
   <!-- Missed call notification label, used when there's exactly one missed call -->
+  <string name="notification_missedCallTitle">سۆزلەشمىگەن چاقىرىش</string>
   <!-- Missed work call notification label, used when there's exactly one missed call [CHAR LIMIT=NONE] -->
-  <string name="notification_missedWorkCallTitle">Propušteni poslovni poziv</string>
   <!-- Missed call notification label, used when there are two or more missed calls -->
+  <string name="notification_missedCallsTitle">سۆزلەشمىگەن چاقىرىشلار</string>
   <!-- Missed call notification message used when there are multiple missed calls -->
+  <string name="notification_missedCallsMsg">سۆزلەشمىگەن چاقىرىش <xliff:g id="num_missed_calls">%s</xliff:g></string>
   <!-- Missed call notification message used for a single missed call, including
          the caller-id info from the missed call -->
+  <string name="notification_missedCallTicker"><xliff:g id="missed_call_from">%s</xliff:g> دىن كەلگەن جاۋابسىز چاقىرىش</string>
   <!-- Message for "call back" Action, which is displayed in the missed call notificaiton.
          The user will be able to call back to the person or the phone number.
          [CHAR LIMIT=18] -->
+  <string name="notification_missedCall_call_back">قايتۇرۇپ ئۇرۇڭ</string>
   <!-- Message for "reply via sms" action, which is displayed in the missed call notification.
          The user will be able to send text messages using the phone number.
          [CHAR LIMIT=18] -->
+  <string name="notification_missedCall_message">ئۇچۇر</string>
   <!-- Content description of the call muted notification icon for
          accessibility (not shown on the screen). [CHAR LIMIT=NONE] -->
   <!-- Content description of the speakerphone enabled notification icon for
@@ -67,48 +73,27 @@
   <!-- Button label on the "Missing voicemail number" dialog -->
   <!-- Title of dialog used to comfirm whether the user intends to change the default dialer
             application [CHAR LIMIT=55]-->
-  <string name="change_default_dialer_dialog_title">Postaviti aplikaciju <xliff:g id="NEW_APP">%s</xliff:g> kao zadanu aplikaciju za telefon?</string>
   <!-- Confirmation text that a user taps on to change the Default Phone App-->
-  <string name="change_default_dialer_dialog_affirmative">Postavi zadano</string>
   <!-- Cancel text that a user taps on to not change the Default Phone App-->
-  <string name="change_default_dialer_dialog_negative">Otkaži</string>
   <!-- Warning message indicating what may happen if a user allows a 3rd party app to become the default dialer.-->
-  <string name="change_default_dialer_warning_message"><xliff:g id="NEW_APP">%s</xliff:g> će moći upućivati pozive i kontrolirati sve vezano za njih. Zadana aplikacija treba biti samo aplikacija koju smatrate pouzdanom.</string>
   <!-- Blocked numbers -->
-  <string name="blocked_numbers">Blokirani brojevi</string>
   <!-- Text shown at the beginning of the blocked numbers screen to explain what the screen is about. -->
-  <string name="blocked_numbers_msg">Nećete primati pozive i poruke od blokiranih brojeva.</string>
   <!-- Button to add a blocked number. -->
-  <string name="block_number">Dodaj broj</string>
   <!-- Body of dialog to confirm unblocking a number. -->
-  <string name="unblock_dialog_body">Odblokirati <xliff:g id="NUMBER_TO_BLOCK">%1$s</xliff:g>?</string>
   <!-- Button to unblock a number. -->
-  <string name="unblock_button">Odblokiraj</string>
   <!-- Body of dialog to block a number.  -->
-  <string name="add_blocked_dialog_body">Blokiraj pozive i tekstualne poruke od</string>
   <!-- Hint shown in the edit text box for adding a blocked number -->
-  <string name="add_blocked_number_hint">Telefonski broj</string>
   <!-- Button to block a number. -->
-  <string name="block_button">Blokiraj</string>
   <!-- String shown to users unable to manage blocked numbers because they are not owners of the
         device. -->
-  <string name="non_primary_user">Samo vlasnik uređaja može pregledati i upravljati blokiranim brojevima.</string>
   <!-- Description of icon to delete blocked number. -->
-  <string name="delete_icon_description">Odblokiraj</string>
   <!-- Title for butter bar shown when call blocking is disabled. -->
-  <string name="blocked_numbers_butter_bar_title">Blokiranje je privremeno isključeno</string>
   <!-- Explanation for butter bar shown when call blocking is disabled. -->
-  <string name="blocked_numbers_butter_bar_body">Nakon što pozovete ili pošaljete poruku na broj za hitne slučajeve, blokiranje se isključuje da bi vas hitna služba mogla kontaktirati.</string>
   <!-- Button to re-enable blocking shown in butter bar shown when call blocking is disabled. -->
-  <string name="blocked_numbers_butter_bar_button">Ponovo omogući sada</string>
   <!-- Message to show when a number is blocked. -->
-  <string name="blocked_numbers_number_blocked_message"><xliff:g id="BLOCKED_NUMBER">%1$s</xliff:g> je blokiran</string>
   <!-- Message to show when a number is unblocked. -->
-  <string name="blocked_numbers_number_unblocked_message"><xliff:g id="UNBLOCKED_NUMBER">%1$s</xliff:g> je odblokiran</string>
   <!-- Message to show when a number cannot be blocked because it is associated with emergency services.. -->
-  <string name="blocked_numbers_block_emergency_number_message">Nije moguće blokirati broj za hitne slučajeve.</string>
   <!-- Message to show when a number is already blocked. -->
-  <string name="blocked_numbers_number_already_blocked_message"><xliff:g id="BLOCKED_NUMBER">%1$s</xliff:g> je već blokiran.</string>
   <!-- DO NOT TRANSLATE. Label for test Subscription 0. -->
   <!-- DO NOT TRANSLATE. Label for test Subscription 1. -->
   <!-- DO NOT TRANSLATE. Label for test Subscription 2. -->
@@ -118,5 +103,4 @@
   <!-- DO NOT TRANSLATE. Short description for test Subscription 2. -->
   <!-- DO NOT TRANSLATE. Short description for test Subscription 3. -->
   <!-- DO NOT TRANSLATE. Hardcoded number used for restricted incoming phone numbers. -->
-  <string name="toast_personal_call_msg">Za upućivanje poziva koristi se lična brojčana tastatura</string>
 </resources>
