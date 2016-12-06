@@ -22,7 +22,9 @@ LOCAL_STATIC_JAVA_LIBRARIES := \
         android-support-v4 \
         guava \
         mockito-target \
-        ims-ext-common
+        ims-ext-common \
+        org.cyanogenmod.platform.internal \
+        uicommon
 
 LOCAL_SRC_FILES := \
         $(call all-java-files-under, src) \
