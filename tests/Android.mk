@@ -23,7 +23,8 @@ LOCAL_STATIC_JAVA_LIBRARIES := \
         guava \
         mockito-target \
         platform-test-annotations \
-        ims-ext-common
+        ims-ext-common \
+        org.cyanogenmod.platform.internal
 
 LOCAL_SRC_FILES := \
         $(call all-java-files-under, src) \
