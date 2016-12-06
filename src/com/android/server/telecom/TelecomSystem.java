@@ -158,7 +158,8 @@ public final class TelecomSystem {
             Timeouts.Adapter timeoutsAdapter,
             AsyncRingtonePlayer asyncRingtonePlayer,
             ViceNotifier vicenotifier,
-            PhoneNumberUtilsAdapter phoneNumberUtilsAdapter) {
+            PhoneNumberUtilsAdapter phoneNumberUtilsAdapter,
+            InterruptionFilterProxy interruptionFilterProxy) {
         mContext = context.getApplicationContext();
         Log.setContext(mContext);
         Log.initMd5Sum();
@@ -204,7 +205,8 @@ public final class TelecomSystem {
                 timeoutsAdapter,
                 asyncRingtonePlayer,
                 mViceNotifier,
-                phoneNumberUtilsAdapter);
+                phoneNumberUtilsAdapter,
+                interruptionFilterProxy);
 
         mRespondViaSmsManager = new RespondViaSmsManager(mCallsManager, mLock);
         mCallsManager.setRespondViaSmsManager(mRespondViaSmsManager);

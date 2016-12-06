@@ -106,7 +106,7 @@ public class CallAudioManager extends CallsManagerListenerBase {
         }
 
         updateForegroundCall();
-        if (newState == CallState.DISCONNECTED) {
+        if (shouldPlayDisconnectTone(oldState, newState)) {
             playToneForDisconnectedCall(call);
         }
 
@@ -422,8 +422,8 @@ public class CallAudioManager extends CallsManagerListenerBase {
     }
 
     @VisibleForTesting
-    public void startRinging() {
-        mRinger.startRinging(mForegroundCall);
+    public boolean startRinging() {
+        return mRinger.startRinging(mForegroundCall);
     }
 
     @VisibleForTesting
@@ -450,6 +450,11 @@ public class CallAudioManager extends CallsManagerListenerBase {
     @VisibleForTesting
     public CallAudioRouteStateMachine getCallAudioRouteStateMachine() {
         return mCallAudioRouteStateMachine;
+    }
+
+    @VisibleForTesting
+    public CallAudioModeStateMachine getCallAudioModeStateMachine() {
+        return mCallAudioModeStateMachine;
     }
 
     void dump(IndentingPrintWriter pw) {
@@ -749,6 +754,15 @@ public class CallAudioManager extends CallsManagerListenerBase {
             mRinger.stopRinging();
             mRinger.stopCallWaiting();
         }
+    }
+
+    private boolean shouldPlayDisconnectTone(int oldState, int newState) {
+        if (newState != CallState.DISCONNECTED) {
+            return false;
+        }
+        return oldState == CallState.ACTIVE ||
+                oldState == CallState.DIALING ||
+                oldState == CallState.ON_HOLD;
     }
 
     @VisibleForTesting

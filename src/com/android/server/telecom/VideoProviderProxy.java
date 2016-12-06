@@ -187,7 +187,9 @@ public class VideoProviderProxy extends Connection.VideoProvider {
                 if (status == Connection.VideoProvider.SESSION_MODIFY_REQUEST_SUCCESS) {
                     mCall.getAnalytics().addVideoEvent(
                             Analytics.RECEIVE_REMOTE_SESSION_MODIFY_RESPONSE,
-                            requestProfile.getVideoState());
+                            responseProfile == null ?
+                                    VideoProfile.STATE_AUDIO_ONLY :
+                                    responseProfile.getVideoState());
                 }
                 VideoProviderProxy.this.receiveSessionModifyResponse(status, requestProfile,
                         responseProfile);
@@ -203,7 +205,8 @@ public class VideoProviderProxy extends Connection.VideoProvider {
         @Override
         public void handleCallSessionEvent(int event) {
             synchronized (mLock) {
-                logFromVideoProvider("handleCallSessionEvent: " + event);
+                logFromVideoProvider("handleCallSessionEvent: " +
+                        Connection.VideoProvider.sessionEventToString(event));
                 VideoProviderProxy.this.handleCallSessionEvent(event);
             }
         }
@@ -475,7 +478,7 @@ public class VideoProviderProxy extends Connection.VideoProvider {
      * @param toLog The message to log.
      */
     private void logFromInCall(String toLog) {
-        Log.v(this, "IC->VP: " + toLog);
+        Log.i(this, "IC->VP (callId=" + (mCall == null ? "?" : mCall.getId()) + "): " + toLog);
     }
 
     /**
@@ -485,6 +488,6 @@ public class VideoProviderProxy extends Connection.VideoProvider {
      * @param toLog The message to log.
      */
     private void logFromVideoProvider(String toLog) {
-        Log.v(this, "VP->IC: " + toLog);
+        Log.i(this, "VP->IC (callId=" + (mCall == null ? "?" : mCall.getId()) + "): " + toLog);
     }
 }

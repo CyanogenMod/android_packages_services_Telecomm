@@ -79,12 +79,16 @@ public final class InCallController extends CallsManagerListenerBase {
     }
 
     private class InCallServiceInfo {
-        private ComponentName mComponentName;
+        private final ComponentName mComponentName;
         private boolean mIsExternalCallsSupported;
+        private final int mType;
 
-        public InCallServiceInfo(ComponentName componentName, boolean isExternalCallsSupported) {
+        public InCallServiceInfo(ComponentName componentName,
+                boolean isExternalCallsSupported,
+                int type) {
             mComponentName = componentName;
             mIsExternalCallsSupported = isExternalCallsSupported;
+            mType = type;
         }
 
         public ComponentName getComponentName() {
@@ -93,6 +97,10 @@ public final class InCallController extends CallsManagerListenerBase {
 
         public boolean isExternalCallsSupported() {
             return mIsExternalCallsSupported;
+        }
+
+        public int getType() {
+            return mType;
         }
 
         @Override
@@ -193,6 +201,12 @@ public final class InCallController extends CallsManagerListenerBase {
                 mIsConnected = false;
             }
 
+            if (call != null && mIsConnected) {
+                call.getAnalytics().addInCallService(
+                        mInCallServiceInfo.getComponentName().flattenToShortString(),
+                        mInCallServiceInfo.getType());
+            }
+
             return mIsConnected;
         }
 
@@ -218,7 +232,7 @@ public final class InCallController extends CallsManagerListenerBase {
                     InCallController.this.onConnected(mInCallServiceInfo, service);
             if (!shouldRemainConnected) {
                 // Sometimes we can opt to disconnect for certain reasons, like if the
-                // InCallService rejected our intialization step, or the calls went away
+                // InCallService rejected our initialization step, or the calls went away
                 // in the time it took us to bind to the InCallService. In such cases, we go
                 // ahead and disconnect ourselves.
                 disconnect();
@@ -600,17 +614,19 @@ public final class InCallController extends CallsManagerListenerBase {
     private final CallsManager mCallsManager;
     private final SystemStateProvider mSystemStateProvider;
     private final DefaultDialerManagerAdapter mDefaultDialerAdapter;
+    private final Timeouts.Adapter mTimeoutsAdapter;
     private CarSwappingInCallServiceConnection mInCallServiceConnection;
     private NonUIInCallServiceConnectionCollection mNonUIInCallServiceConnections;
 
     public InCallController(Context context, TelecomSystem.SyncRoot lock, CallsManager callsManager,
             SystemStateProvider systemStateProvider,
-            DefaultDialerManagerAdapter defaultDialerAdapter) {
+            DefaultDialerManagerAdapter defaultDialerAdapter, Timeouts.Adapter timeoutsAdapter) {
         mContext = context;
         mLock = lock;
         mCallsManager = callsManager;
         mSystemStateProvider = systemStateProvider;
         mDefaultDialerAdapter = defaultDialerAdapter;
+        mTimeoutsAdapter = timeoutsAdapter;
 
         Resources resources = mContext.getResources();
         mSystemInCallComponentName = new ComponentName(
@@ -670,7 +686,7 @@ public final class InCallController extends CallsManagerListenerBase {
                         unbindFromServices();
                     }
                 }
-            }.prepare(), Timeouts.getCallRemoveUnbindInCallServicesDelay(
+            }.prepare(), mTimeoutsAdapter.getCallRemoveUnbindInCallServicesDelay(
                             mContext.getContentResolver()));
         }
         call.removeListener(mCallListener);
@@ -841,10 +857,14 @@ public final class InCallController extends CallsManagerListenerBase {
      */
     private void unbindFromServices() {
         if (isBoundToServices()) {
-            mInCallServiceConnection.disconnect();
-            mInCallServiceConnection = null;
-            mNonUIInCallServiceConnections.disconnect();
-            mNonUIInCallServiceConnections = null;
+            if (mInCallServiceConnection != null) {
+                mInCallServiceConnection.disconnect();
+                mInCallServiceConnection = null;
+            }
+            if (mNonUIInCallServiceConnections != null) {
+                mNonUIInCallServiceConnections.disconnect();
+                mNonUIInCallServiceConnections = null;
+            }
         }
     }
 
@@ -915,7 +935,7 @@ public final class InCallController extends CallsManagerListenerBase {
             // Last Resort: Try to bind to the ComponentName given directly.
             Log.e(this, new Exception(), "Package Manager could not find ComponentName: "
                     + componentName +". Trying to bind anyway.");
-            return new InCallServiceInfo(componentName, false);
+            return new InCallServiceInfo(componentName, false, type);
         }
     }
 
@@ -969,7 +989,7 @@ public final class InCallController extends CallsManagerListenerBase {
 
                     retval.add(new InCallServiceInfo(
                             new ComponentName(serviceInfo.packageName, serviceInfo.name),
-                            isExternalCallsSupported));
+                            isExternalCallsSupported, requestedType));
                 }
             }
         }
@@ -1078,34 +1098,32 @@ public final class InCallController extends CallsManagerListenerBase {
 
         // Upon successful connection, send the state of the world to the service.
         List<Call> calls = orderCallsWithChildrenFirst(mCallsManager.getCalls());
-        if (!calls.isEmpty()) {
-            Log.i(this, "Adding %s calls to InCallService after onConnected: %s", calls.size(),
-                    info.getComponentName());
-            for (Call call : calls) {
-                try {
-                    if (call.isExternalCall() && !info.isExternalCallsSupported()) {
-                        continue;
-                    }
-
-                    // Track the call if we don't already know about it.
-                    addCall(call);
-
-                    inCallService.addCall(ParcelableCallUtils.toParcelableCall(
-                            call,
-                            true /* includeVideoProvider */,
-                            mCallsManager.getPhoneAccountRegistrar(),
-                            info.isExternalCallsSupported()));
-                } catch (RemoteException ignored) {
-                }
-            }
+        Log.i(this, "Adding %s calls to InCallService after onConnected: %s, including external " +
+                "calls", calls.size(), info.getComponentName());
+        int numCallsSent = 0;
+        for (Call call : calls) {
             try {
-                inCallService.onCallAudioStateChanged(mCallsManager.getAudioState());
-                inCallService.onCanAddCallChanged(mCallsManager.canAddCall());
+                if (call.isExternalCall() && !info.isExternalCallsSupported()) {
+                    continue;
+                }
+
+                // Track the call if we don't already know about it.
+                addCall(call);
+                numCallsSent += 1;
+                inCallService.addCall(ParcelableCallUtils.toParcelableCall(
+                        call,
+                        true /* includeVideoProvider */,
+                        mCallsManager.getPhoneAccountRegistrar(),
+                        info.isExternalCallsSupported()));
             } catch (RemoteException ignored) {
             }
-        } else {
-            return false;
         }
+        try {
+            inCallService.onCallAudioStateChanged(mCallsManager.getAudioState());
+            inCallService.onCanAddCallChanged(mCallsManager.canAddCall());
+        } catch (RemoteException ignored) {
+        }
+        Log.i(this, "%s calls sent to InCallService.", numCallsSent);
         Trace.endSection();
         mCallsManager.setDsdaAdapter();
         return true;
