@@ -19,7 +19,7 @@
   <!-- Blacklist preferences -->
   <string name="blacklist_title">着信拒否リスト</string>
   <string name="blacklist_summary_disabled">無効</string>
-  <string name="blacklist_summary">着信拒否リストにある電話番号からの着信やメッセージを受け取らないようにします</string>
+  <string name="blacklist_summary">着信拒否リストにある電話番号からの着信やメッセージを受け取らないようにする</string>
   <!-- Blacklist notifications -->
   <string name="blacklist_call_notification">%sからの着信を拒否しました</string>
   <string name="blacklist_call_notification_private_number">非通知番号からの着信を拒否しました</string>
