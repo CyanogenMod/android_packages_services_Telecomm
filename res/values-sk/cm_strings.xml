@@ -31,4 +31,8 @@
   <string name="blacklist_message_notification_multiple">Počet zablokovaných správ: <xliff:g id="count">%d</xliff:g></string>
   <string name="blacklist_notification_list_private">Súkromné</string>
   <string name="unblock_number">Odblokovať</string>
+  <string name="unblock_contact">Odblokovať kontakt</string>
+  <string name="call_waiting_dialog_title">Odpovedať %s</string>
+  <string name="call_waiting_dialog_hold_call">Podržať prebiehajúci hovor</string>
+  <string name="call_waiting_dialog_end_call">Ukončiť aktuálny hovor</string>
 </resources>
